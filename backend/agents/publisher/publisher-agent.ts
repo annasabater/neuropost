@@ -14,16 +14,16 @@
 
 import { randomUUID } from 'crypto';
 import type Anthropic from '@anthropic-ai/sdk';
-import { BaseAgent } from '../shared/base-agent.js';
-import { getClaudeClient, CLAUDE_MODEL, withRetry } from '../shared/claude-client.js';
-import type { AgentContext } from '../shared/types.js';
+import { BaseAgent } from '../shared/base-agent';
+import { getClaudeClient, CLAUDE_MODEL, withRetry } from '../shared/claude-client';
+import type { AgentContext } from '../shared/types';
 import {
   publishToInstagram,
   publishToFacebook,
   MetaGraphError,
-} from '../../lib/meta-graph.js';
-import type { PublisherInput, PublisherOutput, BrandSafetyCheck } from './types.js';
-import { buildSafetySystemPrompt, buildSafetyUserPrompt } from './prompts.js';
+} from '../../lib/meta-graph';
+import type { PublisherInput, PublisherOutput, BrandSafetyCheck } from './types';
+import { buildSafetySystemPrompt, buildSafetyUserPrompt } from './prompts';
 
 // ─── Approval store interface (injectable for testing) ────────────────────────
 

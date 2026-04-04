@@ -269,7 +269,15 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
         <div className="editor-section editor-row">
           <div className="form-group" style={{ flex: 1 }}>
             <label>Formato</label>
-            <select value={format} onChange={(e) => setFormat(e.target.value as PostFormat)}>
+            <select
+              value={format}
+              onChange={(e) => {
+                const val = e.target.value as PostFormat;
+                setFormat(val);
+                if (val === 'story') setIsStory(true);
+                else setIsStory(false);
+              }}
+            >
               {FORMATS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
             </select>
           </div>
@@ -280,6 +288,22 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
             </select>
           </div>
         </div>
+
+        {/* Story notice */}
+        {format === 'story' && (
+          <div style={{
+            padding:      '10px 14px',
+            borderRadius: 10,
+            background:   'var(--orange-light, #fff7ed)',
+            border:       '1px solid var(--orange)',
+            fontSize:     '0.83rem',
+            color:        'var(--ink)',
+            lineHeight:   1.5,
+          }}>
+            <strong style={{ color: 'var(--orange)' }}>Story seleccionada.</strong>{' '}
+            Las Stories duran 24h y no llevan caption. Solo imagen o video.
+          </div>
+        )}
 
         {/* AI Buttons */}
         <div className="editor-ai-row">
@@ -377,8 +401,8 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
           </div>
         </div>
 
-        {/* Story option — only if plan allows and Instagram is selected */}
-        {allowStories && platforms.includes('instagram') && (
+        {/* Story option — only if plan allows, Instagram selected, and format is not already story */}
+        {allowStories && platforms.includes('instagram') && format !== 'story' && (
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: '0.88rem', color: 'var(--text)' }}>
             <input
               type="checkbox"

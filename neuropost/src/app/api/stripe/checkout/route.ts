@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { getStripeClient, getPriceId } from '@/lib/stripe';
+import { requirePermission } from '@/lib/rbac';
 import type { SubscriptionPlan } from '@/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -9,7 +10,7 @@ type DB = any;
 export async function POST(request: Request) {
   try {
     const user     = await requireServerUser();
-    const body     = await request.json() as { plan: SubscriptionPlan };
+    const body     = await request.json() as { plan: SubscriptionPlan; promoCodeId?: string };
     const supabase = await createServerClient() as DB;
     const appUrl   = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
@@ -19,6 +20,9 @@ export async function POST(request: Request) {
       .select('id,stripe_customer_id,name')
       .eq('user_id', user.id)
       .single();
+
+    const permErr = await requirePermission(user.id, brand?.id, 'manage_billing');
+    if (permErr) return permErr;
 
     const stripe = getStripeClient();
     let customerId: string | undefined = brand?.stripe_customer_id ?? undefined;
@@ -51,7 +55,9 @@ export async function POST(request: Request) {
       success_url:          `${appUrl}/settings/plan?success=true`,
       cancel_url:           `${appUrl}/settings/plan?cancelled=true`,
       locale:               'es',
-      allow_promotion_codes: true,
+      ...(body.promoCodeId
+        ? { discounts: [{ promotion_code: body.promoCodeId }] }
+        : { allow_promotion_codes: true }),
       subscription_data: {
         trial_period_days: 14,
         metadata: { brand_id: brand?.id ?? '', user_id: user.id },

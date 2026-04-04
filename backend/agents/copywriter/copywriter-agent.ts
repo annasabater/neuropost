@@ -9,11 +9,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type Anthropic from '@anthropic-ai/sdk';
-import { BaseAgent } from '../shared/base-agent.js';
-import { getClaudeClient, CLAUDE_MODEL, withRetry } from '../shared/claude-client.js';
-import type { AgentContext } from '../shared/types.js';
-import type { CopywriterInput, CopywriterOutput, Platform, PlatformCopy } from './types.js';
-import { buildCopywriterSystemPrompt, buildCopywriterUserPrompt } from './prompts.js';
+import { BaseAgent } from '../shared/base-agent';
+import { getClaudeClient, CLAUDE_MODEL, withRetry } from '../shared/claude-client';
+import type { AgentContext } from '../shared/types';
+import type { CopywriterInput, CopywriterOutput, Platform, PlatformCopy } from './types';
+import { buildCopywriterSystemPrompt, buildCopywriterUserPrompt } from './prompts';
 
 export class CopywriterAgent extends BaseAgent<CopywriterInput, CopywriterOutput> {
   constructor() {

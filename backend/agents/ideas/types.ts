@@ -2,7 +2,7 @@
 // Postly — IdeasAgent types
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { PostGoal } from '../copywriter/types.js';
+import type { PostGoal } from '../copywriter/types';
 
 export type PostFormat = 'image' | 'reel' | 'carousel' | 'story';
 

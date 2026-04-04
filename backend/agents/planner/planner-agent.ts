@@ -8,11 +8,11 @@
 
 import { randomUUID } from 'crypto';
 import type Anthropic from '@anthropic-ai/sdk';
-import { BaseAgent } from '../shared/base-agent.js';
-import { getClaudeClient, CLAUDE_MODEL, withRetry } from '../shared/claude-client.js';
-import type { AgentContext } from '../shared/types.js';
-import type { PlannerInput, PlannerOutput, ScheduledPost, CalendarDay } from './types.js';
-import { buildPlannerSystemPrompt, buildPlannerUserPrompt } from './prompts.js';
+import { BaseAgent } from '../shared/base-agent';
+import { getClaudeClient, CLAUDE_MODEL, withRetry } from '../shared/claude-client';
+import type { AgentContext } from '../shared/types';
+import type { PlannerInput, PlannerOutput, ScheduledPost, CalendarDay } from './types';
+import { buildPlannerSystemPrompt, buildPlannerUserPrompt } from './prompts';
 
 export class PlannerAgent extends BaseAgent<PlannerInput, PlannerOutput> {
   constructor() {

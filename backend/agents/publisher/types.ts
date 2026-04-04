@@ -2,7 +2,7 @@
 // Postly — PublisherAgent types
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { Platform } from '../copywriter/types.js';
+import type { Platform } from '../copywriter/types';
 
 // ─── Input ────────────────────────────────────────────────────────────────────
 

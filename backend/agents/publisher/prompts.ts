@@ -3,8 +3,8 @@
 // Claude is used solely for the brand safety check before publishing.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { AgentContext } from '../shared/types.js';
-import type { PublisherInput } from './types.js';
+import type { AgentContext } from '../shared/types';
+import type { PublisherInput } from './types';
 
 /**
  * Frames Claude as a brand compliance reviewer with full knowledge

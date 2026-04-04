@@ -2,8 +2,8 @@
 // Postly — AnalystAgent types
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { Platform } from '../copywriter/types.js';
-import type { SentimentBreakdown } from '../community/types.js';
+import type { Platform } from '../copywriter/types';
+import type { SentimentBreakdown } from '../community/types';
 
 // ─── Input ────────────────────────────────────────────────────────────────────
 

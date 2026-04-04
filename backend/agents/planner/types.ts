@@ -2,7 +2,7 @@
 // Postly — PlannerAgent types
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { Platform, PostGoal } from '../copywriter/types.js';
+import type { Platform, PostGoal } from '../copywriter/types';
 
 // ─── Input ────────────────────────────────────────────────────────────────────
 

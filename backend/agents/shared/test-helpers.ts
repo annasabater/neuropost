@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { vi } from 'vitest';
-import type { AgentContext } from './types.js';
+import type { AgentContext } from './types';
 
 // ─── Shared fixture ───────────────────────────────────────────────────────────
 

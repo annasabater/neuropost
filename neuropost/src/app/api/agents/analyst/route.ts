@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { brandToAgentContext } from '@/lib/agentContext';
 import { runAnalystAgent } from '@neuropost/agents';
+import { getIGPostInsights } from '@/lib/meta';
 import type { AnalystInput, PostMetrics, AccountMetrics, CommunityMetrics, PlannerMetrics, Post, Brand } from '@/types';
 
 export async function POST(request: Request) {
@@ -31,51 +32,123 @@ export async function POST(request: Request) {
 
     const posts = (dbPosts ?? []) as Post[];
 
-    const postMetrics: PostMetrics[] = posts.length
-      ? posts.map((p) => ({
-          postId:         p.id,
-          contentPieceId: p.id,
-          platform:       (Array.isArray(p.platform) ? p.platform[0] : p.platform) as 'instagram' | 'facebook',
-          publishedAt:    p.published_at ?? p.created_at,
-          reach:          Math.floor(Math.random() * 500 + 50),
-          impressions:    Math.floor(Math.random() * 800 + 100),
-          likes:          Math.floor(Math.random() * 60 + 5),
-          comments:       Math.floor(Math.random() * 15 + 1),
-          shares:         Math.floor(Math.random() * 10),
-          saves:          Math.floor(Math.random() * 20 + 2),
-          engagementRate: Math.random() * 6 + 1,
-          captionPreview: p.caption?.slice(0, 60),
-        }))
-      : [
-          { postId: 'demo-1', contentPieceId: 'demo-1', platform: 'instagram' as const, publishedAt: periodStart, reach: 340, impressions: 620, likes: 48, comments: 12, shares: 6, saves: 18, engagementRate: 5.2, captionPreview: 'Demo post' },
-          { postId: 'demo-2', contentPieceId: 'demo-2', platform: 'facebook'  as const, publishedAt: periodStart, reach: 210, impressions: 380, likes: 22, comments: 5,  shares: 3, saves: 7,  engagementRate: 3.8, captionPreview: 'Demo post 2' },
-        ];
+    // ── Fetch real post metrics from Meta (or use cached metrics field) ──────
+    const postMetrics: PostMetrics[] = await Promise.all(
+      posts
+        .filter((p) => p.status === 'published')
+        .map(async (p): Promise<PostMetrics> => {
+          // Use cached metrics if available, otherwise fetch from Meta
+          let m = p.metrics as Record<string, number> | null;
+
+          if (!m && p.ig_post_id && typedBrand.ig_access_token) {
+            try {
+              const insights = await getIGPostInsights(p.ig_post_id, typedBrand.ig_access_token);
+              m = {
+                impressions: insights.impressions,
+                reach:       insights.reach,
+                likes:       insights.likes,
+                comments:    insights.comments,
+                saved:       insights.saved,
+                shares:      insights.shares,
+              };
+              // Cache back to DB for future requests
+              await supabase.from('posts').update({ metrics: m }).eq('id', p.id);
+            } catch {
+              m = null;
+            }
+          }
+
+          const likes        = m?.likes        ?? m?.likes_count ?? 0;
+          const comments     = m?.comments      ?? m?.comments_count ?? 0;
+          const reach        = m?.reach         ?? 0;
+          const impressions  = m?.impressions   ?? 0;
+          const shares       = m?.shares        ?? 0;
+          const saves        = m?.saved         ?? m?.saves ?? 0;
+          const engagementRate = reach > 0
+            ? ((likes + comments + shares + saves) / reach) * 100
+            : 0;
+
+          return {
+            postId:         p.id,
+            contentPieceId: p.id,
+            platform:       (Array.isArray(p.platform) ? p.platform[0] : p.platform) as 'instagram' | 'facebook',
+            publishedAt:    p.published_at ?? p.created_at,
+            reach,
+            impressions,
+            likes,
+            comments,
+            shares,
+            saves,
+            engagementRate: Math.round(engagementRate * 100) / 100,
+            captionPreview: p.caption?.slice(0, 60),
+          };
+        }),
+    );
+
+    // ── Account-level metrics from stored posts (approximated from post data) ─
+    const igPosts = postMetrics.filter((pm) => pm.platform === 'instagram');
+    const fbPosts = postMetrics.filter((pm) => pm.platform === 'facebook');
 
     const accountMetrics: AccountMetrics[] = [
-      { platform: 'instagram', followersStart: 800, followersEnd: 845, followersGained: 45, profileVisits: 180, websiteClicks: 22, totalReach: 2100, totalImpressions: 4200 },
-      { platform: 'facebook',  followersStart: 320, followersEnd: 332, followersGained: 12, profileVisits: 65,  websiteClicks: 8,  totalReach: 890,  totalImpressions: 1600 },
+      ...(typedBrand.ig_account_id ? [{
+        platform:         'instagram' as const,
+        followersStart:   0,
+        followersEnd:     0,
+        followersGained:  0,
+        profileVisits:    0,
+        websiteClicks:    0,
+        totalReach:       igPosts.reduce((s, p) => s + p.reach, 0),
+        totalImpressions: igPosts.reduce((s, p) => s + p.impressions, 0),
+      }] : []),
+      ...(typedBrand.fb_page_id ? [{
+        platform:         'facebook' as const,
+        followersStart:   0,
+        followersEnd:     0,
+        followersGained:  0,
+        profileVisits:    0,
+        websiteClicks:    0,
+        totalReach:       fbPosts.reduce((s, p) => s + p.reach, 0),
+        totalImpressions: fbPosts.reduce((s, p) => s + p.impressions, 0),
+      }] : []),
     ];
 
+    // ── Community metrics from comments table ────────────────────────────────
+    const { data: comments } = await supabase
+      .from('comments')
+      .select('sentiment, auto_replied')
+      .eq('brand_id', typedBrand.id)
+      .gte('created_at', periodStart)
+      .lt('created_at', periodEnd);
+
+    const commentRows = (comments ?? []) as { sentiment: string; auto_replied: boolean }[];
     const communityMetrics: CommunityMetrics = {
-      totalInteractions: 28,
-      autoResponded:     18,
-      escalated:         5,
-      sentimentScore:    0.72,
-      sentimentBreakdown: { positive: 15, neutral: 8, negative: 5 },
+      totalInteractions: commentRows.length,
+      autoResponded:     commentRows.filter((c) => c.auto_replied).length,
+      escalated:         commentRows.filter((c) => c.sentiment === 'negative').length,
+      sentimentScore:    commentRows.length > 0
+        ? commentRows.filter((c) => c.sentiment === 'positive').length / commentRows.length
+        : 0,
+      sentimentBreakdown: {
+        positive: commentRows.filter((c) => c.sentiment === 'positive').length,
+        neutral:  commentRows.filter((c) => c.sentiment === 'neutral').length,
+        negative: commentRows.filter((c) => c.sentiment === 'negative').length,
+      },
     };
 
-    const published = posts.filter((p) => p.status === 'published').length;
+    // ── Planner metrics ──────────────────────────────────────────────────────
+    const published      = posts.filter((p) => p.status === 'published').length;
+    const plannedPosts   = posts.filter((p) => ['published', 'scheduled', 'pending', 'approved'].includes(p.status)).length;
     const plannerMetrics: PlannerMetrics = {
-      plannedPosts:    12,
-      publishedPosts:  published || 9,
+      plannedPosts:    plannedPosts || published,
+      publishedPosts:  published,
       pendingApproval: posts.filter((p) => p.status === 'pending').length,
-      rejected:        0,
-      completionRate:  Math.round(((published || 9) / 12) * 100),
+      rejected:        posts.filter((p) => p.status === 'cancelled').length,
+      completionRate:  plannedPosts > 0 ? Math.round((published / plannedPosts) * 100) : 0,
     };
 
     const input: AnalystInput = {
       period: { month: body.month, year: body.year },
-      postMetrics,
+      postMetrics:     postMetrics.length ? postMetrics : [],
       accountMetrics,
       communityMetrics,
       plannerMetrics,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { publishToInstagram, publishToFacebook, publishStoryToInstagram, publishReelToInstagram } from '@/lib/meta';
+import { requirePermission } from '@/lib/rbac';
 import { incrementPostCounter, incrementStoryCounter } from '@/lib/plan-limits';
 import type { Post, Brand } from '@/types';
 
@@ -23,6 +24,9 @@ export async function POST(request: Request) {
     if (!brand) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
 
     const typedBrand = brand as Brand;
+
+    const permErr = await requirePermission(user.id, typedBrand.id, 'publish_post');
+    if (permErr) return permErr;
 
     // Get post
     const { data: post } = await supabase

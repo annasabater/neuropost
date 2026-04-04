@@ -5,7 +5,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { randomUUID } from 'crypto';
-import type { AgentContext, AgentResult, AgentError, AgentMetadata } from './types.js';
+import type { AgentContext, AgentResult, AgentError, AgentMetadata } from './types';
 
 /**
  * Abstract base for all Postly agents.

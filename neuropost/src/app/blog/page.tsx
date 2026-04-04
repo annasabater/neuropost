@@ -2,42 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-
-interface Article {
-  slug: string;
-  title: string;
-  desc: string;
-  date: string;
-  sector: string;
-  readTime: string;
-}
-
-const ARTICLES: Article[] = [
-  {
-    slug: 'instagram-heladeria',
-    title: 'Cómo gestionar Instagram para tu heladería',
-    desc: 'Guía completa para dueños de heladerías que quieren crecer en redes sin perder el tiempo.',
-    date: '2025-06-01',
-    sector: 'Heladería',
-    readTime: '5 min',
-  },
-  {
-    slug: 'mejores-horas-publicar',
-    title: 'Las mejores horas para publicar en Instagram (según el sector)',
-    desc: 'Analizamos miles de posts de negocios locales españoles para darte los horarios óptimos.',
-    date: '2025-05-20',
-    sector: 'General',
-    readTime: '4 min',
-  },
-  {
-    slug: 'tendencias-redes-2025',
-    title: 'Tendencias en redes sociales para negocios locales en 2025',
-    desc: 'Lo que está funcionando ahora mismo en Instagram y Facebook para restaurantes, tiendas y servicios.',
-    date: '2025-05-10',
-    sector: 'General',
-    readTime: '6 min',
-  },
-];
+import { BLOG_POSTS } from '@/lib/blog-posts';
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
@@ -116,10 +81,10 @@ export default function BlogPage() {
             gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
             gap: '28px',
           }}>
-            {ARTICLES.map((article) => (
+            {BLOG_POSTS.map((post) => (
               <Link
-                key={article.slug}
-                href={`/blog/${article.slug}`}
+                key={post.slug}
+                href={`/blog/${post.slug}`}
                 style={{ textDecoration: 'none' }}
               >
                 <article style={{
@@ -143,7 +108,7 @@ export default function BlogPage() {
                   (e.currentTarget as HTMLElement).style.boxShadow = '';
                 }}
                 >
-                  {/* Sector tag */}
+                  {/* Read time tag */}
                   <span style={{
                     display: 'inline-block',
                     background: 'var(--orange-light)',
@@ -157,7 +122,7 @@ export default function BlogPage() {
                     borderRadius: '20px',
                     alignSelf: 'flex-start',
                   }}>
-                    {article.sector}
+                    {post.readTime} min
                   </span>
 
                   <h2 style={{
@@ -168,7 +133,7 @@ export default function BlogPage() {
                     lineHeight: 1.3,
                     margin: 0,
                   }}>
-                    {article.title}
+                    {post.title}
                   </h2>
 
                   <p style={{
@@ -179,7 +144,7 @@ export default function BlogPage() {
                     margin: 0,
                     fontFamily: "'Cabinet Grotesk', sans-serif",
                   }}>
-                    {article.desc}
+                    {post.excerpt}
                   </p>
 
                   <div style={{
@@ -192,9 +157,9 @@ export default function BlogPage() {
                     color: 'var(--muted)',
                     fontFamily: "'Cabinet Grotesk', sans-serif",
                   }}>
-                    <span>{formatDate(article.date)}</span>
+                    <span>{formatDate(post.date)}</span>
                     <span>·</span>
-                    <span>{article.readTime} de lectura</span>
+                    <span>{post.readTime} min de lectura</span>
                   </div>
                 </article>
               </Link>

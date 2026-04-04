@@ -1,5 +1,5 @@
 // =============================================================================
-// @postly/agents — Public API
+// @neuropost/agents — Public API
 // All agent run-functions and their types, exported for use by the Next.js app.
 // =============================================================================
 
@@ -15,7 +15,7 @@ export type {
   BrandTone,
   SubscriptionPlan,
   SubscriptionTier,
-} from './agents/shared/types.js';
+} from './agents/shared/types';
 
 // ─── Editor ───────────────────────────────────────────────────────────────────
 export type {
@@ -25,25 +25,25 @@ export type {
   EditingParameters,
   CropSuggestion,
   EditingLevel,
-} from './agents/editor/types.js';
+} from './agents/editor/types';
 
-import { EditorAgent } from './agents/editor/editor-agent.js';
-import type { AgentContext } from './agents/shared/types.js';
-import type { AgentResult } from './agents/shared/types.js';
-import type { EditorInput, EditorOutput } from './agents/editor/types.js';
-import type { CopywriterInput, CopywriterOutput } from './agents/copywriter/types.js';
-import type { IdeasInput, IdeasOutput } from './agents/ideas/types.js';
-import type { PlannerInput, PlannerOutput } from './agents/planner/types.js';
-import type { CommunityInput, CommunityOutput } from './agents/community/types.js';
-import type { AnalystInput, AnalystOutput } from './agents/analyst/types.js';
-import type { PublisherInput, PublisherOutput } from './agents/publisher/types.js';
+import { EditorAgent } from './agents/editor/editor-agent';
+import type { AgentContext } from './agents/shared/types';
+import type { AgentResult } from './agents/shared/types';
+import type { EditorInput, EditorOutput } from './agents/editor/types';
+import type { CopywriterInput, CopywriterOutput } from './agents/copywriter/types';
+import type { IdeasInput, IdeasOutput } from './agents/ideas/types';
+import type { PlannerInput, PlannerOutput } from './agents/planner/types';
+import type { CommunityInput, CommunityOutput } from './agents/community/types';
+import type { AnalystInput, AnalystOutput } from './agents/analyst/types';
+import type { PublisherInput, PublisherOutput } from './agents/publisher/types';
 
-import { CopywriterAgent } from './agents/copywriter/copywriter-agent.js';
-import { IdeasAgent } from './agents/ideas/ideas-agent.js';
-import { PlannerAgent } from './agents/planner/planner-agent.js';
-import { CommunityAgent } from './agents/community/community-agent.js';
-import { AnalystAgent } from './agents/analyst/analyst-agent.js';
-import { PublisherAgent } from './agents/publisher/publisher-agent.js';
+import { CopywriterAgent } from './agents/copywriter/copywriter-agent';
+import { IdeasAgent } from './agents/ideas/ideas-agent';
+import { PlannerAgent } from './agents/planner/planner-agent';
+import { CommunityAgent } from './agents/community/community-agent';
+import { AnalystAgent } from './agents/analyst/analyst-agent';
+import { PublisherAgent } from './agents/publisher/publisher-agent';
 
 // ─── Copywriter ───────────────────────────────────────────────────────────────
 export type {
@@ -53,7 +53,7 @@ export type {
   HashtagSet,
   PostGoal,
   Platform,
-} from './agents/copywriter/types.js';
+} from './agents/copywriter/types';
 
 // ─── Ideas ────────────────────────────────────────────────────────────────────
 export type {
@@ -61,7 +61,7 @@ export type {
   IdeasOutput,
   IdeaItem,
   PostFormat,
-} from './agents/ideas/types.js';
+} from './agents/ideas/types';
 
 // ─── Planner ──────────────────────────────────────────────────────────────────
 export type {
@@ -71,7 +71,7 @@ export type {
   CalendarDay,
   ContentPiece,
   BestTimeInsight,
-} from './agents/planner/types.js';
+} from './agents/planner/types';
 
 // ─── Community ────────────────────────────────────────────────────────────────
 export type {
@@ -88,7 +88,7 @@ export type {
   InteractionAnalysis,
   SentimentBreakdown,
   CategoryBreakdown,
-} from './agents/community/types.js';
+} from './agents/community/types';
 
 // ─── Analyst ──────────────────────────────────────────────────────────────────
 export type {
@@ -105,7 +105,7 @@ export type {
   PostHighlight,
   PlatformBreakdown,
   PreviousPeriodSnapshot,
-} from './agents/analyst/types.js';
+} from './agents/analyst/types';
 
 // ─── Publisher ────────────────────────────────────────────────────────────────
 export type {
@@ -114,7 +114,7 @@ export type {
   BrandSafetyCheck,
   SafetyRecommendation,
   PublishStatus,
-} from './agents/publisher/types.js';
+} from './agents/publisher/types';
 
 // ─── Run functions ────────────────────────────────────────────────────────────
 

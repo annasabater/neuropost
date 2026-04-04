@@ -11,14 +11,14 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type Anthropic from '@anthropic-ai/sdk';
-import { BaseAgent } from '../shared/base-agent.js';
-import { getClaudeClient, CLAUDE_MODEL, withRetry } from '../shared/claude-client.js';
-import type { AgentContext } from '../shared/types.js';
+import { BaseAgent } from '../shared/base-agent';
+import { getClaudeClient, CLAUDE_MODEL, withRetry } from '../shared/claude-client';
+import type { AgentContext } from '../shared/types';
 import {
   replyToComment,
   sendDmReply,
   MetaGraphError,
-} from '../../lib/meta-graph.js';
+} from '../../lib/meta-graph';
 import type {
   CommunityInput,
   CommunityOutput,
@@ -28,8 +28,8 @@ import type {
   SentimentBreakdown,
   CategoryBreakdown,
   InteractionAnalysis,
-} from './types.js';
-import { buildCommunitySystemPrompt, buildCommunityUserPrompt } from './prompts.js';
+} from './types';
+import { buildCommunitySystemPrompt, buildCommunityUserPrompt } from './prompts';
 
 /** Maximum interactions per batch — prevents token overflow */
 const MAX_BATCH_SIZE = 20;

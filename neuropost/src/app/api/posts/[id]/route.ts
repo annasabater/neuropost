@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
+import { requirePermission } from '@/lib/rbac';
 import type { Post } from '@/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,6 +35,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     const { data: brand } = await supabase.from('brands').select('id').eq('user_id', user.id).single();
     if (!brand) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
+
+    const patchAction = (body.status === 'approved' || body.status === 'rejected')
+      ? 'approve_post'
+      : 'edit_post';
+    const permErr = await requirePermission(user.id, brand.id, patchAction);
+    if (permErr) return permErr;
 
     // If approving the post, record who approved it
     const updatePayload = body.status === 'approved'

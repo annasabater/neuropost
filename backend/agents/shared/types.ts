@@ -3,19 +3,20 @@
 // All agents receive AgentContext and return AgentResult<T>
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Aligned with postly/src/types/index.ts — must stay in sync
+// Aligned with neuropost/src/types/index.ts — must stay in sync
 export type SocialSector =
-  | 'heladeria'
-  | 'restaurante'
-  | 'cafeteria'
-  | 'gym'
-  | 'clinica'
-  | 'barberia'
-  | 'boutique'
-  | 'inmobiliaria'
+  | 'heladeria' | 'restaurante' | 'cafeteria' | 'gym' | 'clinica' | 'barberia' | 'boutique' | 'inmobiliaria'
+  | 'panaderia' | 'cocteleria' | 'street_food' | 'vinoteca'
+  | 'nail_art' | 'estetica' | 'maquillaje'
+  | 'moda_hombre' | 'zapateria' | 'skincare'
+  | 'yoga' | 'dental' | 'clinica_estetica' | 'nutricion'
+  | 'decoracion' | 'jardineria' | 'reformas' | 'inmobiliaria_lujo'
+  | 'fotografia' | 'academia' | 'abogado' | 'veterinario' | 'mecanica'
+  | 'teatro' | 'arte' | 'libreria' | 'gaming' | 'viajes' | 'hotel'
+  | 'floristeria' | 'regalos' | 'tecnologia'
   | 'otro';
 
-export type SubscriptionPlan = 'starter' | 'pro' | 'agency';
+export type SubscriptionPlan = 'starter' | 'pro' | 'total' | 'agency';
 /** @deprecated Use SubscriptionPlan */
 export type SubscriptionTier = SubscriptionPlan;
 

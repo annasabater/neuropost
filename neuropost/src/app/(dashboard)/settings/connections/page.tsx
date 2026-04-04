@@ -6,13 +6,14 @@ import toast from 'react-hot-toast';
 import { ExternalLink, RefreshCw, Trash2 } from 'lucide-react';
 
 interface AccountStatus {
-  accountId?:  string;
-  pageId?:     string;
-  username?:   string | null;
-  pageName?:   string | null;
-  tokenStatus: 'ok' | 'expiring_soon' | 'expired' | 'missing';
-  daysLeft:    number | null;
-  expiresAt:   string | null;
+  accountId?:        string;
+  pageId?:           string;
+  username?:         string | null;
+  pageName?:         string | null;
+  tokenStatus:       'ok' | 'expiring_soon' | 'expired' | 'missing';
+  daysLeft:          number | null;
+  expiresAt:         string | null;
+  tokenRefreshedAt?: string | null;
 }
 
 interface ConnectionStatus {
@@ -100,8 +101,10 @@ export default function ConnectionsPage() {
 
             {status?.instagram ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <p style={{ fontSize: 14, color: 'var(--ink)' }}>
-                  {status.instagram.username ? `@${status.instagram.username}` : `ID: ${status.instagram.accountId}`}
+                <p style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600 }}>
+                  {status.instagram.username
+                    ? `Cuenta: @${status.instagram.username}`
+                    : `Cuenta: @${status.instagram.accountId}`}
                 </p>
                 {status.instagram.daysLeft !== null && (
                   <p style={{ fontSize: 13, color: 'var(--muted)' }}>
@@ -110,9 +113,19 @@ export default function ConnectionsPage() {
                       : '(expirado)'}
                   </p>
                 )}
-                <button className="btn-outline" onClick={connectMeta} style={{ alignSelf: 'flex-start' }}>
-                  <RefreshCw size={14} /> Reconectar
-                </button>
+                {status.instagram.tokenRefreshedAt && (
+                  <p style={{ fontSize: 12, color: 'var(--muted)' }}>
+                    Última actualización: {new Date(status.instagram.tokenRefreshedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button className="btn-outline" onClick={connectMeta} style={{ alignSelf: 'flex-start' }}>
+                    <RefreshCw size={14} /> Reconectar
+                  </button>
+                  <button className="btn-primary" onClick={connectMeta} style={{ alignSelf: 'flex-start' }}>
+                    <ExternalLink size={14} /> Conectar otra cuenta
+                  </button>
+                </div>
               </div>
             ) : (
               <div style={{ marginTop: 8 }}>
@@ -136,12 +149,31 @@ export default function ConnectionsPage() {
 
             {status?.facebook ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <p style={{ fontSize: 14, color: 'var(--ink)' }}>
-                  {status.facebook.pageName ?? `Página ID: ${status.facebook.pageId}`}
+                <p style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600 }}>
+                  {status.facebook.pageName
+                    ? `Página: ${status.facebook.pageName}`
+                    : `Página ID: ${status.facebook.pageId}`}
                 </p>
-                <button className="btn-outline" onClick={connectMeta} style={{ alignSelf: 'flex-start' }}>
-                  <RefreshCw size={14} /> Reconectar
-                </button>
+                {status.facebook.daysLeft !== null && (
+                  <p style={{ fontSize: 13, color: 'var(--muted)' }}>
+                    Token válido {status.facebook.daysLeft > 0
+                      ? `${status.facebook.daysLeft} días más`
+                      : '(expirado)'}
+                  </p>
+                )}
+                {status.facebook.tokenRefreshedAt && (
+                  <p style={{ fontSize: 12, color: 'var(--muted)' }}>
+                    Última actualización: {new Date(status.facebook.tokenRefreshedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                )}
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button className="btn-outline" onClick={connectMeta} style={{ alignSelf: 'flex-start' }}>
+                    <RefreshCw size={14} /> Reconectar
+                  </button>
+                  <button className="btn-primary" onClick={connectMeta} style={{ alignSelf: 'flex-start' }}>
+                    <ExternalLink size={14} /> Conectar otra página
+                  </button>
+                </div>
               </div>
             ) : (
               <div style={{ marginTop: 8 }}>

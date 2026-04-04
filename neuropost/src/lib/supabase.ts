@@ -6,7 +6,7 @@ import {
   createServerClient as _createServerClient,
 } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
-import type { Brand } from '@/types';
+import type { Brand, TeamRole } from '@/types';
 
 const URL  = () => process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const ANON = () => process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -75,4 +75,39 @@ export async function getServerBrand(): Promise<Brand | null> {
     .single();
 
   return (data as Brand | null);
+}
+
+/**
+ * Resolves the brand and effective role for a user.
+ * Supports both brand owners and team members.
+ * Returns null if the user has no access to any brand.
+ */
+export async function getBrandAndRole(
+  userId: string,
+): Promise<{ brand: Brand; role: TeamRole } | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createServerClient() as any;
+
+  // 1. Try as owner first
+  const { data: ownedBrand } = await supabase
+    .from('brands')
+    .select('*')
+    .eq('user_id', userId)
+    .single();
+
+  if (ownedBrand) return { brand: ownedBrand as Brand, role: 'admin' };
+
+  // 2. Try as team member
+  const { data: membership } = await supabase
+    .from('team_members')
+    .select('role, brands(*)')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .single();
+
+  if (membership?.brands) {
+    return { brand: membership.brands as Brand, role: membership.role as TeamRole };
+  }
+
+  return null;
 }

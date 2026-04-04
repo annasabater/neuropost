@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
+import { requirePermission } from '@/lib/rbac';
 import type { TeamRole } from '@/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -41,6 +42,9 @@ export async function POST(request: Request) {
       .from('brands').select('id,name,plan').eq('user_id', user.id).single();
 
     if (!brand) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
+
+    const permErr = await requirePermission(user.id, brand.id, 'manage_team');
+    if (permErr) return permErr;
 
     // Check plan allows team members (pro+)
     if (brand.plan === 'starter') {

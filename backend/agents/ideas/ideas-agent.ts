@@ -4,11 +4,11 @@
 // Generates creative, sector-specific post ideas with ready-to-publish captions.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { BaseAgent } from '../shared/base-agent.js';
-import { getClaudeClient, CLAUDE_MODEL, withRetry } from '../shared/claude-client.js';
-import type { AgentContext } from '../shared/types.js';
-import type { IdeasInput, IdeasOutput, IdeaItem } from './types.js';
-import { buildIdeasSystemPrompt, buildIdeasUserPrompt } from './prompts.js';
+import { BaseAgent } from '../shared/base-agent';
+import { getClaudeClient, CLAUDE_MODEL, withRetry } from '../shared/claude-client';
+import type { AgentContext } from '../shared/types';
+import type { IdeasInput, IdeasOutput, IdeaItem } from './types';
+import { buildIdeasSystemPrompt, buildIdeasUserPrompt } from './prompts';
 
 export class IdeasAgent extends BaseAgent<IdeasInput, IdeasOutput> {
   constructor() {

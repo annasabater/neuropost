@@ -3,8 +3,8 @@
 // One batch call processes all interactions: classify + generate reply.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { AgentContext } from '../shared/types.js';
-import type { CommunityInput, Interaction } from './types.js';
+import type { AgentContext } from '../shared/types';
+import type { CommunityInput, Interaction } from './types';
 
 // ─── System prompt ────────────────────────────────────────────────────────────
 

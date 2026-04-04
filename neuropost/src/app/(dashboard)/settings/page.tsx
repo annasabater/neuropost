@@ -406,6 +406,56 @@ export default function SettingsPage() {
         )}
       </div>
 
+      {/* Data export */}
+      <div className="settings-section">
+        <h2 className="settings-section-title">Exportar datos</h2>
+        <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: 16 }}>
+          Descarga todos tus posts en el formato que prefieras.
+        </p>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <a
+            href="/api/export?format=json"
+            download="posts.json"
+            style={{
+              display:        'inline-flex',
+              alignItems:     'center',
+              gap:            6,
+              padding:        '9px 18px',
+              border:         '1px solid var(--border)',
+              borderRadius:   8,
+              fontSize:       13,
+              fontWeight:     600,
+              color:          'var(--ink)',
+              textDecoration: 'none',
+              background:     'var(--surface)',
+              cursor:         'pointer',
+            }}
+          >
+            Exportar JSON
+          </a>
+          <a
+            href="/api/export?format=csv"
+            download="posts.csv"
+            style={{
+              display:        'inline-flex',
+              alignItems:     'center',
+              gap:            6,
+              padding:        '9px 18px',
+              border:         '1.5px solid var(--orange)',
+              borderRadius:   8,
+              fontSize:       13,
+              fontWeight:     600,
+              color:          'var(--orange)',
+              textDecoration: 'none',
+              background:     'var(--surface)',
+              cursor:         'pointer',
+            }}
+          >
+            Exportar CSV
+          </a>
+        </div>
+      </div>
+
       {/* Billing */}
       <div className="settings-section">
         <h2 className="settings-section-title">Plan y facturación</h2>

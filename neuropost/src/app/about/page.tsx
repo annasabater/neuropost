@@ -306,7 +306,7 @@ export default function AboutPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
                 <ContactCard icon="📧" title="Email general" value="hola@neuropost.es" href="mailto:hola@neuropost.es" />
-                <ContactCard icon="📞" title="Teléfono" value="+34 XXX XXX XXX" sub="Lunes a viernes, 9:00 - 18:00" href="tel:+34XXXXXXXXX" />
+                <ContactCard icon="📞" title="Teléfono" value="+34 900 000 000" sub="Lunes a viernes, 9:00 - 18:00" href="tel:+34900000000" />
                 <ContactCard icon="📍" title="Dirección" value="Barcelona, España" href="https://maps.google.com/?q=Barcelona" />
               </div>
 
@@ -431,7 +431,7 @@ export default function AboutPage() {
               <p>IA para que los negocios locales gestionen sus redes sociales sin esfuerzo. Hecho con ❤️ en España.</p>
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <a href="mailto:hola@neuropost.es" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', textDecoration: 'none', fontFamily: "'Cabinet Grotesk',sans-serif" }}>📧 hola@neuropost.es</a>
-                <a href="tel:+34XXXXXXXXX" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', textDecoration: 'none', fontFamily: "'Cabinet Grotesk',sans-serif" }}>📞 +34 XXX XXX XXX</a>
+                <a href="tel:+34900000000" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', textDecoration: 'none', fontFamily: "'Cabinet Grotesk',sans-serif" }}>📞 +34 900 000 000</a>
               </div>
             </div>
             <div>

@@ -1,11 +1,12 @@
 {
-  "name": "postly-monorepo",
+  "name": "neuropost-monorepo",
   "private": true,
   "workspaces": [
     "backend",
-    "postly"
+    "neuropost"
   ],
   "dependencies": {
+    "@sentry/nextjs": "^10.47.0",
     "@supabase/ssr": "^0.10.0",
     "nprogress": "^0.2.0"
   },

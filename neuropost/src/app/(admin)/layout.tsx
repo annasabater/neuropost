@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Users, MessageSquare, Mail, Inbox,
-  BarChart2, ChevronRight, LogOut, TrendingDown, AtSign,
+  BarChart2, ChevronRight, LogOut, TrendingDown, AtSign, Tag,
 } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase';
 
@@ -18,6 +18,7 @@ const NAV = [
   { href: '/captacion/ads',                    icon: BarChart2,       label: 'Meta Ads' },
   { href: '/churn',                            icon: TrendingDown,    label: 'Retención' },
   { href: '/contactos',                        icon: AtSign,          label: 'Contactos' },
+  { href: '/cupones',                          icon: Tag,             label: 'Cupones' },
 ];
 
 const A = {

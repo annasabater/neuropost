@@ -2,8 +2,8 @@
 // Postly — IdeasAgent prompts
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { AgentContext } from '../shared/types.js';
-import type { IdeasInput } from './types.js';
+import type { AgentContext } from '../shared/types';
+import type { IdeasInput } from './types';
 
 export function buildIdeasSystemPrompt(ctx: AgentContext): string {
   const voice = ctx.brandVoice;

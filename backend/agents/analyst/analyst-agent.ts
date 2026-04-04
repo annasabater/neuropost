@@ -11,9 +11,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type Anthropic from '@anthropic-ai/sdk';
-import { BaseAgent } from '../shared/base-agent.js';
-import { getClaudeClient, CLAUDE_MODEL, withRetry } from '../shared/claude-client.js';
-import type { AgentContext } from '../shared/types.js';
+import { BaseAgent } from '../shared/base-agent';
+import { getClaudeClient, CLAUDE_MODEL, withRetry } from '../shared/claude-client';
+import type { AgentContext } from '../shared/types';
 import type {
   AnalystInput,
   AnalystOutput,
@@ -21,9 +21,9 @@ import type {
   PerformanceScores,
   PlatformBreakdown,
   PostHighlight,
-} from './types.js';
-import type { Platform } from '../copywriter/types.js';
-import { buildAnalystSystemPrompt, buildAnalystUserPrompt } from './prompts.js';
+} from './types';
+import type { Platform } from '../copywriter/types';
+import { buildAnalystSystemPrompt, buildAnalystUserPrompt } from './prompts';
 
 export class AnalystAgent extends BaseAgent<AnalystInput, AnalystOutput> {
   constructor() {

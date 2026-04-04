@@ -2,8 +2,8 @@
 // Postly — CopywriterAgent prompts
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { AgentContext } from '../shared/types.js';
-import type { CopywriterInput } from './types.js';
+import type { AgentContext } from '../shared/types';
+import type { CopywriterInput } from './types';
 
 // ─── System prompt ────────────────────────────────────────────────────────────
 

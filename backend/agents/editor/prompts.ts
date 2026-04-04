@@ -2,8 +2,8 @@
 // Postly — EditorAgent prompts
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { EditingLevel } from './types.js';
-import type { AgentContext } from '../shared/types.js';
+import type { EditingLevel } from './types';
+import type { AgentContext } from '../shared/types';
 
 /**
  * Builds the system prompt that frames Claude as a brand-aware photo analyst

@@ -2,8 +2,8 @@
 // Postly — AnalystAgent prompts
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { AgentContext } from '../shared/types.js';
-import type { AnalystInput, PostMetrics } from './types.js';
+import type { AgentContext } from '../shared/types';
+import type { AnalystInput, PostMetrics } from './types';
 
 // ─── Sector engagement benchmarks ────────────────────────────────────────────
 

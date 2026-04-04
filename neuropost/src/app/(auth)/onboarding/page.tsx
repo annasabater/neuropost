@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import type { SocialSector, BrandTone, PublishMode, PostGoal, VisualStyle } from '@/types';
 import { TONE_OPTIONS, PUBLISH_MODE_OPTIONS } from '@/lib/brand-options';
 import { useTagInput } from '@/hooks/useTagInput';
+import CouponInput from '@/components/billing/CouponInput';
 
 // ─── Sector catalog ───────────────────────────────────────────────────────────
 
@@ -140,6 +141,8 @@ export default function OnboardingPage() {
   const [publishMode,      setPublishMode]      = useState<PublishMode>('manual');
   const [primaryColor,     setPrimaryColor]     = useState('#FF6B35');
   const [secondaryColor,   setSecondaryColor]   = useState('#1A1A2E');
+  const [promoCodeId,      setPromoCodeId]      = useState<string | null>(null);
+  const [discountText,     setDiscountText]     = useState('');
 
   const dynamicQuestions = getDynamicQuestions(sector);
 
@@ -182,6 +185,7 @@ export default function OnboardingPage() {
           slogans:           slogan ? [slogan] : [],
           publish_mode:      publishMode,
           colors:            { primary: primaryColor, secondary: secondaryColor, accent: primaryColor },
+          promo_code_id:     promoCodeId ?? undefined,
           rules: {
             forbiddenWords:      forbidden,
             noPublishDays:       [],
@@ -457,6 +461,13 @@ export default function OnboardingPage() {
                   </div>
                 ))}
               </div>
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <CouponInput
+                onValidCoupon={(id, text) => { setPromoCodeId(id); setDiscountText(text); }}
+                onClearCoupon={() => { setPromoCodeId(null); setDiscountText(''); }}
+              />
             </div>
 
             <div style={{ display: 'flex', gap: 10 }}>

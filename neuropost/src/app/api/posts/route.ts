@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { checkPostLimit } from '@/lib/plan-limits';
-import type { Post } from '@/types';
+import { requirePermission } from '@/lib/rbac';
+import type { Post, Brand } from '@/types';
+import { PLAN_LIMITS } from '@/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -41,8 +43,12 @@ export async function POST(request: Request) {
     const body     = await request.json() as Record<string, unknown>;
     const supabase = await createServerClient() as DB;
 
-    const { data: brand } = await supabase.from('brands').select('id').eq('user_id', user.id).single();
-    if (!brand) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
+    const { data: brandRow } = await supabase.from('brands').select('*').eq('user_id', user.id).single();
+    if (!brandRow) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
+    const brand = brandRow as Brand;
+
+    const permErr = await requirePermission(user.id, brand.id, 'create_post');
+    if (permErr) return permErr;
 
     // Enforce plan limits
     const limit = await checkPostLimit(brand.id);
@@ -65,22 +71,47 @@ export async function POST(request: Request) {
       ...allowedFields
     } = body;
 
+    // ── Auto-publish mode: override status based on brand's publish_mode ─────
+    const planLimits = PLAN_LIMITS[brand.plan];
+    const canAutoPublish = planLimits.autoPublish && brand.publish_mode === 'auto';
+    const effectiveStatus = canAutoPublish ? 'approved' : (allowedFields.status ?? 'pending');
+
     const { data, error } = await supabase
       .from('posts')
-      .insert({ ...allowedFields, brand_id: brand.id, created_by: user.id })
+      .insert({ ...allowedFields, brand_id: brand.id, created_by: user.id, status: effectiveStatus })
       .select()
       .single();
     if (error) throw error;
 
     const insertedPost = data as Post;
 
-    // Insert approval_needed notification when post is pending approval
-    if (insertedPost.status === 'pending') {
+    // Auto-publish: immediately trigger publish for approved posts with media
+    if (canAutoPublish && insertedPost.image_url) {
+      try {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+        await fetch(`${appUrl}/api/publish`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json', cookie: '' },
+          body:    JSON.stringify({ postId: insertedPost.id }),
+        });
+      } catch { /* non-blocking — post is already approved in DB */ }
+    }
+
+    // Notification
+    if (canAutoPublish) {
       await supabase.from('notifications').insert({
         brand_id: brand.id,
-        type: 'approval_needed',
-        message: 'Un nuevo post requiere tu aprobación.',
-        read: false,
+        type:     'published',
+        message:  'Post creado y publicado automáticamente.',
+        read:     false,
+        metadata: { postId: insertedPost.id },
+      });
+    } else if (insertedPost.status === 'pending') {
+      await supabase.from('notifications').insert({
+        brand_id: brand.id,
+        type:     'approval_needed',
+        message:  'Un nuevo post requiere tu aprobación.',
+        read:     false,
         metadata: { postId: insertedPost.id },
       });
     }

@@ -7,11 +7,11 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type Anthropic from '@anthropic-ai/sdk';
-import { BaseAgent } from '../shared/base-agent.js';
-import { getClaudeClient, CLAUDE_MODEL, withRetry } from '../shared/claude-client.js';
-import type { AgentContext } from '../shared/types.js';
-import type { EditorInput, EditorOutput } from './types.js';
-import { buildEditorSystemPrompt, buildEditorUserPrompt } from './prompts.js';
+import { BaseAgent } from '../shared/base-agent';
+import { getClaudeClient, CLAUDE_MODEL, withRetry } from '../shared/claude-client';
+import type { AgentContext } from '../shared/types';
+import type { EditorInput, EditorOutput } from './types';
+import { buildEditorSystemPrompt, buildEditorUserPrompt } from './prompts';
 
 export class EditorAgent extends BaseAgent<EditorInput, EditorOutput> {
   constructor() {

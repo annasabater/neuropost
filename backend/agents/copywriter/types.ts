@@ -2,7 +2,7 @@
 // Postly — CopywriterAgent types
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { ImageAnalysis } from '../editor/types.js';
+import type { ImageAnalysis } from '../editor/types';
 
 // ─── Input ────────────────────────────────────────────────────────────────────
 

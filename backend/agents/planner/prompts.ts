@@ -2,8 +2,8 @@
 // Postly — PlannerAgent prompts
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { AgentContext } from '../shared/types.js';
-import type { PlannerInput } from './types.js';
+import type { AgentContext } from '../shared/types';
+import type { PlannerInput } from './types';
 
 // ─── Sector best-time knowledge ───────────────────────────────────────────────
 
