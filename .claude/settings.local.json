@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(head -20 grep -n \"beforeEach\\\\|withRetry\\\\|vi.fn\\\\|clearAllMocks\" /Users/annasabater/Desktop/Proyecto_1/backend/agents/publisher/publisher-agent.test.ts)",
+      "Bash(head -20 grep -n \"beforeEach\\\\|withRetry\\\\|vi.fn\\\\|clearAllMocks\" /Users/annasabater/Desktop/Proyecto_1/backend/agents/community/community-agent.test.ts)",
+      "Bash(head -20 grep -n \"beforeEach\\\\|withRetry\\\\|vi.fn\\\\|clearAllMocks\" /Users/annasabater/Desktop/Proyecto_1/backend/agents/analyst/analyst-agent.test.ts)",
+      "Bash(wc -l /Users/annasabater/Desktop/Proyecto_1/backend/agents/*/**.test.ts)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({**d.get\\(''''dependencies'''',{}\\), **d.get\\(''''devDependencies'''',{}\\)}, indent=2\\)\\)\")",
+      "Bash(npx tsc:*)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/annasabater/.nvm/versions/node/**)",
+      "Bash(export PATH=\"$HOME/.nvm/versions/node/v24.14.1/bin:$PATH\")",
+      "Bash(node -e \"const s = require\\(''''/Users/annasabater/Desktop/Proyecto_1/postly/node_modules/@supabase/auth-helpers-nextjs''''\\); console.log\\(Object.keys\\(s\\)\\)\")",
+      "Bash(node -e \"const s = require\\(''''/Users/annasabater/Desktop/Proyecto_1/postly/node_modules/stripe''''\\); console.log\\(Object.keys\\(s.Stripe || s\\).slice\\(0,5\\)\\); \")",
+      "Bash(export PATH=$HOME/.nvm/versions/node/v24.14.1/bin:$PATH)",
+      "Bash(node -e \"const s = require\\(''''/Users/annasabater/Desktop/Proyecto_1/postly/node_modules/stripe''''\\); console.log\\(s.Stripe?.LATEST_API_VERSION || ''''not found''''\\)\")",
+      "Bash(node -e \"const s = require\\(''@supabase/auth-helpers-nextjs''\\); console.log\\(Object.keys\\(s\\)\\)\")",
+      "Bash(ls ~/.nvm/versions/node/*/bin/node)",
+      "Bash(/Users/annasabater/.nvm/versions/node/v24.14.1/bin/node -e \"const s = require\\(''@supabase/auth-helpers-nextjs''\\); console.log\\(Object.keys\\(s\\)\\)\")",
+      "Bash(/Users/annasabater/.nvm/versions/node/v24.14.1/bin/node -e \"const s = require\\(''@supabase/auth-helpers-nextjs''\\); console.log\\(s.createBrowserClient.toString\\(\\).slice\\(0,200\\)\\)\")",
+      "Bash(/Users/annasabater/.nvm/versions/node/v24.14.1/bin/node -e \"const s = require\\(''@supabase/auth-helpers-nextjs''\\); console.log\\(s.createServerClient.toString\\(\\).slice\\(0,300\\)\\)\")",
+      "Bash(/Users/annasabater/.nvm/versions/node/v24.14.1/bin/npx tsc:*)",
+      "Bash(PATH=\"/Users/annasabater/.nvm/versions/node/v24.14.1/bin:$PATH\" npx tsc --noEmit)",
+      "Bash(PATH=\"/Users/annasabater/.nvm/versions/node/v24.14.1/bin:$PATH\" node -e \"const fs=require\\(''''fs''''\\); const p=JSON.parse\\(fs.readFileSync\\(''''/dev/stdin'''',''''utf8''''\\)\\); console.log\\(JSON.stringify\\({next: p.dependencies?.next, deps: Object.keys\\(p.dependencies||{}\\)}, null, 2\\)\\)\")",
+      "Bash(find /Users/annasabater/Desktop/Proyecto_1/postly/node_modules/@supabase/auth-helpers-nextjs -name *.d.ts)"
+    ]
+  }
+}

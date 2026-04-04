@@ -1,0 +1,15 @@
+{
+  "name": "postly-monorepo",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "postly"
+  ],
+  "dependencies": {
+    "@supabase/ssr": "^0.10.0",
+    "nprogress": "^0.2.0"
+  },
+  "devDependencies": {
+    "@types/nprogress": "^0.2.3"
+  }
+}
