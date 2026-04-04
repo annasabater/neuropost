@@ -1,0 +1,33 @@
+{
+  "name": "NeuroPost — Redes sociales con IA",
+  "short_name": "NeuroPost",
+  "description": "Gestiona Instagram y Facebook de tu negocio con inteligencia artificial",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#faf8f3",
+  "theme_color": "#ff5c1a",
+  "orientation": "portrait-primary",
+  "lang": "es",
+  "categories": ["business", "productivity", "social"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Nuevo post",
+      "short_name": "Crear",
+      "description": "Crea un nuevo post con IA",
+      "url": "/posts/new",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Ideas de contenido",
+      "short_name": "Ideas",
+      "description": "Genera ideas con IA",
+      "url": "/ideas",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

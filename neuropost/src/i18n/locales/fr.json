@@ -1,0 +1,125 @@
+{
+  "common": {
+    "save": "Enregistrer", "cancel": "Annuler", "delete": "Supprimer", "edit": "Modifier",
+    "create": "Créer", "back": "Retour", "next": "Suivant", "previous": "Précédent",
+    "loading": "Chargement...", "error": "Une erreur s'est produite", "retry": "Réessayer",
+    "close": "Fermer", "confirm": "Confirmer", "yes": "Oui", "no": "Non",
+    "or": "ou", "and": "et", "of": "de", "search": "Rechercher", "filter": "Filtrer",
+    "all": "Tous", "none": "Aucun", "select": "Sélectionner", "upload": "Télécharger",
+    "download": "Télécharger", "copy": "Copier", "copied": "Copié", "share": "Partager",
+    "preview": "Aperçu", "publish": "Publier", "draft": "Brouillon", "schedule": "Programmer",
+    "approve": "Approuver", "reject": "Rejeter", "generate": "Générer", "regenerate": "Régénérer",
+    "connect": "Connecter", "disconnect": "Déconnecter", "upgrade": "Améliorer le plan",
+    "settings": "Paramètres", "help": "Aide", "logout": "Se déconnecter", "comingSoon": "Bientôt disponible"
+  },
+  "nav": {
+    "dashboard": "Accueil", "newPost": "Nouveau post", "calendar": "Calendrier",
+    "ideas": "Idées", "comments": "Commentaires", "analytics": "Analytiques",
+    "brandKit": "Brand Kit", "competition": "Concurrence", "trends": "Tendances",
+    "settings": "Paramètres", "notifications": "Notifications"
+  },
+  "auth": {
+    "login": {
+      "title": "Bon retour", "subtitle": "Connectez-vous à votre compte NeuroPost",
+      "email": "Email", "password": "Mot de passe",
+      "forgotPassword": "Mot de passe oublié ?", "submit": "Se connecter →",
+      "loading": "Connexion...", "noAccount": "Pas encore de compte ?", "register": "S'inscrire",
+      "withGoogle": "Continuer avec Google",
+      "errors": {
+        "invalidCredentials": "Email ou mot de passe incorrect",
+        "emailRequired": "L'email est obligatoire", "passwordRequired": "Le mot de passe est obligatoire"
+      }
+    },
+    "register": {
+      "title": "Créez votre compte", "subtitle": "Commencez à gérer vos réseaux avec l'IA",
+      "name": "Nom complet", "email": "Email", "password": "Mot de passe",
+      "confirmPassword": "Confirmer le mot de passe",
+      "terms": "J'accepte les {terms} et la {privacy}",
+      "termsLink": "conditions d'utilisation", "privacyLink": "politique de confidentialité",
+      "submit": "Créer un compte →", "loading": "Création du compte...",
+      "hasAccount": "Vous avez déjà un compte ?", "login": "Connectez-vous",
+      "trial": "14 jours gratuits · Sans carte de crédit",
+      "errors": {
+        "nameRequired": "Le nom est obligatoire", "emailInvalid": "Email invalide",
+        "passwordTooShort": "Le mot de passe doit contenir au moins 8 caractères",
+        "passwordsNoMatch": "Les mots de passe ne correspondent pas",
+        "termsRequired": "Vous devez accepter les conditions"
+      }
+    },
+    "forgotPassword": {
+      "title": "Réinitialisez votre mot de passe", "subtitle": "Nous vous enverrons un lien par email",
+      "email": "Email", "submit": "Envoyer le lien",
+      "success": "Vérifiez votre boîte de réception",
+      "successDetail": "Nous vous avons envoyé un lien pour réinitialiser votre mot de passe"
+    }
+  },
+  "onboarding": {
+    "step": "Étape {current} sur {total}",
+    "steps": {
+      "sector": { "title": "Quel type d'entreprise avez-vous ?", "subtitle": "Nous l'utiliserons pour personnaliser votre contenu" },
+      "info": { "title": "Parlez-nous de votre entreprise", "name": "Nom de l'entreprise", "location": "Ville", "description": "Brève description" },
+      "tone": { "title": "Comment parle votre marque ?", "subtitle": "Choisissez le ton qui vous représente le mieux" },
+      "frequency": { "title": "À quelle fréquence voulez-vous publier ?", "options": { "low": "1-2 fois par semaine", "medium": "3-4 fois par semaine", "high": "Tous les jours" } },
+      "mode": { "title": "Comment voulez-vous travailler ?", "options": { "manual": { "label": "Manuel", "description": "Je révise et approuve chaque post avant publication" }, "semi": { "label": "Semi-automatique", "description": "L'IA prépare, j'approuve d'un clic" }, "auto": { "label": "Automatique", "description": "L'IA publie automatiquement selon mon calendrier" } } },
+      "goals": { "title": "Quel est votre objectif principal ?", "options": { "sales": "Vendre plus", "bookings": "Obtenir des réservations", "followers": "Plus d'abonnés", "engagement": "Plus d'engagement", "branding": "Améliorer l'image", "news": "Partager les actualités" } }
+    },
+    "finish": "Terminer et commencer →", "skip": "Passer cette étape", "loading": "Configuration de votre marque..."
+  },
+  "dashboard": {
+    "title": "Accueil", "subtitle": "Résumé de votre activité", "greeting": "Bonjour, {name}",
+    "metrics": { "published": "Publiés ce mois", "scheduled": "Programmés", "pending": "En attente d'approbation", "plan": "Plan" },
+    "sections": { "pendingApproval": "{count} post en attente|{count} posts en attente", "pendingSubtitle": "Révisez-les et approuvez-les pour que l'IA les publie", "pendingAction": "Voir les posts →", "upcomingDates": "Prochaines dates importantes", "quickActions": "Actions rapides", "recentPosts": "Posts récents", "planUsage": "Utilisation du plan ce mois" },
+    "planLimit": { "nearLimit": "Presque à la limite — {remaining} posts restants", "limitReached": "Limite atteinte — améliorez votre plan pour continuer", "upgrade": "Améliorer le plan" },
+    "empty": { "noPosts": "Vous n'avez pas encore de posts", "noPostsSub": "Commencez par générer des idées de contenu", "generateIdeas": "Générer des idées" },
+    "actions": { "newPost": "Nouveau post", "generateIdeas": "Générer des idées", "planMonth": "Planifier le mois", "trends": "Tendances", "community": "Communauté", "analytics": "Analytiques" }
+  },
+  "posts": {
+    "title": "Posts",
+    "new": { "title": "Nouveau post", "generateButton": "✦ Générer avec l'IA", "generating": "Génération...", "qualityScore": "Qualité du post", "captionPlaceholder": "Écrivez ou modifiez la légende...", "hashtagsPlaceholder": "Ajouter un hashtag", "actions": { "approve": "Approuver et programmer", "publishNow": "Publier maintenant", "saveDraft": "Enregistrer le brouillon", "regenerate": "Régénérer", "regenerateCaption": "Régénérer la légende" } },
+    "status": { "draft": "Brouillon", "generated": "Généré", "pending": "En attente", "approved": "Approuvé", "scheduled": "Programmé", "published": "Publié", "failed": "Échoué", "cancelled": "Annulé" },
+    "toast": { "published": "🚀 Post publié sur Instagram !", "approved": "✅ Post approuvé", "saved": "💾 Brouillon enregistré", "failed": "❌ Échec de la publication. Veuillez réessayer" }
+  },
+  "calendar": {
+    "title": "Calendrier", "today": "Aujourd'hui",
+    "views": { "month": "Mois", "week": "Semaine" },
+    "autoFill": "✦ Remplissage automatique avec l'IA",
+    "days": { "mon": "Lu", "tue": "Ma", "wed": "Me", "thu": "Je", "fri": "Ve", "sat": "Sa", "sun": "Di" },
+    "months": { "january": "Janvier", "february": "Février", "march": "Mars", "april": "Avril", "may": "Mai", "june": "Juin", "july": "Juillet", "august": "Août", "september": "Septembre", "october": "Octobre", "november": "Novembre", "december": "Décembre" },
+    "empty": "Rien de programmé. Cliquez pour ajouter →", "addPost": "Ajouter un post"
+  },
+  "ideas": { "title": "Idées de contenu", "placeholder": "Demandez des idées pour votre entreprise...", "generate": "Générer des idées", "addToCalendar": "Ajouter au calendrier", "createPost": "Créer un post", "empty": "Parlez-moi de votre entreprise et je vous donnerai des idées →" },
+  "comments": {
+    "title": "Commentaires",
+    "filters": { "unread": "Non lus", "all": "Tous", "replied": "Répondus", "negative": "Négatifs", "escalated": "Escaladés" },
+    "suggestReply": "✦ Suggérer une réponse avec l'IA", "sendReply": "Envoyer la réponse", "ignore": "Ignorer", "escalate": "Escalader",
+    "empty": "Tout est à jour 🙌 Revenez plus tard",
+    "sentiment": { "positive": "Positif", "neutral": "Neutre", "negative": "Négatif — révision manuelle requise" }
+  },
+  "analytics": {
+    "title": "Analytiques",
+    "period": { "thisMonth": "Ce mois", "lastMonth": "Mois dernier", "last3Months": "3 derniers mois" },
+    "metrics": { "published": "Posts publiés", "engagement": "Engagement moyen", "bestFormat": "Meilleur format", "bestTime": "Meilleure heure" },
+    "topPosts": "Meilleurs posts du mois",
+    "recommendations": { "title": "Recommandations", "working": "✅ Ce qui fonctionne", "repeat": "🔁 Ce que vous devriez répéter", "stop": "⛔ Ce que vous devriez arrêter" },
+    "exportPDF": "Générer un rapport PDF", "empty": "Publiez vos premiers posts pour voir les statistiques"
+  },
+  "brandKit": {
+    "title": "Brand Kit",
+    "sections": { "identity": "Identité", "colors": "Couleurs", "fonts": "Polices", "voice": "Voix de marque", "slogans": "Slogans", "hashtags": "Hashtags favoris", "services": "Services / Produits", "faq": "FAQ", "assets": "Assets", "rules": "Règles personnalisées" },
+    "regenerateVoice": "Régénérer la voix de marque avec l'IA"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "sections": { "account": "Mon compte", "plan": "Mon plan", "connections": "Connexions", "notifications": "Notifications", "publishRules": "Règles de publication", "team": "Équipe", "privacy": "Confidentialité", "language": "Langue" },
+    "account": { "name": "Nom complet", "email": "Email", "password": "Mot de passe", "timezone": "Fuseau horaire", "saveChanges": "Enregistrer les modifications", "saved": "Modifications enregistrées ✓" },
+    "plan": { "current": "Plan actuel", "usage": "Utilisation ce mois", "postsUsed": "{used} sur {limit} posts", "changePlan": "Changer de plan" },
+    "connections": { "instagram": "Instagram Business", "facebook": "Facebook Page", "connected": "Connecté", "disconnected": "Déconnecté", "reconnect": "Reconnecter" },
+    "language": { "title": "Langue de l'application", "subtitle": "Choisissez la langue dans laquelle vous souhaitez utiliser NeuroPost", "saved": "Langue mise à jour" }
+  },
+  "notifications": {
+    "title": "Notifications", "markAllRead": "Tout marquer comme lu", "empty": "Pas de nouvelles notifications",
+    "types": { "approval_needed": "Post en attente d'approbation", "published": "Post publié avec succès", "failed": "Échec de publication d'un post", "comment": "Nouveau commentaire sans réponse", "limit_reached": "Vous avez atteint la limite de votre plan", "trend_detected": "Nouvelle tendance adaptée à votre entreprise", "meta_connected": "Compte connecté avec succès", "token_expired": "Votre connexion Instagram a expiré" }
+  },
+  "trends": { "title": "Tendances", "subtitle": "Ce qui fonctionne dans votre secteur cette semaine", "viralScore": "Score viral", "useTrend": "Utiliser cette tendance", "ignore": "Ignorer", "empty": "Détection des tendances de cette semaine..." },
+  "errors": { "generic": "Quelque chose a échoué. Nous l'avons enregistré.", "network": "Erreur de connexion. Vérifiez votre internet.", "unauthorized": "Session expirée. Veuillez vous reconnecter.", "notFound": "Nous n'avons pas trouvé ce que vous cherchez.", "planLimit": "Vous avez atteint la limite de votre plan.", "uploadError": "Erreur lors du téléchargement de l'image.", "publishError": "Erreur lors de la publication." }
+}

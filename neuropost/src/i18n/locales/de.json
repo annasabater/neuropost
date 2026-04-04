@@ -1,0 +1,112 @@
+{
+  "common": {
+    "save": "Speichern", "cancel": "Abbrechen", "delete": "Löschen", "edit": "Bearbeiten",
+    "create": "Erstellen", "back": "Zurück", "next": "Weiter", "previous": "Zurück",
+    "loading": "Wird geladen...", "error": "Ein Fehler ist aufgetreten", "retry": "Erneut versuchen",
+    "close": "Schließen", "confirm": "Bestätigen", "yes": "Ja", "no": "Nein",
+    "or": "oder", "and": "und", "of": "von", "search": "Suchen", "filter": "Filtern",
+    "all": "Alle", "none": "Keine", "select": "Auswählen", "upload": "Hochladen",
+    "download": "Herunterladen", "copy": "Kopieren", "copied": "Kopiert", "share": "Teilen",
+    "preview": "Vorschau", "publish": "Veröffentlichen", "draft": "Entwurf", "schedule": "Planen",
+    "approve": "Genehmigen", "reject": "Ablehnen", "generate": "Generieren", "regenerate": "Neu generieren",
+    "connect": "Verbinden", "disconnect": "Trennen", "upgrade": "Plan upgraden",
+    "settings": "Einstellungen", "help": "Hilfe", "logout": "Abmelden", "comingSoon": "Demnächst verfügbar"
+  },
+  "nav": {
+    "dashboard": "Startseite", "newPost": "Neuer Beitrag", "calendar": "Kalender",
+    "ideas": "Ideen", "comments": "Kommentare", "analytics": "Analytik",
+    "brandKit": "Brand Kit", "competition": "Wettbewerb", "trends": "Trends",
+    "settings": "Einstellungen", "notifications": "Benachrichtigungen"
+  },
+  "auth": {
+    "login": {
+      "title": "Willkommen zurück", "subtitle": "Melden Sie sich bei Ihrem NeuroPost-Konto an",
+      "email": "E-Mail", "password": "Passwort",
+      "forgotPassword": "Passwort vergessen?", "submit": "Anmelden →",
+      "loading": "Anmeldung...", "noAccount": "Noch kein Konto?", "register": "Registrieren",
+      "withGoogle": "Mit Google fortfahren",
+      "errors": { "invalidCredentials": "E-Mail oder Passwort falsch", "emailRequired": "E-Mail ist erforderlich", "passwordRequired": "Passwort ist erforderlich" }
+    },
+    "register": {
+      "title": "Konto erstellen", "subtitle": "Verwalten Sie Ihre sozialen Medien mit KI",
+      "name": "Vollständiger Name", "email": "E-Mail", "password": "Passwort",
+      "confirmPassword": "Passwort bestätigen",
+      "terms": "Ich stimme den {terms} und der {privacy} zu",
+      "termsLink": "Nutzungsbedingungen", "privacyLink": "Datenschutzrichtlinie",
+      "submit": "Konto erstellen →", "loading": "Konto wird erstellt...",
+      "hasAccount": "Haben Sie bereits ein Konto?", "login": "Anmelden",
+      "trial": "14 Tage kostenlos · Keine Kreditkarte erforderlich",
+      "errors": { "nameRequired": "Name ist erforderlich", "emailInvalid": "Ungültige E-Mail", "passwordTooShort": "Passwort muss mindestens 8 Zeichen haben", "passwordsNoMatch": "Passwörter stimmen nicht überein", "termsRequired": "Sie müssen die Bedingungen akzeptieren" }
+    },
+    "forgotPassword": { "title": "Passwort zurücksetzen", "subtitle": "Wir senden Ihnen einen Link per E-Mail", "email": "E-Mail", "submit": "Link senden", "success": "Posteingang prüfen", "successDetail": "Wir haben Ihnen einen Link zum Zurücksetzen Ihres Passworts gesendet" }
+  },
+  "onboarding": {
+    "step": "Schritt {current} von {total}",
+    "steps": {
+      "sector": { "title": "Welchen Unternehmenstyp haben Sie?", "subtitle": "Wir verwenden dies, um Ihren Inhalt zu personalisieren" },
+      "info": { "title": "Erzählen Sie uns von Ihrem Unternehmen", "name": "Unternehmensname", "location": "Stadt", "description": "Kurze Beschreibung" },
+      "tone": { "title": "Wie spricht Ihre Marke?", "subtitle": "Wählen Sie den Ton, der Sie am besten repräsentiert" },
+      "frequency": { "title": "Wie oft möchten Sie posten?", "options": { "low": "1-2 mal pro Woche", "medium": "3-4 mal pro Woche", "high": "Jeden Tag" } },
+      "mode": { "title": "Wie möchten Sie arbeiten?", "options": { "manual": { "label": "Manuell", "description": "Ich prüfe und genehmige jeden Beitrag" }, "semi": { "label": "Halbautomatisch", "description": "KI bereitet vor, ich genehmige mit einem Klick" }, "auto": { "label": "Automatisch", "description": "KI veröffentlicht automatisch nach meinem Kalender" } } },
+      "goals": { "title": "Was ist Ihr Hauptziel?", "options": { "sales": "Mehr verkaufen", "bookings": "Buchungen erhalten", "followers": "Mehr Follower", "engagement": "Mehr Engagement", "branding": "Markenimage verbessern", "news": "Neuigkeiten teilen" } }
+    },
+    "finish": "Fertig und loslegen →", "skip": "Diesen Schritt überspringen", "loading": "Ihre Marke wird eingerichtet..."
+  },
+  "dashboard": {
+    "title": "Startseite", "subtitle": "Ihre Aktivitätsübersicht", "greeting": "Hallo, {name}",
+    "metrics": { "published": "Diesen Monat veröffentlicht", "scheduled": "Geplant", "pending": "Ausstehende Genehmigung", "plan": "Plan" },
+    "sections": { "pendingApproval": "{count} Beitrag ausstehend|{count} Beiträge ausstehend", "pendingSubtitle": "Überprüfen und genehmigen Sie diese", "pendingAction": "Beiträge überprüfen →", "upcomingDates": "Bevorstehende wichtige Termine", "quickActions": "Schnellaktionen", "recentPosts": "Letzte Beiträge", "planUsage": "Plannutzung diesen Monat" },
+    "planLimit": { "nearLimit": "Fast am Limit — noch {remaining} Beiträge", "limitReached": "Limit erreicht — upgraden Sie Ihren Plan", "upgrade": "Plan upgraden" },
+    "empty": { "noPosts": "Sie haben noch keine Beiträge", "noPostsSub": "Beginnen Sie mit der Generierung von Inhaltsideen", "generateIdeas": "Ideen generieren" },
+    "actions": { "newPost": "Neuer Beitrag", "generateIdeas": "Ideen generieren", "planMonth": "Monat planen", "trends": "Trends", "community": "Community", "analytics": "Analytik" }
+  },
+  "posts": {
+    "title": "Beiträge",
+    "new": { "title": "Neuer Beitrag", "generateButton": "✦ Mit KI generieren", "generating": "Wird generiert...", "qualityScore": "Beitragsqualität", "captionPlaceholder": "Beschriftung schreiben oder bearbeiten...", "hashtagsPlaceholder": "Hashtag hinzufügen", "actions": { "approve": "Genehmigen und planen", "publishNow": "Jetzt veröffentlichen", "saveDraft": "Entwurf speichern", "regenerate": "Neu generieren", "regenerateCaption": "Beschriftung neu generieren" } },
+    "status": { "draft": "Entwurf", "generated": "Generiert", "pending": "Ausstehend", "approved": "Genehmigt", "scheduled": "Geplant", "published": "Veröffentlicht", "failed": "Fehlgeschlagen", "cancelled": "Abgebrochen" },
+    "toast": { "published": "🚀 Beitrag auf Instagram veröffentlicht!", "approved": "✅ Beitrag genehmigt", "saved": "💾 Entwurf gespeichert", "failed": "❌ Veröffentlichung fehlgeschlagen. Bitte erneut versuchen" }
+  },
+  "calendar": {
+    "title": "Kalender", "today": "Heute",
+    "views": { "month": "Monat", "week": "Woche" },
+    "autoFill": "✦ Mit KI automatisch füllen",
+    "days": { "mon": "Mo", "tue": "Di", "wed": "Mi", "thu": "Do", "fri": "Fr", "sat": "Sa", "sun": "So" },
+    "months": { "january": "Januar", "february": "Februar", "march": "März", "april": "April", "may": "Mai", "june": "Juni", "july": "Juli", "august": "August", "september": "September", "october": "Oktober", "november": "November", "december": "Dezember" },
+    "empty": "Nichts geplant. Klicken zum Hinzufügen →", "addPost": "Beitrag hinzufügen"
+  },
+  "ideas": { "title": "Inhaltsideen", "placeholder": "Bitten Sie um Ideen für Ihr Unternehmen...", "generate": "Ideen generieren", "addToCalendar": "Zum Kalender hinzufügen", "createPost": "Beitrag erstellen", "empty": "Erzählen Sie mir von Ihrem Unternehmen und ich gebe Ihnen Ideen →" },
+  "comments": {
+    "title": "Kommentare",
+    "filters": { "unread": "Ungelesen", "all": "Alle", "replied": "Beantwortet", "negative": "Negativ", "escalated": "Eskaliert" },
+    "suggestReply": "✦ Antwort mit KI vorschlagen", "sendReply": "Antwort senden", "ignore": "Ignorieren", "escalate": "Eskalieren",
+    "empty": "Alles erledigt 🙌 Kommen Sie später wieder",
+    "sentiment": { "positive": "Positiv", "neutral": "Neutral", "negative": "Negativ — manuelle Überprüfung erforderlich" }
+  },
+  "analytics": {
+    "title": "Analytik",
+    "period": { "thisMonth": "Diesen Monat", "lastMonth": "Letzten Monat", "last3Months": "Letzte 3 Monate" },
+    "metrics": { "published": "Veröffentlichte Beiträge", "engagement": "Durchschnittliches Engagement", "bestFormat": "Bestes Format", "bestTime": "Beste Zeit" },
+    "topPosts": "Top-Beiträge des Monats",
+    "recommendations": { "title": "Empfehlungen", "working": "✅ Was funktioniert", "repeat": "🔁 Was Sie wiederholen sollten", "stop": "⛔ Was Sie aufhören sollten" },
+    "exportPDF": "PDF-Bericht erstellen", "empty": "Veröffentlichen Sie Ihre ersten Beiträge, um Statistiken zu sehen"
+  },
+  "brandKit": {
+    "title": "Brand Kit",
+    "sections": { "identity": "Identität", "colors": "Farben", "fonts": "Schriftarten", "voice": "Markenstimme", "slogans": "Slogans", "hashtags": "Lieblingshashtags", "services": "Dienste / Produkte", "faq": "FAQ", "assets": "Assets", "rules": "Benutzerdefinierte Regeln" },
+    "regenerateVoice": "Markenstimme mit KI neu generieren"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "sections": { "account": "Mein Konto", "plan": "Mein Plan", "connections": "Verbindungen", "notifications": "Benachrichtigungen", "publishRules": "Veröffentlichungsregeln", "team": "Team", "privacy": "Datenschutz", "language": "Sprache" },
+    "account": { "name": "Vollständiger Name", "email": "E-Mail", "password": "Passwort", "timezone": "Zeitzone", "saveChanges": "Änderungen speichern", "saved": "Änderungen gespeichert ✓" },
+    "plan": { "current": "Aktueller Plan", "usage": "Nutzung diesen Monat", "postsUsed": "{used} von {limit} Beiträgen", "changePlan": "Plan ändern" },
+    "connections": { "instagram": "Instagram Business", "facebook": "Facebook-Seite", "connected": "Verbunden", "disconnected": "Getrennt", "reconnect": "Erneut verbinden" },
+    "language": { "title": "App-Sprache", "subtitle": "Wählen Sie die Sprache, in der Sie NeuroPost verwenden möchten", "saved": "Sprache aktualisiert" }
+  },
+  "notifications": {
+    "title": "Benachrichtigungen", "markAllRead": "Alle als gelesen markieren", "empty": "Keine neuen Benachrichtigungen",
+    "types": { "approval_needed": "Beitrag wartet auf Genehmigung", "published": "Beitrag erfolgreich veröffentlicht", "failed": "Veröffentlichung eines Beitrags fehlgeschlagen", "comment": "Neuer unbeantworteter Kommentar", "limit_reached": "Sie haben Ihr Planlimit erreicht", "trend_detected": "Neuer Trend für Ihr Unternehmen", "meta_connected": "Konto erfolgreich verbunden", "token_expired": "Ihre Instagram-Verbindung ist abgelaufen" }
+  },
+  "trends": { "title": "Trends", "subtitle": "Was in Ihrem Sektor diese Woche funktioniert", "viralScore": "Viral-Score", "useTrend": "Diesen Trend nutzen", "ignore": "Ignorieren", "empty": "Trends dieser Woche werden erkannt..." },
+  "errors": { "generic": "Etwas ist schiefgelaufen. Wir haben es protokolliert.", "network": "Verbindungsfehler. Überprüfen Sie Ihre Internetverbindung.", "unauthorized": "Sitzung abgelaufen. Bitte melden Sie sich erneut an.", "notFound": "Wir konnten nicht finden, was Sie suchen.", "planLimit": "Sie haben Ihr Planlimit erreicht.", "uploadError": "Fehler beim Hochladen des Bildes.", "publishError": "Fehler beim Veröffentlichen." }
+}

@@ -1,0 +1,62 @@
+import { NextResponse } from 'next/server';
+import { requireServerUser, createServerClient } from '@/lib/supabase';
+import { fetchCompetitorPublicData, analyzeCompetitor } from '@/agents/CompetitorAgent';
+import type { Brand } from '@/types';
+
+export async function POST(request: Request) {
+  try {
+    const user = await requireServerUser();
+    const { competitorUsername } = await request.json() as { competitorUsername: string };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const supabase = await createServerClient() as any;
+    const { data: brand } = await supabase.from('brands').select('*').eq('user_id', user.id).single();
+    if (!brand) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
+
+    const b = brand as Brand;
+
+    // Need Meta access token to query IG Graph API
+    const accessToken = b.ig_access_token ?? b.fb_access_token;
+    if (!accessToken) {
+      return NextResponse.json({ error: 'Conecta tu cuenta de Instagram primero' }, { status: 422 });
+    }
+
+    const { profile, posts } = await fetchCompetitorPublicData(competitorUsername, accessToken);
+
+    const result = await analyzeCompetitor({
+      competitorUsername,
+      competitorBio:    profile?.biography ?? null,
+      followersCount:   profile?.followers_count ?? 0,
+      recentPosts:      posts,
+      clientSector:     b.sector ?? 'otro',
+      clientBrandVoice: b.brand_voice_doc ?? `${b.name}, ${b.sector}, tono ${b.tone}`,
+      clientName:       b.name,
+    });
+
+    // Save analysis
+    const { data: saved } = await supabase
+      .from('competitor_analysis')
+      .upsert({
+        brand_id:            b.id,
+        competitor_username: competitorUsername,
+        followers_count:     profile?.followers_count ?? 0,
+        avg_engagement:      result.competitorAnalysis.avgEngagement,
+        top_formats:         result.competitorAnalysis.topFormats,
+        top_topics:          result.competitorAnalysis.topTopics,
+        posting_frequency:   result.competitorAnalysis.postingFrequency,
+        strengths:           result.competitorAnalysis.strengths,
+        weaknesses:          result.competitorAnalysis.weaknesses,
+        opportunity_gaps:    result.opportunityGaps,
+        content_ideas:       result.contentIdeas,
+        analyzed_at:         new Date().toISOString(),
+      }, { onConflict: 'brand_id,competitor_username' })
+      .select()
+      .single();
+
+    return NextResponse.json({ analysis: saved, result });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "common": {
+    "save": "Desa", "cancel": "Cancel·la", "delete": "Elimina", "edit": "Edita",
+    "create": "Crea", "back": "Torna", "next": "Següent", "previous": "Anterior",
+    "loading": "Carregant...", "error": "S'ha produït un error", "retry": "Torna-ho a provar",
+    "close": "Tanca", "confirm": "Confirma", "yes": "Sí", "no": "No",
+    "or": "o", "and": "i", "of": "de", "search": "Cerca", "filter": "Filtra",
+    "all": "Tots", "none": "Cap", "select": "Selecciona", "upload": "Puja",
+    "download": "Descarrega", "copy": "Copia", "copied": "Copiat", "share": "Comparteix",
+    "preview": "Vista prèvia", "publish": "Publica", "draft": "Esborrany", "schedule": "Programa",
+    "approve": "Aprova", "reject": "Rebutja", "generate": "Genera", "regenerate": "Regenera",
+    "connect": "Connecta", "disconnect": "Desconnecta", "upgrade": "Millora el pla",
+    "settings": "Configuració", "help": "Ajuda", "logout": "Tanca la sessió", "comingSoon": "Pròximament"
+  },
+  "nav": {
+    "dashboard": "Inici", "newPost": "Nova publicació", "calendar": "Calendari",
+    "ideas": "Idees", "comments": "Comentaris", "analytics": "Analítiques",
+    "brandKit": "Brand Kit", "competition": "Competència", "trends": "Tendències",
+    "settings": "Configuració", "notifications": "Notificacions"
+  },
+  "auth": {
+    "login": {
+      "title": "Benvingut de nou", "subtitle": "Entra al teu compte de NeuroPost",
+      "email": "Correu electrònic", "password": "Contrasenya",
+      "forgotPassword": "Has oblidat la contrasenya?", "submit": "Entrar →",
+      "loading": "Entrant...", "noAccount": "No tens compte?", "register": "Registra't",
+      "withGoogle": "Continua amb Google",
+      "errors": { "invalidCredentials": "Correu electrònic o contrasenya incorrectes", "emailRequired": "El correu electrònic és obligatori", "passwordRequired": "La contrasenya és obligatòria" }
+    },
+    "register": {
+      "title": "Crea el teu compte", "subtitle": "Comença a gestionar les teves xarxes amb IA",
+      "name": "Nom complet", "email": "Correu electrònic", "password": "Contrasenya",
+      "confirmPassword": "Confirma la contrasenya",
+      "terms": "Accepto els {terms} i la {privacy}",
+      "termsLink": "termes d'ús", "privacyLink": "política de privacitat",
+      "submit": "Crea el compte →", "loading": "Creant compte...",
+      "hasAccount": "Ja tens compte?", "login": "Entra aquí",
+      "trial": "14 dies gratis · Sense targeta de crèdit",
+      "errors": { "nameRequired": "El nom és obligatori", "emailInvalid": "El correu electrònic no és vàlid", "passwordTooShort": "La contrasenya ha de tenir almenys 8 caràcters", "passwordsNoMatch": "Les contrasenyes no coincideixen", "termsRequired": "Has d'acceptar els termes" }
+    },
+    "forgotPassword": { "title": "Recupera la teva contrasenya", "subtitle": "T'enviarem un enllaç al teu correu", "email": "Correu electrònic", "submit": "Envia l'enllaç", "success": "Revisa la teva safata d'entrada", "successDetail": "T'hem enviat un enllaç per restablir la contrasenya" }
+  },
+  "onboarding": {
+    "step": "Pas {current} de {total}",
+    "steps": {
+      "sector": { "title": "Quin tipus de negoci tens?", "subtitle": "Ho farem servir per personalitzar tot el contingut" },
+      "info": { "title": "Explica'ns el teu negoci", "name": "Nom del negoci", "location": "Ciutat", "description": "Breu descripció" },
+      "tone": { "title": "Com parla la teva marca?", "subtitle": "Tria el to que millor et representa" },
+      "frequency": { "title": "Amb quina freqüència vols publicar?", "options": { "low": "1-2 vegades per setmana", "medium": "3-4 vegades per setmana", "high": "Cada dia" } },
+      "mode": { "title": "Com vols treballar?", "options": { "manual": { "label": "Manual", "description": "Reviso i aprovo cada publicació abans de publicar" }, "semi": { "label": "Semiautomàtic", "description": "La IA ho prepara, jo aprovo amb un clic" }, "auto": { "label": "Automàtic", "description": "La IA publica sola segons el meu calendari" } } },
+      "goals": { "title": "Quin és el teu objectiu principal?", "options": { "sales": "Vendre més", "bookings": "Aconseguir reserves", "followers": "Més seguidors", "engagement": "Més engagement", "branding": "Millorar la imatge", "news": "Informar de novetats" } }
+    },
+    "finish": "Acabar i entrar →", "skip": "Omet aquest pas", "loading": "Configurant la teva marca..."
+  },
+  "dashboard": {
+    "title": "Inici", "subtitle": "Resum de la teva activitat", "greeting": "Hola, {name}",
+    "metrics": { "published": "Publicats aquest mes", "scheduled": "Programats", "pending": "Pendents d'aprovació", "plan": "Pla" },
+    "sections": { "pendingApproval": "{count} publicació pending|{count} publicacions pendents", "pendingSubtitle": "Revisa'ls i aprova'ls perquè la IA els publiqui", "pendingAction": "Revisar publicacions →", "upcomingDates": "Properes dates importants", "quickActions": "Accions ràpides", "recentPosts": "Publicacions recents", "planUsage": "Ús del pla aquest mes" },
+    "planLimit": { "nearLimit": "Gairebé al límit — {remaining} publicacions restants", "limitReached": "Límit assolit — actualitza el pla per continuar publicant", "upgrade": "Actualitzar pla" },
+    "empty": { "noPosts": "Encara no tens publicacions", "noPostsSub": "Comença generant idees de contingut", "generateIdeas": "Generar idees" },
+    "actions": { "newPost": "Nova publicació", "generateIdeas": "Generar idees", "planMonth": "Planificar el mes", "trends": "Tendències", "community": "Comunitat", "analytics": "Analítiques" }
+  },
+  "posts": {
+    "title": "Publicacions",
+    "new": { "title": "Nova publicació", "generateButton": "✦ Genera amb IA", "generating": "Generant...", "qualityScore": "Qualitat de la publicació", "captionPlaceholder": "Escriu o edita el caption...", "hashtagsPlaceholder": "Afegir hashtag", "actions": { "approve": "Aprova i programa", "publishNow": "Publica ara", "saveDraft": "Desa l'esborrany", "regenerate": "Regenera", "regenerateCaption": "Regenera el caption" } },
+    "status": { "draft": "Esborrany", "generated": "Generat", "pending": "Pendent", "approved": "Aprovat", "scheduled": "Programat", "published": "Publicat", "failed": "Fallat", "cancelled": "Cancel·lat" },
+    "toast": { "published": "🚀 Publicació publicada a Instagram!", "approved": "✅ Publicació aprovada", "saved": "💾 Esborrany desat", "failed": "❌ Error en publicar. Torna-ho a provar" }
+  },
+  "calendar": {
+    "title": "Calendari", "today": "Avui",
+    "views": { "month": "Mes", "week": "Setmana" },
+    "autoFill": "✦ Emplenar automàticament amb IA",
+    "days": { "mon": "Dl", "tue": "Dt", "wed": "Dc", "thu": "Dj", "fri": "Dv", "sat": "Ds", "sun": "Dg" },
+    "months": { "january": "Gener", "february": "Febrer", "march": "Març", "april": "Abril", "may": "Maig", "june": "Juny", "july": "Juliol", "august": "Agost", "september": "Setembre", "october": "Octubre", "november": "Novembre", "december": "Desembre" },
+    "empty": "Res programat. Fes clic per afegir →", "addPost": "Afegir publicació"
+  },
+  "ideas": { "title": "Idees de contingut", "placeholder": "Demana idees per al teu negoci...", "generate": "Genera idees", "addToCalendar": "Afegir al calendari", "createPost": "Crear publicació", "empty": "Explica'm el teu negoci i et donaré idees →" },
+  "comments": {
+    "title": "Comentaris",
+    "filters": { "unread": "Sense llegir", "all": "Tots", "replied": "Resposts", "negative": "Negatius", "escalated": "Escalats" },
+    "suggestReply": "✦ Suggerir resposta amb IA", "sendReply": "Enviar resposta", "ignore": "Ignora", "escalate": "Escala",
+    "empty": "Tot al dia 🙌 Torna més tard",
+    "sentiment": { "positive": "Positiu", "neutral": "Neutral", "negative": "Negatiu — requereix revisió manual" }
+  },
+  "analytics": {
+    "title": "Analítiques",
+    "period": { "thisMonth": "Aquest mes", "lastMonth": "Mes anterior", "last3Months": "Últims 3 mesos" },
+    "metrics": { "published": "Publicacions publicades", "engagement": "Engagement mitjà", "bestFormat": "Millor format", "bestTime": "Millor hora" },
+    "topPosts": "Millors publicacions del mes",
+    "recommendations": { "title": "Recomanacions", "working": "✅ Què està funcionant", "repeat": "🔁 Què hauries de repetir", "stop": "⛔ Què hauries de deixar de fer" },
+    "exportPDF": "Generar informe PDF", "empty": "Publica les primeres publicacions per veure estadístiques"
+  },
+  "brandKit": {
+    "title": "Brand Kit",
+    "sections": { "identity": "Identitat", "colors": "Colors", "fonts": "Tipografies", "voice": "Veu de marca", "slogans": "Slogans", "hashtags": "Hashtags preferits", "services": "Serveis / Productes", "faq": "Preguntes freqüents", "assets": "Assets", "rules": "Regles personalitzades" },
+    "regenerateVoice": "Regenerar veu de marca amb IA"
+  },
+  "settings": {
+    "title": "Configuració",
+    "sections": { "account": "El meu compte", "plan": "El meu pla", "connections": "Connexions", "notifications": "Notificacions", "publishRules": "Regles de publicació", "team": "Equip", "privacy": "Privacitat", "language": "Idioma" },
+    "account": { "name": "Nom complet", "email": "Correu electrònic", "password": "Contrasenya", "timezone": "Zona horària", "saveChanges": "Desa els canvis", "saved": "Canvis desats ✓" },
+    "plan": { "current": "Pla actual", "usage": "Ús aquest mes", "postsUsed": "{used} de {limit} publicacions", "changePlan": "Canviar pla" },
+    "connections": { "instagram": "Instagram Business", "facebook": "Pàgina de Facebook", "connected": "Connectat", "disconnected": "Desconnectat", "reconnect": "Reconnectar" },
+    "language": { "title": "Idioma de l'aplicació", "subtitle": "Tria l'idioma en què vols fer servir NeuroPost", "saved": "Idioma actualitzat" }
+  },
+  "notifications": {
+    "title": "Notificacions", "markAllRead": "Marcar totes com a llegides", "empty": "No tens notificacions noves",
+    "types": { "approval_needed": "Publicació pendent d'aprovació", "published": "Publicació publicada correctament", "failed": "Error en publicar una publicació", "comment": "Nou comentari sense resposta", "limit_reached": "Has assolit el límit del teu pla", "trend_detected": "Nova tendència adaptada al teu negoci", "meta_connected": "Compte connectat correctament", "token_expired": "La teva connexió amb Instagram ha expirat" }
+  },
+  "trends": { "title": "Tendències", "subtitle": "Què està funcionant al teu sector aquesta setmana", "viralScore": "Puntuació viral", "useTrend": "Usar aquesta tendència", "ignore": "Ignora", "empty": "Detectant tendències d'aquesta setmana..." },
+  "errors": { "generic": "Alguna cosa ha fallat. Ho hem registrat.", "network": "Error de connexió. Comprova la teva internet.", "unauthorized": "Sessió expirada. Torna a entrar.", "notFound": "No hem trobat el que busques.", "planLimit": "Has assolit el límit del teu pla.", "uploadError": "Error en pujar la imatge.", "publishError": "Error en publicar." }
+}
