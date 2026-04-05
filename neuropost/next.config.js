@@ -1,6 +1,6 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {}
-export default nextConfig
+// @ts-check
+import path from 'node:path';
+import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -14,10 +14,11 @@ const CSP = [
   "connect-src 'self' https://*.supabase.co https://api.anthropic.com https://eu.posthog.com",
 ].join('; ');
 
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   transpilePackages: ['@neuropost/agents'],
   turbopack: {
-    root: path.resolve(__dirname, '..'), // monorepo root — next is hoisted here by npm workspaces
+    root: path.resolve(__dirname, '..'),
   },
 
   images: {
@@ -35,23 +36,17 @@ const nextConfig: NextConfig = {
       {
         source: '/(.*)',
         headers: [
-          { key: 'X-DNS-Prefetch-Control',  value: 'on' },
+          { key: 'X-DNS-Prefetch-Control',   value: 'on' },
           { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains; preload' },
-          { key: 'X-Frame-Options',          value: 'SAMEORIGIN' },
-          { key: 'X-Content-Type-Options',   value: 'nosniff' },
-          { key: 'Referrer-Policy',          value: 'origin-when-cross-origin' },
-          { key: 'Permissions-Policy',       value: 'camera=(), microphone=(), geolocation=()' },
-          { key: 'Content-Security-Policy',  value: CSP },
+          { key: 'X-Frame-Options',           value: 'SAMEORIGIN' },
+          { key: 'X-Content-Type-Options',    value: 'nosniff' },
+          { key: 'Referrer-Policy',           value: 'origin-when-cross-origin' },
+          { key: 'Permissions-Policy',        value: 'camera=(), microphone=(), geolocation=()' },
+          { key: 'Content-Security-Policy',   value: CSP },
         ],
       },
     ];
   },
 };
 
-export default withSentryConfig(withNextIntl(nextConfig), {
-  org:     process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  silent:  true,
-  widenClientFileUpload: true,
-  disableLogger: true,
-});
+export default withNextIntl(nextConfig);
