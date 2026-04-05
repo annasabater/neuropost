@@ -140,14 +140,14 @@ export default function LandingPage() {
               <div className="hero-form">
                 <input ref={heroEmailRef} type="email" placeholder="tu@email.com" onKeyDown={(e) => e.key === 'Enter' && goToRegister(heroEmailRef)} />
                 <button className="btn-primary" onClick={() => goToRegister(heroEmailRef)}>
-                  Prueba gratis 14 días →
+                  Prueba gratis 5 días →
                 </button>
               </div>
               <div className="hero-trust">
                 <div className="trust-avatars">
                   <span>🍦</span><span>☕</span><span>🌮</span><span>💈</span>
                 </div>
-                <span>+200 negocios ya automatizados · Sin tarjeta de crédito</span>
+                <span>+200 negocios ya automatizados</span>
               </div>
             </div>
 
@@ -341,7 +341,7 @@ export default function LandingPage() {
             <div className="section-eyebrow">Sin sorpresas</div>
             <h2>Precios claros.<br />Cancela cuando quieras.</h2>
             <p className="section-sub" style={{ margin: '12px auto 0', textAlign: 'center' }}>
-              14 días gratis en todos los planes. Sin tarjeta de crédito.
+              5 días de prueba gratuita en todos los planes.
             </p>
           </div>
 
@@ -438,14 +438,14 @@ export default function LandingPage() {
       <section className="cta-final">
         <div className="container">
           <h2>Tu competencia ya<br />tiene <em>a alguien que lleva sus redes</em></h2>
-          <p className="cta-sub">Empieza hoy. 14 días gratis. Sin tarjeta de crédito.</p>
+          <p className="cta-sub">Empieza hoy. 5 días de prueba gratuita.</p>
           <div className="cta-form">
             <input ref={ctaEmailRef} type="email" placeholder="tu@email.com" onKeyDown={(e) => e.key === 'Enter' && goToRegister(ctaEmailRef)} />
             <button className="btn-primary" onClick={() => goToRegister(ctaEmailRef)}>
               Crear cuenta gratis →
             </button>
           </div>
-          <p className="cta-guarantee">✓ Cancela cuando quieras &nbsp;·&nbsp; ✓ Sin permanencia &nbsp;·&nbsp; ✓ GDPR compliant</p>
+          <p className="cta-guarantee">✓ Cancela cuando quieras &nbsp;·&nbsp; ✓ Sin permanencia &nbsp;·&nbsp; ✓ GDPR compliant &nbsp;·&nbsp; ✓ 5 días gratis</p>
         </div>
       </section>
 
