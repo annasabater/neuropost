@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 import path from "path";
 import createNextIntlPlugin from 'next-intl/plugin';
-import { withSentryConfig } from '@sentry/nextjs';
+/**import { withSentryConfig } from '@sentry/nextjs';*/
+/** @type {import('next').NextConfig} */
+const nextConfig = {}
+export default nextConfig
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
