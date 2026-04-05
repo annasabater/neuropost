@@ -114,7 +114,7 @@ Reply ONLY with the enhanced prompt in English, no explanations, no quotes.`,
 
       const imageRes  = await fetch(result.image_url);
       const imageBlob = await imageRes.blob();
-      const fileName  = `generated/nb2-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+      const fileName  = `generated/nb2-${Date.now()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}.jpg`;
 
       const { error: uploadError } = await supabase.storage
         .from('assets')

@@ -2,6 +2,16 @@ import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { checkRateLimit } from '@/lib/ratelimit';
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\n/g, '<br>');
+}
+
 const FROM  = () => process.env.RESEND_FROM_EMAIL  ?? 'noreply@neuropost.app';
 const ADMIN = () => process.env.ADMIN_EMAIL         ?? 'hola@neuropost.es';
 const APP   = () => process.env.NEXT_PUBLIC_APP_URL ?? 'https://neuropost.app';
@@ -68,19 +78,19 @@ export async function POST(request: Request) {
     const adminHtml = layout(`
       <h2 style="font-size:20px;font-weight:800;margin:24px 0 8px">Nuevo mensaje de contacto</h2>
       <table style="width:100%;border-collapse:collapse;margin:16px 0;font-size:14px">
-        <tr><td style="padding:8px 0;color:#888;width:140px">Nombre</td><td style="padding:8px 0;font-weight:600">${name}</td></tr>
-        <tr><td style="padding:8px 0;color:#888">Email</td><td style="padding:8px 0">${email}</td></tr>
-        <tr><td style="padding:8px 0;color:#888">Tipo negocio</td><td style="padding:8px 0">${business_type ?? '—'}</td></tr>
-        <tr><td style="padding:8px 0;color:#888">Asunto</td><td style="padding:8px 0">${subject ?? '—'}</td></tr>
+        <tr><td style="padding:8px 0;color:#888;width:140px">Nombre</td><td style="padding:8px 0;font-weight:600">${escapeHtml(name)}</td></tr>
+        <tr><td style="padding:8px 0;color:#888">Email</td><td style="padding:8px 0">${escapeHtml(email)}</td></tr>
+        <tr><td style="padding:8px 0;color:#888">Tipo negocio</td><td style="padding:8px 0">${escapeHtml(business_type ?? '—')}</td></tr>
+        <tr><td style="padding:8px 0;color:#888">Asunto</td><td style="padding:8px 0">${escapeHtml(subject ?? '—')}</td></tr>
       </table>
-      <div style="background:#f5f0e8;border-radius:10px;padding:16px;font-size:14px;line-height:1.6;margin:16px 0">${message.replace(/\n/g, '<br>')}</div>
+      <div style="background:#f5f0e8;border-radius:10px;padding:16px;font-size:14px;line-height:1.6;margin:16px 0">${escapeHtml(message)}</div>
       <a href="${APP()}/admin/contactos" style="${BTN}">Ver en panel admin →</a>
     `);
     await sendViaResend(ADMIN(), `Nuevo mensaje de contacto — ${name}`, adminHtml);
 
     // User confirmation
     const userHtml = layout(`
-      <h2 style="font-size:22px;font-weight:800;margin:24px 0 8px">Hemos recibido tu mensaje, ${name.split(' ')[0]} ✅</h2>
+      <h2 style="font-size:22px;font-weight:800;margin:24px 0 8px">Hemos recibido tu mensaje, ${escapeHtml(name.split(' ')[0])} ✅</h2>
       <p style="color:#555;line-height:1.6">Gracias por escribirnos. Te respondemos en menos de 24 horas en días laborables.</p>
       <p style="color:#555;line-height:1.6">Si tienes alguna urgencia, puedes escribirnos directamente a <a href="mailto:hola@neuropost.es" style="color:#ff6b35">hola@neuropost.es</a>.</p>
       <a href="${APP()}" style="${BTN}">Volver a NeuroPost →</a>

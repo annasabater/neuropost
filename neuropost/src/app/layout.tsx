@@ -6,6 +6,9 @@ import { getLocale, getMessages } from 'next-intl/server';
 import './globals.css';
 import { Providers } from '@/components/Providers';
 import { PageProgressBar } from '@/components/ui/PageProgressBar';
+import { validateEnv } from '@/lib/env';
+
+validateEnv();
 
 const literata = Literata({
   subsets: ['latin'],

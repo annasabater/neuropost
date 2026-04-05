@@ -17,23 +17,64 @@ import {
   Bell,
   TrendingUp,
   Users,
+  Grid3x3,
+  Archive,
+  MessageCircle,
+  ClipboardList,
+  LifeBuoy,
+  Sparkles,
+  Flame,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { createBrowserClient } from '@/lib/supabase';
 
-const NAV = [
-  { href: '/dashboard',     label: 'Inicio',         icon: LayoutDashboard },
-  { href: '/posts',         label: 'Posts',           icon: Image },
-  { href: '/ideas',         label: 'Ideas',           icon: Lightbulb },
-  { href: '/calendar',      label: 'Calendario',      icon: Calendar },
-  { href: '/resumen',       label: 'Resumen',          icon: CalendarDays },
-  { href: '/tendencias',    label: 'Tendencias',      icon: TrendingUp },
-  { href: '/competencia',   label: 'Competencia',     icon: Users },
-  { href: '/comments',      label: 'Comunidad',       icon: MessageSquare },
-  { href: '/analytics',     label: 'Analíticas',      icon: BarChart3 },
-  { href: '/brand',         label: 'Brand Kit',       icon: Palette },
-  { href: '/notifications', label: 'Notificaciones',  icon: Bell },
-  { href: '/settings',      label: 'Ajustes',         icon: Settings },
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+};
+
+type NavGroup = {
+  title: string;
+  items: NavItem[];
+};
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    title: 'CONTENIDO',
+    items: [
+      { href: '/dashboard', label: 'Inicio',      icon: LayoutDashboard },
+      { href: '/posts',     label: 'Posts',        icon: Image },
+      { href: '/calendar',  label: 'Calendario',   icon: Calendar },
+      { href: '/ideas',     label: 'Ideas',         icon: Lightbulb },
+      { href: '/mi-feed',     label: 'Mi feed',       icon: Grid3x3 },
+      { href: '/inspiracion', label: 'Inspiración',   icon: Flame },
+    ],
+  },
+  {
+    title: 'GESTIÓN',
+    items: [
+      { href: '/comments',  label: 'Comentarios',  icon: MessageSquare },
+      { href: '/analytics', label: 'Analíticas',   icon: BarChart3 },
+      { href: '/historial', label: 'Historial',    icon: Archive },
+      { href: '/novedades', label: 'Novedades',    icon: Sparkles },
+    ],
+  },
+  {
+    title: 'EQUIPO NEUROPOST',
+    items: [
+      { href: '/chat',        label: 'Chat',         icon: MessageCircle },
+      { href: '/solicitudes', label: 'Solicitudes',  icon: ClipboardList },
+      { href: '/soporte',     label: 'Soporte',      icon: LifeBuoy },
+    ],
+  },
+  {
+    title: 'MARCA',
+    items: [
+      { href: '/brand',    label: 'Brand Kit', icon: Palette },
+      { href: '/settings', label: 'Ajustes',   icon: Settings },
+    ],
+  },
 ];
 
 export function Sidebar() {
@@ -42,7 +83,7 @@ export function Sidebar() {
   const brand         = useAppStore((s) => s.brand);
   const sidebarOpen   = useAppStore((s) => s.sidebarOpen);
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
-  const unreadComments     = useAppStore((s) => s.unreadComments);
+  const unreadComments      = useAppStore((s) => s.unreadComments);
   const unreadNotifications = useAppStore((s) => s.unreadNotifications);
 
   async function handleLogout() {
@@ -61,25 +102,58 @@ export function Sidebar() {
       </div>
 
       <nav className="dash-nav">
-        {NAV.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
-          const badge  = href === '/comments'      ? unreadComments
-                       : href === '/notifications' ? unreadNotifications
-                       : 0;
-          return (
-            <ProgressLink
-              key={href}
-              href={href}
-              className={`dash-nav-item${active ? ' active' : ''}`}
-              onClick={() => { if (sidebarOpen) toggleSidebar(); }}
-            >
-              <Icon size={18} />
-              <span>{label}</span>
-              {badge > 0 && <span className="nav-badge">{badge}</span>}
-            </ProgressLink>
-          );
-        })}
+        {NAV_GROUPS.map((group) => (
+          <div key={group.title}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#9ca3af', letterSpacing: '0.08em', padding: '16px 16px 4px' }}>
+              {group.title}
+            </div>
+            {group.items.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+              const badge  = href === '/comments'      ? unreadComments
+                           : href === '/notifications' ? unreadNotifications
+                           : 0;
+              return (
+                <ProgressLink
+                  key={href}
+                  href={href}
+                  className={`dash-nav-item${active ? ' active' : ''}`}
+                  onClick={() => { if (sidebarOpen) toggleSidebar(); }}
+                >
+                  <Icon size={18} />
+                  <span>{label}</span>
+                  {badge > 0 && <span className="nav-badge">{badge}</span>}
+                </ProgressLink>
+              );
+            })}
+          </div>
+        ))}
       </nav>
+
+      {/* Sidebar utility footer links */}
+      <div style={{ padding: '8px 16px 4px', borderTop: '1px solid var(--border)', marginTop: 'auto' }}>
+        <a
+          href="/estado"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ display: 'block', fontSize: '0.72rem', color: 'var(--muted)', textDecoration: 'none', padding: '4px 0', lineHeight: 1.4 }}
+        >
+          Estado del servicio
+        </a>
+        <ProgressLink
+          href="/novedades"
+          style={{ display: 'block', fontSize: '0.72rem', color: 'var(--muted)', textDecoration: 'none', padding: '4px 0', lineHeight: 1.4 }}
+          onClick={() => { if (sidebarOpen) toggleSidebar(); }}
+        >
+          Novedades
+        </ProgressLink>
+        <ProgressLink
+          href="/soporte"
+          style={{ display: 'block', fontSize: '0.72rem', color: 'var(--muted)', textDecoration: 'none', padding: '4px 0', lineHeight: 1.4 }}
+          onClick={() => { if (sidebarOpen) toggleSidebar(); }}
+        >
+          Soporte
+        </ProgressLink>
+      </div>
 
       <div className="dash-sidebar-footer">
         {brand && (

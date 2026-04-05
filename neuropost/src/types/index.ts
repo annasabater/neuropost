@@ -87,6 +87,9 @@ export interface Brand {
   plan_cancels_at:        string | null;
   notify_email_publish:   boolean;
   notify_email_comments:  boolean;
+  posts_this_week:        number;
+  stories_this_week:      number;
+  token_refreshed_at:     string | null;
   created_at:             string;
 }
 
@@ -636,3 +639,84 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, {
   total:   { postsPerMonth: Infinity, postsPerWeek: 7,  storiesPerWeek: 7,  brands: 1,  platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true  },
   agency:  { postsPerMonth: Infinity, postsPerWeek: 7,  storiesPerWeek: 7,  brands: 10, platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true  },
 };
+
+// ─── Worker Portal Types ──────────────────────────────────────────────────────
+
+export type WorkerRole   = 'worker' | 'senior' | 'admin';
+export type QueueStatus  = 'pending_worker' | 'worker_approved' | 'worker_rejected' | 'sent_to_client' | 'client_approved' | 'client_rejected';
+export type QueuePriority = 'normal' | 'urgent';
+export type QueueType    = 'edit_request' | 'ai_proposal' | 'direct';
+export type ClientEditMode = 'proposal' | 'instant';
+
+export interface Worker {
+  id:                string;
+  full_name:         string | null;
+  email:             string | null;
+  role:              WorkerRole;
+  avatar_url:        string | null;
+  is_active:         boolean;
+  brands_assigned:   string[];
+  specialties:       string[];
+  notes:             string | null;
+  joined_at:         string;
+}
+
+export interface ContentQueue {
+  id:                    string;
+  brand_id:              string;
+  post_id:               string;
+  type:                  QueueType;
+  status:                QueueStatus;
+  assigned_worker_id:    string | null;
+  worker_notes:          string | null;
+  worker_reviewed_at:    string | null;
+  client_feedback:       string | null;
+  priority:              QueuePriority;
+  regeneration_count:    number;
+  regeneration_history:  RegenerationEntry[];
+  created_at:            string;
+}
+
+export interface RegenerationEntry {
+  prompt:     string;
+  result_url: string | null;
+  created_at: string;
+}
+
+export interface FeedQueue {
+  id:           string;
+  brand_id:     string;
+  post_id:      string | null;
+  image_url:    string | null;
+  position:     number;
+  is_published: boolean;
+  scheduled_at: string | null;
+  created_at:   string;
+}
+
+export interface ClientNote {
+  id:         string;
+  brand_id:   string;
+  worker_id:  string;
+  note:       string;
+  is_pinned:  boolean;
+  created_at: string;
+}
+
+export interface WorkerMessage {
+  id:              string;
+  brand_id:        string | null;
+  from_worker_id:  string;
+  to_worker_id:    string | null;
+  message:         string;
+  read:            boolean;
+  created_at:      string;
+}
+
+export interface ClientActivityLog {
+  id:         string;
+  brand_id:   string;
+  action:     string;
+  details:    Record<string, unknown> | null;
+  created_at: string;
+}

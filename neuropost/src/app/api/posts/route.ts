@@ -85,15 +85,11 @@ export async function POST(request: Request) {
 
     const insertedPost = data as Post;
 
-    // Auto-publish: immediately trigger publish for approved posts with media
+    // Auto-publish: call shared publisher directly (avoids HTTP auth issues)
     if (canAutoPublish && insertedPost.image_url) {
       try {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-        await fetch(`${appUrl}/api/publish`, {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json', cookie: '' },
-          body:    JSON.stringify({ postId: insertedPost.id }),
-        });
+        const { publishPostById } = await import('@/lib/publishPost');
+        await publishPostById(insertedPost.id, user.id);
       } catch { /* non-blocking — post is already approved in DB */ }
     }
 

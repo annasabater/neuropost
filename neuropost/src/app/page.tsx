@@ -470,8 +470,8 @@ export default function LandingPage() {
                 <li><a href="#funciones">Funciones</a></li>
                 <li><a href="#como-funciona">Cómo funciona</a></li>
                 <li><a href="#precios">Precios</a></li>
-                <li><a href="#">Changelog</a></li>
-                <li><Link href="/status">Estado del sistema</Link></li>
+                <li><Link href="/novedades">Novedades</Link></li>
+                <li><Link href="/estado">Estado del servicio</Link></li>
               </ul>
             </div>
             <div>

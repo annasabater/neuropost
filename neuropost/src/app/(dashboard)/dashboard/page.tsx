@@ -3,9 +3,13 @@ import Link from 'next/link';
 import { BarChart3, Calendar, Image, Lightbulb, MessageSquare, TrendingUp, Plus, Zap, CheckCircle2, Clock } from 'lucide-react';
 import { getServerBrand, createServerClient } from '@/lib/supabase';
 import { TrendsBanner } from '@/components/trends/TrendsBanner';
+import DashboardTour from '@/components/onboarding/DashboardTour';
+import IncidentBanner from '@/components/layout/IncidentBanner';
+import ChangelogModal from '@/components/layout/ChangelogModal';
 import { SeasonalChip } from '@/components/calendar/SeasonalPin';
 import { getUpcomingDatesForBrand } from '@/agents/SeasonalAgent';
 import { PLAN_LIMITS } from '@/types';
+import InspirationTeaser from '@/components/inspiration/InspirationTeaser';
 
 export default async function DashboardPage() {
   const brand = await getServerBrand();
@@ -60,11 +64,15 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
+      <DashboardTour />
+
+      <IncidentBanner />
+
       {/* Trends banner */}
       <TrendsBanner />
 
       {/* Stats */}
-      <div className="stats-grid">
+      <div className="stats-grid" data-tour="dashboard-metrics">
         <div className="stat-card">
           <Image size={22} className="stat-icon" />
           <div>
@@ -177,6 +185,8 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
+      <InspirationTeaser />
+
       {/* Pending posts alert */}
       {pending > 0 && (
         <div style={{
@@ -243,6 +253,8 @@ export default async function DashboardPage() {
           <Link href="/ideas" className="btn-primary btn-orange">Generar ideas</Link>
         </div>
       )}
+
+      <ChangelogModal />
     </div>
   );
 }

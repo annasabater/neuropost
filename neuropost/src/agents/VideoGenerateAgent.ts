@@ -101,7 +101,7 @@ Reply ONLY with the video prompt in English. 2-3 sentences max.`,
 
       const videoRes  = await fetch(runwayUrl);
       const videoBlob = await videoRes.blob();
-      const fileName  = `reels/gen4-${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`;
+      const fileName  = `reels/gen4-${Date.now()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}.mp4`;
 
       const { error: uploadErr } = await supabase.storage
         .from('assets')

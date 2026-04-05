@@ -16,7 +16,11 @@ const PROTECTED = [
   '/dashboard', '/posts', '/ideas', '/calendar', '/comments',
   '/analytics', '/brand', '/notifications', '/settings', '/onboarding',
   '/tendencias', '/competencia', '/community',
+  '/resumen', '/contactos', '/churn', '/captacion',
+  '/mi-feed', '/worker',
+  '/chat', '/solicitudes', '/historial', '/soporte',
 ];
+const ADMIN_PATHS = ['/admin', '/cupones'];
 const AUTH_ONLY = ['/login', '/register'];
 
 export async function proxy(request: NextRequest) {
@@ -62,6 +66,7 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
 
   const isProtected = PROTECTED.some((p) => pathname.startsWith(p));
+  const isAdmin     = ADMIN_PATHS.some((p) => pathname.startsWith(p));
   const isAuthOnly  = AUTH_ONLY.some((p) => pathname === p);
   const isApiRoute  = pathname.startsWith('/api');
 
@@ -76,10 +81,18 @@ export async function proxy(request: NextRequest) {
   }
 
   // No session → redirect to login, saving intended destination
-  if (!user && isProtected) {
+  if (!user && (isProtected || isAdmin)) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirectTo', pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Admin routes — require superadmin role in app_metadata
+  if (user && isAdmin) {
+    const isSuperAdmin = user.app_metadata?.role === 'superadmin';
+    if (!isSuperAdmin) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
   }
 
   // Return the supabaseResponse so refreshed session cookies are sent to the browser

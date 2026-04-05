@@ -192,11 +192,13 @@ export async function publishToInstagram({
   imageUrl,
   caption,
   accessToken,
+  altText,
 }: {
   igAccountId:  string;
   imageUrl:     string;
   caption:      string;
   accessToken:  string;
+  altText?:     string;
 }): Promise<MetaPublishResult> {
   // Step 1 — Create media container
   const container = await graphFetch<{ id: string }>(
@@ -204,7 +206,12 @@ export async function publishToInstagram({
     {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ image_url: imageUrl, caption, access_token: accessToken }),
+      body:    JSON.stringify({
+        image_url:   imageUrl,
+        caption,
+        access_token: accessToken,
+        ...(altText ? { alt_text: altText } : {}),
+      }),
     },
   );
 

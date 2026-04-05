@@ -95,7 +95,7 @@ Do NOT mention logos, text, or people changes.`,
 
       const imageRes  = await fetch(result.image_url);
       const imageBlob = await imageRes.blob();
-      const fileName  = `edited/nb2-edit-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+      const fileName  = `edited/nb2-edit-${Date.now()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}.jpg`;
 
       const { error: uploadErr } = await supabase.storage
         .from('posts')

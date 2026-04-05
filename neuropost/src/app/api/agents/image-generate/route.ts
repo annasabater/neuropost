@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { runImageGenerateAgent } from '@/agents/ImageGenerateAgent';
 import { IMAGE_QUALITY_BY_PLAN } from '@/lib/plan-limits';
+import { checkRateLimit } from '@/lib/ratelimit';
 import type { VisualStyle, SocialSector, SubscriptionPlan } from '@/types';
 import type { NanoBananaQuality } from '@/lib/nanoBanana';
 
@@ -11,6 +12,12 @@ type DB = any;
 export async function POST(request: Request) {
   try {
     const user    = await requireServerUser();
+
+    const rateLimit = checkRateLimit(`image-gen:${user.id}`, 20, 60 * 60 * 1000); // 20/hour per user
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Límite de generaciones alcanzado. Inténtalo en una hora.' }, { status: 429 });
+    }
+
     const supabase = await createServerClient() as DB;
 
     const { userPrompt, format, quality: qualityOverride } = await request.json() as {

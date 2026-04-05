@@ -1,8 +1,18 @@
 import { NextResponse } from 'next/server';
 import { createRouteClient } from '@/lib/supabase';
+import { checkRateLimit } from '@/lib/ratelimit';
 
 export async function POST(request: Request) {
   try {
+    const forwarded = request.headers.get('x-forwarded-for');
+    const realIp    = request.headers.get('x-real-ip');
+    const ip        = (forwarded ? forwarded.split(',')[0].trim() : realIp) ?? '127.0.0.1';
+
+    const rateLimit = checkRateLimit(`feedback:${ip}`, 10, 60 * 60 * 1000); // 10 per hour
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Demasiadas solicitudes. Inténtalo más tarde.' }, { status: 429 });
+    }
+
     const supabase = await createRouteClient();
     const { data: { user } } = await supabase.auth.getUser();
 

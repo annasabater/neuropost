@@ -19,6 +19,7 @@
     { "path": "/api/cron/detect-trends",       "schedule": "0 7 * * 1"  },
     { "path": "/api/cron/seasonal-planner",    "schedule": "0 8 1 * *"  },
     { "path": "/api/cron/competitor-analysis", "schedule": "30 8 * * 1" },
-    { "path": "/api/cron/churn-analysis",      "schedule": "0 9 * * *"  }
+    { "path": "/api/cron/churn-analysis",      "schedule": "0 9 * * *"  },
+    { "path": "/api/cron/health-check",         "schedule": "*/5 * * * *" }
   ]
 }

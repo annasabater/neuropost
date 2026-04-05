@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { runVideoGenerateAgent } from '@/agents/VideoGenerateAgent';
+import { checkRateLimit } from '@/lib/ratelimit';
 import type { VisualStyle, SocialSector, Brand } from '@/types';
 import type { RunwayDuration } from '@/lib/runway';
 
@@ -9,7 +10,13 @@ type DB = any;
 
 export async function POST(request: Request) {
   try {
-    const user     = await requireServerUser();
+    const user    = await requireServerUser();
+
+    const rateLimit = checkRateLimit(`video-gen:${user.id}`, 5, 60 * 60 * 1000); // 5/hour per user
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Límite de generaciones de vídeo alcanzado. Inténtalo en una hora.' }, { status: 429 });
+    }
+
     const supabase  = await createServerClient() as DB;
 
     const body = await request.json() as {
