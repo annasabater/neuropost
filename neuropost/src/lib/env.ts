@@ -31,12 +31,7 @@ export function validateEnv() {
   }
 
   if (missing.length > 0) {
-    // In production throw; in development just warn so local setup is easy
     const msg = `[NeuroPost] Missing or placeholder environment variables:\n${missing.join('\n')}`;
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error(msg);
-    } else {
-      console.warn(msg);
-    }
+    console.warn(msg);
   }
 }
