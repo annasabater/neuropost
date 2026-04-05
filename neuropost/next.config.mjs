@@ -1,5 +1,4 @@
 // @ts-check
-import path from 'node:path';
 import createNextIntlPlugin from 'next-intl/plugin';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
@@ -17,9 +16,6 @@ const CSP = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ['@neuropost/agents'],
-  turbopack: {
-    root: path.resolve(__dirname, '..'),
-  },
 
   images: {
     remotePatterns: [
