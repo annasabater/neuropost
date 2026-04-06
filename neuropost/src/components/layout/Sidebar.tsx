@@ -6,7 +6,6 @@ import {
   LayoutDashboard,
   Lightbulb,
   Calendar,
-  CalendarDays,
   MessageSquare,
   BarChart3,
   Settings,
@@ -14,9 +13,6 @@ import {
   X,
   Image,
   Palette,
-  Bell,
-  TrendingUp,
-  Users,
   Grid3x3,
   Archive,
   MessageCircle,
@@ -101,10 +97,10 @@ export function Sidebar() {
         </button>
       </div>
 
-      <nav className="dash-nav">
+      <div className="dash-nav">
         {NAV_GROUPS.map((group) => (
           <div key={group.title}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#9ca3af', letterSpacing: '0.08em', padding: '16px 16px 4px' }}>
+            <div style={{ fontSize: 9, fontWeight: 700, color: '#3a4257', letterSpacing: '0.1em', padding: '8px 10px 2px' }}>
               {group.title}
             </div>
             {group.items.map(({ href, label, icon: Icon }) => {
@@ -127,30 +123,22 @@ export function Sidebar() {
             })}
           </div>
         ))}
-      </nav>
+      </div>
 
       {/* Sidebar utility footer links */}
-      <div style={{ padding: '8px 16px 4px', borderTop: '1px solid var(--border)', marginTop: 'auto' }}>
-        <a
-          href="/estado"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ display: 'block', fontSize: '0.72rem', color: 'var(--muted)', textDecoration: 'none', padding: '4px 0', lineHeight: 1.4 }}
-        >
+      <div style={{ flexShrink: 0, padding: '4px 16px 2px', borderTop: '1px solid #1a1d2e' }}>
+        <a href="/estado" target="_blank" rel="noopener noreferrer"
+          style={{ display: 'block', fontSize: '0.68rem', color: '#3a4257', textDecoration: 'none', padding: '2px 0', lineHeight: 1.4 }}>
           Estado del servicio
         </a>
-        <ProgressLink
-          href="/novedades"
-          style={{ display: 'block', fontSize: '0.72rem', color: 'var(--muted)', textDecoration: 'none', padding: '4px 0', lineHeight: 1.4 }}
-          onClick={() => { if (sidebarOpen) toggleSidebar(); }}
-        >
+        <ProgressLink href="/novedades"
+          style={{ display: 'block', fontSize: '0.68rem', color: '#3a4257', textDecoration: 'none', padding: '2px 0', lineHeight: 1.4 }}
+          onClick={() => { if (sidebarOpen) toggleSidebar(); }}>
           Novedades
         </ProgressLink>
-        <ProgressLink
-          href="/soporte"
-          style={{ display: 'block', fontSize: '0.72rem', color: 'var(--muted)', textDecoration: 'none', padding: '4px 0', lineHeight: 1.4 }}
-          onClick={() => { if (sidebarOpen) toggleSidebar(); }}
-        >
+        <ProgressLink href="/soporte"
+          style={{ display: 'block', fontSize: '0.68rem', color: '#3a4257', textDecoration: 'none', padding: '2px 0', lineHeight: 1.4 }}
+          onClick={() => { if (sidebarOpen) toggleSidebar(); }}>
           Soporte
         </ProgressLink>
       </div>

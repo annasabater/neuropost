@@ -48,9 +48,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     // suppressHydrationWarning prevents React complaining about data-theme set before hydration
-    <html lang={locale} className={literata.variable} suppressHydrationWarning>
+    <html lang={locale} className={literata.variable} suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
-        <meta name="theme-color" content="#ff5c1a" />
+        <meta name="theme-color" content="#4f46e5" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="NeuroPost" />

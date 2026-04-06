@@ -23,6 +23,7 @@ export async function GET(request: Request) {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    console.error('[GET /api/chat]', err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
@@ -51,27 +52,26 @@ export async function POST(request: Request) {
     }).select().single();
     if (error) throw error;
 
-    // Notify assigned worker
-    const { data: workerBrand } = await db
-      .from('workers')
-      .select('id')
-      .eq('brands_assigned', brandId)
-      .limit(1)
-      .single()
-      .catch(() => ({ data: null }));
-
-    await db.from('notifications').insert({
+    // Fire-and-forget: notify (ignore all errors)
+    db.from('notifications').insert({
       brand_id: brandId,
       type: 'chat_message',
-      message: `Nuevo mensaje de tu cliente`,
+      message: 'Nuevo mensaje de tu cliente',
       read: false,
       metadata: { msg_id: msg.id },
-    }).catch(() => null);
+    }).then(() => null).catch(() => null);
 
     return NextResponse.json({ message: msg });
-  } catch (err) {
+  } catch (err: unknown) {
+    const isPostgrest = err && typeof err === 'object' && 'code' in err;
+    if (isPostgrest) {
+      const e = err as { message?: string; details?: string; hint?: string; code?: string };
+      console.error('[POST /api/chat] PostgREST', e);
+      return NextResponse.json({ error: e.message, details: e.details, hint: e.hint, code: e.code }, { status: 500 });
+    }
     const message = err instanceof Error ? err.message : String(err);
     if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    console.error('[POST /api/chat]', err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

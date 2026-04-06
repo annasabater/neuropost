@@ -10,7 +10,7 @@ const CSP = [
   "img-src 'self' data: blob: https://*.supabase.co https://*.instagram.com https://graph.facebook.com",
   "font-src 'self' https://fonts.gstatic.com",
   "frame-src https://js.stripe.com",
-  "connect-src 'self' https://*.supabase.co https://api.anthropic.com https://eu.posthog.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://eu.posthog.com",
 ].join('; ');
 
 /** @type {import('next').NextConfig} */
