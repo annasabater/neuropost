@@ -94,6 +94,8 @@
     "register": {
       "title": "Create your account",
       "subtitle": "Start managing your social media with AI",
+      "titleAlt": "Create your account",
+      "subtitleAlt": "Start free. No credit card.",
       "name": "Full name",
       "email": "Email",
       "password": "Password",
@@ -103,9 +105,26 @@
       "privacyLink": "privacy policy",
       "submit": "Create account →",
       "loading": "Creating account...",
+      "creating": "Creating account...",
+      "createFree": "Create free account",
       "hasAccount": "Already have an account?",
       "login": "Sign in",
       "trial": "14 days free · No credit card required",
+      "passwordInvalid": "Password doesn't meet requirements.",
+      "checkEmail": "Check your email to confirm your account!",
+      "rules": {
+        "min8": "Minimum 8 characters",
+        "uppercase": "1 uppercase letter",
+        "lowercase": "1 lowercase letter",
+        "number": "1 number",
+        "special": "1 special character (!@#$…)"
+      },
+      "strength": {
+        "weak": "Very weak",
+        "fair": "Weak",
+        "good": "Good",
+        "strong": "Strong"
+      },
       "errors": {
         "nameRequired": "Name is required",
         "emailInvalid": "Invalid email address",
@@ -119,8 +138,32 @@
       "subtitle": "We'll send a link to your email",
       "email": "Email",
       "submit": "Send link",
+      "loading": "Sending...",
+      "backToLogin": "Back to login",
+      "sentMessage": "✅ We've sent you an email with the link to reset your password. Check your inbox (and spam folder).",
       "success": "Check your inbox",
       "successDetail": "We've sent you a link to reset your password"
+    },
+    "resetPassword": {
+      "title": "New password",
+      "subtitle": "Enter your new password. Minimum 8 characters.",
+      "newPassword": "New password",
+      "confirm": "Confirm password",
+      "saving": "Saving...",
+      "submit": "Save password",
+      "updated": "Password updated successfully",
+      "noMatch": "Passwords don't match"
+    },
+    "acceptInvite": {
+      "loading": "Processing invitation…",
+      "success": "Welcome to the team!",
+      "error": "Invalid invitation",
+      "idle": "Team invitation",
+      "checking": "Checking your invitation…",
+      "redirecting": "Redirecting to dashboard…",
+      "accepted": "Invitation accepted! You now have access to the team.",
+      "invalidLink": "Invalid invitation link.",
+      "goToLogin": "Go to login"
     }
   },
   "onboarding": {
@@ -212,6 +255,23 @@
   },
   "posts": {
     "title": "Posts",
+    "subtitle": "Manage all your content",
+    "noCaption": "No caption",
+    "formats": {
+      "image": "Image",
+      "reel": "Reel",
+      "carousel": "Carousel",
+      "story": "Story"
+    },
+    "goals": {
+      "promotion": "Promotion",
+      "community": "Community"
+    },
+    "generating": "Generating...",
+    "empty": {
+      "title": "No posts",
+      "subtitle": "Create your first post with AI"
+    },
     "new": {
       "title": "New post",
       "generateButton": "✦ Generate with AI",
@@ -228,6 +288,7 @@
       }
     },
     "status": {
+      "all": "All",
       "draft": "Draft",
       "generated": "Generated",
       "pending": "Pending",
@@ -261,14 +322,48 @@
   },
   "ideas": {
     "title": "Content ideas",
+    "subtitle": "Describe what you want to publish and we'll prepare complete ideas",
     "placeholder": "Ask for ideas for your business...",
-    "generate": "Generate ideas",
+    "inputPlaceholder": "E.g.: Summer ideas, August promos, special recipes...",
+    "sectorLabel": "Ideas for your sector",
+    "campaignsLabel": "Preset campaigns",
+    "generate": "Generate",
+    "generating": "Generating...",
+    "ideasCount": "{count} ideas ready",
+    "regenerate": "Regenerate",
+    "copy": "Copy",
+    "copied": "Caption copied",
+    "anyTime": "Any time",
+    "emptyTitle": "Ready to inspire you",
+    "emptySub": "Write an idea, use a preset campaign or choose a suggestion from your sector",
     "addToCalendar": "Add to calendar",
     "createPost": "Create post",
-    "empty": "Tell me about your business and I'll give you ideas →"
+    "empty": "Tell me about your business and I'll give you ideas →",
+    "campaigns": {
+      "summer": "Summer campaign",
+      "valentines": "Valentine's Day",
+      "backToSchool": "Back to school",
+      "blackFriday": "Black Friday",
+      "christmas": "Christmas",
+      "newYear": "New Year",
+      "loyalty": "Loyalty",
+      "launch": "Product launch"
+    }
   },
   "comments": {
     "title": "Comments",
+    "communityTitle": "Community",
+    "communitySubtitle": "Manage comments and messages with AI",
+    "processAI": "Process with AI",
+    "processing": "Processing…",
+    "stats": {
+      "total": "Total",
+      "autoReplied": "Auto-replied",
+      "escalated": "Escalated",
+      "sentiment": "Sentiment"
+    },
+    "aiSummary": "AI Summary",
+    "analyzed": "{count} interactions analyzed",
     "filters": {
       "unread": "Unread", "all": "All", "replied": "Replied",
       "negative": "Negative", "escalated": "Escalated"
@@ -285,6 +380,19 @@
   },
   "analytics": {
     "title": "Analytics",
+    "subtitle": "Monthly AI-generated report",
+    "generate": "Generate report",
+    "generated": "Report generated",
+    "generating": "Generating…",
+    "whatWorking": "What's working?",
+    "keepDoing": "Keep doing this",
+    "stopDoing": "Stop doing this",
+    "opportunities": "Opportunities",
+    "noDataTitle": "No data",
+    "noDataSub": "Select the month and generate the AI report to see what's working",
+    "noInsights": "Not enough data this month",
+    "noImprove": "Nothing to improve detected",
+    "noOpps": "No opportunities detected",
     "period": {
       "thisMonth": "This month", "lastMonth": "Last month", "last3Months": "Last 3 months"
     },
@@ -304,6 +412,8 @@
   },
   "brandKit": {
     "title": "Brand Kit",
+    "subtitle": "Define the visual elements and tone of your brand",
+    "needOnboarding": "Complete onboarding first",
     "sections": {
       "identity": "Identity", "colors": "Colors", "fonts": "Fonts",
       "voice": "Brand voice", "slogans": "Slogans", "hashtags": "Favourite hashtags",
@@ -342,6 +452,11 @@
     "title": "Notifications",
     "markAllRead": "Mark all as read",
     "empty": "No new notifications",
+    "unread": "{count} unread",
+    "upToDate": "All caught up",
+    "emptyTitle": "No notifications",
+    "emptySub": "Approvals, posts, trends and comments will appear here",
+    "view": "View",
     "types": {
       "approval_needed": "Post pending approval",
       "published": "Post published successfully",
@@ -350,16 +465,38 @@
       "limit_reached": "You've reached your plan limit",
       "trend_detected": "New trend adapted to your business",
       "meta_connected": "Account connected successfully",
-      "token_expired": "Your Instagram connection has expired"
+      "token_expired": "Your Instagram connection has expired",
+      "payment_failed": "Payment failed",
+      "plan_activated": "Plan activated",
+      "team_invite": "Team invitation"
     }
   },
   "trends": {
     "title": "Trends",
+    "weekTitle": "This week's trends",
     "subtitle": "What's working in your sector this week",
+    "weekSubtitle": "Viral content adapted to your business",
+    "thisWeek": "This week ({count})",
+    "history": "History",
+    "loading": "Loading trends...",
+    "noNew": "No new trends this week.",
+    "autoDetect": "Detected automatically every Monday.",
     "viralScore": "Viral score",
+    "scoreViral": "Viral score",
+    "expiresIn": "Expires in:",
+    "using": "Creating...",
     "useTrend": "Use this trend",
+    "useTrendShort": "Use trend",
+    "used": "✓ Used",
+    "ignored": "✗ Ignored",
     "ignore": "Ignore",
-    "empty": "Detecting trends for this week..."
+    "empty": "Detecting trends for this week...",
+    "newCount": "{count} new",
+    "urgency": {
+      "alta": "High",
+      "media": "Medium",
+      "baja": "Low"
+    }
   },
   "errors": {
     "generic": "Something went wrong. We've logged it.",

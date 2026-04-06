@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 export default function AcceptInvitePage() {
+  const t = useTranslations('auth.acceptInvite');
   const searchParams = useSearchParams();
   const router       = useRouter();
   const token        = searchParams.get('token') ?? '';
@@ -15,7 +17,7 @@ export default function AcceptInvitePage() {
   useEffect(() => {
     if (!token) {
       setStatus('error');
-      setMessage('Enlace de invitación no válido.');
+      setMessage(t('invalidLink'));
       return;
     }
     acceptInvite();
@@ -38,15 +40,15 @@ export default function AcceptInvitePage() {
           router.push(`/login?next=/accept-invite?token=${token}`);
           return;
         }
-        throw new Error(json.error ?? 'Error al aceptar la invitación');
+        throw new Error(json.error ?? t('error'));
       }
 
       setStatus('success');
-      setMessage('¡Invitación aceptada! Ahora tienes acceso al equipo.');
+      setMessage(t('accepted'));
       setTimeout(() => router.push('/dashboard'), 2000);
     } catch (err) {
       setStatus('error');
-      setMessage(err instanceof Error ? err.message : 'Error inesperado');
+      setMessage(err instanceof Error ? err.message : t('error'));
     }
   }
 
@@ -72,17 +74,14 @@ export default function AcceptInvitePage() {
           {status === 'loading' ? '⏳' : status === 'success' ? '✅' : status === 'error' ? '❌' : '✉️'}
         </p>
         <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 12 }}>
-          {status === 'loading' ? 'Procesando invitación…'
-           : status === 'success' ? '¡Bienvenido al equipo!'
-           : status === 'error' ? 'Invitación no válida'
-           : 'Invitación de equipo'}
+          {t(status as 'loading' | 'success' | 'error' | 'idle')}
         </h1>
         <p style={{ color: 'var(--muted, #888)', fontSize: 15, lineHeight: 1.5 }}>
-          {message || 'Comprobando tu invitación…'}
+          {message || t('checking')}
         </p>
         {status === 'success' && (
           <p style={{ color: 'var(--muted, #888)', fontSize: 13, marginTop: 8 }}>
-            Redirigiendo al panel…
+            {t('redirecting')}
           </p>
         )}
         {status === 'error' && (
@@ -96,7 +95,7 @@ export default function AcceptInvitePage() {
             fontWeight:   700,
             textDecoration: 'none',
           }}>
-            Ir al inicio de sesión
+            {t('goToLogin')}
           </Link>
         )}
       </div>

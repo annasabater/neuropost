@@ -2,11 +2,14 @@
 
 import { useState } from 'react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import { BarChart3, Zap, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import type { AnalystOutput } from '@/types';
 import { MetricsDashboard } from '@/components/analytics/MetricsDashboard';
 
 export default function AnalyticsPage() {
+  const t = useTranslations('analytics');
+  const tCal = useTranslations('calendar');
   const now   = new Date();
   const [month,   setMonth]   = useState(now.getMonth() + 1);
   const [year,    setYear]    = useState(now.getFullYear());
@@ -24,7 +27,7 @@ export default function AnalyticsPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Error al generar informe');
       setData(json.data as AnalystOutput);
-      toast.success('Informe generado');
+      toast.success(t('generated'));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error inesperado');
     } finally {
@@ -32,7 +35,12 @@ export default function AnalyticsPage() {
     }
   }
 
-  const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const MONTHS = [
+    tCal('months.january'), tCal('months.february'), tCal('months.march'),
+    tCal('months.april'), tCal('months.may'), tCal('months.june'),
+    tCal('months.july'), tCal('months.august'), tCal('months.september'),
+    tCal('months.october'), tCal('months.november'), tCal('months.december'),
+  ];
 
   // Derive "what's working" from insights + recommendations
   function whatIsWorking(report: AnalystOutput) {
@@ -47,8 +55,8 @@ export default function AnalyticsPage() {
     <div className="page-content">
       <div className="page-header">
         <div className="page-header-text">
-          <h1 className="page-title">Analíticas</h1>
-          <p className="page-sub">Informe mensual generado con IA</p>
+          <h1 className="page-title">{t('title')}</h1>
+          <p className="page-sub">{t('subtitle')}</p>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <select className="count-select" value={month} onChange={(e) => setMonth(Number(e.target.value))}>
@@ -61,7 +69,7 @@ export default function AnalyticsPage() {
           </select>
           <button className="btn-primary btn-orange" onClick={runReport} disabled={loading}>
             {loading ? <span className="loading-spinner" /> : <Zap size={16} />}
-            {loading ? 'Generando…' : 'Generar informe'}
+            {loading ? t('generating') : t('generate')}
           </button>
         </div>
       </div>
@@ -74,10 +82,10 @@ export default function AnalyticsPage() {
             return (
               <div style={{ marginBottom: 32 }}>
                 <h2 className="section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  ¿Qué está funcionando?
+                  {t('whatWorking')}
                 </h2>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
-                  {/* Sigue haciendo esto */}
+                  {/* Keep doing */}
                   <div style={{
                     padding:      16,
                     borderRadius: 12,
@@ -87,11 +95,11 @@ export default function AnalyticsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                       <TrendingUp size={18} color="#16a34a" />
                       <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '0.88rem', color: '#16a34a' }}>
-                        Sigue haciendo esto
+                        {t('keepDoing')}
                       </span>
                     </div>
                     {keep.length === 0 ? (
-                      <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Sin datos suficientes este mes</p>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>{t('noInsights')}</p>
                     ) : keep.map((i, idx) => (
                       <div key={idx} style={{ marginBottom: 8 }}>
                         <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.83rem', color: '#15803d' }}>{i.title}</p>
@@ -101,7 +109,7 @@ export default function AnalyticsPage() {
                     ))}
                   </div>
 
-                  {/* Para mejorar */}
+                  {/* Stop doing */}
                   <div style={{
                     padding:      16,
                     borderRadius: 12,
@@ -111,11 +119,11 @@ export default function AnalyticsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                       <TrendingDown size={18} color="#dc2626" />
                       <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '0.88rem', color: '#dc2626' }}>
-                        Para de hacer esto
+                        {t('stopDoing')}
                       </span>
                     </div>
                     {stop.length === 0 ? (
-                      <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Nada que mejorar detectado</p>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>{t('noImprove')}</p>
                     ) : stop.map((i, idx) => (
                       <div key={idx} style={{ marginBottom: 8 }}>
                         <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.83rem', color: '#b91c1c' }}>{i.title}</p>
@@ -124,7 +132,7 @@ export default function AnalyticsPage() {
                     ))}
                   </div>
 
-                  {/* Oportunidades */}
+                  {/* Opportunities */}
                   <div style={{
                     padding:      16,
                     borderRadius: 12,
@@ -134,11 +142,11 @@ export default function AnalyticsPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                       <Minus size={18} color="#d97706" />
                       <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '0.88rem', color: '#d97706' }}>
-                        Oportunidades
+                        {t('opportunities')}
                       </span>
                     </div>
                     {opps.length === 0 && highRecs.length === 0 ? (
-                      <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Sin oportunidades detectadas</p>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>{t('noOpps')}</p>
                     ) : (
                       <>
                         {opps.map((i, idx) => (
@@ -166,10 +174,10 @@ export default function AnalyticsPage() {
       ) : (
         <div className="empty-state">
           <div className="empty-state-icon"><BarChart3 size={36} color="var(--orange)" /></div>
-          <p className="empty-state-title">Sin datos</p>
-          <p className="empty-state-sub">Selecciona el mes y genera el informe con IA para ver qué está funcionando</p>
+          <p className="empty-state-title">{t('noDataTitle')}</p>
+          <p className="empty-state-sub">{t('noDataSub')}</p>
           <button className="btn-primary btn-orange" onClick={runReport} disabled={loading}>
-            {loading ? 'Generando…' : 'Generar informe'}
+            {loading ? t('generating') : t('generate')}
           </button>
         </div>
       )}

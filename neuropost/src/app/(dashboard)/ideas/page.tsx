@@ -2,22 +2,12 @@
 
 import { useState, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import { Lightbulb, Send, Zap } from 'lucide-react';
 import type { IdeaItem, SocialSector } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
 
-// Preset campaign prompts per sector
-const CAMPAIGN_PRESETS: { label: string; prompt: string; emoji: string }[] = [
-  { label: 'Campaña verano',      emoji: '☀️', prompt: 'Campaña de verano: contenido fresco y veraniego para aumentar ventas en la temporada estival' },
-  { label: 'San Valentín',        emoji: '❤️', prompt: 'Campaña San Valentín: ideas románticas y ofertas especiales para parejas' },
-  { label: 'Vuelta al cole',      emoji: '📚', prompt: 'Campaña vuelta al cole: contenido enfocado en familia y preparación para septiembre' },
-  { label: 'Black Friday',        emoji: '🛍️', prompt: 'Campaña Black Friday: ofertas especiales, descuentos y urgencia de compra' },
-  { label: 'Navidad',             emoji: '🎄', prompt: 'Campaña Navidad: contenido festivo, felicitaciones y regalos especiales' },
-  { label: 'Año nuevo',           emoji: '🥂', prompt: 'Campaña Año Nuevo: propósitos, nuevos comienzos y celebración de logros' },
-  { label: 'Fidelización',        emoji: '🤝', prompt: 'Contenido de fidelización: agradecimiento a clientes, historias de éxito y testimonios' },
-  { label: 'Lanzamiento producto', emoji: '🚀', prompt: 'Lanzamiento de nuevo producto o servicio: generar expectación y conversión' },
-];
-
+// Sector-specific prompt hints (AI content — kept in Spanish)
 const SECTOR_PROMPTS: Partial<Record<SocialSector, string[]>> = {
   heladeria:    ['Ideas para el verano con helados', 'Nuevos sabores de temporada', 'Combinaciones especiales para parejas'],
   restaurante:  ['Menú del día especial', 'Platos estrella para Instagram', 'Evento gastronómico del mes'],
@@ -29,7 +19,25 @@ const SECTOR_PROMPTS: Partial<Record<SocialSector, string[]>> = {
   inmobiliaria: ['Propiedad destacada de la semana', 'Consejos para compradores', 'El mercado inmobiliario hoy'],
 };
 
+// Campaign prompts (AI content — kept in Spanish)
+const CAMPAIGN_PROMPTS: Record<string, string> = {
+  summer:       'Campaña de verano: contenido fresco y veraniego para aumentar ventas en la temporada estival',
+  valentines:   'Campaña San Valentín: ideas románticas y ofertas especiales para parejas',
+  backToSchool: 'Campaña vuelta al cole: contenido enfocado en familia y preparación para septiembre',
+  blackFriday:  'Campaña Black Friday: ofertas especiales, descuentos y urgencia de compra',
+  christmas:    'Campaña Navidad: contenido festivo, felicitaciones y regalos especiales',
+  newYear:      'Campaña Año Nuevo: propósitos, nuevos comienzos y celebración de logros',
+  loyalty:      'Contenido de fidelización: agradecimiento a clientes, historias de éxito y testimonios',
+  launch:       'Lanzamiento de nuevo producto o servicio: generar expectación y conversión',
+};
+
+const CAMPAIGN_EMOJIS: Record<string, string> = {
+  summer: '☀️', valentines: '❤️', backToSchool: '📚', blackFriday: '🛍️',
+  christmas: '🎄', newYear: '🥂', loyalty: '🤝', launch: '🚀',
+};
+
 export default function IdeasPage() {
+  const t = useTranslations('ideas');
   const brand = useAppStore((s) => s.brand);
   const [ideas,   setIdeas]   = useState<IdeaItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -49,13 +57,13 @@ export default function IdeasPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Error al generar ideas');
       setIdeas(json.data.ideas);
-      toast.success(`${json.data.ideas.length} propuestas preparadas`);
+      toast.success(t('ideasCount', { count: json.data.ideas.length }));
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error inesperado');
     } finally {
       setLoading(false);
     }
-  }, [count]);
+  }, [count, t]);
 
   function usePreset(prompt: string) {
     if (promptRef.current) promptRef.current.value = prompt;
@@ -64,18 +72,20 @@ export default function IdeasPage() {
 
   function copyCaption(caption: string) {
     navigator.clipboard.writeText(caption);
-    toast.success('Caption copiado');
+    toast.success(t('copied'));
   }
 
   const GOAL_EMOJI: Record<string, string> = { engagement: '💬', awareness: '👁', promotion: '🛒', community: '🤝' };
   const sectorHints = brand?.sector ? SECTOR_PROMPTS[brand.sector] ?? [] : [];
 
+  const campaignKeys = Object.keys(CAMPAIGN_PROMPTS) as Array<keyof typeof CAMPAIGN_PROMPTS>;
+
   return (
     <div className="page-content">
       <div className="page-header">
         <div className="page-header-text">
-          <h1 className="page-title">Generador de ideas</h1>
-          <p className="page-sub">Describe qué quieres publicar y te prepararemos ideas completas</p>
+          <h1 className="page-title">{t('title')}</h1>
+          <p className="page-sub">{t('subtitle')}</p>
         </div>
       </div>
 
@@ -85,7 +95,7 @@ export default function IdeasPage() {
           <input
             ref={promptRef}
             className="ideas-prompt-input"
-            placeholder="Ej: Ideas para el verano, promos de agosto, recetas especiales..."
+            placeholder={t('inputPlaceholder')}
             onKeyDown={(e) => e.key === 'Enter' && generate()}
           />
           <select
@@ -97,7 +107,7 @@ export default function IdeasPage() {
           </select>
           <button className="btn-primary btn-orange" onClick={() => generate()} disabled={loading}>
             {loading ? <span className="loading-spinner" /> : <Send size={16} />}
-            {loading ? 'Generando...' : 'Generar'}
+            {loading ? t('generating') : t('generate')}
           </button>
         </div>
       </div>
@@ -106,7 +116,7 @@ export default function IdeasPage() {
       {sectorHints.length > 0 && (
         <div style={{ marginBottom: 20 }}>
           <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-            Ideas para tu sector
+            {t('sectorLabel')}
           </p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {sectorHints.map((hint) => (
@@ -139,13 +149,13 @@ export default function IdeasPage() {
       {/* Campaign presets */}
       <div style={{ marginBottom: 28 }}>
         <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-          Campañas predefinidas
+          {t('campaignsLabel')}
         </p>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {CAMPAIGN_PRESETS.map((cp) => (
+          {campaignKeys.map((key) => (
             <button
-              key={cp.label}
-              onClick={() => usePreset(cp.prompt)}
+              key={key}
+              onClick={() => usePreset(CAMPAIGN_PROMPTS[key])}
               disabled={loading}
               style={{
                 padding:      '7px 14px',
@@ -162,7 +172,7 @@ export default function IdeasPage() {
                 gap:          6,
               }}
             >
-              <span>{cp.emoji}</span> {cp.label}
+              <span>{CAMPAIGN_EMOJIS[key]}</span> {t(`campaigns.${key}`)}
             </button>
           ))}
         </div>
@@ -172,9 +182,9 @@ export default function IdeasPage() {
       {ideas.length > 0 && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <h2 className="section-title" style={{ margin: 0 }}>{ideas.length} propuestas preparadas</h2>
+            <h2 className="section-title" style={{ margin: 0 }}>{t('ideasCount', { count: ideas.length })}</h2>
             <button className="btn-outline" style={{ fontSize: '0.82rem', padding: '6px 14px' }} onClick={() => generate()}>
-              <Zap size={13} /> Regenerar
+              <Zap size={13} /> {t('regenerate')}
             </button>
           </div>
           <div className="ideas-grid">
@@ -197,10 +207,10 @@ export default function IdeasPage() {
                 )}
                 <div className="idea-footer">
                   <span className="idea-meta">
-                    {GOAL_EMOJI[idea.goal] ?? '✨'} {idea.bestTime || 'Cualquier hora'}
+                    {GOAL_EMOJI[idea.goal] ?? '✨'} {idea.bestTime || t('anyTime')}
                   </span>
                   <button className="copy-btn" onClick={() => copyCaption(idea.caption)}>
-                    Copiar
+                    {t('copy')}
                   </button>
                 </div>
               </div>
@@ -212,8 +222,8 @@ export default function IdeasPage() {
       {ideas.length === 0 && !loading && (
         <div className="empty-state">
           <div className="empty-state-icon"><Lightbulb size={36} color="var(--orange)" /></div>
-          <p className="empty-state-title">Listo para inspirarte</p>
-          <p className="empty-state-sub">Escribe una idea, usa una campaña predefinida o elige una sugerencia de tu sector</p>
+          <p className="empty-state-title">{t('emptyTitle')}</p>
+          <p className="empty-state-sub">{t('emptySub')}</p>
         </div>
       )}
     </div>

@@ -3,22 +3,9 @@
 import { useEffect } from 'react';
 import { Bell, CheckCheck, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useAppStore } from '@/store/useAppStore';
 import type { NotificationType } from '@/types';
-
-const TYPE_LABEL: Record<string, string> = {
-  approval_needed: 'Aprobación requerida',
-  published:       'Publicado correctamente',
-  failed:          'Error al publicar',
-  comment:         'Nuevo comentario',
-  limit_reached:   'Límite de plan alcanzado',
-  meta_connected:  'Cuenta Meta conectada',
-  token_expired:   'Token expirado — reconectar',
-  payment_failed:  'Fallo en el pago',
-  plan_activated:  'Plan activado',
-  team_invite:     'Invitación al equipo',
-  trend_detected:  'Tendencia viral detectada',
-};
 
 const TYPE_ICON: Record<string, string> = {
   approval_needed: '⏳',
@@ -63,6 +50,7 @@ const TYPE_COLOR: Record<string, string> = {
 };
 
 export default function NotificationsPage() {
+  const t = useTranslations('notifications');
   const notifications          = useAppStore((s) => s.notifications);
   const setNotifications       = useAppStore((s) => s.setNotifications);
   const markAllNotificationsRead = useAppStore((s) => s.markAllNotificationsRead);
@@ -92,9 +80,9 @@ export default function NotificationsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Group by day
+  // Group by day using locale-aware date formatting
   const grouped = notifications.reduce<Record<string, typeof notifications>>((acc, n) => {
-    const day = new Date(n.created_at).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+    const day = new Date(n.created_at).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' });
     if (!acc[day]) acc[day] = [];
     acc[day].push(n);
     return acc;
@@ -106,16 +94,16 @@ export default function NotificationsPage() {
     <div className="page-content" style={{ maxWidth: 720 }}>
       <div className="page-header">
         <div className="page-header-text">
-          <h1 className="page-title">Notificaciones</h1>
+          <h1 className="page-title">{t('title')}</h1>
           <p className="page-sub">
             {unread > 0
-              ? `${unread} sin leer`
-              : 'Todo al día'}
+              ? t('unread', { count: unread })
+              : t('upToDate')}
           </p>
         </div>
         {unread > 0 && (
           <button className="btn-outline" onClick={markAllNotificationsRead}>
-            <CheckCheck size={16} /> Marcar todo como leído
+            <CheckCheck size={16} /> {t('markAllRead')}
           </button>
         )}
       </div>
@@ -123,8 +111,8 @@ export default function NotificationsPage() {
       {notifications.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon"><Bell size={36} color="var(--orange)" /></div>
-          <p className="empty-state-title">Sin notificaciones</p>
-          <p className="empty-state-sub">Aquí aparecerán aprobaciones, publicaciones, tendencias y comentarios</p>
+          <p className="empty-state-title">{t('emptyTitle')}</p>
+          <p className="empty-state-sub">{t('emptySub')}</p>
         </div>
       ) : (
         <div className="notif-list">
@@ -141,7 +129,8 @@ export default function NotificationsPage() {
                 {day}
               </p>
               {items.map((n) => {
-                const label = TYPE_LABEL[n.type] ?? n.type;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const label = TYPE_ICON[n.type] ? t(`types.${n.type}` as any) : n.type;
                 const icon  = TYPE_ICON[n.type]  ?? '📌';
                 const link  = TYPE_LINK[n.type as NotificationType] ?? '/dashboard';
                 const color = TYPE_COLOR[n.type]  ?? 'var(--muted)';
@@ -175,7 +164,7 @@ export default function NotificationsPage() {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
                       <span className="notif-date">
-                        {new Date(n.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(n.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                       </span>
                       <Link
                         href={link}
@@ -189,7 +178,7 @@ export default function NotificationsPage() {
                           textDecoration: 'none',
                         }}
                       >
-                        <ExternalLink size={11} /> Ver
+                        <ExternalLink size={11} /> {t('view')}
                       </Link>
                     </div>
                   </div>

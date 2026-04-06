@@ -1,9 +1,11 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useAppStore } from '@/store/useAppStore';
 import { BrandKitEditor } from '@/components/brand/BrandKitEditor';
 
 export default function BrandPage() {
+  const t = useTranslations('brandKit');
   const brand        = useAppStore((s) => s.brand);
   const brandLoading = useAppStore((s) => s.brandLoading);
 
@@ -22,7 +24,7 @@ export default function BrandPage() {
       <div className="page-content">
         <div className="empty-state">
           <div className="empty-state-icon">🎨</div>
-          <p className="empty-state-title">Completa el onboarding primero</p>
+          <p className="empty-state-title">{t('needOnboarding')}</p>
         </div>
       </div>
     );
@@ -32,8 +34,8 @@ export default function BrandPage() {
     <div className="page-content">
       <div className="page-header">
         <div className="page-header-text">
-          <h1 className="page-title">Brand Kit</h1>
-          <p className="page-sub">Define los elementos visuales y el tono de tu marca</p>
+          <h1 className="page-title">{t('title')}</h1>
+          <p className="page-sub">{t('subtitle')}</p>
         </div>
       </div>
       <BrandKitEditor brand={brand} />

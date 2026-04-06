@@ -94,6 +94,8 @@
     "register": {
       "title": "Crea tu cuenta",
       "subtitle": "Empieza a gestionar tus redes con IA",
+      "titleAlt": "Crea tu cuenta",
+      "subtitleAlt": "Empieza gratis. Sin tarjeta de crédito.",
       "name": "Nombre completo",
       "email": "Email",
       "password": "Contraseña",
@@ -103,9 +105,26 @@
       "privacyLink": "política de privacidad",
       "submit": "Crear cuenta →",
       "loading": "Creando cuenta...",
+      "creating": "Creando cuenta...",
+      "createFree": "Crear cuenta gratis",
       "hasAccount": "¿Ya tienes cuenta?",
       "login": "Entra aquí",
       "trial": "14 días gratis · Sin tarjeta de crédito",
+      "passwordInvalid": "La contraseña no cumple los requisitos.",
+      "checkEmail": "¡Revisa tu email para confirmar tu cuenta!",
+      "rules": {
+        "min8": "Mínimo 8 caracteres",
+        "uppercase": "1 letra mayúscula",
+        "lowercase": "1 letra minúscula",
+        "number": "1 número",
+        "special": "1 carácter especial (!@#$…)"
+      },
+      "strength": {
+        "weak": "Muy débil",
+        "fair": "Débil",
+        "good": "Buena",
+        "strong": "Fuerte"
+      },
       "errors": {
         "nameRequired": "El nombre es obligatorio",
         "emailInvalid": "El email no es válido",
@@ -119,8 +138,32 @@
       "subtitle": "Te enviaremos un enlace a tu email",
       "email": "Email",
       "submit": "Enviar enlace",
+      "loading": "Enviando...",
+      "backToLogin": "Volver al login",
+      "sentMessage": "✅ Te hemos enviado un email con el enlace para restablecer tu contraseña. Revisa tu bandeja de entrada (y la carpeta de spam).",
       "success": "Revisa tu bandeja de entrada",
       "successDetail": "Te hemos enviado un enlace para restablecer tu contraseña"
+    },
+    "resetPassword": {
+      "title": "Nueva contraseña",
+      "subtitle": "Escribe tu nueva contraseña. Mínimo 8 caracteres.",
+      "newPassword": "Nueva contraseña",
+      "confirm": "Confirmar contraseña",
+      "saving": "Guardando...",
+      "submit": "Guardar contraseña",
+      "updated": "Contraseña actualizada correctamente",
+      "noMatch": "Las contraseñas no coinciden"
+    },
+    "acceptInvite": {
+      "loading": "Procesando invitación…",
+      "success": "¡Bienvenido al equipo!",
+      "error": "Invitación no válida",
+      "idle": "Invitación de equipo",
+      "checking": "Comprobando tu invitación…",
+      "redirecting": "Redirigiendo al panel…",
+      "accepted": "¡Invitación aceptada! Ahora tienes acceso al equipo.",
+      "invalidLink": "Enlace de invitación no válido.",
+      "goToLogin": "Ir al inicio de sesión"
     }
   },
   "onboarding": {
@@ -212,6 +255,23 @@
   },
   "posts": {
     "title": "Posts",
+    "subtitle": "Gestiona todo tu contenido",
+    "noCaption": "Sin caption",
+    "formats": {
+      "image": "Imagen",
+      "reel": "Reel",
+      "carousel": "Carrusel",
+      "story": "Story"
+    },
+    "goals": {
+      "promotion": "Promoción",
+      "community": "Comunidad"
+    },
+    "generating": "Generando...",
+    "empty": {
+      "title": "Sin posts",
+      "subtitle": "Crea tu primer post con IA"
+    },
     "new": {
       "title": "Nuevo post",
       "generateButton": "✦ Generar con IA",
@@ -228,6 +288,7 @@
       }
     },
     "status": {
+      "all": "Todos",
       "draft": "Borrador",
       "generated": "Generado",
       "pending": "Pendiente",
@@ -261,14 +322,48 @@
   },
   "ideas": {
     "title": "Ideas de contenido",
+    "subtitle": "Describe qué quieres publicar y te prepararemos ideas completas",
     "placeholder": "Pide ideas para tu negocio...",
-    "generate": "Generar ideas",
-    "addToCalendar": "Añadir al calendario",
+    "inputPlaceholder": "Ej: Ideas para el verano, promos de agosto, recetas especiales...",
+    "sectorLabel": "Ideas para tu sector",
+    "campaignsLabel": "Campañas predefinidas",
+    "generate": "Generar",
+    "generating": "Generando...",
+    "ideasCount": "{count} propuestas preparadas",
+    "regenerate": "Regenerar",
+    "copy": "Copiar",
+    "copied": "Caption copiado",
+    "anyTime": "Cualquier hora",
+    "emptyTitle": "Listo para inspirarte",
+    "emptySub": "Escribe una idea, usa una campaña predefinida o elige una sugerencia de tu sector",
+    "addToCalendar": "Añadir al calendari",
     "createPost": "Crear post",
-    "empty": "Cuéntame sobre tu negocio y te daré ideas →"
+    "empty": "Cuéntame sobre tu negocio y te daré ideas →",
+    "campaigns": {
+      "summer": "Campaña verano",
+      "valentines": "San Valentín",
+      "backToSchool": "Vuelta al cole",
+      "blackFriday": "Black Friday",
+      "christmas": "Navidad",
+      "newYear": "Año nuevo",
+      "loyalty": "Fidelización",
+      "launch": "Lanzamiento producto"
+    }
   },
   "comments": {
     "title": "Comentarios",
+    "communityTitle": "Comunidad",
+    "communitySubtitle": "Gestiona comentarios y mensajes con IA",
+    "processAI": "Procesar con IA",
+    "processing": "Procesando…",
+    "stats": {
+      "total": "Total",
+      "autoReplied": "Auto-respondidas",
+      "escalated": "Escaladas",
+      "sentiment": "Sentimiento"
+    },
+    "aiSummary": "Resumen IA",
+    "analyzed": "{count} interacciones analizadas",
     "filters": {
       "unread": "Sin leer", "all": "Todos", "replied": "Respondidos",
       "negative": "Negativos", "escalated": "Escalados"
@@ -285,6 +380,19 @@
   },
   "analytics": {
     "title": "Analíticas",
+    "subtitle": "Informe mensual generado con IA",
+    "generate": "Generar informe",
+    "generated": "Informe generado",
+    "generating": "Generando…",
+    "whatWorking": "¿Qué está funcionando?",
+    "keepDoing": "Sigue haciendo esto",
+    "stopDoing": "Para de hacer esto",
+    "opportunities": "Oportunidades",
+    "noDataTitle": "Sin datos",
+    "noDataSub": "Selecciona el mes y genera el informe con IA para ver qué está funcionando",
+    "noInsights": "Sin datos suficientes este mes",
+    "noImprove": "Nada que mejorar detectado",
+    "noOpps": "Sin oportunidades detectadas",
     "period": {
       "thisMonth": "Este mes", "lastMonth": "Mes anterior", "last3Months": "Últimos 3 meses"
     },
@@ -304,6 +412,8 @@
   },
   "brandKit": {
     "title": "Brand Kit",
+    "subtitle": "Define los elementos visuales y el tono de tu marca",
+    "needOnboarding": "Completa el onboarding primero",
     "sections": {
       "identity": "Identidad", "colors": "Colores", "fonts": "Tipografías",
       "voice": "Voz de marca", "slogans": "Slogans", "hashtags": "Hashtags favoritos",
@@ -407,6 +517,11 @@
     "title": "Notificaciones",
     "markAllRead": "Marcar todas como leídas",
     "empty": "No tienes notificaciones nuevas",
+    "unread": "{count} sin leer",
+    "upToDate": "Todo al día",
+    "emptyTitle": "Sin notificaciones",
+    "emptySub": "Aquí aparecerán aprobaciones, publicaciones, tendencias y comentarios",
+    "view": "Ver",
     "types": {
       "approval_needed": "Post pendiente de aprobación",
       "published": "Post publicado correctamente",
@@ -415,16 +530,38 @@
       "limit_reached": "Has alcanzado el límite de tu plan",
       "trend_detected": "Nueva tendencia adaptada a tu negocio",
       "meta_connected": "Cuenta conectada correctamente",
-      "token_expired": "Tu conexión con Instagram ha expirado"
+      "token_expired": "Tu conexión con Instagram ha expirado",
+      "payment_failed": "Fallo en el pago",
+      "plan_activated": "Plan activado",
+      "team_invite": "Invitación al equipo"
     }
   },
   "trends": {
     "title": "Tendencias",
+    "weekTitle": "Tendencias de la semana",
     "subtitle": "Lo que está funcionando en tu sector esta semana",
+    "weekSubtitle": "Contenido viral adaptado a tu negocio",
+    "thisWeek": "Esta semana ({count})",
+    "history": "Historial",
+    "loading": "Cargando tendencias...",
+    "noNew": "No hay tendencias nuevas esta semana.",
+    "autoDetect": "Se detectan automáticamente cada lunes.",
     "viralScore": "Puntuación viral",
+    "scoreViral": "Score viral",
+    "expiresIn": "Caduca en:",
+    "using": "Creando...",
     "useTrend": "Usar esta tendencia",
+    "useTrendShort": "Usar tendencia",
+    "used": "✓ Usado",
+    "ignored": "✗ Ignorado",
     "ignore": "Ignorar",
-    "empty": "Detectando tendencias de esta semana..."
+    "empty": "Detectando tendencias de esta semana...",
+    "newCount": "{count} nuevas",
+    "urgency": {
+      "alta": "Alta",
+      "media": "Media",
+      "baja": "Baja"
+    }
   },
   "errors": {
     "generic": "Algo ha fallado. Lo hemos registrado.",

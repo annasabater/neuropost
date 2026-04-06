@@ -32,17 +32,73 @@
       "errors": { "invalidCredentials": "Correu electrònic o contrasenya incorrectes", "emailRequired": "El correu electrònic és obligatori", "passwordRequired": "La contrasenya és obligatòria" }
     },
     "register": {
-      "title": "Crea el teu compte", "subtitle": "Comença a gestionar les teves xarxes amb IA",
-      "name": "Nom complet", "email": "Correu electrònic", "password": "Contrasenya",
+      "title": "Crea el teu compte",
+      "subtitle": "Comença a gestionar les teves xarxes amb IA",
+      "titleAlt": "Crea el teu compte",
+      "subtitleAlt": "Comença gratis. Sense targeta.",
+      "name": "Nom complet",
+      "email": "Correu electrònic",
+      "password": "Contrasenya",
       "confirmPassword": "Confirma la contrasenya",
       "terms": "Accepto els {terms} i la {privacy}",
-      "termsLink": "termes d'ús", "privacyLink": "política de privacitat",
-      "submit": "Crea el compte →", "loading": "Creant compte...",
-      "hasAccount": "Ja tens compte?", "login": "Entra aquí",
+      "termsLink": "termes d'ús",
+      "privacyLink": "política de privacitat",
+      "submit": "Crea el compte →",
+      "loading": "Creant compte...",
+      "creating": "Creant compte...",
+      "createFree": "Crear compte gratis",
+      "hasAccount": "Ja tens compte?",
+      "login": "Entra aquí",
       "trial": "14 dies gratis · Sense targeta de crèdit",
+      "passwordInvalid": "La contrasenya no compleix els requisits.",
+      "checkEmail": "Revisa el teu email per confirmar el teu compte!",
+      "rules": {
+        "min8": "Mínim 8 caràcters",
+        "uppercase": "1 lletra majúscula",
+        "lowercase": "1 lletra minúscula",
+        "number": "1 número",
+        "special": "1 carácter especial (!@#$…)"
+      },
+      "strength": {
+        "weak": "Molt feble",
+        "fair": "Feble",
+        "good": "Bona",
+        "strong": "Forta"
+      },
       "errors": { "nameRequired": "El nom és obligatori", "emailInvalid": "El correu electrònic no és vàlid", "passwordTooShort": "La contrasenya ha de tenir almenys 8 caràcters", "passwordsNoMatch": "Les contrasenyes no coincideixen", "termsRequired": "Has d'acceptar els termes" }
     },
-    "forgotPassword": { "title": "Recupera la teva contrasenya", "subtitle": "T'enviarem un enllaç al teu correu", "email": "Correu electrònic", "submit": "Envia l'enllaç", "success": "Revisa la teva safata d'entrada", "successDetail": "T'hem enviat un enllaç per restablir la contrasenya" }
+    "forgotPassword": {
+      "title": "Recupera la teva contrasenya",
+      "subtitle": "T'enviarem un enllaç al teu correu",
+      "email": "Correu electrònic",
+      "submit": "Envia l'enllaç",
+      "loading": "Enviant...",
+      "backToLogin": "Tornar al login",
+      "sentMessage": "✅ T'hem enviat un email amb l'enllaç per restablir la contrasenya. Revisa la teva safata (i la carpeta de correu brossa).",
+      "success": "Revisa la teva safata d'entrada",
+      "successDetail": "T'hem enviat un enllaç per restablir la contrasenya"
+    },
+    "resetPassword": {
+      "title": "Nova contrasenya",
+      "subtitle": "Escriu la teva nova contrasenya. Mínim 8 caràcters.",
+      "newPassword": "Nova contrasenya",
+      "confirm": "Confirmar contrasenya",
+      "saving": "Desant...",
+      "submit": "Desa la contrasenya",
+      "updated": "Contrasenya actualitzada correctament",
+      "noMatch": "Les contrasenyes no coincideixen"
+    },
+    "acceptInvite": {
+      "loading": "Processant invitació…",
+      "success": "Benvingut a l'equip!",
+      "error": "Invitació no vàlida",
+      "idle": "Invitació d'equip",
+      "checking": "Comprovant la teva invitació…",
+      "redirecting": "Redirigint al tauler…",
+      "accepted": "Invitació acceptada! Ara tens accés a l'equip.",
+      "invalidLink": "Enllaç d'invitació no vàlid.",
+      "goToLogin": "Anar a l'inici de sessió"
+    }
   },
   "onboarding": {
     "step": "Pas {current} de {total}",
@@ -66,8 +122,25 @@
   },
   "posts": {
     "title": "Publicacions",
+    "subtitle": "Gestiona tot el teu contingut",
+    "noCaption": "Sense caption",
+    "formats": {
+      "image": "Imagen",
+      "reel": "Reel",
+      "carousel": "Carrusel",
+      "story": "Story"
+    },
+    "goals": {
+      "promotion": "Promoció",
+      "community": "Comunitat"
+    },
+    "generating": "Generant...",
+    "empty": {
+      "title": "Sense posts",
+      "subtitle": "Crea el teu primer post amb IA"
+    },
     "new": { "title": "Nova publicació", "generateButton": "✦ Genera amb IA", "generating": "Generant...", "qualityScore": "Qualitat de la publicació", "captionPlaceholder": "Escriu o edita el caption...", "hashtagsPlaceholder": "Afegir hashtag", "actions": { "approve": "Aprova i programa", "publishNow": "Publica ara", "saveDraft": "Desa l'esborrany", "regenerate": "Regenera", "regenerateCaption": "Regenera el caption" } },
-    "status": { "draft": "Esborrany", "generated": "Generat", "pending": "Pendent", "approved": "Aprovat", "scheduled": "Programat", "published": "Publicat", "failed": "Fallat", "cancelled": "Cancel·lat" },
+    "status": { "all": "Tots", "draft": "Esborrany", "generated": "Generat", "pending": "Pendent", "approved": "Aprovat", "scheduled": "Programat", "published": "Publicat", "failed": "Fallat", "cancelled": "Cancel·lat" },
     "toast": { "published": "🚀 Publicació publicada a Instagram!", "approved": "✅ Publicació aprovada", "saved": "💾 Esborrany desat", "failed": "❌ Error en publicar. Torna-ho a provar" }
   },
   "calendar": {
@@ -78,9 +151,50 @@
     "months": { "january": "Gener", "february": "Febrer", "march": "Març", "april": "Abril", "may": "Maig", "june": "Juny", "july": "Juliol", "august": "Agost", "september": "Setembre", "october": "Octubre", "november": "Novembre", "december": "Desembre" },
     "empty": "Res programat. Fes clic per afegir →", "addPost": "Afegir publicació"
   },
-  "ideas": { "title": "Idees de contingut", "placeholder": "Demana idees per al teu negoci...", "generate": "Genera idees", "addToCalendar": "Afegir al calendari", "createPost": "Crear publicació", "empty": "Explica'm el teu negoci i et donaré idees →" },
+  "ideas": {
+    "title": "Idees de contingut",
+    "subtitle": "Descriu el que vols publicar i et prepararem idees completes",
+    "placeholder": "Demana idees per al teu negoci...",
+    "inputPlaceholder": "Ex: Idees per a l'estiu, promos d'agost, receptes especials...",
+    "sectorLabel": "Idees per al teu sector",
+    "campaignsLabel": "Campanyes predefinides",
+    "generate": "Generar",
+    "generating": "Generant...",
+    "ideasCount": "{count} propostes preparades",
+    "regenerate": "Regenerar",
+    "copy": "Copiar",
+    "copied": "Caption copiat",
+    "anyTime": "Qualsevol hora",
+    "emptyTitle": "Llest per inspirar-te",
+    "emptySub": "Escriu una idea, usa una campanya predefinida o tria una suggerència del teu sector",
+    "addToCalendar": "Afegir al calendari",
+    "createPost": "Crear publicació",
+    "empty": "Explica'm el teu negoci i et donaré idees →",
+    "campaigns": {
+      "summer": "Campanya d'estiu",
+      "valentines": "Sant Valentí",
+      "backToSchool": "Tornada a l'escola",
+      "blackFriday": "Black Friday",
+      "christmas": "Nadal",
+      "newYear": "Any nou",
+      "loyalty": "Fidelització",
+      "launch": "Llançament de producte"
+    }
+  },
   "comments": {
     "title": "Comentaris",
+    "communityTitle": "Comunitat",
+    "communitySubtitle": "Gestiona comentaris i missatges amb IA",
+    "processAI": "Processar amb IA",
+    "processing": "Processant…",
+    "stats": {
+      "total": "Total",
+      "autoReplied": "Auto-respostes",
+      "escalated": "Escalades",
+      "sentiment": "Sentiment"
+    },
+    "aiSummary": "Resum IA",
+    "analyzed": "{count} interaccions analitzades",
     "filters": { "unread": "Sense llegir", "all": "Tots", "replied": "Resposts", "negative": "Negatius", "escalated": "Escalats" },
     "suggestReply": "✦ Suggerir resposta amb IA", "sendReply": "Enviar resposta", "ignore": "Ignora", "escalate": "Escala",
     "empty": "Tot al dia 🙌 Torna més tard",
@@ -88,6 +202,19 @@
   },
   "analytics": {
     "title": "Analítiques",
+    "subtitle": "Informe mensual generat amb IA",
+    "generate": "Generar informe",
+    "generated": "Informe generat",
+    "generating": "Generant…",
+    "whatWorking": "Què funciona?",
+    "keepDoing": "Continua fent això",
+    "stopDoing": "Para de fer això",
+    "opportunities": "Oportunitats",
+    "noDataTitle": "Sense dades",
+    "noDataSub": "Selecciona el mes i genera l'informe amb IA per veure què funciona",
+    "noInsights": "Sense dades suficients aquest mes",
+    "noImprove": "Res per millorar detectat",
+    "noOpps": "Sense oportunitats detectades",
     "period": { "thisMonth": "Aquest mes", "lastMonth": "Mes anterior", "last3Months": "Últims 3 mesos" },
     "metrics": { "published": "Publicacions publicades", "engagement": "Engagement mitjà", "bestFormat": "Millor format", "bestTime": "Millor hora" },
     "topPosts": "Millors publicacions del mes",
@@ -96,6 +223,8 @@
   },
   "brandKit": {
     "title": "Brand Kit",
+    "subtitle": "Defineix els elements visuals i el to de la teva marca",
+    "needOnboarding": "Completa l'onboarding primer",
     "sections": { "identity": "Identitat", "colors": "Colors", "fonts": "Tipografies", "voice": "Veu de marca", "slogans": "Slogans", "hashtags": "Hashtags preferits", "services": "Serveis / Productes", "faq": "Preguntes freqüents", "assets": "Assets", "rules": "Regles personalitzades" },
     "regenerateVoice": "Regenerar veu de marca amb IA"
   },
@@ -126,9 +255,54 @@
     "language": { "title": "Idioma de l'aplicació", "subtitle": "Tria l'idioma en què vols fer servir NeuroPost", "saved": "Idioma actualitzat" }
   },
   "notifications": {
-    "title": "Notificacions", "markAllRead": "Marcar totes com a llegides", "empty": "No tens notificacions noves",
-    "types": { "approval_needed": "Publicació pendent d'aprovació", "published": "Publicació publicada correctament", "failed": "Error en publicar una publicació", "comment": "Nou comentari sense resposta", "limit_reached": "Has assolit el límit del teu pla", "trend_detected": "Nova tendència adaptada al teu negoci", "meta_connected": "Compte connectat correctament", "token_expired": "La teva connexió amb Instagram ha expirat" }
+    "title": "Notificacions",
+    "markAllRead": "Marcar totes com a llegides",
+    "empty": "No tens notificacions noves",
+    "unread": "{count} sense llegir",
+    "upToDate": "Tot al dia",
+    "emptyTitle": "Sense notificacions",
+    "emptySub": "Aquí apareixeran aprovacions, publicacions, tendències i comentaris",
+    "view": "Veure",
+    "types": {
+      "approval_needed": "Publicació pendent d'aprovació",
+      "published": "Publicació publicada correctament",
+      "failed": "Error en publicar una publicació",
+      "comment": "Nou comentari sense resposta",
+      "limit_reached": "Has assolit el límit del teu pla",
+      "trend_detected": "Nova tendència adaptada al teu negoci",
+      "meta_connected": "Compte connectat correctament",
+      "token_expired": "La teva connexió amb Instagram ha expirat",
+      "payment_failed": "Fallada en el pagament",
+      "plan_activated": "Pla activat",
+      "team_invite": "Invitació a l'equip"
+    }
   },
-  "trends": { "title": "Tendències", "subtitle": "Què està funcionant al teu sector aquesta setmana", "viralScore": "Puntuació viral", "useTrend": "Usar aquesta tendència", "ignore": "Ignora", "empty": "Detectant tendències d'aquesta setmana..." },
+  "trends": {
+    "title": "Tendències",
+    "weekTitle": "Tendències de la setmana",
+    "subtitle": "El que funciona al teu sector aquesta setmana",
+    "weekSubtitle": "Contingut viral adaptat al teu negoci",
+    "thisWeek": "Aquesta setmana ({count})",
+    "history": "Historial",
+    "loading": "Carregant tendències...",
+    "noNew": "No hi ha tendències noves aquesta setmana.",
+    "autoDetect": "Es detecten automàticament cada dilluns.",
+    "viralScore": "Puntuació viral",
+    "scoreViral": "Score viral",
+    "expiresIn": "Caduca en:",
+    "using": "Creant...",
+    "useTrend": "Usar aquesta tendència",
+    "useTrendShort": "Usar tendència",
+    "used": "✓ Usat",
+    "ignored": "✗ Ignorat",
+    "ignore": "Ignora",
+    "empty": "Detectant tendències d'aquesta setmana...",
+    "newCount": "{count} noves",
+    "urgency": {
+      "alta": "Alta",
+      "media": "Mitjana",
+      "baja": "Baixa"
+    }
+  },
   "errors": { "generic": "Alguna cosa ha fallat. Ho hem registrat.", "network": "Error de connexió. Comprova la teva internet.", "unauthorized": "Sessió expirada. Torna a entrar.", "notFound": "No hem trobat el que busques.", "planLimit": "Has assolit el límit del teu pla.", "uploadError": "Error en pujar la imatge.", "publishError": "Error en publicar." }
 }

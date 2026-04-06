@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Upload, Wand2, RefreshCw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { Platform, PostFormat, PostGoal, EditorOutput, CopywriterOutput } from '@/types';
 import { PostPreview } from './PostPreview';
 import { createBrowserClient } from '@/lib/supabase';
@@ -22,21 +23,8 @@ interface Props {
   }) => Promise<void>;
 }
 
-const FORMATS: { value: PostFormat; label: string }[] = [
-  { value: 'image',    label: 'Imagen' },
-  { value: 'reel',     label: 'Reel' },
-  { value: 'carousel', label: 'Carrusel' },
-  { value: 'story',    label: 'Story' },
-];
-
-const GOALS: { value: PostGoal; label: string }[] = [
-  { value: 'engagement', label: 'Engagement' },
-  { value: 'awareness',  label: 'Awareness' },
-  { value: 'promotion',  label: 'Promoción' },
-  { value: 'community',  label: 'Comunidad' },
-];
-
 export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
+  const t = useTranslations('posts');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [imageUrl,   setImageUrl]   = useState<string | null>(null);
@@ -59,6 +47,20 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
   const [saving,     setSaving]     = useState(false);
   const [uploading,  setUploading]  = useState(false);
   const [error,      setError]      = useState<string | null>(null);
+
+  const FORMATS: { value: PostFormat; label: string }[] = [
+    { value: 'image',    label: t('formats.image') },
+    { value: 'reel',     label: t('formats.reel') },
+    { value: 'carousel', label: t('formats.carousel') },
+    { value: 'story',    label: t('formats.story') },
+  ];
+
+  const GOALS: { value: PostGoal; label: string }[] = [
+    { value: 'engagement', label: 'Engagement' },
+    { value: 'awareness',  label: 'Awareness' },
+    { value: 'promotion',  label: t('goals.promotion') },
+    { value: 'community',  label: t('goals.community') },
+  ];
 
   // Revoke blob URL when imageUrl changes or component unmounts
   useEffect(() => {
@@ -321,7 +323,7 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
             onClick={generateCopy}
           >
             {generating ? <span className="loading-spinner" /> : <RefreshCw size={16} />}
-            {generating ? 'Generando…' : 'Generar copy'}
+            {generating ? t('generating') : 'Generar copy'}
           </button>
         </div>
 
@@ -330,8 +332,8 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
           <div className="editor-analysis-summary">
             <p className="analysis-label">Análisis IA</p>
             <div className="analysis-tags">
-              {editorResult.visualTags.map((t) => (
-                <span key={t} className="tag-chip">{t}</span>
+              {editorResult.visualTags.map((tag) => (
+                <span key={tag} className="tag-chip">{tag}</span>
               ))}
             </div>
             {editorResult.analysis.qualityScore != null && (

@@ -4,30 +4,22 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import { createBrowserClient } from '@/lib/supabase';
 
 type Rule = { label: string; test: (p: string) => boolean };
 
-const RULES: Rule[] = [
-  { label: 'Mínimo 8 caracteres',          test: (p) => p.length >= 8 },
-  { label: '1 letra mayúscula',             test: (p) => /[A-Z]/.test(p) },
-  { label: '1 letra minúscula',             test: (p) => /[a-z]/.test(p) },
-  { label: '1 número',                      test: (p) => /[0-9]/.test(p) },
-  { label: '1 carácter especial (!@#$…)',   test: (p) => /[^A-Za-z0-9]/.test(p) },
-];
+const STRENGTH_COLORS = ['#e53e3e', '#ed8936', '#ecc94b', '#1a7a4a'];
 
-function strengthLevel(password: string): 0 | 1 | 2 | 3 {
-  const passed = RULES.filter((r) => r.test(password)).length;
+function strengthLevel(passed: number): 0 | 1 | 2 | 3 {
   if (passed <= 1) return 0;
   if (passed <= 2) return 1;
   if (passed <= 4) return 2;
   return 3;
 }
 
-const STRENGTH_LABELS = ['Muy débil', 'Débil', 'Buena', 'Fuerte'];
-const STRENGTH_COLORS = ['#e53e3e', '#ed8936', '#ecc94b', '#1a7a4a'];
-
 export default function RegisterPage() {
+  const t = useTranslations('auth.register');
   const [loading, setLoading]   = useState(false);
   const [password, setPassword] = useState('');
   const [touched, setTouched]   = useState(false);
@@ -35,17 +27,28 @@ export default function RegisterPage() {
   const router    = useRouter();
   const params    = useSearchParams();
 
+  const RULES: Rule[] = [
+    { label: t('rules.min8'),      test: (p) => p.length >= 8 },
+    { label: t('rules.uppercase'), test: (p) => /[A-Z]/.test(p) },
+    { label: t('rules.lowercase'), test: (p) => /[a-z]/.test(p) },
+    { label: t('rules.number'),    test: (p) => /[0-9]/.test(p) },
+    { label: t('rules.special'),   test: (p) => /[^A-Za-z0-9]/.test(p) },
+  ];
+
+  const STRENGTH_LABELS = [t('strength.weak'), t('strength.fair'), t('strength.good'), t('strength.strong')];
+
   useEffect(() => {
     const email = params.get('email');
     if (email && emailRef.current) emailRef.current.value = email;
   }, [params]);
 
-  const level   = strengthLevel(password);
-  const allPass = RULES.every((r) => r.test(password));
+  const passed   = RULES.filter((r) => r.test(password)).length;
+  const level    = strengthLevel(passed);
+  const allPass  = RULES.every((r) => r.test(password));
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
-    if (!allPass) { toast.error('La contraseña no cumple los requisitos.'); return; }
+    if (!allPass) { toast.error(t('passwordInvalid')); return; }
     setLoading(true);
     const supabase = createBrowserClient();
     const { error } = await supabase.auth.signUp({
@@ -55,7 +58,7 @@ export default function RegisterPage() {
     });
     setLoading(false);
     if (error) { toast.error(error.message); return; }
-    toast.success('¡Revisa tu email para confirmar tu cuenta!');
+    toast.success(t('checkEmail'));
     router.push('/login');
   }
 
@@ -63,11 +66,11 @@ export default function RegisterPage() {
     <div className="auth-page">
       <div className="auth-card">
         <Link href="/" className="auth-logo">NeuroPost</Link>
-        <h1 className="auth-title">Crea tu cuenta</h1>
-        <p className="auth-sub">Empieza gratis. Sin tarjeta de crédito.</p>
+        <h1 className="auth-title">{t('titleAlt')}</h1>
+        <p className="auth-sub">{t('subtitleAlt')}</p>
         <form onSubmit={handleRegister} className="auth-form">
           <div className="form-group">
-            <label htmlFor="email">Correo electrónico</label>
+            <label htmlFor="email">{t('email')}</label>
             <input
               ref={emailRef}
               id="email"
@@ -79,11 +82,11 @@ export default function RegisterPage() {
           </div>
 
           <div className="form-group" style={{ marginBottom: 8 }}>
-            <label htmlFor="password">Contraseña</label>
+            <label htmlFor="password">{t('password')}</label>
             <input
               id="password"
               type="password"
-              placeholder="Mín. 8 caracteres"
+              placeholder={t('rules.min8')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onBlur={() => setTouched(true)}
@@ -154,13 +157,13 @@ export default function RegisterPage() {
             style={{ marginTop: 4 }}
           >
             {loading
-              ? <><span className="loading-spinner" />Creando cuenta...</>
-              : 'Crear cuenta gratis'}
+              ? <><span className="loading-spinner" />{t('creating')}</>
+              : t('createFree')}
           </button>
         </form>
         <p className="auth-footer">
-          ¿Ya tienes cuenta?{' '}
-          <Link href="/login">Entra aquí</Link>
+          {t('hasAccount')}{' '}
+          <Link href="/login">{t('login')}</Link>
         </p>
       </div>
     </div>
