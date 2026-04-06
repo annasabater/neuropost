@@ -64,17 +64,29 @@ const VISUAL_STYLES: {
   value: VisualStyle; title: string; tag: string; imgs: string[]; palette: string[];
 }[] = [
   { value: 'creative', title: 'Creativo y Colorido', tag: 'Impactante · Editorial · Vibrante',
-    imgs: [UNS('1513104890138-7c749659a591',300), UNS('1570145820259-b5b80c5c8bd6',300), UNS('1514362545857-3bc16c4c7d1b',300), UNS('1563805042-7684c019e1cb',300)],
+    imgs: [UNS('1513104890138-7c749659a591',300), UNS('1570145820259-b5b80c5c8bd6',300), UNS('1497034825429-c343d7c6a68f',300), UNS('1558618666-fcd25c85cd64',300)],
     palette: ['#FF6B9D','#FF9500','#34C759','#007AFF'] },
   { value: 'elegant', title: 'Elegante y Minimal', tag: 'Limpio · Sofisticado · Premium',
-    imgs: [UNS('1490312278390-ab64016e0aa9',300), UNS('1507003211169-0a1dd7228f2d',300), UNS('1441984904996-e0b6ba687e04',300), UNS('1560518883-ce09059eeffa',300)],
+    imgs: [UNS('1490312278390-ab64016e0aa9',300), UNS('1507003211169-0a1dd7228f2d',300), UNS('1570129477492-45c003edd2be',300), UNS('1499444819541-60e4a698ecf5',300)],
     palette: ['#F5F5F0','#D4C5B0','#8B7355','#2C2C2C'] },
   { value: 'warm', title: 'Cálido y Cercano', tag: 'Auténtico · Local · Próximo',
-    imgs: [UNS('1495474472287-4d71bcdd2085',300), UNS('1521017432531-fbd92d768814',300), UNS('1501339847302-ac426a4a7cbb',300), UNS('1563805042-7684c019e1cb',300)],
+    imgs: [UNS('1495474472287-4d71bcdd2085',300), UNS('1521017432531-fbd92d768814',300), UNS('1482049016688-2d3e1b311543',300), UNS('1439127989242-9da695f9ca26',300)],
     palette: ['#D4916A','#C17D52','#F2CDA0','#8B4513'] },
   { value: 'dynamic', title: 'Dinámico y Moderno', tag: 'Energía · Urbano · Tendencia',
-    imgs: [UNS('1534438327276-14e5300c3a48',300), UNS('1571019614242-c5c5dee9f50b',300), UNS('1503951914875-452162b0f3f1',300), UNS('1490874106543-4c8e13f21f96',300)],
+    imgs: [UNS('1517963879433-6ad2a56fcd15',300), UNS('1508214751196-c5bf6f5e2751',300), UNS('1567306226416-28f0efdc88ce',300), UNS('1582653291997-79a4f2b7d9a7',300)],
     palette: ['#1C1C1E','#FF3B30','#636366','#AEAEB2'] },
+  { value: 'editorial', title: 'Editorial y Realista', tag: 'Natural · Documental · Auténtico',
+    imgs: [UNS('1506126613408-eca07ce68773',300), UNS('1544367654-00eb648f0b1f',300), UNS('1560066984-138dadb4c305',300), UNS('1522335789203-aabd1fc54bc9',300)],
+    palette: ['#F4EBD0','#8A9E8A','#C4A882','#5C5C5C'] },
+  { value: 'dark', title: 'Oscuro y Premium', tag: 'Exclusivo · Lujoso · Impactante',
+    imgs: [UNS('1510812431401-41d2bd2722f3',300), UNS('1555041469-dd5e56068b4d',300), UNS('1503951914875-452162b0f3f1',300), UNS('1556228578-8c89e6adf883',300)],
+    palette: ['#0D0D0D','#2C1810','#6B4C3B','#C4A882'] },
+  { value: 'fresh', title: 'Fresco y Natural', tag: 'Orgánico · Saludable · Luminoso',
+    imgs: [UNS('1416879595882-3373a0480b5b',300), UNS('1512621776951-a57141f2eefd',300), UNS('1540555700478-4be289fbecef',300), UNS('1487530811576-3780949e7b0b',300)],
+    palette: ['#C8E6C9','#81C784','#388E3C','#F1F8E9'] },
+  { value: 'vintage', title: 'Vintage y Artesanal', tag: 'Nostálgico · Cálido · Artesano',
+    imgs: [UNS('1509440159596-0249088772ff',300), UNS('1517248135467-4c7edcad34c4',300), UNS('1542291026-7eec264c27ff',300), UNS('1563805042-7684c019e1cb',300)],
+    palette: ['#C4956A','#8B6914','#D4B896','#5C4B3A'] },
 ];
 
 // ─── Preview post images per sector ──────────────────────────────────────────
@@ -90,7 +102,7 @@ const SECTOR_POSTS: Partial<Record<SocialSector, string[]>> = {
   floristeria: [UNS('1487530811576-3780949e7b0b',300), UNS('1499444819541-60e4a698ecf5',300), UNS('1439127989242-9da695f9ca26',300)],
   yoga:        [UNS('1571019614242-c5c5dee9f50b',300), UNS('1506126613408-eca07ce68773',300), UNS('1544367654-00eb648f0b1f',300)],
 };
-const DEFAULT_POSTS = [UNS('1497366216548-37526070297c',300), UNS('1517248135467-4c7edcad34c4',300), UNS('1501339847302-ac426a4a7cbb',300)];
+const DEFAULT_POSTS = [UNS('1482049016688-2d3e1b311543',300), UNS('1558618666-fcd25c85cd64',300), UNS('1570129477492-45c003edd2be',300)];
 
 const SECTOR_CAPTIONS: Partial<Record<SocialSector, string[]>> = {
   restaurante: ['El mejor risotto de la ciudad 🍝', 'Mesa lista para esta noche ✨', 'Ingredientes frescos cada mañana 🌿'],
@@ -116,6 +128,74 @@ function getDynamicQuestions(sector: SocialSector): { label: string; placeholder
   return map[sector] ?? [{ label: 'Tu producto o servicio estrella', placeholder: 'Lo más popular de tu negocio', key: 'star_product' }];
 }
 
+// ─── Step 3 select options ────────────────────────────────────────────────────
+
+const SECTOR_SERVICE_OPTIONS: Partial<Record<SocialSector, string[]>> = {
+  restaurante: ['Cocina italiana', 'Cocina mediterránea', 'Cocina española', 'Cocina japonesa', 'Cocina mexicana', 'Cocina fusión', 'Hamburguesas artesanales', 'Tapas y raciones', 'Menú degustación'],
+  heladeria:   ['Helados artesanales', 'Helados italianos', 'Frozen yogurt', 'Granizados', 'Helados veganos', 'Tartas heladas'],
+  cafeteria:   ['Specialty coffee', 'Brunch y desayunos', 'Café de especialidad', 'Bollería artesanal', 'Té e infusiones'],
+  cocteleria:  ['Cócteles creativos', 'Cócteles clásicos', 'Destilados premium', 'Vermut y aperitivo', 'Vinos naturales'],
+  street_food: ['Burgers gourmet', 'Comida asiática', 'Burritos y tacos', 'Hot dogs artesanales', 'Comida vegana', 'Bocatas y sandwiches'],
+  vinoteca:    ['Vinos nacionales', 'Vinos importados', 'Vinos naturales', 'Catas de vino', 'Maridajes y tapas'],
+  panaderia:   ['Pan artesanal', 'Bollería francesa', 'Pastelería', 'Pan de masa madre', 'Pasteles personalizados'],
+  barberia:    ['Corte clásico', 'Degradado y fade', 'Arreglo de barba', 'Afeitado con navaja', 'Tratamientos capilares'],
+  nail_art:    ['Nail art creativo', 'Manicura clásica', 'Pedicura', 'Uñas de gel', 'Uñas acrílicas'],
+  estetica:    ['Tratamientos faciales', 'Depilación láser', 'Masajes relajantes', 'Spa & wellness', 'Tratamientos corporales'],
+  maquillaje:  ['Maquillaje de novia', 'Maquillaje artístico', 'Cursos de maquillaje', 'Productos de cosmética'],
+  boutique:    ['Moda mujer casual', 'Moda mujer formal', 'Moda boho', 'Accesorios y complementos', 'Ropa de diseño'],
+  moda_hombre: ['Ropa casual', 'Trajes y formal', 'Streetwear', 'Accesorios de moda'],
+  zapateria:   ['Calzado sport', 'Calzado formal', 'Zapatillas de tendencia', 'Calzado de temporada'],
+  skincare:    ['Cosmética natural', 'Antiaging', 'Rutina coreana', 'Cremas y serums', 'Tratamientos de acné'],
+  gym:         ['CrossFit', 'Musculación y fitness', 'Functional training', 'HIIT', 'Entrenamiento personal', 'Boxeo / Artes marciales'],
+  yoga:        ['Hatha yoga', 'Vinyasa flow', 'Pilates mat', 'Meditación', 'Yoga prenatal', 'Yoga restaurativo'],
+  dental:      ['Ortodoncia invisible', 'Implantes dentales', 'Estética dental', 'Blanqueamiento dental', 'Odontología general'],
+  clinica:     ['Medicina estética', 'Fisioterapia', 'Nutrición y dietética', 'Psicología', 'Medicina general'],
+  nutricion:   ['Nutrición deportiva', 'Pérdida de peso', 'Nutrición clínica', 'Dietas veganas', 'Planes personalizados'],
+  decoracion:  ['Decoración nórdica', 'Interiorismo', 'Muebles a medida', 'Home staging', 'Decoración industrial'],
+  jardineria:  ['Jardines residenciales', 'Mantenimiento de jardines', 'Paisajismo', 'Plantas y flores'],
+  reformas:    ['Reformas integrales', 'Reforma de baño', 'Reforma de cocina', 'Pintura y acabados'],
+  inmobiliaria:['Pisos de lujo', 'Locales comerciales', 'Vivienda primera compra', 'Alquiler residencial', 'Obra nueva'],
+  fotografia:  ['Fotografía de bodas', 'Retrato profesional', 'Fotografía de producto', 'Fotografía de eventos'],
+  floristeria: ['Ramos de novia', 'Flores naturales', 'Plantas de interior', 'Arreglos florales', 'Flores secas'],
+};
+
+const CITY_OPTIONS = [
+  'Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Zaragoza', 'Málaga', 'Murcia',
+  'Palma de Mallorca', 'Las Palmas', 'Bilbao', 'Alicante', 'Córdoba', 'Valladolid',
+  'Vigo', 'Gijón', 'Granada', 'San Sebastián', 'A Coruña', 'Vitoria-Gasteiz',
+  'Oviedo', 'Pamplona', 'Santa Cruz de Tenerife', 'Santander', 'Almería',
+  'Burgos', 'Castellón', 'Salamanca', 'Logroño', 'Marbella', 'Jerez de la Frontera',
+  'Toledo', 'Albacete', 'León', 'Huelva', 'Tarragona', 'Lleida', 'Badajoz',
+  'Badalona', 'Terrassa', 'Sabadell', 'Getafe', 'Leganés', 'Móstoles',
+];
+
+// ─── Step 4 keyword suggestions ───────────────────────────────────────────────
+
+const SECTOR_KEYWORD_SUGGESTIONS: Partial<Record<SocialSector, string[]>> = {
+  restaurante: ['artesanal', 'fresco', 'temporada', 'local', 'gourmet', 'casero', 'orgánico', 'sin gluten', 'km0'],
+  heladeria:   ['artesanal', 'cremoso', 'natural', 'sin lactosa', 'vegano', 'casero', 'fruta fresca'],
+  cafeteria:   ['specialty coffee', 'brunch', 'acogedor', 'artesanal', 'sostenible', 'orgánico', 'tercera ola'],
+  gym:         ['fuerza', 'cardio', 'resultados', 'constancia', 'motivación', 'salud', 'bienestar', 'comunidad'],
+  yoga:        ['bienestar', 'equilibrio', 'mindfulness', 'meditación', 'flexibilidad', 'paz interior'],
+  barberia:    ['clásico', 'grooming', 'artesanal', 'fade', 'barba', 'estilo', 'profesional'],
+  boutique:    ['tendencia', 'exclusivo', 'estilo', 'colección', 'temporada', 'moda sostenible'],
+  inmobiliaria:['vivienda', 'inversión', 'calidad', 'confort', 'exclusivo', 'oportunidad'],
+  floristeria: ['natural', 'flores frescas', 'artesanal', 'romántico', 'regalo', 'sostenible'],
+  dental:      ['salud dental', 'sonrisa perfecta', 'confianza', 'bienestar', 'estética dental'],
+  panaderia:   ['artesanal', 'masa madre', 'natural', 'tradicional', 'fresco', 'sin conservantes'],
+  skincare:    ['natural', 'orgánico', 'hidratación', 'antiaging', 'luminosidad', 'cruelty-free'],
+  fotografia:  ['storytelling', 'luz natural', 'editorial', 'autenticidad', 'momentos únicos'],
+  decoracion:  ['hogar', 'diseño', 'estilo', 'exclusivo', 'personalizado', 'inspiración'],
+};
+
+// ─── Step 5 publish mode images ───────────────────────────────────────────────
+
+const PUBLISH_MODE_IMGS: Record<PublishMode, string> = {
+  manual: UNS('1551434678-e0ef8e06e461', 800),
+  semi:   UNS('1460925895917-afdab827c52f', 800),
+  auto:   UNS('1485827404703-89b55fcc595e', 800),
+};
+
 // ─── Shared design tokens ─────────────────────────────────────────────────────
 
 const ACCENT = '#ff5c1a';
@@ -132,6 +212,19 @@ const inputStyle: React.CSSProperties = {
   borderRadius: 10, color: INK,
   fontFamily: "'Cabinet Grotesk', sans-serif",
   fontSize: '0.9rem', outline: 'none',
+};
+
+const selectStyle: React.CSSProperties = {
+  width: '100%', padding: '12px 36px 12px 16px',
+  background: '#1a1e2d',
+  border: '1px solid rgba(255,255,255,0.12)',
+  borderRadius: 10, color: INK,
+  fontFamily: "'Cabinet Grotesk', sans-serif",
+  fontSize: '0.9rem', outline: 'none', cursor: 'pointer',
+  appearance: 'none' as React.CSSProperties['appearance'],
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7a99' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
+  backgroundRepeat: 'no-repeat',
+  backgroundPosition: 'right 14px center',
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -239,6 +332,8 @@ export default function OnboardingPage() {
   const [fbInput,          setFbInput]          = useState('');
   const [objective]                             = useState<PostGoal>('engagement');
   const [publishMode,      setPublishMode]      = useState<PublishMode>('manual');
+  const [publishFrequency, setPublishFrequency] = useState<2 | 5 | 7>(5);
+  const [locationDropdown, setLocationDropdown] = useState('');
   const [primaryColor,     setPrimaryColor]     = useState('#FF6B35');
   const [secondaryColor,   setSecondaryColor]   = useState('#1A1A2E');
   const [promoCodeId,      setPromoCodeId]      = useState<string | null>(null);
@@ -261,10 +356,14 @@ export default function OnboardingPage() {
         .map((q) => `${q.label}: ${dynamicAnswers[q.key] ?? ''}`)
         .filter((l) => !l.endsWith(': ')).join('. ');
       const styleInstructions: Record<VisualStyle, string> = {
-        creative: 'Estilo creativo y colorido: usa emojis, exclamaciones y texto dinámico.',
-        elegant:  'Estilo elegante y minimal: sin emojis, frases cortas y sofisticadas.',
-        warm:     'Estilo cálido y cercano: tono familiar, tuteo y proximidad.',
-        dynamic:  'Estilo dinámico y moderno: frases cortas, imperativas y mucha energía.',
+        creative:   'Estilo creativo y colorido: usa emojis, exclamaciones y texto dinámico.',
+        elegant:    'Estilo elegante y minimal: sin emojis, frases cortas y muy sofisticadas.',
+        warm:       'Estilo cálido y cercano: tono familiar, tuteo y mucha proximidad.',
+        dynamic:    'Estilo dinámico y moderno: frases cortas, imperativas y mucha energía.',
+        editorial:  'Estilo editorial y realista: storytelling auténtico, naturalidad y contexto.',
+        dark:       'Estilo oscuro y premium: copywriting exclusivo, sin exclamaciones, muy sofisticado.',
+        fresh:      'Estilo fresco y natural: tono orgánico, referencias a naturaleza y bienestar.',
+        vintage:    'Estilo vintage y artesanal: lenguaje cálido, nostálgico, valorando el oficio.',
       };
       const res = await fetch('/api/brands', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -273,9 +372,10 @@ export default function OnboardingPage() {
           visual_style: visualStyle, tone, hashtags: keywords,
           location: location || null, slogans: slogan ? [slogan] : [],
           publish_mode: publishMode,
+          publish_frequency: publishFrequency,
           colors: { primary: primaryColor, secondary: secondaryColor, accent: primaryColor },
           promo_code_id: promoCodeId ?? undefined,
-          rules: { forbiddenWords: forbidden, noPublishDays: [], noEmojis: visualStyle === 'elegant', noAutoReplyNegative: false, forbiddenTopics: [] },
+          rules: { forbiddenWords: forbidden, noPublishDays: [], noEmojis: visualStyle === 'elegant' || visualStyle === 'dark', noAutoReplyNegative: false, forbiddenTopics: [] },
           brand_voice_doc: [
             `Negocio: ${name}. Sector: ${sector}.`,
             `Estilo visual: ${visualStyle}. ${styleInstructions[visualStyle]}`,
@@ -327,7 +427,16 @@ export default function OnboardingPage() {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 3, borderRadius: 12, overflow: 'hidden' }}>
         {[...selectedStyle.imgs, ...selectedStyle.imgs, selectedStyle.imgs[0]].slice(0, 9).map((img, i) => (
-          <img key={i} src={img} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block', filter: visualStyle === 'elegant' ? 'saturate(0.3) brightness(1.1)' : visualStyle === 'dynamic' ? 'contrast(1.2) saturate(1.3)' : visualStyle === 'creative' ? 'saturate(1.4)' : 'saturate(0.9) warmth(1.1)' }} />
+          <img key={i} src={img} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block', filter:
+            visualStyle === 'elegant'  ? 'saturate(0.25) brightness(1.1)' :
+            visualStyle === 'dynamic'  ? 'contrast(1.25) saturate(1.35)' :
+            visualStyle === 'creative' ? 'saturate(1.5)' :
+            visualStyle === 'editorial'? 'sepia(0.1) brightness(1.05)' :
+            visualStyle === 'dark'     ? 'brightness(0.65) contrast(1.3) saturate(0.8)' :
+            visualStyle === 'fresh'    ? 'saturate(0.9) brightness(1.12) hue-rotate(-5deg)' :
+            visualStyle === 'vintage'  ? 'sepia(0.45) saturate(0.75) brightness(0.9)' :
+            'saturate(0.95) brightness(1.02)'  // warm
+          }} />
         ))}
       </div>
       <div style={{ marginTop: 16, display: 'flex', gap: 6 }}>
@@ -414,27 +523,43 @@ export default function OnboardingPage() {
     auto:   'Publicamos de forma autónoma según tu estrategia. Tú revisas los resultados.',
   };
 
+  const modeSteps: Record<PublishMode, string[]> = {
+    manual:   ['IA genera propuestas de contenido', 'Tú revisas y decides qué publicar', 'Publicamos en Instagram y Facebook'],
+    semi:     ['IA crea y programa el contenido', 'Te enviamos una notificación para aprobar', 'Un clic y publicamos automáticamente'],
+    auto:     ['IA crea contenido según tu estrategia', 'Publicamos sin interrupciones', 'Recibes informes semanales de resultados'],
+  };
+
   const rightStep5 = (
     <div style={{ padding: '48px 40px', height: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Cabinet Grotesk', sans-serif" }}>
         Cómo funciona
       </div>
-      <div style={{ background: '#1a1d2e', borderRadius: 14, padding: 24, border: '1px solid rgba(255,255,255,0.07)', flex: 1 }}>
-        <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '1rem', color: INK, marginBottom: 12 }}>
-          {PUBLISH_MODE_OPTIONS.find((m) => m.value === publishMode)?.label}
-        </div>
-        <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.88rem', color: MUTED, lineHeight: 1.7, marginBottom: 20 }}>
-          {modeDescriptions[publishMode]}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {['Contenido creado por IA', 'Revisado por tu equipo', 'Publicado en Instagram y Facebook'].map((step, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 24, height: 24, borderRadius: '50%', background: `rgba(255,92,26,${0.3 + i * 0.2})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, color: ACCENT, fontFamily: "'Cabinet Grotesk', sans-serif", flexShrink: 0 }}>
-                {i + 1}
+      <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <img src={PUBLISH_MODE_IMGS[publishMode]} alt="" style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />
+        <div style={{ background: '#1a1d2e', padding: 24 }}>
+          <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '1rem', color: INK, marginBottom: 8 }}>
+            {PUBLISH_MODE_OPTIONS.find((m) => m.value === publishMode)?.label}
+          </div>
+          <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.85rem', color: MUTED, lineHeight: 1.7, marginBottom: 20 }}>
+            {modeDescriptions[publishMode]}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+            {modeSteps[publishMode].map((s, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 24, height: 24, borderRadius: '50%', background: `rgba(255,92,26,${0.3 + i * 0.2})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, color: ACCENT, fontFamily: "'Cabinet Grotesk', sans-serif", flexShrink: 0 }}>
+                  {i + 1}
+                </div>
+                <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.83rem', color: INK }}>{s}</div>
               </div>
-              <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.83rem', color: INK }}>{step}</div>
+            ))}
+          </div>
+          <div style={{ background: 'rgba(255,92,26,0.08)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 900, fontSize: '1.8rem', color: ACCENT }}>{publishFrequency}</div>
+            <div>
+              <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.78rem', fontWeight: 700, color: INK }}>posts por semana</div>
+              <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.72rem', color: MUTED, marginTop: 1 }}>≈ {publishFrequency * 4} publicaciones al mes</div>
             </div>
-          ))}
+          </div>
         </div>
       </div>
     </div>
@@ -445,7 +570,7 @@ export default function OnboardingPage() {
   // ─── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ position: 'fixed', inset: 0, display: 'flex', zIndex: 50, overflow: 'hidden' }}>
+    <div className="onboarding-page" style={{ position: 'fixed', inset: 0, display: 'flex', zIndex: 50, overflow: 'hidden' }}>
 
       {/* ── Left column ── */}
       <div style={{ width: '42%', background: BG_L, display: 'flex', flexDirection: 'column', padding: '44px 44px', overflowY: 'auto', flexShrink: 0 }}>
@@ -525,42 +650,44 @@ export default function OnboardingPage() {
         {step === 2 && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <SectionTitle>¿Cómo quieres que se vea?</SectionTitle>
-            <StepSub>El estilo visual define la edición, los colores y el tipo de contenido.</StepSub>
+            <StepSub>Elige la estética visual de tu feed. Define la edición, colores y tipo de contenido.</StepSub>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 28 }}>
-              {VISUAL_STYLES.map((style) => {
-                const selected = visualStyle === style.value;
-                return (
-                  <button key={style.value} type="button" onClick={() => setVisualStyle(style.value)} style={{
-                    padding: 0, borderRadius: 12, overflow: 'hidden',
-                    border: `2px solid ${selected ? ACCENT : 'rgba(255,255,255,0.08)'}`,
-                    cursor: 'pointer', background: 'transparent', outline: 'none',
-                    transition: 'border-color 0.2s, box-shadow 0.2s',
-                    boxShadow: selected ? `0 0 0 4px rgba(255,92,26,0.12)` : 'none',
-                    position: 'relative',
-                  }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
-                      {style.imgs.map((img, i) => (
-                        <img key={i} src={img} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block' }} />
-                      ))}
-                    </div>
-                    <div style={{ background: '#1a1d2e', padding: '10px 12px' }}>
-                      <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '0.82rem', color: INK, marginBottom: 3 }}>
-                        {style.title}
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                {VISUAL_STYLES.map((style) => {
+                  const selected = visualStyle === style.value;
+                  return (
+                    <button key={style.value} type="button" onClick={() => setVisualStyle(style.value)} style={{
+                      padding: 0, borderRadius: 12, overflow: 'hidden',
+                      border: `2px solid ${selected ? ACCENT : 'rgba(255,255,255,0.08)'}`,
+                      cursor: 'pointer', background: 'transparent', outline: 'none',
+                      transition: 'border-color 0.2s, box-shadow 0.2s',
+                      boxShadow: selected ? `0 0 0 4px rgba(255,92,26,0.12)` : 'none',
+                      position: 'relative',
+                    }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+                        {style.imgs.map((img, i) => (
+                          <img key={i} src={img} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block' }} />
+                        ))}
                       </div>
-                      <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.68rem', color: MUTED }}>
-                        {style.tag}
+                      <div style={{ background: '#1a1d2e', padding: '9px 11px' }}>
+                        <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '0.8rem', color: INK, marginBottom: 2 }}>
+                          {style.title}
+                        </div>
+                        <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.65rem', color: MUTED }}>
+                          {style.tag}
+                        </div>
                       </div>
-                    </div>
-                    {selected && (
-                      <div style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderRadius: '50%', background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: 'white', fontWeight: 900 }}>✓</div>
-                    )}
-                  </button>
-                );
-              })}
+                      {selected && (
+                        <div style={{ position: 'absolute', top: 7, right: 7, width: 18, height: 18, borderRadius: '50%', background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'white', fontWeight: 900 }}>✓</div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 'auto' }}>
+            <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
               <BtnBack onClick={() => setStep(1)} />
               <BtnPrimary onClick={() => setStep(3)}>Siguiente →</BtnPrimary>
             </div>
@@ -578,19 +705,44 @@ export default function OnboardingPage() {
                 <Label>Nombre del negocio *</Label>
                 <input style={inputStyle} type="text" placeholder="Ej: Heladería La Nube" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
               </div>
-              {dynamicQuestions.map((q) => (
-                <div key={q.key}>
-                  <Label>{q.label}</Label>
-                  <input style={inputStyle} type="text" placeholder={q.placeholder} value={dynamicAnswers[q.key] ?? ''} onChange={(e) => setDynamicAnswers((prev) => ({ ...prev, [q.key]: e.target.value }))} />
-                </div>
-              ))}
+              {dynamicQuestions.map((q) => {
+                const options = SECTOR_SERVICE_OPTIONS[sector];
+                return (
+                  <div key={q.key}>
+                    <Label>{q.label}</Label>
+                    {options ? (
+                      <select
+                        style={selectStyle}
+                        value={dynamicAnswers[q.key] ?? ''}
+                        onChange={(e) => setDynamicAnswers((prev) => ({ ...prev, [q.key]: e.target.value }))}
+                      >
+                        <option value="">Elige una opción...</option>
+                        {options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    ) : (
+                      <input style={inputStyle} type="text" placeholder={q.placeholder} value={dynamicAnswers[q.key] ?? ''} onChange={(e) => setDynamicAnswers((prev) => ({ ...prev, [q.key]: e.target.value }))} />
+                    )}
+                  </div>
+                );
+              })}
               <div>
-                <Label>Ubicación <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
-                <input style={inputStyle} type="text" placeholder="Ej: Barcelona, Gràcia" value={location} onChange={(e) => setLocation(e.target.value)} />
-              </div>
-              <div>
-                <Label>Slogan <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
-                <input style={inputStyle} type="text" placeholder="Ej: El sabor de lo auténtico" value={slogan} onChange={(e) => setSlogan(e.target.value)} />
+                <Label>Ciudad <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
+                <select
+                  style={selectStyle}
+                  value={locationDropdown}
+                  onChange={(e) => {
+                    setLocationDropdown(e.target.value);
+                    if (e.target.value !== '__otra__') setLocation(e.target.value);
+                    else setLocation('');
+                  }}
+                >
+                  <option value="">Selecciona tu ciudad...</option>
+                  {CITY_OPTIONS.map((city) => <option key={city} value={city}>{city}</option>)}
+                  <option value="__otra__">Otra ciudad...</option>
+                </select>
+                {locationDropdown === '__otra__' && (
+                  <input style={{ ...inputStyle, marginTop: 8 }} type="text" placeholder="Escribe tu ciudad..." value={location} onChange={(e) => setLocation(e.target.value)} />
+                )}
               </div>
             </div>
 
@@ -605,7 +757,7 @@ export default function OnboardingPage() {
         {step === 4 && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <SectionTitle>Tu voz de marca</SectionTitle>
-            <StepSub>Cómo quieres comunicarte con tu audiencia.</StepSub>
+            <StepSub>Elige cómo quieres comunicarte con tu audiencia.</StepSub>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 24 }}>
               <div>
@@ -613,49 +765,48 @@ export default function OnboardingPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   {TONE_OPTIONS.map((t) => (
                     <button key={t.value} type="button" onClick={() => setTone(t.value)} style={{
-                      padding: '12px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                      padding: '14px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
                       border: `1.5px solid ${tone === t.value ? ACCENT : 'rgba(255,255,255,0.08)'}`,
                       background: tone === t.value ? 'rgba(255,92,26,0.1)' : 'rgba(255,255,255,0.03)',
                       outline: 'none', transition: 'all 0.15s',
+                      display: 'flex', flexDirection: 'column', gap: 4,
                     }}>
-                      <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.88rem', color: tone === t.value ? INK : 'rgba(232,237,248,0.7)' }}>{t.label}</div>
-                      <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.74rem', color: MUTED, marginTop: 3 }}>{t.desc}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '0.88rem', color: tone === t.value ? INK : 'rgba(232,237,248,0.7)' }}>{t.label}</div>
+                        {tone === t.value && <div style={{ width: 16, height: 16, borderRadius: '50%', background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', color: 'white', fontWeight: 900, flexShrink: 0 }}>✓</div>}
+                      </div>
+                      <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.72rem', color: MUTED }}>{t.desc}</div>
+                      <div style={{ marginTop: 6, fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.7rem', color: tone === t.value ? 'rgba(232,237,248,0.6)' : 'rgba(232,237,248,0.28)', fontStyle: 'italic', lineHeight: 1.5, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8 }}>
+                        "{toneExamples[t.value]}"
+                      </div>
                     </button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <Label>Palabras clave <span style={{ opacity: 0.6, textTransform: 'none', fontWeight: 400 }}>(Enter para añadir)</span></Label>
-                <div style={{ ...inputStyle, display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 12px', minHeight: 44, height: 'auto' }}>
-                  {keywords.map((k) => (
-                    <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,92,26,0.15)', color: ACCENT, padding: '2px 10px', borderRadius: 40, fontSize: '0.78rem', fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700 }}>
-                      {k}
-                      <button type="button" onClick={() => removeTag(keywords, setKeywords, k)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 12, padding: 0, lineHeight: 1 }}>×</button>
-                    </span>
-                  ))}
-                  <input value={kwInput} onChange={(e) => setKwInput(e.target.value)}
-                    onKeyDown={(e) => handleTagKeyDown(e, keywords, setKeywords, kwInput, setKwInput)}
-                    onBlur={() => { if (kwInput.trim()) { addTag(keywords, setKeywords, kwInput); setKwInput(''); } }}
-                    placeholder="artesanal, sostenible..."
-                    style={{ background: 'none', border: 'none', outline: 'none', color: INK, fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.85rem', flex: 1, minWidth: 100 }} />
-                </div>
-              </div>
-
-              <div>
-                <Label>Palabras prohibidas <span style={{ opacity: 0.6, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
-                <div style={{ ...inputStyle, display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 12px', minHeight: 44, height: 'auto' }}>
-                  {forbidden.map((f) => (
-                    <span key={f} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.15)', color: '#f87171', padding: '2px 10px', borderRadius: 40, fontSize: '0.78rem', fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700 }}>
-                      {f}
-                      <button type="button" onClick={() => removeTag(forbidden, setForbidden, f)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: 12, padding: 0, lineHeight: 1 }}>×</button>
-                    </span>
-                  ))}
-                  <input value={fbInput} onChange={(e) => setFbInput(e.target.value)}
-                    onKeyDown={(e) => handleTagKeyDown(e, forbidden, setForbidden, fbInput, setFbInput)}
-                    onBlur={() => { if (fbInput.trim()) { addTag(forbidden, setForbidden, fbInput); setFbInput(''); } }}
-                    placeholder="barato, descuento..."
-                    style={{ background: 'none', border: 'none', outline: 'none', color: INK, fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.85rem', flex: 1, minWidth: 100 }} />
+                <Label>Palabras clave <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(selecciona las que encajan)</span></Label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
+                  {(SECTOR_KEYWORD_SUGGESTIONS[sector] ?? ['artesanal', 'local', 'calidad', 'sostenible', 'profesional', 'exclusivo', 'fresco', 'auténtico']).map((kw) => {
+                    const active = keywords.includes(kw);
+                    return (
+                      <button
+                        key={kw}
+                        type="button"
+                        onClick={() => active ? removeTag(keywords, setKeywords, kw) : addTag(keywords, setKeywords, kw)}
+                        style={{
+                          padding: '7px 14px', borderRadius: 40, cursor: 'pointer',
+                          fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.82rem', fontWeight: 700,
+                          border: `1.5px solid ${active ? ACCENT : 'rgba(255,255,255,0.1)'}`,
+                          background: active ? ACCENT : 'rgba(255,255,255,0.04)',
+                          color: active ? 'white' : 'rgba(232,237,248,0.6)',
+                          transition: 'all 0.15s', outline: 'none',
+                        }}
+                      >
+                        {kw}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -669,26 +820,52 @@ export default function OnboardingPage() {
 
         {/* ── Step 5: Publish mode + colors ── */}
         {step === 5 && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
             <SectionTitle>Modo de publicación</SectionTitle>
             <StepSub>¿Cómo quieres que gestionemos tu contenido?</StepSub>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
               {PUBLISH_MODE_OPTIONS.map((m) => (
                 <button key={m.value} type="button" onClick={() => setPublishMode(m.value)} style={{
-                  padding: '16px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+                  padding: 0, borderRadius: 14, cursor: 'pointer', textAlign: 'left',
                   border: `1.5px solid ${publishMode === m.value ? ACCENT : 'rgba(255,255,255,0.08)'}`,
-                  background: publishMode === m.value ? 'rgba(255,92,26,0.1)' : 'rgba(255,255,255,0.03)',
-                  display: 'flex', alignItems: 'center', gap: 14, outline: 'none', transition: 'all 0.15s',
+                  background: publishMode === m.value ? 'rgba(255,92,26,0.08)' : 'rgba(255,255,255,0.02)',
+                  outline: 'none', transition: 'all 0.15s', overflow: 'hidden',
+                  boxShadow: publishMode === m.value ? `0 0 0 3px rgba(255,92,26,0.1)` : 'none',
                 }}>
-                  <span style={{ fontSize: '1.4rem', flexShrink: 0 }}>{m.emoji}</span>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.9rem', color: publishMode === m.value ? INK : 'rgba(232,237,248,0.7)' }}>{m.label}</div>
-                    <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.78rem', color: MUTED, marginTop: 2 }}>{m.desc}</div>
+                  <img src={PUBLISH_MODE_IMGS[m.value]} alt="" style={{ width: '100%', height: 80, objectFit: 'cover', display: 'block' }} />
+                  <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <span style={{ fontSize: '1.3rem', flexShrink: 0 }}>{m.emoji}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.9rem', color: publishMode === m.value ? INK : 'rgba(232,237,248,0.7)' }}>{m.label}</div>
+                      <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.78rem', color: MUTED, marginTop: 2 }}>{m.desc}</div>
+                    </div>
+                    {publishMode === m.value && <span style={{ color: ACCENT, fontWeight: 900, fontSize: '1rem', flexShrink: 0 }}>✓</span>}
                   </div>
-                  {publishMode === m.value && <span style={{ color: ACCENT, fontWeight: 900, fontSize: '1rem', flexShrink: 0 }}>✓</span>}
                 </button>
               ))}
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <Label>Frecuencia de publicación</Label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {([2, 5, 7] as const).map((freq) => (
+                  <button
+                    key={freq}
+                    type="button"
+                    onClick={() => setPublishFrequency(freq)}
+                    style={{
+                      flex: 1, padding: '14px 8px', borderRadius: 12, cursor: 'pointer', textAlign: 'center',
+                      border: `1.5px solid ${publishFrequency === freq ? ACCENT : 'rgba(255,255,255,0.08)'}`,
+                      background: publishFrequency === freq ? 'rgba(255,92,26,0.1)' : 'rgba(255,255,255,0.03)',
+                      outline: 'none', transition: 'all 0.15s',
+                    }}
+                  >
+                    <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 900, fontSize: '1.5rem', color: publishFrequency === freq ? INK : 'rgba(232,237,248,0.4)' }}>{freq}</div>
+                    <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.7rem', color: MUTED, marginTop: 2 }}>posts/sem</div>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div style={{ marginBottom: 20 }}>
@@ -714,7 +891,7 @@ export default function OnboardingPage() {
               {discountText && <p style={{ fontSize: '0.8rem', color: '#4ade80', marginTop: 6, fontFamily: "'Cabinet Grotesk', sans-serif" }}>{discountText}</p>}
             </div>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 'auto' }}>
+            <div style={{ display: 'flex', gap: 10, marginTop: 'auto', paddingBottom: 4 }}>
               <BtnBack onClick={() => setStep(4)} />
               <BtnPrimary onClick={handleSubmit} disabled={saving}>
                 {saving ? (

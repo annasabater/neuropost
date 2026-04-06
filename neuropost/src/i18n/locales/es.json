@@ -47,15 +47,31 @@
   "nav": {
     "dashboard": "Inicio",
     "newPost": "Nuevo post",
+    "posts": "Posts",
     "calendar": "Calendario",
     "ideas": "Ideas",
+    "myFeed": "Mi feed",
+    "inspiration": "Inspiración",
     "comments": "Comentarios",
     "analytics": "Analíticas",
+    "history": "Historial",
+    "news": "Novedades",
+    "chat": "Chat",
+    "requests": "Solicitudes",
+    "support": "Soporte",
     "brandKit": "Brand Kit",
     "competition": "Competencia",
     "trends": "Tendencias",
     "settings": "Ajustes",
-    "notifications": "Notificaciones"
+    "notifications": "Notificaciones",
+    "logout": "Salir",
+    "statusPage": "Estado del servicio",
+    "groups": {
+      "content": "CONTENIDO",
+      "management": "GESTIÓN",
+      "team": "EQUIPO NEUROPOST",
+      "brand": "MARCA"
+    }
   },
   "auth": {
     "login": {
@@ -298,25 +314,88 @@
   },
   "settings": {
     "title": "Ajustes",
+    "subtitle": "Configura tu negocio, modo de publicación y reglas",
+    "saving": "Guardando...",
     "sections": {
       "account": "Mi cuenta", "plan": "Mi plan", "connections": "Conexiones",
       "notifications": "Notificaciones", "publishRules": "Reglas de publicación",
       "team": "Equipo", "privacy": "Privacidad", "language": "Idioma"
     },
+    "nav": {
+      "business": "Negocio", "visualStyle": "Estilo visual", "publishMode": "Publicación",
+      "rules": "Reglas", "social": "Redes sociales", "export": "Exportar datos",
+      "plan": "Plan", "account": "Cuenta", "team": "Equipo"
+    },
+    "business": {
+      "title": "Información del negocio", "name": "Nombre del negocio",
+      "location": "Ubicación", "sector": "Sector", "tone": "Tono de comunicación"
+    },
+    "visualStyle": {
+      "title": "Estilo visual",
+      "subtitle": "La IA adaptará edición, emojis y tipo de contenido según este estilo",
+      "note": "Cambiar el estilo afecta al contenido nuevo. El contenido ya publicado no cambiará."
+    },
+    "publishMode": {
+      "title": "Modo de publicación",
+      "subtitle": "Elige cómo quieres que gestionemos la publicación de tu contenido"
+    },
+    "rules": {
+      "title": "Reglas de contenido", "noPublishDays": "Días sin publicar",
+      "noPublishNote": "No se publicará los {days}", "forbiddenWords": "Palabras prohibidas",
+      "forbiddenTopics": "Temas prohibidos", "noEmojis": "Sin emojis",
+      "noEmojisDesc": "La IA no usará emojis en el contenido",
+      "noAutoReply": "No responder automáticamente a comentarios negativos",
+      "noAutoReplyDesc": "Se escalarán para revisión manual"
+    },
+    "notifSection": {
+      "title": "Notificaciones por email", "subtitle": "Elige qué eventos te avisamos por email.",
+      "publishTitle": "Notificaciones de publicación", "publishDesc": "Recibe un email cuando se publique un post",
+      "commentsTitle": "Notificaciones de comentarios", "commentsDesc": "Recibe un email cuando llegue un nuevo comentario",
+      "save": "Guardar notificaciones"
+    },
+    "social": {
+      "title": "Redes sociales", "notConnected": "Sin conectar", "tokenExpires": "Token expira:"
+    },
+    "export": {
+      "title": "Exportar datos",
+      "subtitle": "Descarga todos tus posts en el formato que prefieras.",
+      "json": "Exportar JSON", "csv": "Exportar CSV"
+    },
+    "billing": {
+      "title": "Plan y facturación", "manageSubscription": "Gestionar suscripción",
+      "upgradeTitle": "Actualiza a Pro",
+      "upgradeDesc": "Desbloquea posts ilimitados, publicación automática y más por 29€/mes.",
+      "upgradeCTA": "Actualizar a Pro — 29€/mes", "agencyCTA": "Agency — 79€/mes"
+    },
     "account": {
-      "name": "Nombre completo", "email": "Email", "password": "Contraseña",
-      "timezone": "Zona horaria", "saveChanges": "Guardar cambios", "saved": "Cambios guardados ✓"
+      "title": "Cuenta", "name": "Nombre completo", "email": "Email de la cuenta",
+      "password": "Contraseña", "timezone": "Zona horaria",
+      "saveChanges": "Guardar cambios", "saved": "Cambios guardados ✓",
+      "changePassword": "Cambiar contraseña", "newPassword": "Nueva contraseña",
+      "confirmPassword": "Confirmar contraseña", "changingPassword": "Cambiando...",
+      "dangerZone": "Zona de peligro",
+      "dangerDesc": "Eliminar tu cuenta borrará permanentemente todos tus datos, posts y configuración. Esta acción no se puede deshacer.",
+      "deleteAccount": "Eliminar mi cuenta", "deleteConfirmPrompt": "Escribe ELIMINAR para confirmar:",
+      "deleteConfirmWord": "ELIMINAR", "deleteConfirmBtn": "Eliminar cuenta definitivamente",
+      "deleting": "Eliminando...", "cancel": "Cancelar"
+    },
+    "team": {
+      "title": "Equipo", "subtitle": "Gestiona los miembros de tu equipo y sus permisos.",
+      "manage": "Gestionar equipo →"
     },
     "plan": {
-      "current": "Plan actual",
-      "usage": "Uso este mes",
-      "postsUsed": "{used} de {limit} posts",
-      "changePlan": "Cambiar plan"
+      "current": "Plan actual", "usage": "Uso este mes",
+      "postsUsed": "{used} de {limit} posts", "changePlan": "Cambiar plan"
     },
     "connections": {
       "instagram": "Instagram Business", "facebook": "Facebook Page",
-      "connected": "Conectado", "disconnected": "Desconectado",
-      "reconnect": "Reconectar"
+      "connect": "Conectar", "connected": "Conectado", "disconnected": "Desconectado", "reconnect": "Reconectar"
+    },
+    "styles": {
+      "creative": { "label": "Creativo y Colorido", "desc": "Colores vibrantes, emojis, texto dinámico" },
+      "elegant":  { "label": "Elegante y Minimal",  "desc": "Sin emojis, frases cortas y sofisticadas" },
+      "warm":     { "label": "Cálido y Cercano",    "desc": "Tono familiar, tuteo, proximidad" },
+      "dynamic":  { "label": "Dinámico y Moderno",  "desc": "Frases cortas, imperativas, mucha energía" }
     },
     "language": {
       "title": "Idioma de la aplicación",

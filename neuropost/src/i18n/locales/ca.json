@@ -13,10 +13,14 @@
     "settings": "Configuració", "help": "Ajuda", "logout": "Tanca la sessió", "comingSoon": "Pròximament"
   },
   "nav": {
-    "dashboard": "Inici", "newPost": "Nova publicació", "calendar": "Calendari",
-    "ideas": "Idees", "comments": "Comentaris", "analytics": "Analítiques",
+    "dashboard": "Inici", "newPost": "Nova publicació", "posts": "Posts", "calendar": "Calendari",
+    "ideas": "Idees", "myFeed": "El meu feed", "inspiration": "Inspiració",
+    "comments": "Comentaris", "analytics": "Analítiques", "history": "Historial", "news": "Novetats",
+    "chat": "Xat", "requests": "Sol·licituds", "support": "Suport",
     "brandKit": "Brand Kit", "competition": "Competència", "trends": "Tendències",
-    "settings": "Configuració", "notifications": "Notificacions"
+    "settings": "Configuració", "notifications": "Notificacions",
+    "logout": "Sortir", "statusPage": "Estat del servei",
+    "groups": { "content": "CONTINGUT", "management": "GESTIÓ", "team": "EQUIP NEUROPOST", "brand": "MARCA" }
   },
   "auth": {
     "login": {
@@ -97,10 +101,28 @@
   },
   "settings": {
     "title": "Configuració",
+    "subtitle": "Configura el teu negoci, mode de publicació i regles",
+    "saving": "Desant...",
     "sections": { "account": "El meu compte", "plan": "El meu pla", "connections": "Connexions", "notifications": "Notificacions", "publishRules": "Regles de publicació", "team": "Equip", "privacy": "Privacitat", "language": "Idioma" },
-    "account": { "name": "Nom complet", "email": "Correu electrònic", "password": "Contrasenya", "timezone": "Zona horària", "saveChanges": "Desa els canvis", "saved": "Canvis desats ✓" },
+    "nav": { "business": "Negoci", "visualStyle": "Estil visual", "publishMode": "Publicació", "rules": "Regles", "social": "Xarxes socials", "export": "Exportar dades", "plan": "Pla", "account": "Compte", "team": "Equip" },
+    "business": { "title": "Informació del negoci", "name": "Nom del negoci", "location": "Ubicació", "sector": "Sector", "tone": "To de comunicació" },
+    "visualStyle": { "title": "Estil visual", "subtitle": "La IA adaptarà l'edició, emojis i tipus de contingut segons aquest estil", "note": "Canviar l'estil afecta el contingut nou. El contingut ja publicat no canviarà." },
+    "publishMode": { "title": "Mode de publicació", "subtitle": "Tria com vols que gestionem la publicació del teu contingut" },
+    "rules": { "title": "Regles de contingut", "noPublishDays": "Dies sense publicar", "noPublishNote": "No es publicarà els {days}", "forbiddenWords": "Paraules prohibides", "forbiddenTopics": "Temes prohibits", "noEmojis": "Sense emojis", "noEmojisDesc": "La IA no farà servir emojis al contingut", "noAutoReply": "No respondre automàticament a comentaris negatius", "noAutoReplyDesc": "S'escalaran per revisió manual" },
+    "notifSection": { "title": "Notificacions per email", "subtitle": "Tria quins esdeveniments t'avisem per email.", "publishTitle": "Notificacions de publicació", "publishDesc": "Rep un email quan es publiqui una publicació", "commentsTitle": "Notificacions de comentaris", "commentsDesc": "Rep un email quan arribi un nou comentari", "save": "Desa les notificacions" },
+    "social": { "title": "Xarxes socials", "notConnected": "Sense connectar", "tokenExpires": "Token expira:" },
+    "export": { "title": "Exportar dades", "subtitle": "Descarrega totes les teves publicacions en el format que prefereixis.", "json": "Exportar JSON", "csv": "Exportar CSV" },
+    "billing": { "title": "Pla i facturació", "manageSubscription": "Gestionar subscripció", "upgradeTitle": "Actualitza a Pro", "upgradeDesc": "Desbloqueja publicacions il·limitades, publicació automàtica i més per 29€/mes.", "upgradeCTA": "Actualitzar a Pro — 29€/mes", "agencyCTA": "Agency — 79€/mes" },
+    "account": { "title": "Compte", "name": "Nom complet", "email": "Email del compte", "password": "Contrasenya", "timezone": "Zona horària", "saveChanges": "Desa els canvis", "saved": "Canvis desats ✓", "changePassword": "Canviar contrasenya", "newPassword": "Nova contrasenya", "confirmPassword": "Confirmar contrasenya", "changingPassword": "Canviant...", "dangerZone": "Zona de perill", "dangerDesc": "Eliminar el teu compte esborrarà permanentment totes les teves dades, publicacions i configuració. Aquesta acció no es pot desfer.", "deleteAccount": "Eliminar el meu compte", "deleteConfirmPrompt": "Escriu ELIMINAR per confirmar:", "deleteConfirmWord": "ELIMINAR", "deleteConfirmBtn": "Eliminar compte definitivament", "deleting": "Eliminant...", "cancel": "Cancel·la" },
+    "team": { "title": "Equip", "subtitle": "Gestiona els membres del teu equip i els seus permisos.", "manage": "Gestionar equip →" },
     "plan": { "current": "Pla actual", "usage": "Ús aquest mes", "postsUsed": "{used} de {limit} publicacions", "changePlan": "Canviar pla" },
-    "connections": { "instagram": "Instagram Business", "facebook": "Pàgina de Facebook", "connected": "Connectat", "disconnected": "Desconnectat", "reconnect": "Reconnectar" },
+    "connections": { "instagram": "Instagram Business", "facebook": "Pàgina de Facebook", "connect": "Connecta", "connected": "Connectat", "disconnected": "Desconnectat", "reconnect": "Reconnectar" },
+    "styles": {
+      "creative": { "label": "Creatiu i Colorit",   "desc": "Colors vibrants, emojis, text dinàmic" },
+      "elegant":  { "label": "Elegant i Minimal",   "desc": "Sense emojis, frases curtes i sofisticades" },
+      "warm":     { "label": "Càlid i Proper",       "desc": "To familiar, tuteo, proximitat" },
+      "dynamic":  { "label": "Dinàmic i Modern",     "desc": "Frases curtes, imperatives, molta energia" }
+    },
     "language": { "title": "Idioma de l'aplicació", "subtitle": "Tria l'idioma en què vols fer servir NeuroPost", "saved": "Idioma actualitzat" }
   },
   "notifications": {

@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { ProgressLink } from '@/components/ui/ProgressLink';
 import {
   LayoutDashboard,
@@ -24,63 +25,53 @@ import {
 import { useAppStore } from '@/store/useAppStore';
 import { createBrowserClient } from '@/lib/supabase';
 
-type NavItem = {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-};
-
-type NavGroup = {
-  title: string;
-  items: NavItem[];
-};
-
-const NAV_GROUPS: NavGroup[] = [
-  {
-    title: 'CONTENIDO',
-    items: [
-      { href: '/dashboard', label: 'Inicio',      icon: LayoutDashboard },
-      { href: '/posts',     label: 'Posts',        icon: Image },
-      { href: '/calendar',  label: 'Calendario',   icon: Calendar },
-      { href: '/ideas',     label: 'Ideas',         icon: Lightbulb },
-      { href: '/mi-feed',     label: 'Mi feed',       icon: Grid3x3 },
-      { href: '/inspiracion', label: 'Inspiración',   icon: Flame },
-    ],
-  },
-  {
-    title: 'GESTIÓN',
-    items: [
-      { href: '/comments',  label: 'Comentarios',  icon: MessageSquare },
-      { href: '/analytics', label: 'Analíticas',   icon: BarChart3 },
-      { href: '/historial', label: 'Historial',    icon: Archive },
-      { href: '/novedades', label: 'Novedades',    icon: Sparkles },
-    ],
-  },
-  {
-    title: 'EQUIPO NEUROPOST',
-    items: [
-      { href: '/chat',        label: 'Chat',         icon: MessageCircle },
-      { href: '/solicitudes', label: 'Solicitudes',  icon: ClipboardList },
-      { href: '/soporte',     label: 'Soporte',      icon: LifeBuoy },
-    ],
-  },
-  {
-    title: 'MARCA',
-    items: [
-      { href: '/brand',    label: 'Brand Kit', icon: Palette },
-      { href: '/settings', label: 'Ajustes',   icon: Settings },
-    ],
-  },
-];
-
 export function Sidebar() {
   const pathname      = usePathname();
   const router        = useRouter();
+  const t             = useTranslations('nav');
   const brand         = useAppStore((s) => s.brand);
   const sidebarOpen   = useAppStore((s) => s.sidebarOpen);
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
   const unreadComments      = useAppStore((s) => s.unreadComments);
   const unreadNotifications = useAppStore((s) => s.unreadNotifications);
+
+  const NAV_GROUPS = [
+    {
+      title: t('groups.content'),
+      items: [
+        { href: '/dashboard', label: t('dashboard'),   icon: LayoutDashboard },
+        { href: '/posts',     label: t('posts'),        icon: Image },
+        { href: '/calendar',  label: t('calendar'),     icon: Calendar },
+        { href: '/ideas',     label: t('ideas'),        icon: Lightbulb },
+        { href: '/mi-feed',   label: t('myFeed'),       icon: Grid3x3 },
+        { href: '/inspiracion', label: t('inspiration'), icon: Flame },
+      ],
+    },
+    {
+      title: t('groups.management'),
+      items: [
+        { href: '/comments',  label: t('comments'),    icon: MessageSquare },
+        { href: '/analytics', label: t('analytics'),   icon: BarChart3 },
+        { href: '/historial', label: t('history'),     icon: Archive },
+        { href: '/novedades', label: t('news'),        icon: Sparkles },
+      ],
+    },
+    {
+      title: t('groups.team'),
+      items: [
+        { href: '/chat',        label: t('chat'),      icon: MessageCircle },
+        { href: '/solicitudes', label: t('requests'),  icon: ClipboardList },
+        { href: '/soporte',     label: t('support'),   icon: LifeBuoy },
+      ],
+    },
+    {
+      title: t('groups.brand'),
+      items: [
+        { href: '/brand',    label: t('brandKit'), icon: Palette },
+        { href: '/settings', label: t('settings'), icon: Settings },
+      ],
+    },
+  ];
 
   async function handleLogout() {
     const supabase = createBrowserClient();
@@ -92,7 +83,7 @@ export function Sidebar() {
     <aside className="dash-sidebar">
       <div className="dash-sidebar-header">
         <ProgressLink href="/dashboard" className="dash-logo">NeuroPost</ProgressLink>
-        <button className="sidebar-close-btn" onClick={toggleSidebar} aria-label="Cerrar menú">
+        <button className="sidebar-close-btn" onClick={toggleSidebar} aria-label={t('settings')}>
           <X size={18} />
         </button>
       </div>
@@ -129,17 +120,17 @@ export function Sidebar() {
       <div style={{ flexShrink: 0, padding: '4px 16px 2px', borderTop: '1px solid #1a1d2e' }}>
         <a href="/estado" target="_blank" rel="noopener noreferrer"
           style={{ display: 'block', fontSize: '0.68rem', color: '#3a4257', textDecoration: 'none', padding: '2px 0', lineHeight: 1.4 }}>
-          Estado del servicio
+          {t('statusPage')}
         </a>
         <ProgressLink href="/novedades"
           style={{ display: 'block', fontSize: '0.68rem', color: '#3a4257', textDecoration: 'none', padding: '2px 0', lineHeight: 1.4 }}
           onClick={() => { if (sidebarOpen) toggleSidebar(); }}>
-          Novedades
+          {t('news')}
         </ProgressLink>
         <ProgressLink href="/soporte"
           style={{ display: 'block', fontSize: '0.68rem', color: '#3a4257', textDecoration: 'none', padding: '2px 0', lineHeight: 1.4 }}
           onClick={() => { if (sidebarOpen) toggleSidebar(); }}>
-          Soporte
+          {t('support')}
         </ProgressLink>
       </div>
 
@@ -152,7 +143,7 @@ export function Sidebar() {
         )}
         <button className="dash-logout" onClick={handleLogout}>
           <LogOut size={16} />
-          <span>Salir</span>
+          <span>{t('logout')}</span>
         </button>
       </div>
     </aside>

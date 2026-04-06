@@ -4,6 +4,7 @@ import { useRef, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { useTranslations } from 'next-intl';
 import { createBrowserClient } from '@/lib/supabase';
 
 function LoginForm() {
@@ -13,6 +14,7 @@ function LoginForm() {
   const router                  = useRouter();
   const searchParams            = useSearchParams();
   const redirectTo              = searchParams.get('redirectTo') || '/dashboard';
+  const t                       = useTranslations('auth.login');
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -31,27 +33,27 @@ function LoginForm() {
     <div className="auth-page">
       <div className="auth-card">
         <Link href="/" className="auth-logo">NeuroPost</Link>
-        <h1 className="auth-title">Bienvenido de vuelta</h1>
-        <p className="auth-sub">Entra a tu cuenta para continuar</p>
+        <h1 className="auth-title">{t('title')}</h1>
+        <p className="auth-sub">{t('subtitle')}</p>
         <form onSubmit={handleLogin} className="auth-form">
           <div className="form-group">
-            <label htmlFor="email">Correo electrónico</label>
+            <label htmlFor="email">{t('email')}</label>
             <input ref={emailRef} id="email" type="email" placeholder="tu@email.com" required autoComplete="email" />
           </div>
           <div className="form-group">
-            <label htmlFor="password">Contraseña</label>
+            <label htmlFor="password">{t('password')}</label>
             <input ref={passwordRef} id="password" type="password" placeholder="••••••••" required autoComplete="current-password" />
           </div>
           <button type="submit" className="btn-primary btn-full" disabled={loading} style={{ marginTop: 4 }}>
-            {loading ? <><span className="loading-spinner" />Entrando...</> : 'Entrar'}
+            {loading ? <><span className="loading-spinner" />{t('loading')}</> : t('submit')}
           </button>
         </form>
         <p className="auth-footer">
-          <Link href="/forgot-password" style={{ color: 'var(--muted)' }}>¿Olvidaste tu contraseña?</Link>
+          <Link href="/forgot-password" style={{ color: 'var(--muted)' }}>{t('forgotPassword')}</Link>
         </p>
         <p className="auth-footer">
-          ¿No tienes cuenta?{' '}
-          <Link href="/register">Regístrate gratis</Link>
+          {t('noAccount')}{' '}
+          <Link href="/register">{t('register')}</Link>
         </p>
       </div>
     </div>

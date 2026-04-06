@@ -1202,6 +1202,10 @@ footer {
 .post-preview-caption { padding: 10px 14px 14px; font-size: 0.85rem; line-height: 1.6; }
 .post-preview-hashtags { color: #1877f2; margin-top: 4px; font-size: 0.82rem; }
 
+/* ─── ONBOARDING SELECT DARK THEME ─────────────────────────────────────────── */
+.onboarding-page select,
+.onboarding-page select option { background: #1a1e2d; color: #e8edf8; }
+
 /* ─── POSTS LIST PAGE ────────────────────────────────────────────────────────── */
 .filter-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
 .filter-btn { padding: 6px 14px; border-radius: 40px; border: 1.5px solid var(--border); background: white; font-family: 'Cabinet Grotesk', sans-serif; font-size: 0.82rem; font-weight: 700; cursor: pointer; color: var(--muted); transition: all 0.2s; }

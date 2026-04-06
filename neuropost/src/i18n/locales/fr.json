@@ -13,10 +13,14 @@
     "settings": "Paramètres", "help": "Aide", "logout": "Se déconnecter", "comingSoon": "Bientôt disponible"
   },
   "nav": {
-    "dashboard": "Accueil", "newPost": "Nouveau post", "calendar": "Calendrier",
-    "ideas": "Idées", "comments": "Commentaires", "analytics": "Analytiques",
+    "dashboard": "Accueil", "newPost": "Nouveau post", "posts": "Posts", "calendar": "Calendrier",
+    "ideas": "Idées", "myFeed": "Mon feed", "inspiration": "Inspiration",
+    "comments": "Commentaires", "analytics": "Analytiques", "history": "Historique", "news": "Nouveautés",
+    "chat": "Chat", "requests": "Demandes", "support": "Support",
     "brandKit": "Brand Kit", "competition": "Concurrence", "trends": "Tendances",
-    "settings": "Paramètres", "notifications": "Notifications"
+    "settings": "Paramètres", "notifications": "Notifications",
+    "logout": "Se déconnecter", "statusPage": "État du service",
+    "groups": { "content": "CONTENU", "management": "GESTION", "team": "ÉQUIPE NEUROPOST", "brand": "MARQUE" }
   },
   "auth": {
     "login": {
@@ -110,10 +114,28 @@
   },
   "settings": {
     "title": "Paramètres",
+    "subtitle": "Configurez votre entreprise, votre mode de publication et vos règles",
+    "saving": "Enregistrement...",
     "sections": { "account": "Mon compte", "plan": "Mon plan", "connections": "Connexions", "notifications": "Notifications", "publishRules": "Règles de publication", "team": "Équipe", "privacy": "Confidentialité", "language": "Langue" },
-    "account": { "name": "Nom complet", "email": "Email", "password": "Mot de passe", "timezone": "Fuseau horaire", "saveChanges": "Enregistrer les modifications", "saved": "Modifications enregistrées ✓" },
+    "nav": { "business": "Entreprise", "visualStyle": "Style visuel", "publishMode": "Publication", "rules": "Règles", "social": "Réseaux sociaux", "export": "Exporter les données", "plan": "Plan", "account": "Compte", "team": "Équipe" },
+    "business": { "title": "Informations sur l'entreprise", "name": "Nom de l'entreprise", "location": "Emplacement", "sector": "Secteur", "tone": "Ton de communication" },
+    "visualStyle": { "title": "Style visuel", "subtitle": "L'IA adaptera l'édition, les emojis et le type de contenu selon ce style", "note": "Changer le style affecte le nouveau contenu uniquement. Le contenu déjà publié ne changera pas." },
+    "publishMode": { "title": "Mode de publication", "subtitle": "Choisissez comment vous souhaitez que nous gérions la publication de votre contenu" },
+    "rules": { "title": "Règles de contenu", "noPublishDays": "Jours sans publication", "noPublishNote": "Ne publiera pas les {days}", "forbiddenWords": "Mots interdits", "forbiddenTopics": "Sujets interdits", "noEmojis": "Sans emojis", "noEmojisDesc": "L'IA n'utilisera pas d'emojis dans le contenu", "noAutoReply": "Ne pas répondre automatiquement aux commentaires négatifs", "noAutoReplyDesc": "Ils seront escaladés pour révision manuelle" },
+    "notifSection": { "title": "Notifications par email", "subtitle": "Choisissez les événements dont nous vous notifions par email.", "publishTitle": "Notifications de publication", "publishDesc": "Recevez un email quand un post est publié", "commentsTitle": "Notifications de commentaires", "commentsDesc": "Recevez un email quand un nouveau commentaire arrive", "save": "Enregistrer les notifications" },
+    "social": { "title": "Réseaux sociaux", "notConnected": "Non connecté", "tokenExpires": "Token expire :" },
+    "export": { "title": "Exporter les données", "subtitle": "Téléchargez tous vos posts dans le format de votre choix.", "json": "Exporter JSON", "csv": "Exporter CSV" },
+    "billing": { "title": "Plan et facturation", "manageSubscription": "Gérer l'abonnement", "upgradeTitle": "Passez à Pro", "upgradeDesc": "Débloquez des posts illimités, la publication automatique et plus pour 29€/mois.", "upgradeCTA": "Passer à Pro — 29€/mois", "agencyCTA": "Agency — 79€/mois" },
+    "account": { "title": "Compte", "name": "Nom complet", "email": "Email du compte", "password": "Mot de passe", "timezone": "Fuseau horaire", "saveChanges": "Enregistrer les modifications", "saved": "Modifications enregistrées ✓", "changePassword": "Changer le mot de passe", "newPassword": "Nouveau mot de passe", "confirmPassword": "Confirmer le mot de passe", "changingPassword": "Modification...", "dangerZone": "Zone dangereuse", "dangerDesc": "Supprimer votre compte supprimera définitivement toutes vos données, posts et paramètres. Cette action est irréversible.", "deleteAccount": "Supprimer mon compte", "deleteConfirmPrompt": "Tapez SUPPRIMER pour confirmer :", "deleteConfirmWord": "SUPPRIMER", "deleteConfirmBtn": "Supprimer le compte définitivement", "deleting": "Suppression...", "cancel": "Annuler" },
+    "team": { "title": "Équipe", "subtitle": "Gérez les membres de votre équipe et leurs permissions.", "manage": "Gérer l'équipe →" },
     "plan": { "current": "Plan actuel", "usage": "Utilisation ce mois", "postsUsed": "{used} sur {limit} posts", "changePlan": "Changer de plan" },
-    "connections": { "instagram": "Instagram Business", "facebook": "Facebook Page", "connected": "Connecté", "disconnected": "Déconnecté", "reconnect": "Reconnecter" },
+    "connections": { "instagram": "Instagram Business", "facebook": "Facebook Page", "connect": "Connecter", "connected": "Connecté", "disconnected": "Déconnecté", "reconnect": "Reconnecter" },
+    "styles": {
+      "creative": { "label": "Créatif et Coloré",       "desc": "Couleurs vives, emojis, texte dynamique" },
+      "elegant":  { "label": "Élégant et Minimal",       "desc": "Sans emojis, phrases courtes et sophistiquées" },
+      "warm":     { "label": "Chaleureux et Proche",     "desc": "Ton familier, tutoiement, proximité" },
+      "dynamic":  { "label": "Dynamique et Moderne",     "desc": "Phrases courtes, impératives, beaucoup d'énergie" }
+    },
     "language": { "title": "Langue de l'application", "subtitle": "Choisissez la langue dans laquelle vous souhaitez utiliser NeuroPost", "saved": "Langue mise à jour" }
   },
   "notifications": {

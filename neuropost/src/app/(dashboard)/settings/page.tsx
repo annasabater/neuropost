@@ -4,39 +4,22 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { Save, ExternalLink, CreditCard, Users, Bell, Lock, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useAppStore } from '@/store/useAppStore';
 import type { SocialSector, BrandTone, PublishMode, BrandRules, VisualStyle } from '@/types';
 import { SECTOR_OPTIONS, TONE_OPTIONS, PUBLISH_MODE_OPTIONS } from '@/lib/brand-options';
 import { createBrowserClient } from '@/lib/supabase';
 import { useTagInput } from '@/hooks/useTagInput';
 
-const VISUAL_STYLE_OPTIONS: { value: VisualStyle; label: string; emoji: string; desc: string }[] = [
-  { value: 'creative', label: 'Creativo y Colorido', emoji: '🎨', desc: 'Colores vibrantes, emojis, texto dinámico' },
-  { value: 'elegant',  label: 'Elegante y Minimal',  emoji: '🤍', desc: 'Sin emojis, frases cortas y sofisticadas' },
-  { value: 'warm',     label: 'Cálido y Cercano',    emoji: '🧡', desc: 'Tono familiar, tuteo, proximidad' },
-  { value: 'dynamic',  label: 'Dinámico y Moderno',  emoji: '⚡', desc: 'Frases cortas, imperativas, mucha energía' },
-];
-
-const DAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-
-const NAV_SECTIONS = [
-  { id: 'negocio',        label: 'Negocio' },
-  { id: 'estilo',         label: 'Estilo visual' },
-  { id: 'publicacion',    label: 'Publicación' },
-  { id: 'reglas',         label: 'Reglas' },
-  { id: 'notificaciones', label: 'Notificaciones' },
-  { id: 'redes',          label: 'Redes sociales' },
-  { id: 'exportar',       label: 'Exportar datos' },
-  { id: 'plan',           label: 'Plan' },
-  { id: 'cuenta',         label: 'Cuenta' },
-  { id: 'equipo',         label: 'Equipo' },
-];
-
 export default function SettingsPage() {
   const brand        = useAppStore((s) => s.brand);
   const updateBrand  = useAppStore((s) => s.updateBrand);
   const setBrand     = useAppStore((s) => s.setBrand);
   const brandLoading = useAppStore((s) => s.brandLoading);
+  const t            = useTranslations('settings');
+  const tc           = useTranslations('calendar');
+  const tAuthErr     = useTranslations('auth.register');
+
   const [saving,  setSaving]  = useState(false);
   const [billing, setBilling] = useState(false);
 
@@ -78,6 +61,34 @@ export default function SettingsPage() {
   const [activeSection, setActiveSection] = useState('negocio');
   const observerRef = useRef<IntersectionObserver | null>(null);
 
+  // Dynamic data depending on translations
+  const VISUAL_STYLE_OPTIONS: { value: VisualStyle; label: string; emoji: string; desc: string }[] = [
+    { value: 'creative', label: t('styles.creative.label'), emoji: '🎨', desc: t('styles.creative.desc') },
+    { value: 'elegant',  label: t('styles.elegant.label'),  emoji: '🤍', desc: t('styles.elegant.desc') },
+    { value: 'warm',     label: t('styles.warm.label'),     emoji: '🧡', desc: t('styles.warm.desc') },
+    { value: 'dynamic',  label: t('styles.dynamic.label'),  emoji: '⚡', desc: t('styles.dynamic.desc') },
+  ];
+
+  const DAY_LABELS = [
+    tc('days.sun'), tc('days.mon'), tc('days.tue'), tc('days.wed'),
+    tc('days.thu'), tc('days.fri'), tc('days.sat'),
+  ];
+
+  const NAV_SECTIONS = [
+    { id: 'negocio',        label: t('nav.business') },
+    { id: 'estilo',         label: t('nav.visualStyle') },
+    { id: 'publicacion',    label: t('nav.publishMode') },
+    { id: 'reglas',         label: t('nav.rules') },
+    { id: 'notificaciones', label: t('sections.notifications') },
+    { id: 'redes',          label: t('nav.social') },
+    { id: 'exportar',       label: t('nav.export') },
+    { id: 'plan',           label: t('nav.plan') },
+    { id: 'cuenta',         label: t('nav.account') },
+    { id: 'equipo',         label: t('nav.team') },
+  ];
+
+  const confirmWord = t('account.deleteConfirmWord');
+
   // Load user email from Supabase on mount
   useEffect(() => {
     const supabase = createBrowserClient();
@@ -113,6 +124,7 @@ export default function SettingsPage() {
       if (el) observer.observe(el);
     });
     observerRef.current = observer;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -162,11 +174,11 @@ export default function SettingsPage() {
         body:    JSON.stringify({ name, sector, tone, visual_style: visualStyle, location, publish_mode: publishMode, rules }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? 'Error al guardar');
+      if (!res.ok) throw new Error(json.error ?? 'Error');
       updateBrand(json.brand);
-      toast.success('Ajustes guardados');
+      toast.success(t('account.saved'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error inesperado');
+      toast.error(err instanceof Error ? err.message : 'Error');
     } finally {
       setSaving(false);
     }
@@ -181,11 +193,11 @@ export default function SettingsPage() {
         body:    JSON.stringify({ notify_email_publish: notifyPublish, notify_email_comments: notifyComments }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? 'Error al guardar');
+      if (!res.ok) throw new Error(json.error ?? 'Error');
       updateBrand(json.brand);
-      toast.success('Notificaciones actualizadas');
+      toast.success(t('account.saved'));
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error inesperado');
+      toast.error(err instanceof Error ? err.message : 'Error');
     } finally {
       setSavingNotifs(false);
     }
@@ -194,11 +206,11 @@ export default function SettingsPage() {
   async function changePassword(e: React.FormEvent) {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      toast.error('Las contraseñas no coinciden');
+      toast.error(tAuthErr('errors.passwordsNoMatch'));
       return;
     }
     if (newPassword.length < 8) {
-      toast.error('La contraseña debe tener al menos 8 caracteres');
+      toast.error(tAuthErr('errors.passwordTooShort'));
       return;
     }
     setSavingPassword(true);
@@ -206,31 +218,30 @@ export default function SettingsPage() {
       const supabase = createBrowserClient();
       const { error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) throw error;
-      toast.success('Contraseña actualizada correctamente');
+      toast.success(t('account.saved'));
       setNewPassword('');
       setConfirmPassword('');
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error al cambiar la contraseña');
+      toast.error(err instanceof Error ? err.message : 'Error');
     } finally {
       setSavingPassword(false);
     }
   }
 
   async function deleteAccount() {
-    if (deleteConfirm !== 'ELIMINAR') {
-      toast.error('Escribe ELIMINAR para confirmar');
+    if (deleteConfirm !== confirmWord) {
+      toast.error(t('account.deleteConfirmPrompt'));
       return;
     }
     setDeletingAccount(true);
     try {
       const res = await fetch('/api/brands/account', { method: 'DELETE' });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? 'Error al eliminar la cuenta');
-      toast.success('Cuenta eliminada. Hasta pronto.');
-      // Redirect to login after short delay
+      if (!res.ok) throw new Error(json.error ?? 'Error');
+      toast.success('Bye!');
       setTimeout(() => { window.location.href = '/login'; }, 1500);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Error inesperado');
+      toast.error(err instanceof Error ? err.message : 'Error');
       setDeletingAccount(false);
     }
   }
@@ -270,14 +281,18 @@ export default function SettingsPage() {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  if (!brand) return <div className="page-content"><p style={{ color: 'var(--muted)' }}>{brandLoading ? 'Cargando...' : 'No se pudo cargar tu marca. Recarga la página.'}</p></div>;
+  if (!brand) return (
+    <div className="page-content">
+      <p style={{ color: 'var(--muted)' }}>{brandLoading ? t('saving') : 'Error'}</p>
+    </div>
+  );
 
   return (
     <div className="page-content">
       <div className="page-header">
         <div className="page-header-text">
-          <h1 className="page-title">Ajustes</h1>
-          <p className="page-sub">Configura tu negocio, modo de publicación y reglas</p>
+          <h1 className="page-title">{t('title')}</h1>
+          <p className="page-sub">{t('subtitle')}</p>
         </div>
       </div>
 
@@ -336,26 +351,26 @@ export default function SettingsPage() {
           <form onSubmit={saveBrand}>
             {/* ── Negocio ── */}
             <div id="negocio" className="settings-section">
-              <h2 className="settings-section-title">Información del negocio</h2>
+              <h2 className="settings-section-title">{t('business.title')}</h2>
               <div className="settings-grid">
                 <div className="form-group">
-                  <label>Nombre del negocio</label>
+                  <label>{t('business.name')}</label>
                   <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
                 </div>
                 <div className="form-group">
-                  <label>Ubicación</label>
-                  <input type="text" placeholder="Madrid, España" value={location} onChange={(e) => setLocation(e.target.value)} />
+                  <label>{t('business.location')}</label>
+                  <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
                 </div>
                 <div className="form-group">
-                  <label>Sector</label>
+                  <label>{t('business.sector')}</label>
                   <select value={sector} onChange={(e) => setSector(e.target.value as SocialSector)}>
                     {SECTOR_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Tono de comunicación</label>
+                  <label>{t('business.tone')}</label>
                   <select value={tone} onChange={(e) => setTone(e.target.value as BrandTone)}>
-                    {TONE_OPTIONS.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    {TONE_OPTIONS.map((tone_) => <option key={tone_.value} value={tone_.value}>{tone_.label}</option>)}
                   </select>
                 </div>
               </div>
@@ -363,9 +378,9 @@ export default function SettingsPage() {
 
             {/* ── Estilo visual ── */}
             <div id="estilo" className="settings-section">
-              <h2 className="settings-section-title">Estilo visual</h2>
+              <h2 className="settings-section-title">{t('visualStyle.title')}</h2>
               <p style={{ fontSize: '0.84rem', color: 'var(--muted)', marginBottom: 14 }}>
-                La IA adaptará edición, emojis y tipo de contenido según este estilo
+                {t('visualStyle.subtitle')}
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {VISUAL_STYLE_OPTIONS.map((s) => (
@@ -387,15 +402,15 @@ export default function SettingsPage() {
                 ))}
               </div>
               <p style={{ fontSize: '0.76rem', color: 'var(--muted)', marginTop: 10 }}>
-                Cambiar el estilo afecta al contenido nuevo. El contenido ya publicado no cambiará.
+                {t('visualStyle.note')}
               </p>
             </div>
 
             {/* ── Publicación ── */}
             <div id="publicacion" className="settings-section">
-              <h2 className="settings-section-title">Modo de publicación</h2>
+              <h2 className="settings-section-title">{t('publishMode.title')}</h2>
               <p style={{ fontSize: '0.84rem', color: 'var(--muted)', marginBottom: 14 }}>
-                Elige cómo quieres que gestionemos la publicación de tu contenido
+                {t('publishMode.subtitle')}
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {PUBLISH_MODE_OPTIONS.map((m) => (
@@ -431,11 +446,11 @@ export default function SettingsPage() {
 
             {/* ── Reglas ── */}
             <div id="reglas" className="settings-section">
-              <h2 className="settings-section-title">Reglas de contenido</h2>
+              <h2 className="settings-section-title">{t('rules.title')}</h2>
 
               {/* No-publish days */}
               <div className="form-group">
-                <label>Días sin publicar</label>
+                <label>{t('rules.noPublishDays')}</label>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {DAY_LABELS.map((d, i) => (
                     <button
@@ -460,14 +475,14 @@ export default function SettingsPage() {
                 </div>
                 {noPublishDays.length > 0 && (
                   <p style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 6 }}>
-                    No se publicará los {noPublishDays.map((d) => DAY_LABELS[d]).join(', ')}
+                    {t('rules.noPublishNote', { days: noPublishDays.map((d) => DAY_LABELS[d]).join(', ') })}
                   </p>
                 )}
               </div>
 
               {/* Forbidden words */}
               <div className="form-group">
-                <label>Palabras prohibidas</label>
+                <label>{t('rules.forbiddenWords')}</label>
                 <div className="tags-input-area">
                   {forbiddenWords.map((w) => (
                     <span key={w} className="tag-chip" style={{ background: '#ffeded' }}>
@@ -486,11 +501,11 @@ export default function SettingsPage() {
 
               {/* Forbidden topics */}
               <div className="form-group">
-                <label>Temas prohibidos</label>
+                <label>{t('rules.forbiddenTopics')}</label>
                 <div className="tags-input-area">
-                  {forbiddenTopics.map((t) => (
-                    <span key={t} className="tag-chip" style={{ background: '#fff3cd' }}>
-                      {t}<button type="button" onClick={() => removeTag(forbiddenTopics, setForbiddenTopics, t)}>×</button>
+                  {forbiddenTopics.map((topic) => (
+                    <span key={topic} className="tag-chip" style={{ background: '#fff3cd' }}>
+                      {topic}<button type="button" onClick={() => removeTag(forbiddenTopics, setForbiddenTopics, topic)}>×</button>
                     </span>
                   ))}
                   <input
@@ -513,8 +528,8 @@ export default function SettingsPage() {
                     style={{ width: 18, height: 18, accentColor: 'var(--orange)' }}
                   />
                   <div>
-                    <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 600, fontSize: '0.88rem' }}>Sin emojis</span>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--muted)', marginLeft: 8 }}>La IA no usará emojis en el contenido</span>
+                    <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 600, fontSize: '0.88rem' }}>{t('rules.noEmojis')}</span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--muted)', marginLeft: 8 }}>{t('rules.noEmojisDesc')}</span>
                   </div>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
@@ -525,8 +540,8 @@ export default function SettingsPage() {
                     style={{ width: 18, height: 18, accentColor: 'var(--orange)' }}
                   />
                   <div>
-                    <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 600, fontSize: '0.88rem' }}>No responder automáticamente a comentarios negativos</span>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--muted)', marginLeft: 8 }}>Se escalarán para revisión manual</span>
+                    <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 600, fontSize: '0.88rem' }}>{t('rules.noAutoReply')}</span>
+                    <span style={{ fontSize: '0.78rem', color: 'var(--muted)', marginLeft: 8 }}>{t('rules.noAutoReplyDesc')}</span>
                   </div>
                 </label>
               </div>
@@ -534,7 +549,7 @@ export default function SettingsPage() {
 
             <div style={{ marginBottom: 24 }}>
               <button type="submit" className="btn-primary" disabled={saving}>
-                {saving ? <><span className="loading-spinner" />Guardando...</> : <><Save size={16} />Guardar cambios</>}
+                {saving ? <><span className="loading-spinner" />{t('saving')}</> : <><Save size={16} />{t('account.saveChanges')}</>}
               </button>
             </div>
           </form>
@@ -542,10 +557,10 @@ export default function SettingsPage() {
           {/* ── Notificaciones ── */}
           <div id="notificaciones" className="settings-section">
             <h2 className="settings-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Bell size={18} />Notificaciones por email
+              <Bell size={18} />{t('notifSection.title')}
             </h2>
             <p style={{ fontSize: '0.84rem', color: 'var(--muted)', marginBottom: 16 }}>
-              Elige qué eventos te avisamos por email.
+              {t('notifSection.subtitle')}
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -556,10 +571,10 @@ export default function SettingsPage() {
               }}>
                 <div>
                   <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 600, fontSize: '0.88rem', margin: 0 }}>
-                    Notificaciones de publicación
+                    {t('notifSection.publishTitle')}
                   </p>
                   <p style={{ fontSize: '0.78rem', color: 'var(--muted)', margin: '3px 0 0' }}>
-                    Recibe un email cuando se publique un post
+                    {t('notifSection.publishDesc')}
                   </p>
                 </div>
                 <button
@@ -588,10 +603,10 @@ export default function SettingsPage() {
               }}>
                 <div>
                   <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 600, fontSize: '0.88rem', margin: 0 }}>
-                    Notificaciones de comentarios
+                    {t('notifSection.commentsTitle')}
                   </p>
                   <p style={{ fontSize: '0.78rem', color: 'var(--muted)', margin: '3px 0 0' }}>
-                    Recibe un email cuando llegue un nuevo comentario
+                    {t('notifSection.commentsDesc')}
                   </p>
                 </div>
                 <button
@@ -616,24 +631,24 @@ export default function SettingsPage() {
 
             <div style={{ marginTop: 16 }}>
               <button className="btn-primary" onClick={saveNotifications} disabled={savingNotifs}>
-                {savingNotifs ? <><span className="loading-spinner" />Guardando...</> : <><Save size={16} />Guardar notificaciones</>}
+                {savingNotifs ? <><span className="loading-spinner" />{t('saving')}</> : <><Save size={16} />{t('notifSection.save')}</>}
               </button>
             </div>
           </div>
 
           {/* ── Redes sociales ── */}
           <div id="redes" className="settings-section">
-            <h2 className="settings-section-title">Redes sociales</h2>
+            <h2 className="settings-section-title">{t('social.title')}</h2>
             <div className="connection-item">
               <div className="connection-info">
                 <p className="connection-name">Instagram</p>
                 <p className={`connection-status ${brand.ig_account_id ? 'connected' : ''}`}>
-                  {brand.ig_account_id ? `Conectado · @${brand.ig_username ?? brand.ig_account_id}` : 'Sin conectar'}
+                  {brand.ig_account_id ? `${t('connections.connected')} · @${brand.ig_username ?? brand.ig_account_id}` : t('social.notConnected')}
                 </p>
               </div>
               <button className="btn-outline" onClick={connectMeta}>
                 <ExternalLink size={14} />
-                {brand.ig_account_id ? 'Reconectar' : 'Conectar'}
+                {brand.ig_account_id ? t('connections.reconnect') : t('connections.connect')}
               </button>
             </div>
             <div className="connection-item">
@@ -641,27 +656,27 @@ export default function SettingsPage() {
                 <p className="connection-name">Facebook</p>
                 <p className={`connection-status ${brand.fb_page_id ? 'connected' : ''}`}>
                   {brand.fb_page_id
-                    ? `Conectado · ${brand.fb_page_name ?? `Página ${brand.fb_page_id}`}`
-                    : 'Sin conectar'}
+                    ? `${t('connections.connected')} · ${brand.fb_page_name ?? `Página ${brand.fb_page_id}`}`
+                    : t('social.notConnected')}
                 </p>
               </div>
               <button className="btn-outline" onClick={connectMeta}>
                 <ExternalLink size={14} />
-                {brand.fb_page_id ? 'Reconectar' : 'Conectar'}
+                {brand.fb_page_id ? t('connections.reconnect') : t('connections.connect')}
               </button>
             </div>
             {brand.meta_token_expires_at && (
               <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 8 }}>
-                Token expira: {new Date(brand.meta_token_expires_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
+                {t('social.tokenExpires')} {new Date(brand.meta_token_expires_at).toLocaleDateString()}
               </p>
             )}
           </div>
 
           {/* ── Exportar datos ── */}
           <div id="exportar" className="settings-section">
-            <h2 className="settings-section-title">Exportar datos</h2>
+            <h2 className="settings-section-title">{t('export.title')}</h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: 16 }}>
-              Descarga todos tus posts en el formato que prefieras.
+              {t('export.subtitle')}
             </p>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <a
@@ -682,7 +697,7 @@ export default function SettingsPage() {
                   cursor:         'pointer',
                 }}
               >
-                Exportar JSON
+                {t('export.json')}
               </a>
               <a
                 href="/api/export?format=csv"
@@ -702,7 +717,7 @@ export default function SettingsPage() {
                   cursor:         'pointer',
                 }}
               >
-                Exportar CSV
+                {t('export.csv')}
               </a>
             </div>
           </div>
@@ -711,12 +726,12 @@ export default function SettingsPage() {
           <div id="plan" className="settings-section">
             <h2 className="settings-section-title">
               <CreditCard size={18} style={{ verticalAlign: 'middle', marginRight: 8 }} />
-              Plan y facturación
+              {t('billing.title')}
             </h2>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
               <div>
                 <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700 }}>
-                  Plan actual: <span style={{ textTransform: 'capitalize' }}>{brand.plan}</span>
+                  {t('plan.current')}: <span style={{ textTransform: 'capitalize' }}>{brand.plan}</span>
                 </p>
                 <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginTop: 4 }}>
                   {brand.plan === 'starter' ? '12 posts/mes · Instagram y Facebook' :
@@ -726,23 +741,23 @@ export default function SettingsPage() {
               </div>
               <button className="btn-outline" onClick={openBillingPortal} disabled={billing}>
                 {billing ? <span className="loading-spinner" /> : <ExternalLink size={14} />}
-                Gestionar suscripción
+                {t('billing.manageSubscription')}
               </button>
             </div>
             {brand.plan === 'starter' && (
               <div style={{ marginTop: 20, padding: '16px 20px', background: 'var(--orange-light)', borderRadius: 10, border: '1px solid var(--orange)' }}>
                 <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, color: 'var(--orange)', marginBottom: 4 }}>
-                  Actualiza a Pro
+                  {t('billing.upgradeTitle')}
                 </p>
                 <p style={{ fontSize: '0.85rem', color: 'var(--ink)', marginBottom: 12 }}>
-                  Desbloquea posts ilimitados, publicación automática y más por 29€/mes.
+                  {t('billing.upgradeDesc')}
                 </p>
                 <div style={{ display: 'flex', gap: 10 }}>
                   <button className="btn-primary btn-orange" onClick={() => handleUpgrade('pro')}>
-                    Actualizar a Pro — 29€/mes
+                    {t('billing.upgradeCTA')}
                   </button>
                   <button className="btn-outline" onClick={() => handleUpgrade('agency')}>
-                    Agency — 79€/mes
+                    {t('billing.agencyCTA')}
                   </button>
                 </div>
               </div>
@@ -752,12 +767,12 @@ export default function SettingsPage() {
           {/* ── Cuenta ── */}
           <div id="cuenta" className="settings-section">
             <h2 className="settings-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Lock size={18} />Cuenta
+              <Lock size={18} />{t('account.title')}
             </h2>
 
             {/* Current email */}
             <div className="form-group" style={{ marginBottom: 24 }}>
-              <label>Email de la cuenta</label>
+              <label>{t('account.email')}</label>
               <input
                 type="email"
                 value={userEmail}
@@ -769,44 +784,44 @@ export default function SettingsPage() {
             {/* Change password */}
             <form onSubmit={changePassword}>
               <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.92rem', marginBottom: 12 }}>
-                Cambiar contraseña
+                {t('account.changePassword')}
               </p>
               <div className="settings-grid" style={{ marginBottom: 14 }}>
                 <div className="form-group">
-                  <label>Nueva contraseña</label>
+                  <label>{t('account.newPassword')}</label>
                   <input
                     type="password"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Mínimo 8 caracteres"
+                    placeholder="Min. 8"
                     minLength={8}
                     required
                   />
                 </div>
                 <div className="form-group">
-                  <label>Confirmar contraseña</label>
+                  <label>{t('account.confirmPassword')}</label>
                   <input
                     type="password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Repite la contraseña"
+                    placeholder="Min. 8"
                     minLength={8}
                     required
                   />
                 </div>
               </div>
               <button type="submit" className="btn-outline" disabled={savingPassword}>
-                {savingPassword ? <><span className="loading-spinner" />Cambiando...</> : <><Lock size={14} />Cambiar contraseña</>}
+                {savingPassword ? <><span className="loading-spinner" />{t('account.changingPassword')}</> : <><Lock size={14} />{t('account.changePassword')}</>}
               </button>
             </form>
 
             {/* Danger zone */}
             <div style={{ marginTop: 32 }}>
               <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.92rem', color: '#dc2626', marginBottom: 8 }}>
-                Zona de peligro
+                {t('account.dangerZone')}
               </p>
               <p style={{ fontSize: '0.84rem', color: 'var(--muted)', marginBottom: 14 }}>
-                Eliminar tu cuenta borrará permanentemente todos tus datos, posts y configuración. Esta acción no se puede deshacer.
+                {t('account.dangerDesc')}
               </p>
 
               {!showDeleteZone ? (
@@ -821,19 +836,19 @@ export default function SettingsPage() {
                     fontSize: '0.85rem', cursor: 'pointer',
                   }}
                 >
-                  <Trash2 size={14} />Eliminar mi cuenta
+                  <Trash2 size={14} />{t('account.deleteAccount')}
                 </button>
               ) : (
                 <div style={{ padding: '16px 20px', borderRadius: 10, border: '1.5px solid #dc2626', background: '#fef2f2' }}>
                   <p style={{ fontSize: '0.85rem', color: '#dc2626', fontWeight: 600, marginBottom: 10 }}>
-                    Escribe ELIMINAR para confirmar:
+                    {t('account.deleteConfirmPrompt')}
                   </p>
                   <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
                     <input
                       type="text"
                       value={deleteConfirm}
                       onChange={(e) => setDeleteConfirm(e.target.value)}
-                      placeholder="ELIMINAR"
+                      placeholder={confirmWord}
                       style={{
                         padding: '8px 12px', borderRadius: 8, border: '1px solid #dc2626',
                         fontSize: '0.88rem', width: 160,
@@ -842,17 +857,17 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       onClick={deleteAccount}
-                      disabled={deletingAccount || deleteConfirm !== 'ELIMINAR'}
+                      disabled={deletingAccount || deleteConfirm !== confirmWord}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 8,
                         padding: '9px 18px', borderRadius: 8, border: 'none',
-                        background: deleteConfirm === 'ELIMINAR' ? '#dc2626' : '#fca5a5',
+                        background: deleteConfirm === confirmWord ? '#dc2626' : '#fca5a5',
                         color: '#fff',
                         fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700,
-                        fontSize: '0.85rem', cursor: deleteConfirm === 'ELIMINAR' ? 'pointer' : 'not-allowed',
+                        fontSize: '0.85rem', cursor: deleteConfirm === confirmWord ? 'pointer' : 'not-allowed',
                       }}
                     >
-                      {deletingAccount ? <><span className="loading-spinner" />Eliminando...</> : <><Trash2 size={14} />Eliminar cuenta definitivamente</>}
+                      {deletingAccount ? <><span className="loading-spinner" />{t('account.deleting')}</> : <><Trash2 size={14} />{t('account.deleteConfirmBtn')}</>}
                     </button>
                     <button
                       type="button"
@@ -863,7 +878,7 @@ export default function SettingsPage() {
                         fontSize: '0.85rem', cursor: 'pointer',
                       }}
                     >
-                      Cancelar
+                      {t('account.cancel')}
                     </button>
                   </div>
                 </div>
@@ -874,10 +889,10 @@ export default function SettingsPage() {
           {/* ── Equipo ── */}
           <div id="equipo" className="settings-section">
             <h2 className="settings-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Users size={18} />Equipo
+              <Users size={18} />{t('team.title')}
             </h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: 16 }}>
-              Gestiona los miembros de tu equipo y sus permisos.
+              {t('team.subtitle')}
             </p>
             <Link
               href="/settings/team"
@@ -895,7 +910,7 @@ export default function SettingsPage() {
                 background:     'var(--surface)',
               }}
             >
-              <Users size={16} />Gestionar equipo →
+              <Users size={16} />{t('team.manage')}
             </Link>
           </div>
 
