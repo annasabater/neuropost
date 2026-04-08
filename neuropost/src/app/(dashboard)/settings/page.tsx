@@ -342,6 +342,83 @@ export default function SettingsPage() {
             @media (max-width: 768px) {
               .settings-sidenav { display: none !important; }
             }
+
+            .notif-title-row {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+            }
+
+            .notif-subtitle {
+              font-size: 0.84rem;
+              color: var(--muted);
+              margin-bottom: 16px;
+            }
+
+            .notif-list {
+              display: flex;
+              flex-direction: column;
+              gap: 14px;
+            }
+
+            .notif-card {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 14px 16px;
+              border-radius: 10px;
+              border: 1px solid var(--border);
+              background: var(--surface);
+            }
+
+            .notif-card-title {
+              font-family: 'Cabinet Grotesk', sans-serif;
+              font-weight: 600;
+              font-size: 0.88rem;
+              margin: 0;
+            }
+
+            .notif-card-desc {
+              font-size: 0.78rem;
+              color: var(--muted);
+              margin: 3px 0 0;
+            }
+
+            .notif-switch {
+              width: 44px;
+              height: 24px;
+              border-radius: 12px;
+              border: none;
+              cursor: pointer;
+              background: var(--border);
+              position: relative;
+              flex-shrink: 0;
+              transition: background 0.2s;
+            }
+
+            .notif-switch.is-on {
+              background: var(--orange);
+            }
+
+            .notif-switch-thumb {
+              position: absolute;
+              top: 3px;
+              left: 3px;
+              width: 18px;
+              height: 18px;
+              border-radius: 50%;
+              background: #fff;
+              transition: left 0.2s;
+              display: block;
+            }
+
+            .notif-switch.is-on .notif-switch-thumb {
+              left: 23px;
+            }
+
+            .notif-actions {
+              margin-top: 16px;
+            }
           `}</style>
         </div>
 
@@ -556,24 +633,21 @@ export default function SettingsPage() {
 
           {/* ── Notificaciones ── */}
           <div id="notificaciones" className="settings-section">
-            <h2 className="settings-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <h2 className="settings-section-title notif-title-row">
               <Bell size={18} />{t('notifSection.title')}
             </h2>
-            <p style={{ fontSize: '0.84rem', color: 'var(--muted)', marginBottom: 16 }}>
+            <p className="notif-subtitle">
               {t('notifSection.subtitle')}
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div className="notif-list">
               {/* notify_email_publish toggle */}
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '14px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)',
-              }}>
+              <div className="notif-card">
                 <div>
-                  <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 600, fontSize: '0.88rem', margin: 0 }}>
+                  <p className="notif-card-title">
                     {t('notifSection.publishTitle')}
                   </p>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--muted)', margin: '3px 0 0' }}>
+                  <p className="notif-card-desc">
                     {t('notifSection.publishDesc')}
                   </p>
                 </div>
@@ -581,31 +655,22 @@ export default function SettingsPage() {
                   type="button"
                   role="switch"
                   aria-checked={notifyPublish}
+                  aria-label={t('notifSection.publishTitle')}
+                  title={t('notifSection.publishTitle')}
                   onClick={() => setNotifyPublish((v) => !v)}
-                  style={{
-                    width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
-                    background: notifyPublish ? 'var(--orange)' : 'var(--border)',
-                    position: 'relative', flexShrink: 0, transition: 'background 0.2s',
-                  }}
+                  className={`notif-switch ${notifyPublish ? 'is-on' : ''}`}
                 >
-                  <span style={{
-                    position: 'absolute', top: 3, left: notifyPublish ? 23 : 3,
-                    width: 18, height: 18, borderRadius: '50%', background: '#fff',
-                    transition: 'left 0.2s', display: 'block',
-                  }} />
+                  <span className="notif-switch-thumb" />
                 </button>
               </div>
 
               {/* notify_email_comments toggle */}
-              <div style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '14px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)',
-              }}>
+              <div className="notif-card">
                 <div>
-                  <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 600, fontSize: '0.88rem', margin: 0 }}>
+                  <p className="notif-card-title">
                     {t('notifSection.commentsTitle')}
                   </p>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--muted)', margin: '3px 0 0' }}>
+                  <p className="notif-card-desc">
                     {t('notifSection.commentsDesc')}
                   </p>
                 </div>
@@ -613,23 +678,17 @@ export default function SettingsPage() {
                   type="button"
                   role="switch"
                   aria-checked={notifyComments}
+                  aria-label={t('notifSection.commentsTitle')}
+                  title={t('notifSection.commentsTitle')}
                   onClick={() => setNotifyComments((v) => !v)}
-                  style={{
-                    width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
-                    background: notifyComments ? 'var(--orange)' : 'var(--border)',
-                    position: 'relative', flexShrink: 0, transition: 'background 0.2s',
-                  }}
+                  className={`notif-switch ${notifyComments ? 'is-on' : ''}`}
                 >
-                  <span style={{
-                    position: 'absolute', top: 3, left: notifyComments ? 23 : 3,
-                    width: 18, height: 18, borderRadius: '50%', background: '#fff',
-                    transition: 'left 0.2s', display: 'block',
-                  }} />
+                  <span className="notif-switch-thumb" />
                 </button>
               </div>
             </div>
 
-            <div style={{ marginTop: 16 }}>
+            <div className="notif-actions">
               <button className="btn-primary" onClick={saveNotifications} disabled={savingNotifs}>
                 {savingNotifs ? <><span className="loading-spinner" />{t('saving')}</> : <><Save size={16} />{t('notifSection.save')}</>}
               </button>

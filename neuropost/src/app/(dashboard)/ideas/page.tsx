@@ -3,38 +3,66 @@
 import { useState, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslations } from 'next-intl';
-import { Lightbulb, Send, Zap } from 'lucide-react';
+import { Send, Zap, Copy } from 'lucide-react';
 import type { IdeaItem, SocialSector } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
 
-// Sector-specific prompt hints (AI content — kept in Spanish)
-const SECTOR_PROMPTS: Partial<Record<SocialSector, string[]>> = {
-  heladeria:    ['Ideas para el verano con helados', 'Nuevos sabores de temporada', 'Combinaciones especiales para parejas'],
-  restaurante:  ['Menú del día especial', 'Platos estrella para Instagram', 'Evento gastronómico del mes'],
-  cafeteria:    ['Nuevas bebidas de temporada', 'Rituales de café matutino', 'Brunch especial de fin de semana'],
-  gym:          ['Reto fitness del mes', 'Transformaciones de clientes', 'Nueva clase o actividad'],
-  clinica:      ['Consejo de salud semanal', 'Tratamiento estrella del mes', 'FAQ sobre bienestar'],
-  barberia:     ['Tendencia de corte del mes', 'Antes y después de clientes', 'Servicio especial de temporada'],
-  boutique:     ['Nueva colección de temporada', 'Look del día', 'Outfit para evento especial'],
-  inmobiliaria: ['Propiedad destacada de la semana', 'Consejos para compradores', 'El mercado inmobiliario hoy'],
+const UNS = (id: string, w = 400) =>
+  `https://images.unsplash.com/photo-${id}?w=${w}&q=80&auto=format&fit=crop`;
+
+// Sector prompts with images
+const SECTOR_PROMPTS: Partial<Record<SocialSector, { hint: string; img: string }[]>> = {
+  heladeria:    [
+    { hint: 'Ideas para el verano con helados', img: UNS('1563805042-7684c019e1cb') },
+    { hint: 'Nuevos sabores de temporada', img: UNS('1570145820259-b5b80c5c8bd6') },
+    { hint: 'Combinaciones especiales para parejas', img: UNS('1497034825429-c343d7c6a68f') },
+  ],
+  restaurante: [
+    { hint: 'Menú del día especial', img: UNS('1565299624946-b28f40a0ae38') },
+    { hint: 'Platos estrella para Instagram', img: UNS('1482049016688-2d3e1b311543') },
+    { hint: 'Evento gastronómico del mes', img: UNS('1567306226416-28f0efdc88ce') },
+  ],
+  cafeteria: [
+    { hint: 'Nuevas bebidas de temporada', img: UNS('1501339847302-ac426a4a7cbb') },
+    { hint: 'Rituales de café matutino', img: UNS('1495474472287-4d71bcdd2085') },
+    { hint: 'Brunch especial de fin de semana', img: UNS('1521017432531-fbd92d768814') },
+  ],
+  gym: [
+    { hint: 'Reto fitness del mes', img: UNS('1534438327276-14e5300c3a48') },
+    { hint: 'Transformaciones de clientes', img: UNS('1571019614242-c5c5dee9f50b') },
+    { hint: 'Nueva clase o actividad', img: UNS('1517963879433-6ad2a56fcd15') },
+  ],
+  barberia: [
+    { hint: 'Tendencia de corte del mes', img: UNS('1503951914875-452162b0f3f1') },
+    { hint: 'Antes y después de clientes', img: UNS('1508214751196-c5bf6f5e2751') },
+    { hint: 'Servicio especial de temporada', img: UNS('1560066984-138dadb4c305') },
+  ],
+  boutique: [
+    { hint: 'Nueva colección de temporada', img: UNS('1441984904996-e0b6ba687e04') },
+    { hint: 'Look del día', img: UNS('1558618666-fcd25c85cd64') },
+    { hint: 'Outfit para evento especial', img: UNS('1507003211169-0a1dd7228f2d') },
+  ],
+  inmobiliaria: [
+    { hint: 'Propiedad destacada de la semana', img: UNS('1560518883-ce09059eeffa') },
+    { hint: 'Consejos para compradores', img: UNS('1570129477492-45c003edd2be') },
+    { hint: 'El mercado inmobiliario hoy', img: UNS('1582653291997-79a4f2b7d9a7') },
+  ],
 };
 
-// Campaign prompts (AI content — kept in Spanish)
-const CAMPAIGN_PROMPTS: Record<string, string> = {
-  summer:       'Campaña de verano: contenido fresco y veraniego para aumentar ventas en la temporada estival',
-  valentines:   'Campaña San Valentín: ideas románticas y ofertas especiales para parejas',
-  backToSchool: 'Campaña vuelta al cole: contenido enfocado en familia y preparación para septiembre',
-  blackFriday:  'Campaña Black Friday: ofertas especiales, descuentos y urgencia de compra',
-  christmas:    'Campaña Navidad: contenido festivo, felicitaciones y regalos especiales',
-  newYear:      'Campaña Año Nuevo: propósitos, nuevos comienzos y celebración de logros',
-  loyalty:      'Contenido de fidelización: agradecimiento a clientes, historias de éxito y testimonios',
-  launch:       'Lanzamiento de nuevo producto o servicio: generar expectación y conversión',
-};
+// Campaign data with images
+const CAMPAIGNS: { key: string; prompt: string; img: string }[] = [
+  { key: 'summer',       prompt: 'Campaña de verano: contenido fresco y veraniego para aumentar ventas en la temporada estival', img: UNS('1507525428034-b723cf961d3e') },
+  { key: 'valentines',   prompt: 'Campaña San Valentín: ideas románticas y ofertas especiales para parejas', img: UNS('1518199266791-5375a83190b7') },
+  { key: 'backToSchool', prompt: 'Campaña vuelta al cole: contenido enfocado en familia y preparación para septiembre', img: UNS('1503676260728-1c00da094a0b') },
+  { key: 'blackFriday',  prompt: 'Campaña Black Friday: ofertas especiales, descuentos y urgencia de compra', img: UNS('1607083206869-4c7672e72a8a') },
+  { key: 'christmas',    prompt: 'Campaña Navidad: contenido festivo, felicitaciones y regalos especiales', img: UNS('1512389142860-9c449e58a814') },
+  { key: 'newYear',      prompt: 'Campaña Año Nuevo: propósitos, nuevos comienzos y celebración de logros', img: UNS('1467810563316-b5476525c0f9') },
+  { key: 'loyalty',      prompt: 'Contenido de fidelización: agradecimiento a clientes, historias de éxito y testimonios', img: UNS('1521791136064-7986c2920216') },
+  { key: 'launch',       prompt: 'Lanzamiento de nuevo producto o servicio: generar expectación y conversión', img: UNS('1460925895917-afdab827c52f') },
+];
 
-const CAMPAIGN_EMOJIS: Record<string, string> = {
-  summer: '☀️', valentines: '❤️', backToSchool: '📚', blackFriday: '🛍️',
-  christmas: '🎄', newYear: '🥂', loyalty: '🤝', launch: '🚀',
-};
+const f = "var(--font-barlow), 'Barlow', sans-serif";
+const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 export default function IdeasPage() {
   const t = useTranslations('ideas');
@@ -75,142 +103,262 @@ export default function IdeasPage() {
     toast.success(t('copied'));
   }
 
-  const GOAL_EMOJI: Record<string, string> = { engagement: '💬', awareness: '👁', promotion: '🛒', community: '🤝' };
   const sectorHints = brand?.sector ? SECTOR_PROMPTS[brand.sector] ?? [] : [];
 
-  const campaignKeys = Object.keys(CAMPAIGN_PROMPTS) as Array<keyof typeof CAMPAIGN_PROMPTS>;
-
   return (
-    <div className="page-content">
-      <div className="page-header">
-        <div className="page-header-text">
-          <h1 className="page-title">{t('title')}</h1>
-          <p className="page-sub">{t('subtitle')}</p>
-        </div>
+    <div className="page-content" style={{ maxWidth: 1000 }}>
+      {/* ── Title ── */}
+      <div style={{ padding: '48px 0 40px' }}>
+        <h1 style={{
+          fontFamily: fc, fontWeight: 900,
+          fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
+          textTransform: 'uppercase', letterSpacing: '0.01em',
+          color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 12,
+        }}>
+          {t('title')}
+        </h1>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontFamily: f }}>
+          {t('subtitle')}
+        </p>
       </div>
 
-      {/* Prompt area */}
-      <div className="ideas-prompt-area">
-        <div className="ideas-prompt-row">
-          <input
-            ref={promptRef}
-            className="ideas-prompt-input"
-            placeholder={t('inputPlaceholder')}
-            onKeyDown={(e) => e.key === 'Enter' && generate()}
-          />
-          <select
-            className="count-select"
-            value={count}
-            onChange={(e) => setCount(Number(e.target.value))}
-          >
-            {[3, 6, 9, 12, 20].map((n) => <option key={n} value={n}>{n} ideas</option>)}
-          </select>
-          <button className="btn-primary btn-orange" onClick={() => generate()} disabled={loading}>
-            {loading ? <span className="loading-spinner" /> : <Send size={16} />}
-            {loading ? t('generating') : t('generate')}
-          </button>
-        </div>
+      {/* ── Prompt input — Stripe-style clean bar ── */}
+      <div style={{
+        border: '1px solid var(--border)', padding: '12px 16px',
+        display: 'flex', gap: 12, alignItems: 'center', marginBottom: 48,
+      }}>
+        <input
+          ref={promptRef}
+          placeholder={t('inputPlaceholder')}
+          onKeyDown={(e) => e.key === 'Enter' && generate()}
+          style={{
+            flex: 1, border: 'none', outline: 'none', background: 'none',
+            fontFamily: f, fontSize: 14, color: 'var(--text-primary)',
+          }}
+        />
+        <select
+          value={count}
+          onChange={(e) => setCount(Number(e.target.value))}
+          style={{
+            border: '1px solid var(--border)', background: 'var(--bg)',
+            padding: '6px 12px', fontFamily: f, fontSize: 13,
+            color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none',
+          }}
+        >
+          {[3, 6, 9, 12, 20].map((n) => <option key={n} value={n}>{n} ideas</option>)}
+        </select>
+        <button
+          onClick={() => generate()}
+          disabled={loading}
+          style={{
+            background: 'var(--text-primary)', color: 'var(--bg)',
+            border: 'none', padding: '8px 20px',
+            fontFamily: fc, fontSize: 12, fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '0.08em',
+            cursor: loading ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+            opacity: loading ? 0.5 : 1,
+          }}
+        >
+          {loading ? <span className="loading-spinner" /> : <Send size={14} />}
+          {loading ? t('generating') : t('generate')}
+        </button>
       </div>
 
-      {/* Sector-specific quick prompts */}
+      {/* ── Sector ideas — Image carousel ── */}
       {sectorHints.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+        <div style={{ marginBottom: 48 }}>
+          <h2 style={{
+            fontFamily: f, fontSize: 10, fontWeight: 600,
+            textTransform: 'uppercase', letterSpacing: '0.14em',
+            color: 'var(--text-tertiary)', marginBottom: 16,
+            paddingBottom: 8, borderBottom: '1px solid var(--border)',
+          }}>
             {t('sectorLabel')}
-          </p>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {sectorHints.map((hint) => (
+          </h2>
+          <div style={{
+            display: 'flex', gap: '1px', background: 'var(--border)',
+            border: '1px solid var(--border)', overflowX: 'auto', scrollbarWidth: 'none',
+          }}>
+            {sectorHints.map(({ hint, img }) => (
               <button
                 key={hint}
                 onClick={() => usePreset(hint)}
                 disabled={loading}
                 style={{
-                  padding:      '6px 14px',
-                  borderRadius: 20,
-                  border:       '1px solid var(--border)',
-                  background:   'var(--surface)',
-                  fontSize:     '0.8rem',
-                  fontFamily:   "'Cabinet Grotesk', sans-serif",
-                  fontWeight:   600,
-                  cursor:       'pointer',
-                  color:        'var(--ink)',
-                  display:      'flex',
-                  alignItems:   'center',
-                  gap:          6,
+                  flex: '0 0 260px', background: 'none', border: 'none',
+                  padding: 0, cursor: loading ? 'wait' : 'pointer',
+                  position: 'relative', overflow: 'hidden', display: 'block',
+                  textAlign: 'left',
                 }}
               >
-                <Lightbulb size={13} color="var(--orange)" /> {hint}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img} alt="" style={{
+                  width: '100%', height: 160, objectFit: 'cover', display: 'block',
+                  transition: 'transform 0.3s',
+                }} />
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(transparent 30%, rgba(0,0,0,0.7))',
+                }} />
+                <div style={{
+                  position: 'absolute', bottom: 14, left: 14, right: 14,
+                }}>
+                  <p style={{
+                    fontFamily: f, fontSize: 13, fontWeight: 600,
+                    color: '#ffffff', lineHeight: 1.3,
+                  }}>
+                    {hint}
+                  </p>
+                  <p style={{
+                    fontFamily: f, fontSize: 10, fontWeight: 500,
+                    color: 'rgba(255,255,255,0.6)', marginTop: 4,
+                    textTransform: 'uppercase', letterSpacing: '0.08em',
+                  }}>
+                    Generar ideas →
+                  </p>
+                </div>
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Campaign presets */}
-      <div style={{ marginBottom: 28 }}>
-        <p style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+      {/* ── Campaigns — Visual carousel ── */}
+      <div style={{ marginBottom: 48 }}>
+        <h2 style={{
+          fontFamily: f, fontSize: 10, fontWeight: 600,
+          textTransform: 'uppercase', letterSpacing: '0.14em',
+          color: 'var(--text-tertiary)', marginBottom: 16,
+          paddingBottom: 8, borderBottom: '1px solid var(--border)',
+        }}>
           {t('campaignsLabel')}
-        </p>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {campaignKeys.map((key) => (
+        </h2>
+        <div style={{
+          display: 'flex', gap: '1px', background: 'var(--border)',
+          border: '1px solid var(--border)', overflowX: 'auto', scrollbarWidth: 'none',
+        }}>
+          {CAMPAIGNS.map(({ key, prompt, img }) => (
             <button
               key={key}
-              onClick={() => usePreset(CAMPAIGN_PROMPTS[key])}
+              onClick={() => usePreset(prompt)}
               disabled={loading}
               style={{
-                padding:      '7px 14px',
-                borderRadius: 20,
-                border:       '1px solid var(--border)',
-                background:   'white',
-                fontSize:     '0.8rem',
-                fontFamily:   "'Cabinet Grotesk', sans-serif",
-                fontWeight:   600,
-                cursor:       'pointer',
-                color:        'var(--ink)',
-                display:      'flex',
-                alignItems:   'center',
-                gap:          6,
+                flex: '0 0 200px', background: 'none', border: 'none',
+                padding: 0, cursor: loading ? 'wait' : 'pointer',
+                position: 'relative', overflow: 'hidden', display: 'block',
+                textAlign: 'left',
               }}
             >
-              <span>{CAMPAIGN_EMOJIS[key]}</span> {t(`campaigns.${key}`)}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={img} alt="" style={{
+                width: '100%', height: 140, objectFit: 'cover', display: 'block',
+                transition: 'transform 0.3s',
+              }} />
+              <div style={{
+                position: 'absolute', inset: 0,
+                background: 'linear-gradient(transparent 20%, rgba(0,0,0,0.75))',
+              }} />
+              <div style={{ position: 'absolute', bottom: 12, left: 12, right: 12 }}>
+                <p style={{
+                  fontFamily: fc, fontSize: 14, fontWeight: 700,
+                  color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.02em',
+                }}>
+                  {t(`campaigns.${key}`)}
+                </p>
+              </div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Ideas grid */}
+      {/* ── Results ── */}
       {ideas.length > 0 && (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <h2 className="section-title" style={{ margin: 0 }}>{t('ideasCount', { count: ideas.length })}</h2>
-            <button className="btn-outline" style={{ fontSize: '0.82rem', padding: '6px 14px' }} onClick={() => generate()}>
-              <Zap size={13} /> {t('regenerate')}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--border)',
+          }}>
+            <h2 style={{
+              fontFamily: f, fontSize: 10, fontWeight: 600,
+              textTransform: 'uppercase', letterSpacing: '0.14em',
+              color: 'var(--text-tertiary)', margin: 0,
+            }}>
+              {t('ideasCount', { count: ideas.length })}
+            </h2>
+            <button
+              onClick={() => generate()}
+              style={{
+                background: 'none', border: '1px solid var(--border)',
+                padding: '6px 16px', cursor: 'pointer',
+                fontFamily: f, fontSize: 12, fontWeight: 600,
+                color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 6,
+                transition: 'background 0.15s',
+              }}
+            >
+              <Zap size={12} /> {t('regenerate')}
             </button>
           </div>
-          <div className="ideas-grid">
+
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+            gap: '1px', background: 'var(--border)', border: '1px solid var(--border)',
+            marginBottom: 48,
+          }}>
             {ideas.map((idea, i) => (
-              <div key={i} className="idea-card">
-                <div className="idea-card-header">
-                  <h3 className="idea-title">{idea.title}</h3>
-                  <span className="idea-format-badge">{idea.format}</span>
+              <div key={i} style={{
+                background: 'var(--bg)', padding: 24,
+                display: 'flex', flexDirection: 'column', gap: 8,
+                transition: 'background 0.15s',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                  <h3 style={{
+                    fontFamily: fc, fontWeight: 700, fontSize: 18,
+                    color: 'var(--text-primary)', lineHeight: 1.2,
+                    textTransform: 'uppercase', letterSpacing: '0.01em',
+                  }}>
+                    {idea.title}
+                  </h3>
+                  <span style={{
+                    fontFamily: f, fontSize: 10, fontWeight: 600,
+                    textTransform: 'uppercase', letterSpacing: '0.08em',
+                    color: 'var(--text-tertiary)', whiteSpace: 'nowrap',
+                    border: '1px solid var(--border)', padding: '2px 8px',
+                    flexShrink: 0,
+                  }}>
+                    {idea.format}
+                  </span>
                 </div>
-                <p className="idea-caption">{idea.caption}</p>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, fontFamily: f, flex: 1 }}>
+                  {idea.caption}
+                </p>
                 {idea.hashtags.length > 0 && (
-                  <p className="idea-hashtags">
+                  <p style={{ fontSize: 12, color: 'var(--text-tertiary)', fontFamily: f }}>
                     {idea.hashtags.slice(0, 5).map((h) => (h.startsWith('#') ? h : `#${h}`)).join(' ')}
                   </p>
                 )}
                 {idea.rationale && (
-                  <p style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.4, marginBottom: 10, fontStyle: 'italic' }}>
+                  <p style={{ fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5, fontStyle: 'italic', fontFamily: f }}>
                     {idea.rationale}
                   </p>
                 )}
-                <div className="idea-footer">
-                  <span className="idea-meta">
-                    {GOAL_EMOJI[idea.goal] ?? '✨'} {idea.bestTime || t('anyTime')}
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  paddingTop: 12, borderTop: '1px solid var(--border)', marginTop: 4,
+                }}>
+                  <span style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>
+                    {idea.bestTime || t('anyTime')}
                   </span>
-                  <button className="copy-btn" onClick={() => copyCaption(idea.caption)}>
-                    {t('copy')}
+                  <button
+                    onClick={() => copyCaption(idea.caption)}
+                    style={{
+                      background: 'none', border: '1px solid var(--border)',
+                      padding: '4px 12px', cursor: 'pointer',
+                      fontFamily: f, fontSize: 11, fontWeight: 600,
+                      color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 4,
+                      transition: 'background 0.15s',
+                    }}
+                  >
+                    <Copy size={11} /> {t('copy')}
                   </button>
                 </div>
               </div>
@@ -219,11 +367,18 @@ export default function IdeasPage() {
         </>
       )}
 
+      {/* ── Empty state ── */}
       {ideas.length === 0 && !loading && (
-        <div className="empty-state">
-          <div className="empty-state-icon"><Lightbulb size={36} color="var(--orange)" /></div>
-          <p className="empty-state-title">{t('emptyTitle')}</p>
-          <p className="empty-state-sub">{t('emptySub')}</p>
+        <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+          <p style={{
+            fontFamily: fc, fontWeight: 900, fontSize: 24,
+            textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 8,
+          }}>
+            {t('emptyTitle')}
+          </p>
+          <p style={{ fontSize: 14, color: 'var(--text-tertiary)', fontFamily: f, marginBottom: 32 }}>
+            {t('emptySub')}
+          </p>
         </div>
       )}
     </div>

@@ -1,1428 +1,255 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { X, Flame, Bookmark, Plus, Trash2 } from 'lucide-react';
+import { X, Plus, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+const f = "var(--font-barlow), 'Barlow', sans-serif";
+const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
+
 type Template = {
-  id: string;
-  title: string;
-  description: string;
-  thumbnail_url: string | null;
-  sectors: string[];
-  styles: string[];
-  format: string;
-  tags: string[];
-  times_used: number;
+  id: string; title: string; description: string; thumbnail_url: string | null;
+  sectors: string[]; styles: string[]; format: string; tags: string[]; times_used: number;
 };
 
 type Reference = {
-  id: string;
-  type: string;
-  source_url: string | null;
-  thumbnail_url: string | null;
-  title: string;
-  notes: string | null;
-  style_tags: string[] | null;
-  format: string | null;
-  created_at: string;
-  recreation?: { id: string; status: string } | null;
+  id: string; type: string; source_url: string | null; thumbnail_url: string | null;
+  title: string; notes: string | null; style_tags: string[] | null; format: string | null;
+  created_at: string; recreation?: { id: string; status: string } | null;
 };
 
-const FORMAT_OPTIONS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'image', label: 'Imagen' },
-  { value: 'reel', label: 'Reel' },
-  { value: 'carousel', label: 'Carrusel' },
-  { value: 'story', label: 'Story' },
-];
+const FORMAT_OPTIONS = ['all', 'image', 'reel', 'carousel', 'story'];
+const FORMAT_LABEL: Record<string, string> = { all: 'Todos', image: 'Imagen', reel: 'Reel', carousel: 'Carrusel', story: 'Story' };
+const STYLE_OPTIONS = ['all', 'creatiu', 'elegant', 'warm', 'dynamic'];
+const STYLE_LABEL: Record<string, string> = { all: 'Todos', creatiu: 'Creativo', elegant: 'Elegante', warm: 'Cálido', dynamic: 'Dinámico' };
 
-const STYLE_OPTIONS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'creatiu', label: 'Creativo' },
-  { value: 'elegant', label: 'Elegante' },
-  { value: 'warm', label: 'Cálido' },
-  { value: 'dynamic', label: 'Dinámico' },
-];
-
-const TAG_OPTIONS = [
-  { value: 'all', label: 'Todos' },
-  { value: 'producto', label: 'Producto' },
-  { value: 'local', label: 'Local' },
-  { value: 'promo', label: 'Promo' },
-  { value: 'making-of', label: 'Making of' },
-  { value: 'oferta', label: 'Oferta' },
-  { value: 'equipo', label: 'Equipo' },
-  { value: 'temporada', label: 'Temporada' },
-  { value: 'tendencia', label: 'Tendencia' },
-];
-
-const STYLE_PILL_OPTIONS = [
-  { value: 'Creativo', label: 'Creativo' },
-  { value: 'Colorido', label: 'Colorido' },
-  { value: 'Minimal', label: 'Minimal' },
-  { value: 'Elegante', label: 'Elegante' },
-  { value: 'Dinámico', label: 'Dinámico' },
-];
-
-const LIKES_OPTIONS = [
-  { value: 'La composición', label: 'La composición' },
-  { value: 'El color', label: 'El color' },
-  { value: 'El formato', label: 'El formato' },
-  { value: 'El caption', label: 'El caption' },
-  { value: 'El estilo general', label: 'El estilo general' },
-];
-
-const RECREATE_STYLE_OPTIONS = [
-  { value: 'composicion', label: 'Composición' },
-  { value: 'color', label: 'Color' },
-  { value: 'formato', label: 'Formato' },
-  { value: 'caption', label: 'Caption' },
-];
-
-const FORMAT_LABEL: Record<string, string> = {
-  image: 'Imagen',
-  reel: 'Reel',
-  carousel: 'Carrusel',
-  story: 'Story',
-};
-
-const REF_TYPE_LABEL: Record<string, string> = {
-  url: 'URL',
-  upload: 'Subido',
-  template: 'Plantilla',
-};
-
-function PillFilter({
-  options,
-  value,
-  onChange,
-  label,
-}: {
-  options: { value: string; label: string }[];
-  value: string;
-  onChange: (v: string) => void;
-  label: string;
-}) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap' }}>
-      <span style={{ fontSize: '0.78rem', color: 'var(--muted)', fontWeight: 600, whiteSpace: 'nowrap', minWidth: 48 }}>
-        {label}:
-      </span>
-      {options.map((opt) => (
-        <button
-          key={opt.value}
-          onClick={() => onChange(opt.value)}
-          style={{
-            padding: '5px 14px',
-            borderRadius: 20,
-            border: `1px solid ${value === opt.value ? 'var(--orange)' : 'var(--border)'}`,
-            background: value === opt.value ? 'var(--orange)' : 'transparent',
-            color: value === opt.value ? '#fff' : 'var(--muted)',
-            fontSize: '0.78rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            transition: 'all 0.15s',
-          }}
-        >
-          {opt.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function TemplateCard({
-  template,
-  onSave,
-  onRecreate,
-}: {
-  template: Template;
-  onSave: (t: Template) => void;
-  onRecreate: (t: Template) => void;
+function InspirationCard({ image, title, description, format, tags, onSave, onRecreate }: {
+  image: string | null; title: string; description: string; format?: string;
+  tags?: string[]; onSave?: () => void; onRecreate?: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
-
   return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        background: 'var(--surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 12,
-        overflow: 'hidden',
-        cursor: 'pointer',
-        transition: 'box-shadow 0.2s',
-        boxShadow: hovered ? '0 4px 20px rgba(0,0,0,0.1)' : 'none',
-      }}
-    >
-      {/* Thumbnail */}
-      <div style={{ position: 'relative', height: 200 }}>
-        {template.thumbnail_url ? (
-          <img
-            src={template.thumbnail_url}
-            alt={template.title}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
+    <div onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
+      style={{ position: 'relative', overflow: 'hidden', cursor: 'pointer', breakInside: 'avoid', marginBottom: 2 }}>
+      <div style={{ background: 'var(--bg-1)', minHeight: 200 }}>
+        {image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={image} alt={title} style={{ width: '100%', display: 'block', objectFit: 'cover', transition: 'transform 0.4s', transform: hovered ? 'scale(1.03)' : 'scale(1)' }} />
         ) : (
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 40,
-            }}
-          >
-            🎨
-          </div>
-        )}
-        {/* Hover overlay */}
-        {hovered && (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'rgba(0,0,0,0.55)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 12,
-            }}
-          >
-            <button
-              onClick={(e) => { e.stopPropagation(); onSave(template); }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '9px 16px',
-                borderRadius: 10,
-                border: '2px solid #fff',
-                background: 'transparent',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-              }}
-            >
-              <Bookmark size={14} /> Guardar
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); onRecreate(template); }}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '9px 16px',
-                borderRadius: 10,
-                border: 'none',
-                background: 'var(--orange)',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: '0.82rem',
-                cursor: 'pointer',
-              }}
-            >
-              ✦ Recrear →
-            </button>
-          </div>
+          <div style={{ height: 220, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, color: 'var(--text-tertiary)' }}>🎨</div>
         )}
       </div>
-      {/* Body */}
-      <div style={{ padding: '12px 14px 14px' }}>
-        {template.format && (
-          <span
-            style={{
-              display: 'inline-block',
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              padding: '2px 9px',
-              borderRadius: 20,
-              background: '#f3f4f6',
-              color: '#6b7280',
-              marginBottom: 6,
-            }}
-          >
-            {FORMAT_LABEL[template.format] ?? template.format}
-          </span>
-        )}
-        <p style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--ink)', margin: '0 0 4px' }}>
-          {template.title}
-        </p>
-        <p
-          style={{
-            fontSize: '0.78rem',
-            color: 'var(--muted)',
-            margin: '0 0 10px',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-            lineHeight: 1.5,
-          }}
-        >
-          {template.description}
-        </p>
-        {template.tags.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            {template.tags.slice(0, 4).map((tag) => (
-              <span
-                key={tag}
-                style={{
-                  fontSize: '0.68rem',
-                  padding: '2px 8px',
-                  borderRadius: 20,
-                  background: '#f3f4f6',
-                  color: '#9ca3af',
-                  fontWeight: 500,
-                }}
-              >
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ReferenceCard({
-  reference,
-  onRecreate,
-  onDelete,
-}: {
-  reference: Reference;
-  onRecreate: (r: Reference) => void;
-  onDelete: (id: string) => void;
-}) {
-  const rec = reference.recreation;
-
-  return (
-    <div
-      style={{
-        background: 'var(--surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 12,
-        overflow: 'hidden',
-      }}
-    >
-      {/* Thumbnail */}
-      <div style={{ height: 180 }}>
-        {reference.thumbnail_url ? (
-          <img
-            src={reference.thumbnail_url}
-            alt={reference.title}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        ) : (
-          <div
-            style={{
-              width: '100%',
-              height: '100%',
-              background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 36,
-            }}
-          >
-            {reference.type === 'url' ? '🔗' : reference.type === 'upload' ? '📁' : '🎨'}
-          </div>
-        )}
-      </div>
-      {/* Body */}
-      <div style={{ padding: '12px 14px 14px' }}>
-        {reference.type && (
-          <span
-            style={{
-              display: 'inline-block',
-              fontSize: '0.7rem',
-              fontWeight: 700,
-              padding: '2px 9px',
-              borderRadius: 20,
-              background: '#f3f4f6',
-              color: '#6b7280',
-              marginBottom: 6,
-            }}
-          >
-            {REF_TYPE_LABEL[reference.type] ?? reference.type}
-          </span>
-        )}
-        <p style={{ fontWeight: 700, fontSize: '0.88rem', color: 'var(--ink)', margin: '0 0 4px' }}>
-          {reference.title}
-        </p>
-        {reference.notes && (
-          <p
-            style={{
-              fontSize: '0.78rem',
-              color: 'var(--muted)',
-              fontStyle: 'italic',
-              margin: '0 0 10px',
-              lineHeight: 1.5,
-            }}
-          >
-            {reference.notes}
-          </p>
-        )}
-
-        {/* Recreation status */}
-        <div style={{ marginBottom: 10 }}>
-          {!rec ? (
-            <button
-              onClick={() => onRecreate(reference)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '7px 14px',
-                borderRadius: 8,
-                border: 'none',
-                background: 'var(--orange)',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: '0.78rem',
-                cursor: 'pointer',
-              }}
-            >
-              ✦ Recrear esto
-            </button>
-          ) : rec.status === 'completed' ? (
-            <button
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '7px 14px',
-                borderRadius: 8,
-                border: '1px solid var(--border)',
-                background: 'var(--surface)',
-                color: 'var(--ink)',
-                fontWeight: 700,
-                fontSize: '0.78rem',
-                cursor: 'pointer',
-              }}
-            >
-              Ver →
-            </button>
-          ) : (
-            <span
-              style={{
-                fontSize: '0.78rem',
-                color: 'var(--muted)',
-                fontStyle: 'italic',
-              }}
-            >
-              El equipo está en ello…
-            </span>
-          )}
+      {format && (
+        <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.6)', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', padding: '3px 8px' }}>
+          {FORMAT_LABEL[format] ?? format}
         </div>
-
-        <button
-          onClick={() => onDelete(reference.id)}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 5,
-            padding: '5px 10px',
-            borderRadius: 7,
-            border: '1px solid #fecaca',
-            background: 'transparent',
-            color: '#dc2626',
-            fontSize: '0.72rem',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          <Trash2 size={12} /> Eliminar
-        </button>
+      )}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.75))', padding: '40px 14px 14px' }}>
+        <p style={{ fontFamily: fc, fontSize: 15, fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.01em', lineHeight: 1.2, marginBottom: 4 }}>{title}</p>
+        {description && <p style={{ fontFamily: f, fontSize: 12, color: 'rgba(255,255,255,0.65)', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{description}</p>}
+        {tags && tags.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+            {tags.slice(0, 3).map((tag) => <span key={tag} style={{ fontFamily: f, fontSize: 9, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>#{tag}</span>)}
+          </div>
+        )}
       </div>
+      {hovered && (onSave || onRecreate) && (
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(2px)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          {onSave && <button onClick={(e) => { e.stopPropagation(); onSave(); }} style={{ padding: '8px 20px', border: '1px solid #fff', background: 'transparent', color: '#fff', fontFamily: f, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer' }}>Guardar</button>}
+          {onRecreate && <button onClick={(e) => { e.stopPropagation(); onRecreate(); }} style={{ padding: '8px 20px', border: 'none', background: '#fff', color: '#111', fontFamily: f, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer' }}>Recrear →</button>}
+        </div>
+      )}
     </div>
   );
 }
 
 export default function InspiracionPage() {
   const [tab, setTab] = useState<'explore' | 'saved'>('explore');
-
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
-
   const [references, setReferences] = useState<Reference[]>([]);
   const [loadingRefs, setLoadingRefs] = useState(true);
-
   const [filterFormat, setFilterFormat] = useState('all');
   const [filterStyle, setFilterStyle] = useState('all');
-  const [filterTag, setFilterTag] = useState('all');
-
-  // Add modal
   const [showAddModal, setShowAddModal] = useState(false);
   const [addType, setAddType] = useState<'url' | 'upload'>('url');
   const [addUrl, setAddUrl] = useState('');
   const [addTitle, setAddTitle] = useState('');
   const [addNotes, setAddNotes] = useState('');
   const [addFormat, setAddFormat] = useState('image');
-  const [addStyleTags, setAddStyleTags] = useState<string[]>([]);
-  const [addLikes, setAddLikes] = useState<string[]>([]);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
-
-  // Recreate modal
   const [showRecreateModal, setShowRecreateModal] = useState(false);
-  const [recreateRef, setRecreateRef] = useState<Reference | null>(null);
-  const [recreateTemplate, setRecreateTemplate] = useState<Template | null>(null);
+  const [recreateTitle, setRecreateTitle] = useState('');
+  const [recreateRefId, setRecreateRefId] = useState<string | null>(null);
+  const [recreateSourceTemplate, setRecreateSourceTemplate] = useState<Template | null>(null);
   const [recreateNotes, setRecreateNotes] = useState('');
-  const [recreateStyleToAdapt, setRecreateStyleToAdapt] = useState<string[]>([]);
   const [recreating, setRecreating] = useState(false);
   const [recreateSuccess, setRecreateSuccess] = useState(false);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetch('/api/inspiracion/templates')
-      .then((r) => r.json())
-      .then((d) => {
-        setTemplates(d.templates ?? []);
-        setLoadingTemplates(false);
-      })
-      .catch(() => setLoadingTemplates(false));
-
-    fetch('/api/inspiracion/referencias')
-      .then((r) => r.json())
-      .then((d) => {
-        setReferences(d.references ?? []);
-        setLoadingRefs(false);
-      })
-      .catch(() => setLoadingRefs(false));
+    fetch('/api/inspiracion/templates').then(r => r.json()).then(d => { setTemplates(d.templates ?? []); setLoadingTemplates(false); }).catch(() => setLoadingTemplates(false));
+    fetch('/api/inspiracion/referencias').then(r => r.json()).then(d => { setReferences(d.references ?? []); setLoadingRefs(false); }).catch(() => setLoadingRefs(false));
   }, []);
 
-  // Filtered templates
-  const filteredTemplates = templates.filter((t) => {
+  const filteredTemplates = templates.filter(t => {
     if (filterFormat !== 'all' && t.format !== filterFormat) return false;
     if (filterStyle !== 'all' && !t.styles.includes(filterStyle)) return false;
-    if (filterTag !== 'all' && !t.tags.includes(filterTag)) return false;
     return true;
   });
 
-  function toggleStyleTag(tag: string) {
-    setAddStyleTags((prev) =>
-      prev.includes(tag) ? prev.filter((s) => s !== tag) : [...prev, tag]
-    );
-  }
-
-  function toggleRecreateStyle(val: string) {
-    setRecreateStyleToAdapt((prev) =>
-      prev.includes(val) ? prev.filter((s) => s !== val) : [...prev, val]
-    );
-  }
-
-  function openRecreateForRef(ref: Reference) {
-    setRecreateRef(ref);
-    setRecreateTemplate(null);
-    setRecreateNotes('');
-    setRecreateStyleToAdapt([]);
-    setRecreateSuccess(false);
-    setShowRecreateModal(true);
-  }
-
-  function openRecreateForTemplate(template: Template) {
-    setRecreateTemplate(template);
-    setRecreateRef(null);
-    setRecreateNotes('');
-    setRecreateStyleToAdapt([]);
-    setRecreateSuccess(false);
-    setShowRecreateModal(true);
-  }
-
   async function saveTemplate(template: Template) {
-    const res = await fetch('/api/inspiracion/referencias', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: 'template',
-        title: template.title,
-        thumbnail_url: template.thumbnail_url,
-        format: template.format,
-        style_tags: template.styles,
-        notes: '',
-      }),
-    });
-    if (res.ok) {
-      const d = await res.json();
-      setReferences((prev) => [d.reference, ...prev]);
-      toast.success('Guardado en tus referencias');
-    } else {
-      toast.error('Error al guardar');
-    }
+    const res = await fetch('/api/inspiracion/referencias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'template', title: template.title, thumbnail_url: template.thumbnail_url, format: template.format, style_tags: template.styles, notes: '' }) });
+    if (res.ok) { const d = await res.json(); setReferences(p => [d.reference, ...p]); toast.success('Guardado'); } else toast.error('Error');
   }
+
+  function openRecreateForTemplate(t: Template) { setRecreateSourceTemplate(t); setRecreateRefId(null); setRecreateTitle(t.title); setRecreateNotes(''); setRecreateSuccess(false); setShowRecreateModal(true); }
+  function openRecreateForRef(r: Reference) { setRecreateSourceTemplate(null); setRecreateRefId(r.id); setRecreateTitle(r.title); setRecreateNotes(''); setRecreateSuccess(false); setShowRecreateModal(true); }
 
   async function handleSaveReference() {
     if (!addTitle.trim()) { toast.error('Añade un título'); return; }
     setSaving(true);
-
     let thumbnailUrl: string | null = null;
-
-    if (addType === 'upload' && uploadFile) {
-      // Upload via multipart/form-data
-      const formData = new FormData();
-      formData.append('file', uploadFile);
-      const upRes = await fetch('/api/inspiracion/upload', { method: 'POST', body: formData });
-      if (upRes.ok) {
-        const upData = await upRes.json();
-        thumbnailUrl = upData.url ?? null;
-      }
-    }
-
-    const payload = {
-      type: addType,
-      source_url: addType === 'url' ? (addUrl || null) : null,
-      thumbnail_url: thumbnailUrl,
-      title: addTitle,
-      notes: addNotes || null,
-      format: addFormat || null,
-      style_tags: addStyleTags.length > 0 ? addStyleTags : null,
-    };
-
-    const res = await fetch('/api/inspiracion/referencias', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-
-    if (res.ok) {
-      const d = await res.json();
-      setReferences((prev) => [d.reference, ...prev]);
-      setShowAddModal(false);
-      resetAddForm();
-      toast.success('Referencia guardada');
-    } else {
-      toast.error('Error al guardar la referencia');
-    }
+    if (addType === 'upload' && uploadFile) { const fd = new FormData(); fd.append('file', uploadFile); const up = await fetch('/api/inspiracion/upload', { method: 'POST', body: fd }); if (up.ok) { const d = await up.json(); thumbnailUrl = d.url ?? null; } }
+    const res = await fetch('/api/inspiracion/referencias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: addType, source_url: addType === 'url' ? (addUrl || null) : null, thumbnail_url: thumbnailUrl, title: addTitle, notes: addNotes || null, format: addFormat || null }) });
+    if (res.ok) { const d = await res.json(); setReferences(p => [d.reference, ...p]); setShowAddModal(false); resetAddForm(); toast.success('Guardada'); } else toast.error('Error');
     setSaving(false);
   }
 
-  function resetAddForm() {
-    setAddType('url');
-    setAddUrl('');
-    setAddTitle('');
-    setAddNotes('');
-    setAddFormat('image');
-    setAddStyleTags([]);
-    setAddLikes([]);
-    setUploadFile(null);
-  }
+  function resetAddForm() { setAddType('url'); setAddUrl(''); setAddTitle(''); setAddNotes(''); setAddFormat('image'); setUploadFile(null); }
 
   async function handleRecreate() {
-    if (!recreateNotes.trim()) { toast.error('Describe qué quieres mostrar'); return; }
+    if (!recreateNotes.trim()) { toast.error('Describe qué quieres'); return; }
     setRecreating(true);
-
-    let refId: string | null = recreateRef?.id ?? null;
-
-    // If coming from a template, first save as reference
-    if (recreateTemplate && !recreateRef) {
-      const saveRes = await fetch('/api/inspiracion/referencias', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'template',
-          title: recreateTemplate.title,
-          thumbnail_url: recreateTemplate.thumbnail_url,
-          format: recreateTemplate.format,
-          style_tags: recreateTemplate.styles,
-          notes: '',
-        }),
-      });
-      if (saveRes.ok) {
-        const sd = await saveRes.json();
-        refId = sd.reference?.id ?? null;
-        if (sd.reference) setReferences((prev) => [sd.reference, ...prev]);
-      }
+    let refId = recreateRefId;
+    if (recreateSourceTemplate && !refId) {
+      const sr = await fetch('/api/inspiracion/referencias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'template', title: recreateSourceTemplate.title, thumbnail_url: recreateSourceTemplate.thumbnail_url, format: recreateSourceTemplate.format, style_tags: recreateSourceTemplate.styles, notes: '' }) });
+      if (sr.ok) { const sd = await sr.json(); refId = sd.reference?.id ?? null; if (sd.reference) setReferences(p => [sd.reference, ...p]); }
     }
-
-    if (!refId) { toast.error('Error al procesar la referencia'); setRecreating(false); return; }
-
-    const res = await fetch('/api/inspiracion/recrear', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        reference_id: refId,
-        client_notes: recreateNotes,
-        style_to_adapt: recreateStyleToAdapt,
-      }),
-    });
-
-    if (res.ok) {
-      setRecreateSuccess(true);
-      // Update references list with recreation status
-      const d = await res.json();
-      if (d.recreation) {
-        setReferences((prev) =>
-          prev.map((r) =>
-            r.id === refId ? { ...r, recreation: { id: d.recreation.id, status: d.recreation.status } } : r
-          )
-        );
-      }
-      setTimeout(() => {
-        setShowRecreateModal(false);
-        setRecreateSuccess(false);
-        setRecreating(false);
-      }, 2000);
-    } else {
-      toast.error('Error al enviar la solicitud');
-      setRecreating(false);
-    }
+    if (!refId) { toast.error('Error'); setRecreating(false); return; }
+    const res = await fetch('/api/inspiracion/recrear', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reference_id: refId, client_notes: recreateNotes, style_to_adapt: [] }) });
+    if (res.ok) { setRecreateSuccess(true); const d = await res.json(); if (d.recreation) setReferences(p => p.map(r => r.id === refId ? { ...r, recreation: { id: d.recreation.id, status: d.recreation.status } } : r)); setTimeout(() => { setShowRecreateModal(false); setRecreateSuccess(false); setRecreating(false); }, 2000); }
+    else { toast.error('Error'); setRecreating(false); }
   }
 
-  async function handleDeleteRef(id: string) {
-    const res = await fetch(`/api/inspiracion/referencias/${id}`, { method: 'DELETE' });
-    if (res.ok) {
-      setReferences((prev) => prev.filter((r) => r.id !== id));
-      toast.success('Referencia eliminada');
-    } else {
-      toast.error('Error al eliminar');
-    }
-  }
+  async function handleDeleteRef(id: string) { const res = await fetch(`/api/inspiracion/referencias/${id}`, { method: 'DELETE' }); if (res.ok) { setReferences(p => p.filter(r => r.id !== id)); toast.success('Eliminada'); } else toast.error('Error'); }
 
-  const modalTitle = recreateTemplate
-    ? `Recrear: ${recreateTemplate.title}`
-    : recreateRef
-    ? `Recrear: ${recreateRef.title}`
-    : 'Recrear';
+  const inputStyle: React.CSSProperties = { width: '100%', padding: '12px 14px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: f, fontSize: 14, outline: 'none', boxSizing: 'border-box' as const };
 
   return (
-    <div className="page-content">
-      {/* Header */}
-      <div className="page-header">
-        <div className="page-header-text">
-          <h1 className="page-title">Inspiración</h1>
-          <p className="page-sub">Encuentra el estilo perfecto para tu negocio</p>
+    <div className="page-content" style={{ maxWidth: 1000 }}>
+      <div style={{ padding: '48px 0 24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <div>
+          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 12 }}>Inspiración</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontFamily: f }}>Encuentra el estilo perfecto para tu negocio</p>
         </div>
-        <button
-          onClick={() => setShowAddModal(true)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            padding: '10px 20px',
-            background: 'var(--orange)',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 10,
-            fontWeight: 700,
-            fontSize: '0.88rem',
-            cursor: 'pointer',
-          }}
-        >
-          <Plus size={16} /> Añadir referencia
+        <button onClick={() => setShowAddModal(true)} style={{ background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', padding: '10px 24px', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <Plus size={14} /> Añadir referencia
         </button>
       </div>
 
-      {/* Tab bar */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 4,
-          marginBottom: 24,
-          borderBottom: '1px solid var(--border)',
-        }}
-      >
-        <button
-          onClick={() => setTab('explore')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '8px 20px',
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            fontSize: '0.88rem',
-            fontWeight: tab === 'explore' ? 700 : 400,
-            color: tab === 'explore' ? 'var(--orange)' : 'var(--muted)',
-            borderBottom: tab === 'explore' ? '2px solid var(--orange)' : '2px solid transparent',
-          }}
-        >
-          <Flame size={15} /> Explorar ideas
-        </button>
-        <button
-          onClick={() => setTab('saved')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '8px 20px',
-            border: 'none',
-            background: 'none',
-            cursor: 'pointer',
-            fontSize: '0.88rem',
-            fontWeight: tab === 'saved' ? 700 : 400,
-            color: tab === 'saved' ? 'var(--orange)' : 'var(--muted)',
-            borderBottom: tab === 'saved' ? '2px solid var(--orange)' : '2px solid transparent',
-          }}
-        >
-          💾 Mis referencias ({references.length})
-        </button>
+      <div style={{ display: 'flex', gap: 32, borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
+        {(['explore', 'saved'] as const).map(t => (
+          <button key={t} onClick={() => setTab(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', paddingBottom: 12, fontFamily: fc, fontSize: 18, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em', color: tab === t ? 'var(--text-primary)' : 'var(--text-tertiary)', borderBottom: tab === t ? '2px solid var(--text-primary)' : '2px solid transparent', transition: 'all 0.15s' }}>
+            {t === 'explore' ? 'Explorar' : `Guardadas (${references.length})`}
+          </button>
+        ))}
       </div>
 
-      {/* TAB: Explorar */}
       {tab === 'explore' && (
         <>
-          {/* Filter bar */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 10,
-              marginBottom: 24,
-              overflowX: 'auto',
-            }}
-          >
-            <PillFilter
-              label="Formato"
-              options={FORMAT_OPTIONS}
-              value={filterFormat}
-              onChange={setFilterFormat}
-            />
-            <PillFilter
-              label="Estilo"
-              options={STYLE_OPTIONS}
-              value={filterStyle}
-              onChange={setFilterStyle}
-            />
-            <PillFilter
-              label="Tema"
-              options={TAG_OPTIONS}
-              value={filterTag}
-              onChange={setFilterTag}
-            />
+          <div style={{ display: 'flex', gap: 32, marginBottom: 32 }}>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+              <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-tertiary)' }}>Formato</span>
+              {FORMAT_OPTIONS.map(v => <button key={v} onClick={() => setFilterFormat(v)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: f, fontSize: 13, fontWeight: 500, color: filterFormat === v ? 'var(--text-primary)' : 'var(--text-tertiary)', borderBottom: filterFormat === v ? '1px solid var(--text-primary)' : '1px solid transparent', paddingBottom: 2, transition: 'all 0.15s' }}>{FORMAT_LABEL[v]}</button>)}
+            </div>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+              <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-tertiary)' }}>Estilo</span>
+              {STYLE_OPTIONS.map(v => <button key={v} onClick={() => setFilterStyle(v)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: f, fontSize: 13, fontWeight: 500, color: filterStyle === v ? 'var(--text-primary)' : 'var(--text-tertiary)', borderBottom: filterStyle === v ? '1px solid var(--text-primary)' : '1px solid transparent', paddingBottom: 2, transition: 'all 0.15s' }}>{STYLE_LABEL[v]}</button>)}
+            </div>
           </div>
 
-          {loadingTemplates ? (
-            <p style={{ color: 'var(--muted)', fontSize: '0.88rem' }}>Cargando plantillas…</p>
-          ) : filteredTemplates.length === 0 ? (
-            <div
-              style={{
-                textAlign: 'center',
-                padding: '60px 0',
-                color: 'var(--muted)',
-              }}
-            >
-              <div style={{ fontSize: 48, marginBottom: 12 }}>🎨</div>
-              <p style={{ fontWeight: 600 }}>No hay plantillas para estos filtros</p>
+          {loadingTemplates ? <p style={{ color: 'var(--text-tertiary)', fontFamily: f }}>Cargando...</p>
+          : filteredTemplates.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+              <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 24, textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 8 }}>Sin resultados</p>
+              <p style={{ fontSize: 14, color: 'var(--text-tertiary)', fontFamily: f }}>Prueba con otros filtros</p>
             </div>
           ) : (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                gap: 16,
-              }}
-            >
-              {filteredTemplates.map((template) => (
-                <TemplateCard
-                  key={template.id}
-                  template={template}
-                  onSave={saveTemplate}
-                  onRecreate={openRecreateForTemplate}
-                />
-              ))}
+            <div style={{ columns: '3 260px', gap: 2 }}>
+              {filteredTemplates.map(t => <InspirationCard key={t.id} image={t.thumbnail_url} title={t.title} description={t.description} format={t.format} tags={t.tags} onSave={() => saveTemplate(t)} onRecreate={() => openRecreateForTemplate(t)} />)}
             </div>
           )}
         </>
       )}
 
-      {/* TAB: Mis referencias */}
       {tab === 'saved' && (
         <>
-          {loadingRefs ? (
-            <p style={{ color: 'var(--muted)', fontSize: '0.88rem' }}>Cargando referencias…</p>
-          ) : references.length === 0 ? (
-            <div
-              style={{
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: 16,
-                padding: '48px 32px',
-                textAlign: 'center',
-                maxWidth: 480,
-                margin: '0 auto',
-              }}
-            >
-              <div style={{ fontSize: 48, marginBottom: 16 }}>💡</div>
-              <p
-                style={{
-                  fontWeight: 700,
-                  fontSize: '1rem',
-                  color: 'var(--ink)',
-                  marginBottom: 8,
-                }}
-              >
-                Aún no tienes referencias guardadas
-              </p>
-              <p
-                style={{
-                  fontSize: '0.85rem',
-                  color: 'var(--muted)',
-                  lineHeight: 1.6,
-                  marginBottom: 20,
-                }}
-              >
-                Explora ideas y guárdalas aquí, o añade tus propias referencias de Instagram.
-              </p>
-              <button
-                onClick={() => setTab('explore')}
-                style={{
-                  padding: '10px 24px',
-                  borderRadius: 10,
-                  border: 'none',
-                  background: 'var(--orange)',
-                  color: '#fff',
-                  fontWeight: 700,
-                  fontSize: '0.88rem',
-                  cursor: 'pointer',
-                }}
-              >
-                Explorar ideas →
-              </button>
+          {loadingRefs ? <p style={{ color: 'var(--text-tertiary)', fontFamily: f }}>Cargando...</p>
+          : references.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+              <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 24, textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 8 }}>Sin referencias</p>
+              <p style={{ fontSize: 14, color: 'var(--text-tertiary)', fontFamily: f, marginBottom: 32 }}>Explora ideas y guárdalas aquí</p>
+              <button onClick={() => setTab('explore')} style={{ background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', padding: '14px 32px', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer' }}>Explorar →</button>
             </div>
           ) : (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
-                gap: 16,
-              }}
-            >
-              {references.map((ref) => (
-                <ReferenceCard
-                  key={ref.id}
-                  reference={ref}
-                  onRecreate={openRecreateForRef}
-                  onDelete={handleDeleteRef}
-                />
+            <div style={{ columns: '3 260px', gap: 2 }}>
+              {references.map(ref => (
+                <div key={ref.id} style={{ position: 'relative', breakInside: 'avoid', marginBottom: 2 }}>
+                  <InspirationCard image={ref.thumbnail_url} title={ref.title} description={ref.notes ?? ''} format={ref.format ?? undefined} onRecreate={ref.recreation ? undefined : () => openRecreateForRef(ref)} />
+                  <button onClick={() => handleDeleteRef(ref.id)} style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', padding: '4px 6px', cursor: 'pointer' }}><Trash2 size={12} /></button>
+                  {ref.recreation && <div style={{ position: 'absolute', top: 8, left: 8, background: ref.recreation.status === 'completed' ? 'var(--accent)' : 'rgba(0,0,0,0.6)', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 600, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{ref.recreation.status === 'completed' ? 'Recreado' : 'En proceso'}</div>}
+                </div>
               ))}
             </div>
           )}
         </>
       )}
 
-      {/* MODAL: Añadir referencia */}
+      {/* Modal: Add */}
       {showAddModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 20,
-          }}
-        >
-          <div
-            style={{
-              background: 'var(--surface)',
-              borderRadius: 16,
-              padding: 28,
-              width: '100%',
-              maxWidth: 520,
-              maxHeight: '90vh',
-              overflowY: 'auto',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 20,
-              }}
-            >
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--ink)' }}>
-                Añadir referencia
-              </h2>
-              <button
-                onClick={() => { setShowAddModal(false); resetAddForm(); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-              >
-                <X size={20} color="var(--muted)" />
-              </button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'var(--bg)', padding: 32, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+              <h2 style={{ fontFamily: fc, fontSize: 20, fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)' }}>Añadir referencia</h2>
+              <button onClick={() => { setShowAddModal(false); resetAddForm(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}><X size={20} /></button>
             </div>
-
-            {/* Sub-tabs */}
-            <div
-              style={{
-                display: 'flex',
-                gap: 4,
-                marginBottom: 20,
-                borderBottom: '1px solid var(--border)',
-              }}
-            >
-              {([
-                { key: 'url', label: '🔗 Pegar URL' },
-                { key: 'upload', label: '📁 Subir imagen' },
-              ] as { key: 'url' | 'upload'; label: string }[]).map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => setAddType(key)}
-                  style={{
-                    padding: '7px 16px',
-                    border: 'none',
-                    background: 'none',
-                    cursor: 'pointer',
-                    fontSize: '0.83rem',
-                    fontWeight: addType === key ? 700 : 400,
-                    color: addType === key ? 'var(--orange)' : 'var(--muted)',
-                    borderBottom: addType === key ? '2px solid var(--orange)' : '2px solid transparent',
-                  }}
-                >
-                  {label}
-                </button>
-              ))}
+            <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border)', marginBottom: 24 }}>
+              {(['url', 'upload'] as const).map(t => <button key={t} onClick={() => setAddType(t)} style={{ flex: 1, padding: 8, border: 'none', cursor: 'pointer', background: addType === t ? 'var(--text-primary)' : 'var(--bg)', color: addType === t ? 'var(--bg)' : 'var(--text-tertiary)', fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t === 'url' ? 'Pegar URL' : 'Subir imagen'}</button>)}
             </div>
-
-            {addType === 'url' && (
-              <div style={{ marginBottom: 16 }}>
-                <label
-                  style={{
-                    display: 'block',
-                    fontWeight: 600,
-                    fontSize: '0.82rem',
-                    marginBottom: 6,
-                    color: 'var(--ink)',
-                  }}
-                >
-                  URL del post de referencia (Instagram, TikTok...)
-                </label>
-                <input
-                  value={addUrl}
-                  onChange={(e) => setAddUrl(e.target.value)}
-                  placeholder="https://www.instagram.com/p/..."
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    border: '1px solid var(--border)',
-                    borderRadius: 8,
-                    fontSize: '0.88rem',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    background: 'var(--bg)',
-                    color: 'var(--ink)',
-                  }}
-                />
-              </div>
-            )}
-
-            {addType === 'upload' && (
-              <div style={{ marginBottom: 16 }}>
-                <label
-                  style={{
-                    display: 'block',
-                    fontWeight: 600,
-                    fontSize: '0.82rem',
-                    marginBottom: 6,
-                    color: 'var(--ink)',
-                  }}
-                >
-                  Selecciona una imagen
-                </label>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    border: '1px solid var(--border)',
-                    borderRadius: 8,
-                    fontSize: '0.88rem',
-                    boxSizing: 'border-box',
-                    background: 'var(--bg)',
-                    color: 'var(--ink)',
-                  }}
-                />
-              </div>
-            )}
-
-            <div style={{ marginBottom: 16 }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontWeight: 600,
-                  fontSize: '0.82rem',
-                  marginBottom: 6,
-                  color: 'var(--ink)',
-                }}
-              >
-                ¿Cómo quieres llamar a esta referencia?
-              </label>
-              <input
-                value={addTitle}
-                onChange={(e) => setAddTitle(e.target.value)}
-                placeholder="Ej: Post de verano con producto estrella"
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  fontSize: '0.88rem',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  background: 'var(--bg)',
-                  color: 'var(--ink)',
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontWeight: 600,
-                  fontSize: '0.82rem',
-                  marginBottom: 6,
-                  color: 'var(--ink)',
-                }}
-              >
-                ¿Qué te gusta de este contenido?
-              </label>
-              <textarea
-                value={addNotes}
-                onChange={(e) => setAddNotes(e.target.value)}
-                placeholder="Describe qué te llama la atención…"
-                rows={3}
-                style={{
-                  width: '100%',
-                  padding: '10px 14px',
-                  border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  fontSize: '0.88rem',
-                  resize: 'vertical',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  fontFamily: 'inherit',
-                  background: 'var(--bg)',
-                  color: 'var(--ink)',
-                }}
-              />
-              <div
-                style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  gap: 10,
-                  marginTop: 10,
-                }}
-              >
-                {LIKES_OPTIONS.map((opt) => (
-                  <label
-                    key={opt.value}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      fontSize: '0.78rem',
-                      color: 'var(--muted)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={addLikes.includes(opt.value)}
-                      onChange={() =>
-                        setAddLikes((prev) =>
-                          prev.includes(opt.value)
-                            ? prev.filter((l) => l !== opt.value)
-                            : [...prev, opt.value]
-                        )
-                      }
-                    />
-                    {opt.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontWeight: 600,
-                  fontSize: '0.82rem',
-                  marginBottom: 6,
-                  color: 'var(--ink)',
-                }}
-              >
-                Formato
-              </label>
-              <select
-                value={addFormat}
-                onChange={(e) => setAddFormat(e.target.value)}
-                style={{
-                  padding: '9px 14px',
-                  border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  fontSize: '0.88rem',
-                  background: 'var(--bg)',
-                  color: 'var(--ink)',
-                  cursor: 'pointer',
-                }}
-              >
-                <option value="image">Imagen</option>
-                <option value="reel">Reel</option>
-                <option value="carousel">Carrusel</option>
-                <option value="story">Story</option>
-              </select>
-            </div>
-
-            <div style={{ marginBottom: 24 }}>
-              <label
-                style={{
-                  display: 'block',
-                  fontWeight: 600,
-                  fontSize: '0.82rem',
-                  marginBottom: 8,
-                  color: 'var(--ink)',
-                }}
-              >
-                Estilo
-              </label>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {STYLE_PILL_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => toggleStyleTag(opt.value)}
-                    style={{
-                      padding: '6px 14px',
-                      borderRadius: 20,
-                      border: `1px solid ${addStyleTags.includes(opt.value) ? 'var(--orange)' : 'var(--border)'}`,
-                      background: addStyleTags.includes(opt.value) ? 'var(--orange)' : 'transparent',
-                      color: addStyleTags.includes(opt.value) ? '#fff' : 'var(--muted)',
-                      fontSize: '0.78rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button
-                onClick={() => { setShowAddModal(false); resetAddForm(); }}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  border: '1px solid var(--border)',
-                  borderRadius: 10,
-                  background: 'transparent',
-                  color: 'var(--ink)',
-                  cursor: 'pointer',
-                  fontSize: '0.88rem',
-                  fontWeight: 600,
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveReference}
-                disabled={saving}
-                style={{
-                  flex: 2,
-                  padding: '12px',
-                  border: 'none',
-                  borderRadius: 10,
-                  background: 'var(--orange)',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  fontSize: '0.88rem',
-                  fontWeight: 700,
-                }}
-              >
-                {saving ? 'Guardando…' : 'Guardar referencia →'}
-              </button>
+            {addType === 'url' && <div style={{ marginBottom: 16 }}><label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 6 }}>URL</label><input value={addUrl} onChange={e => setAddUrl(e.target.value)} placeholder="https://instagram.com/p/..." style={inputStyle} /></div>}
+            {addType === 'upload' && <div style={{ marginBottom: 16 }}><label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 6 }}>Imagen</label><input ref={fileInputRef} type="file" accept="image/*" onChange={e => setUploadFile(e.target.files?.[0] ?? null)} style={inputStyle} /></div>}
+            <div style={{ marginBottom: 16 }}><label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 6 }}>Título</label><input value={addTitle} onChange={e => setAddTitle(e.target.value)} placeholder="Ej: Post de verano" style={inputStyle} /></div>
+            <div style={{ marginBottom: 16 }}><label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 6 }}>Notas</label><textarea value={addNotes} onChange={e => setAddNotes(e.target.value)} placeholder="Qué te gusta..." rows={3} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} /></div>
+            <div style={{ marginBottom: 24 }}><label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 6 }}>Formato</label><select value={addFormat} onChange={e => setAddFormat(e.target.value)} style={{ ...inputStyle, cursor: 'pointer' }}><option value="image">Imagen</option><option value="reel">Reel</option><option value="carousel">Carrusel</option><option value="story">Story</option></select></div>
+            <div style={{ display: 'flex', gap: 1 }}>
+              <button onClick={() => { setShowAddModal(false); resetAddForm(); }} style={{ flex: 1, padding: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: f, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={handleSaveReference} disabled={saving} style={{ flex: 2, padding: 12, border: 'none', background: 'var(--text-primary)', color: 'var(--bg)', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}>{saving ? 'Guardando...' : 'Guardar →'}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MODAL: Recrear */}
+      {/* Modal: Recreate */}
       {showRecreateModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 20,
-          }}
-        >
-          <div
-            style={{
-              background: 'var(--surface)',
-              borderRadius: 16,
-              padding: 28,
-              width: '100%',
-              maxWidth: 520,
-              maxHeight: '90vh',
-              overflowY: 'auto',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 20,
-              }}
-            >
-              <h2
-                style={{
-                  fontSize: '1rem',
-                  fontWeight: 800,
-                  color: 'var(--ink)',
-                  flex: 1,
-                  marginRight: 12,
-                }}
-              >
-                {modalTitle}
-              </h2>
-              <button
-                onClick={() => setShowRecreateModal(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-              >
-                <X size={20} color="var(--muted)" />
-              </button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'var(--bg)', padding: 32, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+              <h2 style={{ fontFamily: fc, fontSize: 18, fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)', flex: 1 }}>Recrear: {recreateTitle}</h2>
+              <button onClick={() => setShowRecreateModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}><X size={20} /></button>
             </div>
-
             {recreateSuccess ? (
-              <div
-                style={{
-                  textAlign: 'center',
-                  padding: '32px 0',
-                  color: '#065f46',
-                }}
-              >
-                <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
-                <p style={{ fontWeight: 700, fontSize: '0.95rem' }}>
-                  Solicitud enviada — el equipo se pondrá en marcha
-                </p>
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <p style={{ fontFamily: fc, fontSize: 24, fontWeight: 900, textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 8 }}>✓ Enviado</p>
+                <p style={{ fontFamily: f, fontSize: 14, color: 'var(--text-secondary)' }}>El equipo se pondrá en marcha</p>
               </div>
             ) : (
               <>
-                <div style={{ marginBottom: 18 }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontWeight: 600,
-                      fontSize: '0.82rem',
-                      marginBottom: 6,
-                      color: 'var(--ink)',
-                    }}
-                  >
-                    ¿Qué producto o momento quieres mostrar?
-                  </label>
-                  <textarea
-                    value={recreateNotes}
-                    onChange={(e) => setRecreateNotes(e.target.value)}
-                    placeholder="Describe lo que quieres recrear, el contexto, el producto…"
-                    rows={4}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      border: '1px solid var(--border)',
-                      borderRadius: 8,
-                      fontSize: '0.88rem',
-                      resize: 'vertical',
-                      outline: 'none',
-                      boxSizing: 'border-box',
-                      fontFamily: 'inherit',
-                      background: 'var(--bg)',
-                      color: 'var(--ink)',
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: 28 }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontWeight: 600,
-                      fontSize: '0.82rem',
-                      marginBottom: 10,
-                      color: 'var(--ink)',
-                    }}
-                  >
-                    Aspectos a adaptar
-                  </label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                    {RECREATE_STYLE_OPTIONS.map((opt) => (
-                      <label
-                        key={opt.value}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          fontSize: '0.82rem',
-                          color: 'var(--muted)',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={recreateStyleToAdapt.includes(opt.value)}
-                          onChange={() => toggleRecreateStyle(opt.value)}
-                        />
-                        {opt.label}
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: 12 }}>
-                  <button
-                    onClick={() => setShowRecreateModal(false)}
-                    style={{
-                      flex: 1,
-                      padding: '12px',
-                      border: '1px solid var(--border)',
-                      borderRadius: 10,
-                      background: 'transparent',
-                      color: 'var(--ink)',
-                      cursor: 'pointer',
-                      fontSize: '0.88rem',
-                      fontWeight: 600,
-                    }}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleRecreate}
-                    disabled={recreating}
-                    style={{
-                      flex: 2,
-                      padding: '12px',
-                      border: 'none',
-                      borderRadius: 10,
-                      background: 'var(--orange)',
-                      color: '#fff',
-                      cursor: 'pointer',
-                      fontSize: '0.88rem',
-                      fontWeight: 700,
-                    }}
-                  >
-                    {recreating ? 'Enviando…' : '✦ Enviar solicitud →'}
-                  </button>
+                <div style={{ marginBottom: 24 }}><label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 6 }}>¿Qué producto o momento quieres mostrar?</label><textarea value={recreateNotes} onChange={e => setRecreateNotes(e.target.value)} placeholder="Describe lo que quieres recrear..." rows={4} style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }} /></div>
+                <div style={{ display: 'flex', gap: 1 }}>
+                  <button onClick={() => setShowRecreateModal(false)} style={{ flex: 1, padding: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: f, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
+                  <button onClick={handleRecreate} disabled={recreating} style={{ flex: 2, padding: 12, border: 'none', background: 'var(--text-primary)', color: 'var(--bg)', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', opacity: recreating ? 0.5 : 1 }}>{recreating ? 'Enviando...' : 'Enviar solicitud →'}</button>
                 </div>
               </>
             )}
