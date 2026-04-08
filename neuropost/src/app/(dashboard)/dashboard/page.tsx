@@ -79,8 +79,8 @@ export default async function DashboardPage() {
 
       {/* ── Metrics — Nike 1px gap grid ── */}
       <div data-tour="dashboard-metrics" style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '1px', background: 'var(--border)', border: '1px solid var(--border)',
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px',
+        background: 'var(--border)', border: '1px solid var(--border)',
         marginBottom: 48,
       }}>
         {[
@@ -195,8 +195,8 @@ export default async function DashboardPage() {
         {t('sections.quickActions')}
       </h2>
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
-        gap: '1px', background: 'var(--border)', border: '1px solid var(--border)',
+        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px',
+        background: 'var(--border)', border: '1px solid var(--border)',
         marginBottom: 48,
       }}>
         {[

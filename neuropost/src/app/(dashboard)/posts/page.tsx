@@ -239,9 +239,8 @@ export default function PostsPage() {
               </Link>
             </div>
           ) : (
-            <div style={{
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-              gap: '1px', background: 'var(--border)', border: '1px solid var(--border)',
+            <div className="dash-grid-auto" style={{
+              background: 'var(--border)', border: '1px solid var(--border)',
             }}>
               {filtered.map((post) => (
                 <Link key={post.id} href={`/posts/${post.id}`} style={{
@@ -285,7 +284,7 @@ export default function PostsPage() {
 
       {/* ── FEED VIEW ── */}
       {view === 'feed' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32, alignItems: 'start' }}>
+        <div className="dash-grid-2" style={{ gap: 32, alignItems: 'start' }}>
           {/* Left: queue list */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>

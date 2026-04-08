@@ -76,7 +76,7 @@ export default function CommentsPage() {
       {/* ── Summary stats ── */}
       {summary && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#d4d4d8', border: '1px solid #d4d4d8', marginBottom: 24 }}>
+          <div className="dash-grid-4" style={{ background: '#d4d4d8', border: '1px solid #d4d4d8', marginBottom: 24 }}>
             {[
               { icon: MessageSquare, label: t('stats.total'), value: String(summary.total) },
               { icon: Send, label: t('stats.autoReplied'), value: String(summary.autoResponded) },

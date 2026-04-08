@@ -998,13 +998,16 @@ footer {
 .form-group textarea:focus { border-color: var(--orange); }
 
 /* ─── ONBOARDING RESPONSIVE ─── */
-@media (max-width: 900px) {
+@media (max-width: 1023px) {
   .onboarding-page { flex-direction: column !important; }
-  .onboarding-page > div:first-child { width: 100% !important; padding: 24px 20px !important; }
+  .onboarding-page > div:first-child { width: 100% !important; padding: clamp(20px, 4vw, 44px) !important; }
   .onboarding-page > div:last-child { display: none; }
 }
-@media (max-width: 600px) {
-  .onboarding-page > div:first-child { padding: 20px 16px !important; }
+
+/* ─── AUTH RESPONSIVE ─── */
+@media (max-width: 480px) {
+  .auth-card { padding: 24px 20px; }
+  .auth-page { max-width: 100%; }
 }
 .form-group textarea { resize: vertical; min-height: 90px; }
 
@@ -1269,41 +1272,69 @@ footer {
   opacity: 1; transform: rotate(3deg) translate(0, -4px);
 }
 
-/* ─── DASHBOARD RESPONSIVE ───────────────────────────────────────────────────── */
+/* ─── DASHBOARD GRID CLASSES (responsive-safe) ──────────────────────────────── */
+.dash-grid-4 { display: grid !important; grid-template-columns: repeat(4, 1fr) !important; gap: 1px !important; }
+.dash-grid-3 { display: grid !important; grid-template-columns: repeat(3, 1fr) !important; gap: 1px !important; }
+.dash-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.dash-grid-auto { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1px; }
+.dash-grid-auto-lg { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1px; }
+.dash-table-5 { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 80px; }
 
-/* Tablet — sidebar collapses */
-@media (max-width: 1024px) {
+/* ─── DASHBOARD RESPONSIVE — Proportional scaling ────────────────────────────── */
+
+/* Desktop large (≥1440px) — center content, max-width */
+@media (min-width: 1440px) {
+  .dash-main { padding: 0 clamp(28px, 3vw, 48px) 40px; }
+  .page-content { max-width: min(1000px, 70vw) !important; }
+}
+
+/* Laptop (1024–1439px) — default, no changes needed */
+
+/* Tablet (768–1023px) — sidebar collapses to drawer */
+@media (max-width: 1023px) {
   .dash-sidebar { width: 200px; transform: translateX(-100%); }
   .dash-content { margin-left: 0; }
   .sidebar-toggle-btn { display: flex; }
   .sidebar-close-btn { display: flex; }
   .post-editor { grid-template-columns: 1fr; }
   .post-editor-preview { display: none; }
+  .dash-main { padding: 0 clamp(16px, 3vw, 28px) 32px; }
+  .page-content { max-width: 100% !important; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .quick-actions { grid-template-columns: repeat(2, 1fr) !important; }
+  .ideas-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .scores-grid { grid-template-columns: repeat(3, 1fr); }
+  .settings-grid { grid-template-columns: 1fr; }
+  .page-title { font-size: clamp(1.5rem, 4vw, 2.5rem) !important; }
+  .dash-grid-2 { grid-template-columns: 1fr !important; gap: 16px !important; }
+  .dash-table-5 { grid-template-columns: 2fr 1fr 1fr !important; }
+  .dash-table-5 > *:nth-child(5n+4),
+  .dash-table-5 > *:nth-child(5n+5) { display: none; }
 }
 .dash-root.sidebar-open .dash-sidebar { transform: translateX(0); }
 .dash-root.sidebar-open .sidebar-overlay { display: block; }
 
-/* Tablet small */
-@media (max-width: 900px) {
-  .stats-grid { grid-template-columns: 1fr 1fr !important; }
-  .quick-actions { grid-template-columns: 1fr 1fr !important; }
-  .ideas-grid { grid-template-columns: 1fr 1fr !important; }
-  .scores-grid { grid-template-columns: 1fr 1fr 1fr; }
-  .settings-grid { grid-template-columns: 1fr; }
-  .page-title { font-size: 1.8rem !important; }
-}
-
-/* Mobile */
-@media (max-width: 600px) {
-  .dash-main { padding: 16px 16px 32px; }
-  .dash-topbar { padding: 0 16px; height: 44px; }
+/* Mobile (<768px) */
+@media (max-width: 767px) {
+  .dash-main { padding: 0 12px 32px; }
+  .dash-topbar { padding: 0 12px; height: 44px; }
   .page-content { max-width: 100% !important; }
-  .page-title { font-size: 1.5rem !important; }
-  .stats-grid, .quick-actions, .ideas-grid, .scores-grid { grid-template-columns: 1fr !important; }
-  .filter-bar { gap: 12px !important; flex-wrap: wrap; }
-  .topbar-new-btn span { display: none; }
-  .topbar-actions { gap: 6px; }
-  .posts-list .post-list-item { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .page-title { font-size: clamp(1.3rem, 5vw, 1.8rem) !important; }
+  .filter-bar { gap: 10px !important; flex-wrap: wrap; overflow-x: auto; }
+  .filter-btn { font-size: 11px !important; }
+  .topbar-actions { gap: 4px; }
+  .section-title { font-size: 9px !important; }
+  /* Grids keep columns but shrink */
+  .dash-grid-4 { grid-template-columns: repeat(4, 1fr) !important; }
+  .dash-grid-4 p { font-size: clamp(1.2rem, 6vw, 3rem) !important; }
+  .dash-grid-3 { grid-template-columns: repeat(3, 1fr) !important; }
+  .dash-grid-3 span { font-size: 11px !important; }
+  .dash-grid-2 { grid-template-columns: 1fr !important; gap: 12px !important; }
+  .dash-grid-auto { grid-template-columns: repeat(2, 1fr) !important; }
+  .dash-grid-auto-lg { grid-template-columns: 1fr !important; }
+  .dash-table-5 { grid-template-columns: 1fr !important; }
+  .page-content, .page-content * { max-width: 100%; box-sizing: border-box; }
+  .posts-list .post-list-item { padding: 10px !important; }
   .post-list-caption { white-space: normal !important; max-width: 100% !important; }
 }
 

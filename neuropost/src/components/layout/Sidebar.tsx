@@ -1,19 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ProgressLink } from '@/components/ui/ProgressLink';
 import {
   LayoutDashboard, Lightbulb, Calendar, MessageSquare, BarChart3,
-  Settings, LogOut, X, Image, Palette, Grid3x3, Archive,
-  MessageCircle, ClipboardList, LifeBuoy, Sparkles, Flame,
-  Plus, ChevronDown, ChevronRight, MoreHorizontal,
+  Settings, LogOut, X, Image, Grid3x3, Archive, MessageCircle,
+  Flame, Plus, Upload, ChevronDown, Link2, Zap, CreditCard, Palette,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { createBrowserClient } from '@/lib/supabase';
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
+const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -24,63 +24,43 @@ export function Sidebar() {
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
   const unreadComments = useAppStore((s) => s.unreadComments);
 
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [gestionOpen, setGestionOpen] = useState(true);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const createRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
-  // Primary nav — always visible
-  const PRIMARY = [
-    { href: '/dashboard',   label: t('dashboard'),    icon: LayoutDashboard },
-    { href: '/posts',       label: t('posts'),         icon: Image },
-    { href: '/calendar',    label: t('calendar'),      icon: Calendar },
-    { href: '/ideas',       label: t('ideas'),         icon: Lightbulb },
-    { href: '/mi-feed',     label: t('myFeed'),        icon: Grid3x3 },
-    { href: '/inspiracion', label: t('inspiration'),   icon: Flame },
-  ];
+  // Close dropdowns on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (createRef.current && !createRef.current.contains(e.target as Node)) setCreateOpen(false);
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
 
-  // User section
-  const USER = [
-    { href: '/chat',        label: t('chat'),      icon: MessageCircle },
-    { href: '/solicitudes', label: t('requests'),  icon: ClipboardList },
-  ];
-
-  // Management — collapsible
-  const GESTION = [
-    { href: '/comments',  label: t('comments'),  icon: MessageSquare },
-    { href: '/analytics', label: t('analytics'), icon: BarChart3 },
-    { href: '/historial', label: t('history'),   icon: Archive },
-  ];
-
-  // More — secondary
-  const MORE = [
-    { href: '/novedades', label: t('news'),     icon: Sparkles },
-    { href: '/soporte',   label: t('support'),  icon: LifeBuoy },
-    { href: '/brand',     label: t('brandKit'), icon: Palette },
-  ];
-
-  async function handleLogout() {
-    const supabase = createBrowserClient();
-    await supabase.auth.signOut();
-    router.push('/login');
-  }
+  const nav = (href: string) => { if (sidebarOpen) toggleSidebar(); setCreateOpen(false); setProfileOpen(false); };
 
   function NavItem({ href, label, icon: Icon, badge }: { href: string; label: string; icon: React.ComponentType<{ size?: number }>; badge?: number }) {
     const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
     return (
-      <ProgressLink
-        href={href}
-        className={`dash-nav-item${active ? ' active' : ''}`}
-        onClick={() => { if (sidebarOpen) toggleSidebar(); }}
-      >
-        <Icon size={14} />
+      <ProgressLink href={href} className={`dash-nav-item${active ? ' active' : ''}`} onClick={() => nav(href)}>
+        <Icon size={15} />
         <span>{label}</span>
         {badge != null && badge > 0 && <span className="nav-badge">{badge}</span>}
       </ProgressLink>
     );
   }
 
+  async function handleLogout() {
+    const supabase = createBrowserClient();
+    await supabase.auth.signOut();
+    window.location.href = '/';
+  }
+
   return (
     <aside className="dash-sidebar">
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="dash-sidebar-header">
         <ProgressLink href="/dashboard" className="dash-logo">NeuroPost</ProgressLink>
         <button className="sidebar-close-btn" onClick={toggleSidebar} aria-label="Cerrar menú">
@@ -88,75 +68,131 @@ export function Sidebar() {
         </button>
       </div>
 
-      <div className="dash-nav">
-        {/* ── CONTENIDO ── */}
-        <div className="dash-nav-group-label">Contenido</div>
-        {PRIMARY.map((item) => <NavItem key={item.href} {...item} />)}
-
-        {/* ── USUARIO ── */}
-        <div className="dash-nav-group-label" style={{ marginTop: 8 }}>Personal</div>
-        {USER.map((item) => <NavItem key={item.href} {...item} />)}
-
-        {/* ── GESTIÓN — collapsible ── */}
+      {/* ── Create button with dropdown ── */}
+      <div ref={createRef} style={{ padding: '8px 8px 4px', position: 'relative', flexShrink: 0 }}>
         <button
-          onClick={() => setGestionOpen(!gestionOpen)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 4, width: '100%',
-            padding: '12px 10px 4px', background: 'none', border: 'none', cursor: 'pointer',
-            fontFamily: f, fontSize: 10, fontWeight: 600, color: '#9ca3af',
-            letterSpacing: '0.12em', textTransform: 'uppercase',
-          }}
-        >
-          {gestionOpen ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
-          Gestión
-        </button>
-        {gestionOpen && GESTION.map((item) => (
-          <NavItem key={item.href} {...item} badge={item.href === '/comments' ? unreadComments : undefined} />
-        ))}
-
-        {/* ── MÁS — collapsible ── */}
-        <button
-          onClick={() => setMoreOpen(!moreOpen)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 4, width: '100%',
-            padding: '12px 10px 4px', background: 'none', border: 'none', cursor: 'pointer',
-            fontFamily: f, fontSize: 10, fontWeight: 600, color: '#9ca3af',
-            letterSpacing: '0.12em', textTransform: 'uppercase',
-          }}
-        >
-          {moreOpen ? <ChevronDown size={10} /> : <MoreHorizontal size={10} />}
-          Más
-        </button>
-        {moreOpen && MORE.map((item) => <NavItem key={item.href} {...item} />)}
-      </div>
-
-      {/* New post button */}
-      <div style={{ padding: '8px 10px', flexShrink: 0 }}>
-        <ProgressLink
-          href="/posts/new"
-          onClick={() => { if (sidebarOpen) toggleSidebar(); }}
+          onClick={() => setCreateOpen(!createOpen)}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            padding: '10px 12px', background: '#111827', color: '#ffffff',
-            textDecoration: 'none', fontFamily: f, fontSize: 12, fontWeight: 600,
-            textTransform: 'uppercase', letterSpacing: '0.06em', width: '100%',
+            padding: '9px 12px', background: '#111827', color: '#ffffff', border: 'none',
+            fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: '0.06em', cursor: 'pointer', width: '100%',
+            transition: 'background 0.15s',
           }}
         >
-          <Plus size={14} /> Nuevo post
-        </ProgressLink>
+          <Plus size={14} /> Crear
+        </button>
+        {createOpen && (
+          <div style={{
+            position: 'absolute', top: '100%', left: 8, right: 8, marginTop: 2,
+            background: '#ffffff', border: '1px solid #e5e7eb', zIndex: 100,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
+          }}>
+            {[
+              { href: '/posts/new', label: 'Nuevo post', icon: Image },
+              { href: '/ideas', label: 'Generar ideas', icon: Lightbulb },
+            ].map(({ href, label, icon: Icon }) => (
+              <ProgressLink key={href} href={href} onClick={() => nav(href)} style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                textDecoration: 'none', color: '#111827', fontFamily: f, fontSize: 13,
+                fontWeight: 500, transition: 'background 0.1s', borderBottom: '1px solid #f3f4f6',
+              }}>
+                <Icon size={14} style={{ color: '#9ca3af' }} />
+                {label}
+              </ProgressLink>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Footer — Settings */}
-      <div className="dash-sidebar-footer">
-        <ProgressLink
-          href="/settings"
-          className={`dash-nav-item${pathname.startsWith('/settings') ? ' active' : ''}`}
-          onClick={() => { if (sidebarOpen) toggleSidebar(); }}
-          style={{ margin: 0 }}
+      {/* ── Navigation ── */}
+      <div className="dash-nav">
+        {/* Inicio */}
+        <NavItem href="/dashboard" label={t('dashboard')} icon={LayoutDashboard} />
+
+        {/* Crear */}
+        <div className="dash-nav-group-label">Crear</div>
+        <NavItem href="/posts" label={t('posts')} icon={Image} />
+        <NavItem href="/calendar" label={t('calendar')} icon={Calendar} />
+        <NavItem href="/ideas" label={t('ideas')} icon={Lightbulb} />
+
+        {/* Rendimiento */}
+        <div className="dash-nav-group-label">Rendimiento</div>
+        <NavItem href="/analytics" label={t('analytics')} icon={BarChart3} />
+
+        {/* Biblioteca */}
+        <div className="dash-nav-group-label">Biblioteca</div>
+        <NavItem href="/mi-feed" label={t('myFeed')} icon={Grid3x3} />
+        <NavItem href="/inspiracion" label={t('inspiration')} icon={Flame} />
+
+        {/* Otros */}
+        <div className="dash-nav-group-label">Otros</div>
+        <NavItem href="/historial" label={t('history')} icon={Archive} />
+        <NavItem href="/inbox" label="Inbox" icon={MessageSquare} badge={unreadComments} />
+      </div>
+
+      {/* ── Profile section ── */}
+      <div ref={profileRef} className="dash-sidebar-footer" style={{ position: 'relative' }}>
+        <button
+          onClick={() => setProfileOpen(!profileOpen)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+            padding: '10px 10px', background: 'none', border: 'none', cursor: 'pointer',
+            transition: 'background 0.15s',
+          }}
         >
-          <Settings size={14} />
-          <span>{t('settings')}</span>
-        </ProgressLink>
+          {/* Avatar */}
+          <div style={{
+            width: 28, height: 28, background: '#f3f4f6', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            fontFamily: f, fontSize: 11, fontWeight: 700, color: '#6b7280', flexShrink: 0,
+          }}>
+            {brand?.name?.charAt(0).toUpperCase() ?? 'N'}
+          </div>
+          <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
+            <p style={{ fontFamily: f, fontSize: 12, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
+              {brand?.name ?? 'Mi negocio'}
+            </p>
+            <p style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', margin: 0, textTransform: 'capitalize' }}>
+              {brand?.plan ?? 'starter'}
+            </p>
+          </div>
+          <ChevronDown size={12} style={{ color: '#9ca3af', flexShrink: 0, transform: profileOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
+        </button>
+
+        {/* Profile dropdown */}
+        {profileOpen && (
+          <div style={{
+            position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 4,
+            background: '#ffffff', border: '1px solid #e5e7eb', zIndex: 100,
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.12)',
+          }}>
+            {[
+              { href: '/brand', label: 'Brand Kit', icon: Palette },
+              { href: '/settings/connections', label: 'Conexiones', icon: Link2 },
+              { href: '/settings', label: 'Ajustes', icon: Settings },
+              { href: '/settings/plan', label: 'Facturación', icon: CreditCard },
+            ].map(({ href, label, icon: Icon }) => (
+              <ProgressLink key={href} href={href} onClick={() => nav(href)} style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                textDecoration: 'none', color: '#374151', fontFamily: f, fontSize: 13,
+                fontWeight: 500, transition: 'background 0.1s', borderBottom: '1px solid #f3f4f6',
+              }}>
+                <Icon size={14} style={{ color: '#9ca3af' }} />
+                {label}
+              </ProgressLink>
+            ))}
+            <button onClick={handleLogout} style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+              width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+              color: '#9ca3af', fontFamily: f, fontSize: 13, fontWeight: 500,
+              transition: 'background 0.1s',
+            }}>
+              <LogOut size={14} />
+              Cerrar sesión
+            </button>
+          </div>
+        )}
       </div>
     </aside>
   );

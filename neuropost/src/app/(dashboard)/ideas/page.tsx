@@ -299,9 +299,8 @@ export default function IdeasPage() {
             </button>
           </div>
 
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: '1px', background: 'var(--border)', border: '1px solid var(--border)',
+          <div className="dash-grid-auto-lg" style={{
+            background: 'var(--border)', border: '1px solid var(--border)',
             marginBottom: 48,
           }}>
             {ideas.map((idea, i) => (
