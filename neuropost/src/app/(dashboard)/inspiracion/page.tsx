@@ -198,7 +198,7 @@ export default function InspiracionPage() {
               {references.map(ref => (
                 <div key={ref.id} style={{ position: 'relative', breakInside: 'avoid', marginBottom: 2 }}>
                   <InspirationCard image={ref.thumbnail_url} title={ref.title} description={ref.notes ?? ''} format={ref.format ?? undefined} onRecreate={ref.recreation ? undefined : () => openRecreateForRef(ref)} />
-                  <button onClick={() => handleDeleteRef(ref.id)} style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', padding: '4px 6px', cursor: 'pointer' }}><Trash2 size={12} /></button>
+                  <button onClick={() => handleDeleteRef(ref.id)} title="Eliminar referencia" aria-label="Eliminar referencia" style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', padding: '4px 6px', cursor: 'pointer' }}><Trash2 size={12} /> Eliminar</button>
                   {ref.recreation && <div style={{ position: 'absolute', top: 8, left: 8, background: ref.recreation.status === 'completed' ? 'var(--accent)' : 'rgba(0,0,0,0.6)', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 600, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{ref.recreation.status === 'completed' ? 'Recreado' : 'En proceso'}</div>}
                 </div>
               ))}
@@ -213,7 +213,7 @@ export default function InspiracionPage() {
           <div style={{ background: 'var(--bg)', padding: 32, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
               <h2 style={{ fontFamily: fc, fontSize: 20, fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)' }}>Añadir referencia</h2>
-              <button onClick={() => { setShowAddModal(false); resetAddForm(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}><X size={20} /></button>
+              <button onClick={() => { setShowAddModal(false); resetAddForm(); }} className="icon-close-button" title="Cerrar modal" aria-label="Cerrar modal">Cerrar<X size={20} /></button>
             </div>
             <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border)', marginBottom: 24 }}>
               {(['url', 'upload'] as const).map(t => <button key={t} onClick={() => setAddType(t)} style={{ flex: 1, padding: 8, border: 'none', cursor: 'pointer', background: addType === t ? 'var(--text-primary)' : 'var(--bg)', color: addType === t ? 'var(--bg)' : 'var(--text-tertiary)', fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{t === 'url' ? 'Pegar URL' : 'Subir imagen'}</button>)}
@@ -237,7 +237,7 @@ export default function InspiracionPage() {
           <div style={{ background: 'var(--bg)', padding: 32, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
               <h2 style={{ fontFamily: fc, fontSize: 18, fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)', flex: 1 }}>Recrear: {recreateTitle}</h2>
-              <button onClick={() => setShowRecreateModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)' }}><X size={20} /></button>
+              <button onClick={() => setShowRecreateModal(false)} className="icon-close-button" title="Cerrar modal" aria-label="Cerrar modal">Cerrar<X size={20} /></button>
             </div>
             {recreateSuccess ? (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>

@@ -431,8 +431,16 @@ export default function SettingsPage() {
               <h2 className="settings-section-title">{t('business.title')}</h2>
               <div className="settings-grid">
                 <div className="form-group">
-                  <label>{t('business.name')}</label>
-                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} required />
+                  <label htmlFor="business-name">{t('business.name')}</label>
+                  <input
+                    id="business-name"
+                    type="text"
+                    title={t('business.name')}
+                    placeholder={t('business.name')}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    required
+                  />
                 </div>
                 <div className="form-group">
                   <label>{t('business.location')}</label>
@@ -654,7 +662,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   role="switch"
-                  aria-checked={notifyPublish}
+                  aria-checked={notifyPublish ? 'true' : 'false'}
                   aria-label={t('notifSection.publishTitle')}
                   title={t('notifSection.publishTitle')}
                   onClick={() => setNotifyPublish((v) => !v)}
@@ -677,7 +685,7 @@ export default function SettingsPage() {
                 <button
                   type="button"
                   role="switch"
-                  aria-checked={notifyComments}
+                  aria-checked={notifyComments ? 'true' : 'false'}
                   aria-label={t('notifSection.commentsTitle')}
                   title={t('notifSection.commentsTitle')}
                   onClick={() => setNotifyComments((v) => !v)}

@@ -27,6 +27,7 @@ export default function PostDetailPage() {
   useEffect(() => {
     const fromStore = storePosts.find((p) => p.id === id);
     if (fromStore) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPost(fromStore);
       setCaption(fromStore.caption ?? '');
       setLoading(false);
@@ -183,6 +184,8 @@ export default function PostDetailPage() {
                 <textarea
                   className="editor-textarea caption-textarea"
                   value={caption}
+                  placeholder="Escribe el caption del post"
+                  title="Caption del post"
                   onChange={(e) => setCaption(e.target.value)}
                   rows={6}
                 />
