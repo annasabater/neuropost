@@ -13,20 +13,26 @@ function LoginForm() {
   const passwordRef             = useRef<HTMLInputElement>(null);
   const router                  = useRouter();
   const searchParams            = useSearchParams();
-  const redirectTo              = searchParams.get('redirectTo') || '/dashboard';
   const t                       = useTranslations('auth.login');
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     const supabase = createBrowserClient();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email:    emailRef.current!.value,
       password: passwordRef.current!.value,
     });
-    setLoading(false);
-    if (error) { toast.error(error.message); return; }
-    router.push(redirectTo);
+    if (error) { setLoading(false); toast.error(error.message); return; }
+
+    // Check if user has a brand → dashboard or onboarding
+    const { data: brand } = await supabase
+      .from('brands')
+      .select('id')
+      .eq('user_id', data.user.id)
+      .maybeSingle();
+
+    router.push(brand ? '/dashboard' : '/onboarding');
   }
 
   return (
@@ -60,7 +66,6 @@ function LoginForm() {
   );
 }
 
-// useSearchParams() requires a Suspense boundary in Next.js App Router
 export default function LoginPage() {
   return (
     <Suspense>

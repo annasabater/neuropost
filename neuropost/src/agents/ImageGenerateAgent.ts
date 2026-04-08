@@ -40,10 +40,14 @@ const DIMENSIONS: Record<string, { width: number; height: number }> = {
 // ─── Style guidance for Claude ────────────────────────────────────────────────
 
 const STYLE_GUIDE: Record<VisualStyle, string> = {
-  creative: 'very saturated and vibrant colors, bold compositions, flat color backgrounds or eye-catching gradients, dramatic lighting, pop/editorial aesthetic',
-  elegant:  'neutral and soft tones, lots of negative space, soft natural light, symmetrical compositions, luxury editorial aesthetic, understated',
-  warm:     'warm tones (orange, ochre, brown), natural textures, golden hour light, welcoming atmosphere, artisanal handcrafted aesthetic',
-  dynamic:  'high contrast, dark tones with bright accents, dramatic angles, energy and movement, urban street aesthetic',
+  creative:  'very saturated and vibrant colors, bold compositions, flat color backgrounds or eye-catching gradients, dramatic lighting, pop/editorial aesthetic',
+  elegant:   'neutral and soft tones, lots of negative space, soft natural light, symmetrical compositions, luxury editorial aesthetic, understated',
+  warm:      'warm tones (orange, ochre, brown), natural textures, golden hour light, welcoming atmosphere, artisanal handcrafted aesthetic',
+  dynamic:   'high contrast, dark tones with bright accents, dramatic angles, energy and movement, urban street aesthetic',
+  editorial: 'natural muted tones, documentary-style composition, authentic storytelling, real-life context, slight film grain',
+  dark:      'very dark backgrounds, moody low-key lighting, deep shadows, luxurious and exclusive, minimal highlights',
+  fresh:     'bright whites and soft greens, airy open spaces, natural daylight, organic minimalist, health and wellness feel',
+  vintage:   'warm sepia and amber tones, soft faded colors, retro textures, nostalgic warmth, artisanal craftsmanship feel',
 };
 
 // ─── Negative prompt ──────────────────────────────────────────────────────────

@@ -22,6 +22,9 @@ export const metadata: Metadata = {
   title: 'NeuroPost — Gestión de redes sociales con IA para negocios locales',
   description:
     'Llevamos Instagram y Facebook de tu negocio. La IA publica, responde comentarios y hace crecer tu cuenta. 14 días gratis, sin tarjeta.',
+  icons: {
+    apple: '/icon.svg',
+  },
   keywords: ['gestión redes sociales', 'instagram para negocios', 'community manager ia', 'marketing negocios locales', 'automatizar instagram', 'facebook negocios'],
   openGraph: {
     title: 'NeuroPost — Tu negocio en redes, sin esfuerzo',
@@ -54,8 +57,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="NeuroPost" />
-        <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon.svg" />
+        <link rel="manifest" href="/manifest.json" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link

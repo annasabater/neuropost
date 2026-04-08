@@ -37,10 +37,14 @@ export interface VideoGenerateOutput {
 // ─── Style guide for video ────────────────────────────────────────────────────
 
 const VIDEO_STYLE_GUIDE: Record<VisualStyle, string> = {
-  creative: 'vibrant pop colors, dynamic camera movements, fast cuts feel, energetic transitions, bold product close-ups',
-  elegant:  'slow smooth camera movement, soft golden light, minimal motion, luxurious slow-motion details',
-  warm:     'golden hour lighting, gentle camera drift, warm cozy atmosphere, natural organic movement',
-  dynamic:  'handheld energy, dramatic lighting shifts, fast motion, urban cinematic feel, high contrast',
+  creative:  'vibrant pop colors, dynamic camera movements, fast cuts feel, energetic transitions, bold product close-ups',
+  elegant:   'slow smooth camera movement, soft golden light, minimal motion, luxurious slow-motion details',
+  warm:      'golden hour lighting, gentle camera drift, warm cozy atmosphere, natural organic movement',
+  dynamic:   'handheld energy, dramatic lighting shifts, fast motion, urban cinematic feel, high contrast',
+  editorial: 'steady documentary camera, natural available light, real-life moments, authentic pacing',
+  dark:      'moody slow reveals, dramatic shadows, low-key lighting transitions, premium cinematic feel',
+  fresh:     'bright airy footage, gentle movement, natural daylight, clean organic transitions',
+  vintage:   'warm film grain overlay, nostalgic pacing, amber tones, gentle fades, retro feel',
 };
 
 // ─── Agent ────────────────────────────────────────────────────────────────────

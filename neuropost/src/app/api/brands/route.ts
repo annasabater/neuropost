@@ -29,6 +29,9 @@ export async function POST(request: Request) {
     const body     = await request.json();
     const supabase = await createServerClient() as DB;
 
+    // Remove fields that don't exist as columns in the brands table
+    const { publish_frequency: _pf, promo_code_id: _pc, ...brandFields } = body;
+
     // Guard against duplicate brands per user
     const { data: existing } = await supabase
       .from('brands').select('id').eq('user_id', user.id).maybeSingle();
@@ -36,13 +39,19 @@ export async function POST(request: Request) {
 
     const { data, error } = await supabase
       .from('brands')
-      .insert({ ...body, user_id: user.id, plan: 'starter' })
+      .insert({ ...brandFields, user_id: user.id, plan: 'starter' })
       .select()
       .single();
-    if (error) throw error;
+    if (error) {
+      console.error('[POST /api/brands] Supabase error:', JSON.stringify(error));
+      return NextResponse.json({ error: error.message ?? error.details ?? JSON.stringify(error) }, { status: 500 });
+    }
     return NextResponse.json({ brand: data as Brand }, { status: 201 });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+  } catch (err: unknown) {
+    console.error('[POST /api/brands] CATCH:', JSON.stringify(err, Object.getOwnPropertyNames(err as object)));
+    const message = err instanceof Error ? err.message
+      : (typeof err === 'object' && err !== null && 'message' in err) ? String((err as Record<string, unknown>).message)
+      : JSON.stringify(err);
     if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     return NextResponse.json({ error: message }, { status: 500 });
   }

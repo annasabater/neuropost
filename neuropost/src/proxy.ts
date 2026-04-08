@@ -21,7 +21,7 @@ const PROTECTED = [
   '/chat', '/solicitudes', '/historial', '/soporte',
 ];
 const ADMIN_PATHS = ['/admin', '/cupones'];
-const AUTH_ONLY = ['/login', '/register'];
+const AUTH_ONLY = ['/login'];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -77,7 +77,17 @@ export async function proxy(request: NextRequest) {
 
   // Has session → bounce away from login/register
   if (user && isAuthOnly) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    const { data: brand } = await supabase
+      .from('brands')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    return NextResponse.redirect(new URL(brand ? '/dashboard' : '/onboarding', request.url));
+  }
+
+  // No session + onboarding → redirect to register (not login)
+  if (!user && pathname === '/onboarding') {
+    return NextResponse.redirect(new URL('/register', request.url));
   }
 
   // No session → redirect to login, saving intended destination
@@ -85,6 +95,18 @@ export async function proxy(request: NextRequest) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirectTo', pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Onboarding with session → skip if already has brand
+  if (user && pathname === '/onboarding') {
+    const { data: brand } = await supabase
+      .from('brands')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (brand) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
   }
 
   // Admin routes — require superadmin role in app_metadata

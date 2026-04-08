@@ -51,15 +51,22 @@ export default function RegisterPage() {
     if (!allPass) { toast.error(t('passwordInvalid')); return; }
     setLoading(true);
     const supabase = createBrowserClient();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email:    emailRef.current!.value,
       password,
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
     });
     setLoading(false);
     if (error) { toast.error(error.message); return; }
-    toast.success(t('checkEmail'));
-    router.push('/login');
+
+    // If session exists, user is auto-confirmed → go straight to onboarding
+    if (data.session) {
+      router.push('/onboarding');
+    } else {
+      // Email confirmation required → tell user to check inbox
+      toast.success(t('checkEmail'));
+      router.push('/login');
+    }
   }
 
   return (

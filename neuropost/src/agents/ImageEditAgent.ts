@@ -38,10 +38,14 @@ export interface ImageEditOutput {
 // ─── Style edit hints for Claude ─────────────────────────────────────────────
 
 const STYLE_EDIT_HINTS: Record<VisualStyle, string> = {
-  creative: 'boost color saturation, make lighting more dramatic, increase contrast and vibrancy',
-  elegant:  'reduce saturation to neutral tones, soften lighting, add subtle vignette, clean minimal feel',
-  warm:     'add warm golden tones, soften highlights, enhance earthy colors, cozy atmosphere',
-  dynamic:  'increase contrast dramatically, deepen shadows, sharpen details, high-energy look',
+  creative:  'boost color saturation, make lighting more dramatic, increase contrast and vibrancy',
+  elegant:   'reduce saturation to neutral tones, soften lighting, add subtle vignette, clean minimal feel',
+  warm:      'add warm golden tones, soften highlights, enhance earthy colors, cozy atmosphere',
+  dynamic:   'increase contrast dramatically, deepen shadows, sharpen details, high-energy look',
+  editorial: 'natural tones, slight desaturation, documentary feel, authentic and organic look',
+  dark:      'deep shadows, low-key lighting, moody contrast, premium and exclusive atmosphere',
+  fresh:     'bright and airy, soft greens and whites, natural light, clean organic feel',
+  vintage:   'warm sepia tones, slight grain, faded highlights, nostalgic handcrafted atmosphere',
 };
 
 export async function runImageEditAgent(input: ImageEditInput): Promise<ImageEditOutput> {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import type { SocialSector, BrandTone, PublishMode, PostGoal, VisualStyle } from '@/types';
@@ -36,7 +37,7 @@ const SECTOR_GROUPS: SectorGroup[] = [
   ]},
   { group: 'Moda y Estilo', items: [
     { value: 'boutique',    label: 'Boutique',    img: UNS('1441984904996-e0b6ba687e04') },
-    { value: 'moda_hombre', label: 'Moda Hombre', img: UNS('1490874106543-4c8e13f21f96') },
+    { value: 'moda_hombre', label: 'Moda Hombre', img: UNS('1507003211169-0a1dd7228f2d') },
     { value: 'zapateria',   label: 'Zapatería',   img: UNS('1542291026-7eec264c27ff') },
     { value: 'skincare',    label: 'Skincare',    img: UNS('1556228578-8c89e6adf883') },
   ]},
@@ -135,7 +136,7 @@ const SECTOR_POSTS: Partial<Record<SocialSector, string[]>> = {
   cafeteria:    [UNS('1501339847302-ac426a4a7cbb',300), UNS('1495474472287-4d71bcdd2085',300), UNS('1521017432531-fbd92d768814',300)],
   gym:          [UNS('1534438327276-14e5300c3a48',300), UNS('1571019614242-c5c5dee9f50b',300), UNS('1517963879433-6ad2a56fcd15',300)],
   barberia:     [UNS('1503951914875-452162b0f3f1',300), UNS('1508214751196-c5bf6f5e2751',300), UNS('1560066984-138dadb4c305',300)],
-  boutique:     [UNS('1441984904996-e0b6ba687e04',300), UNS('1490874106543-4c8e13f21f96',300), UNS('1558618666-fcd25c85cd64',300)],
+  boutique:     [UNS('1441984904996-e0b6ba687e04',300), UNS('1507003211169-0a1dd7228f2d',300), UNS('1558618666-fcd25c85cd64',300)],
   inmobiliaria: [UNS('1560518883-ce09059eeffa',300), UNS('1570129477492-45c003edd2be',300), UNS('1582653291997-79a4f2b7d9a7',300)],
   floristeria:  [UNS('1487530811576-3780949e7b0b',300), UNS('1499444819541-60e4a698ecf5',300), UNS('1439127989242-9da695f9ca26',300)],
   yoga:         [UNS('1571019614242-c5c5dee9f50b',300), UNS('1506126613408-eca07ce68773',300), UNS('1544367654-00eb648f0b1f',300)],
@@ -146,8 +147,8 @@ const SECTOR_POSTS: Partial<Record<SocialSector, string[]>> = {
   nail_art:     [UNS('1604654894610-df63bc536371',300), UNS('1522335789203-aabd1fc54bc9',300), UNS('1540555700478-4be289fbecef',300)],
   estetica:     [UNS('1540555700478-4be289fbecef',300), UNS('1604654894610-df63bc536371',300), UNS('1556228578-8c89e6adf883',300)],
   maquillaje:   [UNS('1522335789203-aabd1fc54bc9',300), UNS('1604654894610-df63bc536371',300), UNS('1556228578-8c89e6adf883',300)],
-  moda_hombre:  [UNS('1490874106543-4c8e13f21f96',300), UNS('1441984904996-e0b6ba687e04',300), UNS('1542291026-7eec264c27ff',300)],
-  zapateria:    [UNS('1542291026-7eec264c27ff',300), UNS('1490874106543-4c8e13f21f96',300), UNS('1441984904996-e0b6ba687e04',300)],
+  moda_hombre:  [UNS('1507003211169-0a1dd7228f2d',300), UNS('1441984904996-e0b6ba687e04',300), UNS('1542291026-7eec264c27ff',300)],
+  zapateria:    [UNS('1542291026-7eec264c27ff',300), UNS('1507003211169-0a1dd7228f2d',300), UNS('1441984904996-e0b6ba687e04',300)],
   skincare:     [UNS('1556228578-8c89e6adf883',300), UNS('1540555700478-4be289fbecef',300), UNS('1522335789203-aabd1fc54bc9',300)],
   dental:       [UNS('1559757148-5c350d0d3c56',300), UNS('1519494026892-80bbd2d6fd0d',300), UNS('1512621776951-a57141f2eefd',300)],
   clinica:      [UNS('1519494026892-80bbd2d6fd0d',300), UNS('1559757148-5c350d0d3c56',300), UNS('1512621776951-a57141f2eefd',300)],
@@ -534,7 +535,7 @@ export default function OnboardingPage() {
         </div>
         {slogan && (
           <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontStyle: 'italic', fontSize: '0.9rem', color: 'rgba(232,237,248,0.6)', borderLeft: `3px solid ${ACCENT}`, paddingLeft: 12 }}>
-            "{slogan}"
+            &ldquo;{slogan}&rdquo;
           </div>
         )}
         <div style={{ marginTop: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -730,9 +731,9 @@ export default function OnboardingPage() {
       <div style={{ width: '42%', background: BG_L, display: 'flex', flexDirection: 'column', padding: '44px 44px', overflowY: 'auto', flexShrink: 0 }}>
 
         {/* Logo */}
-        <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 900, fontSize: '1.3rem', color: INK, letterSpacing: '-0.04em', marginBottom: 36, flexShrink: 0 }}>
+        <Link href="/" style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 900, fontSize: '1.3rem', color: INK, letterSpacing: '-0.04em', marginBottom: 36, flexShrink: 0, textDecoration: 'none', cursor: 'pointer' }}>
           NeuroPost
-        </div>
+        </Link>
 
         {/* Progress */}
         <div style={{ marginBottom: 36, flexShrink: 0 }}>
@@ -932,7 +933,7 @@ export default function OnboardingPage() {
                       </div>
                       <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.72rem', color: MUTED }}>{t.desc}</div>
                       <div style={{ marginTop: 6, fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.7rem', color: tone === t.value ? 'rgba(232,237,248,0.6)' : 'rgba(232,237,248,0.28)', fontStyle: 'italic', lineHeight: 1.5, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8 }}>
-                        "{toneExamples[t.value]}"
+                        &ldquo;{toneExamples[t.value]}&rdquo;
                       </div>
                     </button>
                   ))}
@@ -1026,15 +1027,26 @@ export default function OnboardingPage() {
             <div style={{ marginBottom: 20 }}>
               <Label>Colores de marca</Label>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                {[{ label: 'Principal', value: primaryColor, set: setPrimaryColor }, { label: 'Secundario', value: secondaryColor, set: setSecondaryColor }].map((c) => (
-                  <div key={c.label} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <input type="color" value={c.value} onChange={(e) => c.set(e.target.value)} style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', padding: 2, background: 'none' }} />
-                    <div>
-                      <div style={{ fontSize: '0.78rem', fontWeight: 700, fontFamily: "'Cabinet Grotesk', sans-serif", color: INK }}>{c.label}</div>
-                      <div style={{ fontSize: '0.72rem', color: MUTED }}>{c.value}</div>
+                {[{ label: 'Principal', value: primaryColor, set: setPrimaryColor }, { label: 'Secundario', value: secondaryColor, set: setSecondaryColor }].map((c) => {
+                  const colorInputId = `brand-color-${c.label.toLowerCase().replace(/\s+/g, '-')}`;
+                  return (
+                    <div key={c.label} className="brandColorPicker">
+                      <input
+                        id={colorInputId}
+                        type="color"
+                        value={c.value}
+                        onChange={(e) => c.set(e.target.value)}
+                        className="brandColorInput"
+                        title={`Seleccionar color ${c.label.toLowerCase()}`}
+                        aria-label={`Color ${c.label.toLowerCase()}`}
+                      />
+                      <div>
+                        <label htmlFor={colorInputId} className="brandColorLabel">{c.label}</label>
+                        <div className="brandColorValue">{c.value}</div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
@@ -1062,6 +1074,37 @@ export default function OnboardingPage() {
       <div style={{ flex: 1, background: BG_R, borderLeft: `1px solid ${BORDER}`, overflowY: 'auto' }}>
         {rightContent}
       </div>
+
+      <style jsx>{`
+        .brandColorPicker {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .brandColorInput {
+          width: 44px;
+          height: 44px;
+          border-radius: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          cursor: pointer;
+          padding: 2px;
+          background: none;
+        }
+
+        .brandColorLabel {
+          display: block;
+          font-size: 0.78rem;
+          font-weight: 700;
+          font-family: 'Cabinet Grotesk', sans-serif;
+          color: ${INK};
+        }
+
+        .brandColorValue {
+          font-size: 0.72rem;
+          color: ${MUTED};
+        }
+      `}</style>
     </div>
   );
 }
