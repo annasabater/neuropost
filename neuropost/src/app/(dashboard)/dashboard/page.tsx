@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { BarChart3, Calendar, Image, Lightbulb, MessageSquare, TrendingUp, Plus, Zap, CheckCircle2, Clock } from 'lucide-react';
+import { BarChart3, Calendar, Lightbulb, MessageSquare, Plus, Zap } from 'lucide-react';
 import { getServerBrand, createServerClient } from '@/lib/supabase';
 import { TrendsBanner } from '@/components/trends/TrendsBanner';
 import DashboardTour from '@/components/onboarding/DashboardTour';
@@ -20,14 +20,13 @@ export default async function DashboardPage() {
   const now = new Date();
   const t = await getTranslations('dashboard');
 
-  // Run independent queries in parallel
   const [{ data: posts }, { data: allDates }] = await Promise.all([
     supabase
       .from('posts')
-      .select('id, caption, status, published_at, created_at, quality_score')
+      .select('id, caption, status, published_at, created_at, quality_score, image_url')
       .eq('brand_id', brand.id)
       .order('created_at', { ascending: false })
-      .limit(5),
+      .limit(6),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any).from('seasonal_dates').select('*'),
   ]);
@@ -43,98 +42,122 @@ export default async function DashboardPage() {
   const scheduled = allPosts.filter((p) => p.status === 'scheduled').length;
   const pending   = allPosts.filter((p) => p.status === 'pending' || p.status === 'generated').length;
 
-  // Plan usage
   const planLimit  = PLAN_LIMITS[brand.plan].postsPerMonth;
   const isUnlimited = planLimit === Infinity;
   const pct = isUnlimited ? 0 : Math.min(100, Math.round((publishedThisMonth / planLimit) * 100));
 
   const upcomingDates = getUpcomingDatesForBrand(allDates ?? [], brand.sector ?? 'otro', 30).slice(0, 3);
 
-  // Track last login (fire and forget)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   void (supabase as any).from('brands').update({ last_login_at: now.toISOString() }).eq('id', brand.id);
 
   return (
     <div className="page-content">
-      <div className="page-header">
-        <div className="page-header-text">
-          <h1 className="page-title">{t('greeting', { name: brand.name })}</h1>
-          <p className="page-sub">{t('subtitle')}</p>
-        </div>
-        <Link href="/posts/new" className="btn-primary btn-orange" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Plus size={16} /> {t('actions.newPost')}
-        </Link>
-      </div>
-
       <DashboardTour />
-
       <IncidentBanner />
 
-      {/* Trends banner */}
-      <TrendsBanner />
-
-      {/* Stats */}
-      <div className="stats-grid" data-tour="dashboard-metrics">
-        <div className="stat-card">
-          <Image size={22} className="stat-icon" />
-          <div>
-            <p className="stat-label">{t('metrics.published')}</p>
-            <p className="stat-value">{publishedThisMonth}</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <Clock size={22} className="stat-icon" />
-          <div>
-            <p className="stat-label">{t('metrics.scheduled')}</p>
-            <p className="stat-value">{scheduled}</p>
-          </div>
-        </div>
-        {pending > 0 && (
-          <div className="stat-card" style={{ border: '1px solid var(--orange)', background: 'var(--orange-light)' }}>
-            <CheckCircle2 size={22} className="stat-icon" style={{ color: 'var(--orange)' }} />
-            <div>
-              <p className="stat-label">{t('metrics.pending')}</p>
-              <p className="stat-value" style={{ color: 'var(--orange)' }}>{pending}</p>
-            </div>
-          </div>
-        )}
-        <div className="stat-card">
-          <TrendingUp size={22} className="stat-icon" />
-          <div>
-            <p className="stat-label">{t('metrics.plan')}</p>
-            <p className="stat-value" style={{ textTransform: 'capitalize' }}>{brand.plan}</p>
-          </div>
-        </div>
+      {/* ── Greeting — Apple-style large typography ── */}
+      <div style={{ padding: '40px 0 32px' }}>
+        <h1 style={{
+          fontFamily: "'Syne', 'Cabinet Grotesk', sans-serif",
+          fontWeight: 800,
+          fontSize: '2.2rem',
+          letterSpacing: '-0.04em',
+          color: 'var(--text-primary)',
+          marginBottom: 6,
+          lineHeight: 1.1,
+        }}>
+          {t('greeting', { name: brand.name })}
+        </h1>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontFamily: "'Inter', sans-serif", lineHeight: 1.6 }}>
+          {t('subtitle')}
+          {pending > 0 && (
+            <span style={{ color: 'var(--warning)' }}>
+              {' · '}{pending} {t('metrics.pending')}
+            </span>
+          )}
+        </p>
       </div>
 
-      {/* Plan usage bar — only for starter */}
+      {/* ── Trends ── */}
+      <TrendsBanner />
+
+      {/* ── Metrics — Large numbers, no borders ── */}
+      <div data-tour="dashboard-metrics" style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: 16,
+        marginBottom: 40,
+      }}>
+        {[
+          { label: t('metrics.published'), value: String(publishedThisMonth) },
+          { label: t('metrics.scheduled'), value: String(scheduled) },
+          { label: t('metrics.pending'),   value: String(pending) },
+          { label: t('metrics.plan'),      value: brand.plan, capitalize: true },
+        ].map(({ label, value, capitalize }) => (
+          <div key={label} style={{
+            background: 'var(--bg-2)',
+            borderRadius: 16,
+            padding: 24,
+            transition: 'transform 0.2s',
+          }}>
+            <p style={{
+              fontFamily: "'Syne', sans-serif",
+              fontWeight: 900,
+              fontSize: '2.4rem',
+              letterSpacing: '-0.05em',
+              color: 'var(--text-primary)',
+              lineHeight: 1,
+              textTransform: capitalize ? 'capitalize' : undefined,
+            }}>
+              {value}
+            </p>
+            <p style={{
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 11,
+              fontWeight: 500,
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              color: 'var(--text-tertiary)',
+              marginTop: 4,
+            }}>
+              {label}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Plan usage — subtle bar ── */}
       {!isUnlimited && (
-        <div className="settings-section" style={{ marginBottom: 24 }}>
+        <div style={{
+          background: 'var(--bg-2)',
+          borderRadius: 16,
+          padding: '16px 20px',
+          marginBottom: 32,
+        }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.88rem' }}>
+            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>
               {t('sections.planUsage')}
             </span>
-            <span style={{ fontSize: '0.82rem', color: pct >= 80 ? '#dc2626' : 'var(--muted)', fontWeight: 600 }}>
-              {publishedThisMonth} / {planLimit} posts
+            <span style={{ fontSize: 13, color: pct >= 80 ? 'var(--error)' : 'var(--text-secondary)', fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>
+              {publishedThisMonth} / {planLimit}
             </span>
           </div>
-          <div style={{ height: 8, borderRadius: 6, background: 'var(--border)', overflow: 'hidden' }}>
+          <div style={{ height: 3, borderRadius: 2, background: 'var(--bg-4)', overflow: 'hidden' }}>
             <div style={{
-              height:     '100%',
-              width:      `${pct}%`,
-              borderRadius: 6,
-              background:  pct >= 100 ? '#dc2626' : pct >= 80 ? '#d97706' : 'var(--orange)',
-              transition:  'width 0.4s ease',
+              height: '100%',
+              width: `${pct}%`,
+              borderRadius: 2,
+              background: pct >= 100 ? 'var(--error)' : pct >= 80 ? 'var(--warning)' : 'var(--accent)',
+              transition: 'width 0.4s ease',
             }} />
           </div>
           {pct >= 80 && (
             <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: '0.8rem', color: '#d97706', fontWeight: 600 }}>
-                {pct >= 100
-                  ? t('planLimit.limitReached')
-                  : t('planLimit.nearLimit', { remaining: planLimit - publishedThisMonth })}
+              <p style={{ fontSize: 13, color: 'var(--warning)', fontWeight: 500 }}>
+                {pct >= 100 ? t('planLimit.limitReached') : t('planLimit.nearLimit', { remaining: planLimit - publishedThisMonth })}
               </p>
-              <Link href="/settings/plan" className="btn-primary btn-orange" style={{ fontSize: '0.8rem', padding: '6px 14px' }}>
+              <Link href="/settings/plan" className="btn-primary btn-orange" style={{ fontSize: 12, padding: '6px 16px' }}>
                 {t('planLimit.upgrade')}
               </Link>
             </div>
@@ -142,73 +165,55 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Upcoming seasonal dates */}
+      {/* ── Upcoming dates ── */}
       {upcomingDates.length > 0 && (
         <>
           <h2 className="section-title">{t('sections.upcomingDates')}</h2>
-          <div style={{ marginBottom: 24 }}>
+          <div style={{ marginBottom: 32 }}>
             {upcomingDates.map((d) => (
-              <SeasonalChip
-                key={d.id}
-                name={d.name}
-                daysUntil={d.daysUntil}
-                hasPost={false}
-                onGenerate={undefined}
-              />
+              <SeasonalChip key={d.id} name={d.name} daysUntil={d.daysUntil} hasPost={false} onGenerate={undefined} />
             ))}
           </div>
         </>
       )}
 
-      {/* Quick actions */}
+      {/* ── Quick actions ── */}
       <h2 className="section-title">{t('sections.quickActions')}</h2>
-      <div className="quick-actions">
-        <Link href="/posts/new" className="quick-action-card">
-          <Plus size={24} />
-          <span>{t('actions.newPost')}</span>
-        </Link>
-        <Link href="/ideas" className="quick-action-card">
-          <Lightbulb size={24} />
-          <span>{t('actions.generateIdeas')}</span>
-        </Link>
-        <Link href="/calendar" className="quick-action-card">
-          <Calendar size={24} />
-          <span>{t('actions.planMonth')}</span>
-        </Link>
-        <Link href="/tendencias" className="quick-action-card">
-          <Zap size={24} />
-          <span>{t('actions.trends')}</span>
-        </Link>
-        <Link href="/comments" className="quick-action-card">
-          <MessageSquare size={24} />
-          <span>{t('actions.community')}</span>
-        </Link>
-        <Link href="/analytics" className="quick-action-card">
-          <BarChart3 size={24} />
-          <span>{t('actions.analytics')}</span>
-        </Link>
+      <div className="quick-actions" style={{ marginBottom: 32 }}>
+        {[
+          { href: '/posts/new',  icon: Plus,          label: t('actions.newPost') },
+          { href: '/ideas',      icon: Lightbulb,     label: t('actions.generateIdeas') },
+          { href: '/calendar',   icon: Calendar,      label: t('actions.planMonth') },
+          { href: '/tendencias', icon: Zap,           label: t('actions.trends') },
+          { href: '/comments',   icon: MessageSquare, label: t('actions.community') },
+          { href: '/analytics',  icon: BarChart3,     label: t('actions.analytics') },
+        ].map(({ href, icon: Icon, label }) => (
+          <Link key={href} href={href} className="quick-action-card">
+            <Icon size={20} />
+            <span>{label}</span>
+          </Link>
+        ))}
       </div>
 
       <InspirationTeaser />
 
-      {/* Pending posts alert */}
+      {/* ── Pending alert ── */}
       {pending > 0 && (
         <div style={{
-          padding:      '16px 20px',
-          borderRadius: 12,
-          background:   'var(--orange-light)',
-          border:       '1px solid var(--orange)',
-          marginBottom: 24,
-          display:      'flex',
-          alignItems:   'center',
+          padding: '16px 20px',
+          borderRadius: 16,
+          background: 'var(--accent-soft)',
+          marginBottom: 32,
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'space-between',
-          gap:          16,
+          gap: 16,
         }}>
           <div>
-            <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, color: 'var(--orange)', marginBottom: 2 }}>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--accent)', marginBottom: 2 }}>
               {pending} {t('metrics.pending')}
             </p>
-            <p style={{ fontSize: '0.83rem', color: 'var(--ink)' }}>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
               {t('sections.pendingSubtitle')}
             </p>
           </div>
@@ -218,30 +223,44 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Recent posts */}
+      {/* ── Recent posts ── */}
       {allPosts.length > 0 && (
         <>
-          <h2 className="section-title">{t('sections.recentPosts')}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h2 className="section-title" style={{ margin: '0 0 16px' }}>{t('sections.recentPosts')}</h2>
+            <Link href="/posts" style={{ fontSize: 11, color: 'var(--text-tertiary)', textDecoration: 'none', fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>
+              Veure tot →
+            </Link>
+          </div>
           <div className="posts-list">
             {allPosts.map((post) => (
               <Link key={post.id} href={`/posts/${post.id}`} className="post-list-item post-list-link">
+                {post.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={post.image_url} alt="" className="post-list-thumb" />
+                ) : (
+                  <div className="post-list-thumb-placeholder">📸</div>
+                )}
                 <div className="post-list-info">
                   <p className="post-list-caption">
-                    {post.caption ? `${post.caption.slice(0, 90)}…` : '—'}
+                    {post.caption ? `${post.caption.slice(0, 80)}…` : '—'}
                   </p>
-                  <span className={`status-badge status-${post.status}`}>{post.status}</span>
-                  {post.quality_score != null && (
-                    <span style={{
-                      fontSize:   '0.72rem',
-                      fontWeight: 700,
-                      color:      post.quality_score >= 8 ? '#16a34a' : post.quality_score >= 6 ? '#d97706' : '#dc2626',
-                    }}>
-                      ★ {post.quality_score}/10
-                    </span>
-                  )}
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 4 }}>
+                    <span className={`status-badge status-${post.status}`}>{post.status}</span>
+                    {post.quality_score != null && (
+                      <span style={{
+                        fontSize: 11,
+                        fontWeight: 500,
+                        color: post.quality_score >= 8 ? 'var(--success)' : post.quality_score >= 6 ? 'var(--warning)' : 'var(--error)',
+                        fontFamily: "'Inter', sans-serif",
+                      }}>
+                        ★ {post.quality_score}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <span className="post-list-date">
-                  {new Date(post.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                  {new Date(post.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                 </span>
               </Link>
             ))}
@@ -250,7 +269,7 @@ export default async function DashboardPage() {
       )}
 
       {allPosts.length === 0 && (
-        <div className="empty-state" style={{ marginTop: 28 }}>
+        <div className="empty-state" style={{ marginTop: 40 }}>
           <div className="empty-state-icon">📸</div>
           <p className="empty-state-title">{t('empty.noPosts')}</p>
           <p className="empty-state-sub">{t('empty.noPostsSub')}</p>

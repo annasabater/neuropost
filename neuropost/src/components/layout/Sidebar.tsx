@@ -91,7 +91,7 @@ export function Sidebar() {
       <div className="dash-nav">
         {NAV_GROUPS.map((group) => (
           <div key={group.title}>
-            <div style={{ fontSize: 9, fontWeight: 700, color: '#3a4257', letterSpacing: '0.1em', padding: '8px 10px 2px' }}>
+            <div className="dash-nav-group-label">
               {group.title}
             </div>
             {group.items.map(({ href, label, icon: Icon }) => {
@@ -106,7 +106,7 @@ export function Sidebar() {
                   className={`dash-nav-item${active ? ' active' : ''}`}
                   onClick={() => { if (sidebarOpen) toggleSidebar(); }}
                 >
-                  <Icon size={18} />
+                  <Icon size={14} />
                   <span>{label}</span>
                   {badge > 0 && <span className="nav-badge">{badge}</span>}
                 </ProgressLink>
@@ -117,18 +117,18 @@ export function Sidebar() {
       </div>
 
       {/* Sidebar utility footer links */}
-      <div style={{ flexShrink: 0, padding: '4px 16px 2px', borderTop: '1px solid #1a1d2e' }}>
+      <div style={{ flexShrink: 0, padding: '4px 16px 2px', borderTop: '1px solid var(--border)' }}>
         <a href="/estado" target="_blank" rel="noopener noreferrer"
-          style={{ display: 'block', fontSize: '0.68rem', color: '#3a4257', textDecoration: 'none', padding: '2px 0', lineHeight: 1.4 }}>
+          style={{ display: 'block', fontSize: '11px', color: 'var(--text-3)', textDecoration: 'none', padding: '2px 0', lineHeight: 1.4 }}>
           {t('statusPage')}
         </a>
         <ProgressLink href="/novedades"
-          style={{ display: 'block', fontSize: '0.68rem', color: '#3a4257', textDecoration: 'none', padding: '2px 0', lineHeight: 1.4 }}
+          style={{ display: 'block', fontSize: '11px', color: 'var(--text-3)', textDecoration: 'none', padding: '2px 0', lineHeight: 1.4 }}
           onClick={() => { if (sidebarOpen) toggleSidebar(); }}>
           {t('news')}
         </ProgressLink>
         <ProgressLink href="/soporte"
-          style={{ display: 'block', fontSize: '0.68rem', color: '#3a4257', textDecoration: 'none', padding: '2px 0', lineHeight: 1.4 }}
+          style={{ display: 'block', fontSize: '11px', color: 'var(--text-3)', textDecoration: 'none', padding: '2px 0', lineHeight: 1.4 }}
           onClick={() => { if (sidebarOpen) toggleSidebar(); }}>
           {t('support')}
         </ProgressLink>
@@ -137,8 +137,11 @@ export function Sidebar() {
       <div className="dash-sidebar-footer">
         {brand && (
           <div className="dash-brand-pill">
-            <span className="dash-brand-name">{brand.name}</span>
-            <span className={`plan-badge plan-${brand.plan}`}>{brand.plan}</span>
+            <span className="dash-brand-avatar">{brand.name.charAt(0).toUpperCase()}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <span className="dash-brand-name">{brand.name}</span>
+              <span className={`plan-badge plan-${brand.plan}`}>{brand.plan}</span>
+            </div>
           </div>
         )}
         <button className="dash-logout" onClick={handleLogout}>
