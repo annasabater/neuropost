@@ -219,7 +219,7 @@ export default function LandingPage() {
       {/* ─── HOW IT WORKS ─── */}
       <section className="how" id="como-funciona">
         <div className="container">
-          <div className="section-eyebrow" style={{ color: 'rgba(255,92,26,0.7)' }}>En 4 pasos</div>
+          <div className="section-eyebrow" style={{ color: 'var(--text-tertiary)' }}>En 4 pasos</div>
           <h2 style={{ marginBottom: '12px' }}>De cero a publicar<br />en menos de 10 minutos</h2>
           <p className="section-sub" style={{ marginBottom: '60px' }}>Sin formación técnica, sin manual de instrucciones.</p>
           <div className="steps fade-in">
@@ -246,7 +246,7 @@ export default function LandingPage() {
                   <div className="vis-card-header">Engagement</div>
                   <div>
                     <div className="vis-bar"><div className="vis-bar-fill" style={{ width: '78%' }} /></div>
-                    <div className="vis-bar"><div className="vis-bar-fill" style={{ width: '55%', background: '#1a7a4a', animationDelay: '0.2s' }} /></div>
+                    <div className="vis-bar"><div className="vis-bar-fill" style={{ width: '55%', background: 'var(--accent)', animationDelay: '0.2s' }} /></div>
                     <div className="vis-bar"><div className="vis-bar-fill" style={{ width: '91%', animationDelay: '0.4s' }} /></div>
                   </div>
                   <div className="vis-stat">+340%</div>
@@ -305,18 +305,18 @@ export default function LandingPage() {
                   <div className="vis-card-header">Tono de marca</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
                     {[
-                      { label: 'Cercano', bg: '#fff0eb', color: 'var(--orange)' },
+                      { label: 'Cercano', bg: 'var(--accent-light)', color: 'var(--accent)' },
                       { label: 'Local', bg: 'var(--green-light)', color: 'var(--green)' },
-                      { label: 'Artesanal', bg: '#f0f0ff', color: '#5555cc' },
+                      { label: 'Artesanal', bg: 'var(--warm)', color: 'var(--muted)' },
                     ].map(({ label, bg, color }) => (
-                      <span key={label} style={{ background: bg, color, fontFamily: "'Cabinet Grotesk',sans-serif", fontSize: '9px', padding: '3px 8px', borderRadius: '20px', fontWeight: 700 }}>{label}</span>
+                      <span key={label} style={{ background: bg, color, fontFamily: "'Cabinet Grotesk',sans-serif", fontSize: '9px', padding: '3px 8px', borderRadius: '0', fontWeight: 700 }}>{label}</span>
                     ))}
                   </div>
                 </div>
                 <div className="vis-card">
                   <div className="vis-card-header">Colores</div>
                   <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-                    {['#ff6b35', '#2d5a27', '#ffeedd'].map((c) => (
+                    {['#0F766E', '#111111', '#E5E7EB'].map((c) => (
                       <div key={c} style={{ width: '24px', height: '24px', borderRadius: '50%', background: c }} />
                     ))}
                   </div>
@@ -416,7 +416,7 @@ export default function LandingPage() {
               <h2>Preguntas frecuentes</h2>
               <p style={{ color: 'var(--muted)', fontSize: '0.92rem', lineHeight: '1.7', marginTop: '12px' }}>
                 ¿Tienes más dudas? Escríbenos a{' '}
-                <a href="mailto:hola@neuropost.es" style={{ color: 'var(--orange)' }}>hola@neuropost.es</a>
+                <a href="mailto:hola@neuropost.es" style={{ color: 'var(--accent)' }}>hola@neuropost.es</a>
               </p>
             </div>
             <div className="faq-list">
@@ -454,7 +454,7 @@ export default function LandingPage() {
         <div className="container">
           <div className="footer-grid">
             <div className="footer-brand">
-              <a href="#" className="nav-logo" style={{ color: 'var(--cream)' }}>
+              <a href="#" className="nav-logo" style={{ color: '#F5F5F5' }}>
                 <span className="logo-dot" />
                 NeuroPost
               </a>

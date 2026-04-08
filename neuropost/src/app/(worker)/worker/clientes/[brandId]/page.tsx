@@ -145,7 +145,7 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
                     {post.image_url && <img src={String(post.image_url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                   </div>
                   <div style={{ padding: '8px 10px' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'capitalize', color: post.status === 'published' ? '#22c55e' : post.status === 'failed' ? '#ef4444' : W.muted }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'capitalize', color: post.status === 'published' ? '#14B8A6' : post.status === 'failed' ? '#ef4444' : W.muted }}>
                       {post.status}
                     </div>
                     <div style={{ fontSize: 10, color: W.muted, marginTop: 2 }}>{timeAgo(String(post.created_at))}</div>

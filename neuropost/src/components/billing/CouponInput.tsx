@@ -57,7 +57,7 @@ export default function CouponInput({ onValidCoupon, onClearCoupon, appliedCode 
   }
 
   const borderColor =
-    status === 'valid'   ? '#22c55e' :
+    status === 'valid'   ? '#14B8A6' :
     status === 'invalid' ? '#ef4444' :
     'var(--border)';
 
@@ -97,8 +97,8 @@ export default function CouponInput({ onValidCoupon, onClearCoupon, appliedCode 
             onClick={handleClear}
             style={{
               background:  'transparent',
-              color:       '#16a34a',
-              border:      '1px solid #22c55e',
+              color:       '#0F766E',
+              border:      '1px solid #14B8A6',
               borderRadius: 8,
               padding:     '10px 14px',
               fontWeight:  600,
@@ -135,7 +135,7 @@ export default function CouponInput({ onValidCoupon, onClearCoupon, appliedCode 
       </div>
 
       {status === 'valid' && (
-        <p style={{ fontSize: 13, color: '#16a34a', marginTop: 6, fontFamily: 'Cabinet Grotesk, sans-serif' }}>
+        <p style={{ fontSize: 13, color: '#0F766E', marginTop: 6, fontFamily: 'Cabinet Grotesk, sans-serif' }}>
           ✓ {discountText || 'Descuento aplicado correctamente'}
         </p>
       )}

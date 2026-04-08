@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Literata } from 'next/font/google';
+import { Literata, Barlow, Barlow_Condensed } from 'next/font/google';
 import Script from 'next/script';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
@@ -15,6 +15,20 @@ const literata = Literata({
   weight: ['400', '500'],
   style: ['normal', 'italic'],
   variable: '--font-literata',
+  display: 'swap',
+});
+
+const barlow = Barlow({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-barlow',
+  display: 'swap',
+});
+
+const barlowCondensed = Barlow_Condensed({
+  subsets: ['latin'],
+  weight: ['700', '800', '900'],
+  variable: '--font-barlow-condensed',
   display: 'swap',
 });
 
@@ -51,7 +65,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     // suppressHydrationWarning prevents React complaining about data-theme set before hydration
-    <html lang={locale} className={literata.variable} suppressHydrationWarning data-scroll-behavior="smooth">
+    <html lang={locale} className={`${literata.variable} ${barlow.variable} ${barlowCondensed.variable}`} suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
         <meta name="theme-color" content="#4f46e5" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

@@ -21,7 +21,7 @@ export function BrandKitEditor({ brand }: Props) {
 
   const [saving, setSaving]   = useState(false);
   const [colors, setColors]   = useState<BrandColors>(
-    brand.colors ?? { primary: '#ff5c1a', secondary: '#0f0e0c', accent: '#1a7a4a' },
+    brand.colors ?? { primary: '#0F766E', secondary: '#0f0e0c', accent: '#1a7a4a' },
   );
   const [fonts,  setFonts]    = useState<BrandFonts>(
     brand.fonts  ?? { heading: 'Cabinet Grotesk', body: 'Literata' },
@@ -90,6 +90,8 @@ export function BrandKitEditor({ brand }: Props) {
                   value={colors[k]}
                   onChange={(e) => setColors((prev) => ({ ...prev, [k]: e.target.value }))}
                   className="color-swatch-input"
+                  aria-label={`Color ${k === 'primary' ? 'principal' : k === 'secondary' ? 'secundario' : 'acento'}`}
+                  title={`Color ${k === 'primary' ? 'principal' : k === 'secondary' ? 'secundario' : 'acento'}`}
                 />
                 <input
                   type="text"
@@ -97,6 +99,9 @@ export function BrandKitEditor({ brand }: Props) {
                   onChange={(e) => setColors((prev) => ({ ...prev, [k]: e.target.value }))}
                   className="color-hex-input"
                   maxLength={7}
+                  aria-label={`Hexadecimal color ${k === 'primary' ? 'principal' : k === 'secondary' ? 'secundario' : 'acento'}`}
+                  title={`Hexadecimal color ${k === 'primary' ? 'principal' : k === 'secondary' ? 'secundario' : 'acento'}`}
+                  placeholder="#000000"
                 />
               </div>
             </div>
@@ -109,16 +114,18 @@ export function BrandKitEditor({ brand }: Props) {
         <div className="settings-section-title">Tipografías</div>
         <div className="settings-grid">
           <div className="form-group">
-            <label>Titular</label>
+            <label htmlFor="brand-font-heading">Titular</label>
             <input
+              id="brand-font-heading"
               type="text"
               value={fonts.heading}
               onChange={(e) => setFonts((prev) => ({ ...prev, heading: e.target.value }))}
             />
           </div>
           <div className="form-group">
-            <label>Cuerpo</label>
+            <label htmlFor="brand-font-body">Cuerpo</label>
             <input
+              id="brand-font-body"
               type="text"
               value={fonts.body}
               onChange={(e) => setFonts((prev) => ({ ...prev, body: e.target.value }))}
@@ -136,6 +143,8 @@ export function BrandKitEditor({ brand }: Props) {
           value={slogans}
           onChange={(e) => setSlogans(e.target.value)}
           placeholder="El sabor de siempre&#10;Calidad sin compromiso"
+          aria-label="Slogans de marca"
+          title="Slogans de marca"
         />
       </div>
 
@@ -149,6 +158,8 @@ export function BrandKitEditor({ brand }: Props) {
           value={hashtags}
           onChange={(e) => setHashtags(e.target.value)}
           placeholder="#minegocio #sector #ciudad"
+          aria-label="Hashtags de marca"
+          title="Hashtags de marca"
         />
       </div>
 
@@ -164,6 +175,8 @@ export function BrandKitEditor({ brand }: Props) {
           value={voiceDoc}
           onChange={(e) => setVoiceDoc(e.target.value)}
           placeholder="Nuestra marca habla de forma…"
+          aria-label="Documento de voz de marca"
+          title="Documento de voz de marca"
         />
       </div>
 

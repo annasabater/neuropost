@@ -37,14 +37,14 @@ const TYPE_LINK: Record<string, string> = {
 
 const TYPE_COLOR: Record<string, string> = {
   approval_needed: '#d97706',
-  published:       '#16a34a',
+  published:       '#0F766E',
   failed:          '#dc2626',
   comment:         '#2563eb',
   limit_reached:   '#dc2626',
-  meta_connected:  '#16a34a',
+  meta_connected:  '#0F766E',
   token_expired:   '#d97706',
   payment_failed:  '#dc2626',
-  plan_activated:  '#16a34a',
+  plan_activated:  '#0F766E',
   team_invite:     '#7c3aed',
   trend_detected:  '#ea580c',
 };

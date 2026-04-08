@@ -89,12 +89,12 @@ export default function AnalyticsPage() {
                   <div style={{
                     padding:      16,
                     borderRadius: 12,
-                    background:   '#f0fdf4',
-                    border:       '1px solid #86efac',
+                    background:   'var(--accent-bg)',
+                    border:       '1px solid var(--border)',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                      <TrendingUp size={18} color="#16a34a" />
-                      <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '0.88rem', color: '#16a34a' }}>
+                      <TrendingUp size={18} color="var(--accent)" />
+                      <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '0.88rem', color: 'var(--accent)' }}>
                         {t('keepDoing')}
                       </span>
                     </div>
@@ -102,9 +102,9 @@ export default function AnalyticsPage() {
                       <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>{t('noInsights')}</p>
                     ) : keep.map((i, idx) => (
                       <div key={idx} style={{ marginBottom: 8 }}>
-                        <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.83rem', color: '#15803d' }}>{i.title}</p>
-                        <p style={{ fontSize: '0.78rem', color: '#166534', lineHeight: 1.4 }}>{i.description}</p>
-                        {i.supportingMetric && <p style={{ fontSize: '0.73rem', color: '#16a34a', fontWeight: 600, marginTop: 2 }}>{i.supportingMetric}</p>}
+                        <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.83rem', color: 'var(--accent-dark)' }}>{i.title}</p>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--accent-dark)', lineHeight: 1.4 }}>{i.description}</p>
+                        {i.supportingMetric && <p style={{ fontSize: '0.73rem', color: 'var(--accent)', fontWeight: 600, marginTop: 2 }}>{i.supportingMetric}</p>}
                       </div>
                     ))}
                   </div>
@@ -113,12 +113,12 @@ export default function AnalyticsPage() {
                   <div style={{
                     padding:      16,
                     borderRadius: 12,
-                    background:   '#fef2f2',
-                    border:       '1px solid #fca5a5',
+                    background:   'var(--error-dim)',
+                    border:       '1px solid var(--border)',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                      <TrendingDown size={18} color="#dc2626" />
-                      <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '0.88rem', color: '#dc2626' }}>
+                      <TrendingDown size={18} color="var(--error)" />
+                      <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '0.88rem', color: 'var(--error)' }}>
                         {t('stopDoing')}
                       </span>
                     </div>
@@ -126,8 +126,8 @@ export default function AnalyticsPage() {
                       <p style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>{t('noImprove')}</p>
                     ) : stop.map((i, idx) => (
                       <div key={idx} style={{ marginBottom: 8 }}>
-                        <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.83rem', color: '#b91c1c' }}>{i.title}</p>
-                        <p style={{ fontSize: '0.78rem', color: '#991b1b', lineHeight: 1.4 }}>{i.description}</p>
+                        <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.83rem', color: 'var(--error)' }}>{i.title}</p>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--error)', lineHeight: 1.4 }}>{i.description}</p>
                       </div>
                     ))}
                   </div>
@@ -136,12 +136,12 @@ export default function AnalyticsPage() {
                   <div style={{
                     padding:      16,
                     borderRadius: 12,
-                    background:   '#fffbeb',
-                    border:       '1px solid #fde68a',
+                    background:   'var(--warning-dim)',
+                    border:       '1px solid var(--border)',
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                      <Minus size={18} color="#d97706" />
-                      <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '0.88rem', color: '#d97706' }}>
+                      <Minus size={18} color="var(--warning)" />
+                      <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '0.88rem', color: 'var(--warning)' }}>
                         {t('opportunities')}
                       </span>
                     </div>
@@ -151,14 +151,14 @@ export default function AnalyticsPage() {
                       <>
                         {opps.map((i, idx) => (
                           <div key={idx} style={{ marginBottom: 8 }}>
-                            <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.83rem', color: '#b45309' }}>{i.title}</p>
-                            <p style={{ fontSize: '0.78rem', color: '#92400e', lineHeight: 1.4 }}>{i.description}</p>
+                            <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.83rem', color: 'var(--warning)' }}>{i.title}</p>
+                            <p style={{ fontSize: '0.78rem', color: 'var(--warning)', lineHeight: 1.4 }}>{i.description}</p>
                           </div>
                         ))}
                         {highRecs.slice(0, 2).map((r, idx) => (
                           <div key={`rec-${idx}`} style={{ marginBottom: 8 }}>
-                            <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.83rem', color: '#b45309' }}>{r.action}</p>
-                            <p style={{ fontSize: '0.78rem', color: '#92400e', lineHeight: 1.4 }}>{r.estimatedImpact}</p>
+                            <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.83rem', color: 'var(--warning)' }}>{r.action}</p>
+                            <p style={{ fontSize: '0.78rem', color: 'var(--warning)', lineHeight: 1.4 }}>{r.estimatedImpact}</p>
                           </div>
                         ))}
                       </>

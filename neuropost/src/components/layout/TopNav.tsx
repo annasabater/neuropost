@@ -42,7 +42,7 @@ export function TopNav() {
             background:  nearLimit ? 'var(--red-dim)' : 'var(--surface-2)',
             border:      `1px solid ${nearLimit ? 'rgba(239,68,68,0.2)' : 'var(--border)'}`,
             fontSize:    '12px',
-            fontFamily:  "'Syne', 'Cabinet Grotesk', sans-serif",
+            fontFamily:  "'Cabinet Grotesk', sans-serif",
             fontWeight:  600,
             color:       nearLimit ? 'var(--red)' : 'var(--text-2)',
             cursor:      'default',
@@ -53,7 +53,7 @@ export function TopNav() {
               height:     '100%',
               width:      `${pct}%`,
               borderRadius: 2,
-              background:  pct >= 100 ? 'var(--red)' : pct >= 80 ? 'var(--yellow)' : 'linear-gradient(90deg, var(--orange), #ff8c42)',
+              background:  pct >= 100 ? 'var(--red)' : pct >= 80 ? 'var(--yellow)' : 'linear-gradient(90deg, var(--orange), #14B8A6)',
               transition:  'width 0.3s ease',
             }} />
           </div>

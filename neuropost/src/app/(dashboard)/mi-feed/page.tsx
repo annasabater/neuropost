@@ -44,7 +44,7 @@ const STATUS_COLOR: Record<string, string> = {
   pending:    '#f59e0b',
   approved:   '#3b82f6',
   scheduled:  '#3b82f6',
-  published:  '#22c55e',
+  published:  '#14B8A6',
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -129,14 +129,14 @@ function GridCell({ item, index }: { item: FeedItem | null; index: number }) {
   const isReal = item?.is_published;
 
   return (
-    <div style={{ position: 'relative', aspectRatio: '1', background: '#f5f5f5', borderRadius: 4, overflow: 'hidden' }}>
+    <div style={{ position: 'relative', aspectRatio: '1', background: 'var(--bg-1)', borderRadius: 4, overflow: 'hidden' }}>
       {imgUrl ? (
         <img src={imgUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
       ) : (
-        <div style={{ width: '100%', height: '100%', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', fontSize: 20 }}>📷</div>
+        <div style={{ width: '100%', height: '100%', background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ccc', fontSize: 20 }}>📷</div>
       )}
       {isReal ? (
-        <div style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(34,197,94,0.9)', color: '#fff', fontSize: 9, fontWeight: 700, padding: '2px 5px', borderRadius: 4 }}>✓</div>
+        <div style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(20,184,166,0.9)', color: '#fff', fontSize: 9, fontWeight: 700, padding: '2px 5px', borderRadius: 4 }}>✓</div>
       ) : (
         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ textAlign: 'center', color: '#fff' }}>

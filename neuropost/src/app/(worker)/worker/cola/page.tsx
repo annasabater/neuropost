@@ -36,7 +36,7 @@ function timeAgo(d: string) {
 
 function waitColor(d: string) {
   const h = (Date.now() - new Date(d).getTime()) / 3600000;
-  return h < 1 ? '#22c55e' : h < 3 ? '#f59e0b' : '#ef4444';
+  return h < 1 ? '#14B8A6' : h < 3 ? '#f59e0b' : '#ef4444';
 }
 
 const STATUS_FILTERS = [
@@ -132,12 +132,12 @@ export default function ColaPage() {
   }
 
   const score = selected?.posts?.quality_score ?? null;
-  const scoreColor = score == null ? W.muted : score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444';
+  const scoreColor = score == null ? W.muted : score >= 80 ? '#14B8A6' : score >= 60 ? '#f59e0b' : '#ef4444';
   const scoreLabel = score == null ? '—' : score >= 80 ? 'Muy bueno' : score >= 60 ? 'Aceptable' : 'Mejorable';
 
   const pendingRecs    = recreations.filter((r) => r.status === 'pending' || r.status === 'in_progress');
   const statusBadgeColor = (s: RecreationRequest['status']) =>
-    s === 'pending' ? '#f59e0b' : s === 'in_progress' ? W.blue : s === 'completed' ? '#22c55e' : '#ef4444';
+    s === 'pending' ? '#f59e0b' : s === 'in_progress' ? W.blue : s === 'completed' ? '#14B8A6' : '#ef4444';
   const statusLabel = (s: RecreationRequest['status']) =>
     s === 'pending' ? 'Pendiente' : s === 'in_progress' ? 'En progreso' : s === 'completed' ? 'Completado' : 'Rechazado';
 
@@ -300,7 +300,7 @@ export default function ColaPage() {
                 disabled={loading}
                 style={{
                   flex: 1, padding: '14px', borderRadius: 10, fontSize: 14, fontWeight: 700,
-                  background: '#22c55e', color: '#fff', border: 'none', cursor: 'pointer',
+                  background: '#14B8A6', color: '#fff', border: 'none', cursor: 'pointer',
                   opacity: loading ? 0.6 : 1,
                 }}
               >
@@ -416,7 +416,7 @@ export default function ColaPage() {
                   {rec.status === 'in_progress' && (
                     <button
                       onClick={() => handleRecreationAction(rec.id, 'completed')}
-                      style={{ padding: '6px 14px', background: 'rgba(34,197,94,0.1)', color: '#22c55e', border: '1px solid rgba(34,197,94,0.3)', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
+                      style={{ padding: '6px 14px', background: 'rgba(20,184,166,0.1)', color: '#14B8A6', border: '1px solid rgba(20,184,166,0.3)', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700 }}
                     >
                       Marcar completado
                     </button>

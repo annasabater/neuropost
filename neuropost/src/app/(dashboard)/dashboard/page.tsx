@@ -59,7 +59,7 @@ export default async function DashboardPage() {
       {/* ── Greeting — Apple-style large typography ── */}
       <div style={{ padding: '40px 0 32px' }}>
         <h1 style={{
-          fontFamily: "'Syne', 'Cabinet Grotesk', sans-serif",
+          fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif",
           fontWeight: 800,
           fontSize: '2.2rem',
           letterSpacing: '-0.04em',
@@ -69,7 +69,7 @@ export default async function DashboardPage() {
         }}>
           {t('greeting', { name: brand.name })}
         </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontFamily: "'Inter', sans-serif", lineHeight: 1.6 }}>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontFamily: "var(--font-barlow), 'Barlow', sans-serif", lineHeight: 1.6 }}>
           {t('subtitle')}
           {pending > 0 && (
             <span style={{ color: 'var(--warning)' }}>
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
               {value}
             </p>
             <p style={{
-              fontFamily: "'Inter', sans-serif",
+              fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
               fontSize: 11,
               fontWeight: 500,
               textTransform: 'uppercase',
@@ -136,10 +136,10 @@ export default async function DashboardPage() {
           marginBottom: 32,
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>
+            <span style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 500, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>
               {t('sections.planUsage')}
             </span>
-            <span style={{ fontSize: 13, color: pct >= 80 ? 'var(--error)' : 'var(--text-secondary)', fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>
+            <span style={{ fontSize: 13, color: pct >= 80 ? 'var(--error)' : 'var(--text-secondary)', fontWeight: 500, fontFamily: "var(--font-barlow), 'Barlow', sans-serif" }}>
               {publishedThisMonth} / {planLimit}
             </span>
           </div>
@@ -210,10 +210,10 @@ export default async function DashboardPage() {
           gap: 16,
         }}>
           <div>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--accent)', marginBottom: 2 }}>
+            <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 600, fontSize: 14, color: 'var(--accent)', marginBottom: 2 }}>
               {pending} {t('metrics.pending')}
             </p>
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: "'Inter', sans-serif" }}>
+            <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: "var(--font-barlow), 'Barlow', sans-serif" }}>
               {t('sections.pendingSubtitle')}
             </p>
           </div>
@@ -228,7 +228,7 @@ export default async function DashboardPage() {
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <h2 className="section-title" style={{ margin: '0 0 16px' }}>{t('sections.recentPosts')}</h2>
-            <Link href="/posts" style={{ fontSize: 11, color: 'var(--text-tertiary)', textDecoration: 'none', fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>
+            <Link href="/posts" style={{ fontSize: 11, color: 'var(--text-tertiary)', textDecoration: 'none', fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 500 }}>
               Veure tot →
             </Link>
           </div>
@@ -252,7 +252,7 @@ export default async function DashboardPage() {
                         fontSize: 11,
                         fontWeight: 500,
                         color: post.quality_score >= 8 ? 'var(--success)' : post.quality_score >= 6 ? 'var(--warning)' : 'var(--error)',
-                        fontFamily: "'Inter', sans-serif",
+                        fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
                       }}>
                         ★ {post.quality_score}
                       </span>

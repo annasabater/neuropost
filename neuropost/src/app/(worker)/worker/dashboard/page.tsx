@@ -27,7 +27,7 @@ function timeAgo(dateStr: string) {
 
 function waitingColor(dateStr: string) {
   const h = (Date.now() - new Date(dateStr).getTime()) / 3600000;
-  if (h < 1) return '#22c55e';
+  if (h < 1) return '#14B8A6';
   if (h < 3) return '#f59e0b';
   return '#ef4444';
 }
@@ -56,7 +56,7 @@ export default function WorkerDashboard() {
           Hola, {worker?.full_name?.split(' ')[0] ?? 'trabajador'} 👋
         </h1>
         <p style={{ color: W.muted, fontSize: 15 }}>
-          Tienes <strong style={{ color: queue.length > 0 ? '#ef4444' : '#22c55e' }}>{queue.length} posts</strong> pendientes de validar.
+          Tienes <strong style={{ color: queue.length > 0 ? '#ef4444' : '#14B8A6' }}>{queue.length} posts</strong> pendientes de validar.
         </p>
       </div>
 
@@ -80,7 +80,7 @@ export default function WorkerDashboard() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
         <StatCard label="Pendientes de validar" value={queue.length} color="#ef4444" />
         <StatCard label="Validados este mes" value={metrics.totalValidated} />
-        <StatCard label="Tasa aprobación clientes" value={`${metrics.approvalRate}%`} color="#22c55e" />
+        <StatCard label="Tasa aprobación clientes" value={`${metrics.approvalRate}%`} color="#14B8A6" />
         <StatCard label="Tiempo medio respuesta" value={`${metrics.avgResponseTimeH}h`} color="#f59e0b" />
       </div>
 

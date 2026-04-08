@@ -19,7 +19,7 @@ export default function MiRendimientoPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16, marginBottom: 32 }}>
         {[
           { label: 'Posts validados este mes', value: metrics.totalValidated, color: W.blue },
-          { label: 'Tasa de aprobación de clientes', value: `${metrics.approvalRate}%`, color: '#22c55e' },
+          { label: 'Tasa de aprobación de clientes', value: `${metrics.approvalRate}%`, color: '#14B8A6' },
           { label: 'Tiempo medio de respuesta', value: `${metrics.avgResponseTimeH}h`, color: '#f59e0b' },
           { label: 'Posts rechazados', value: metrics.rejected, color: '#ef4444' },
         ].map((card) => (
@@ -34,7 +34,7 @@ export default function MiRendimientoPage() {
         <h2 style={{ fontSize: 14, fontWeight: 700, color: W.muted, marginBottom: 16 }}>RESUMEN</h2>
         <p style={{ fontSize: 13, color: W.text, lineHeight: 1.7 }}>
           Este mes has validado <strong style={{ color: W.blue }}>{metrics.totalValidated}</strong> posts con una tasa de aprobación del{' '}
-          <strong style={{ color: '#22c55e' }}>{metrics.approvalRate}%</strong>.
+          <strong style={{ color: '#14B8A6' }}>{metrics.approvalRate}%</strong>.
           Tu tiempo medio de respuesta es de <strong style={{ color: '#f59e0b' }}>{metrics.avgResponseTimeH} horas</strong>.
         </p>
       </div>

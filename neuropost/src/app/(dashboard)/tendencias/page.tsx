@@ -121,7 +121,7 @@ export default function TendenciasPage() {
                       <span>{t('scoreViral')}</span><span>{tr.trends.viral_score}%</span>
                     </div>
                     <div style={{ height: 4, borderRadius: 2, background: 'var(--border)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${tr.trends.viral_score}%`, background: '#ff6b35', borderRadius: 2 }} />
+                      <div style={{ height: '100%', width: `${tr.trends.viral_score}%`, background: 'var(--accent)', borderRadius: 2 }} />
                     </div>
                   </div>
                 )}

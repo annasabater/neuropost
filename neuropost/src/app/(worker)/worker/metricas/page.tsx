@@ -20,7 +20,7 @@ export default function MetricasPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
         {[
           { label: 'Posts validados', value: metrics.totalValidated },
-          { label: 'Tasa aprobación', value: `${metrics.approvalRate}%`, color: '#22c55e' },
+          { label: 'Tasa aprobación', value: `${metrics.approvalRate}%`, color: '#14B8A6' },
           { label: 'Tiempo medio', value: `${metrics.avgResponseTimeH}h`, color: '#f59e0b' },
           { label: 'Rechazados', value: metrics.rejected, color: '#ef4444' },
         ].map((card) => (
@@ -49,7 +49,7 @@ export default function MetricasPage() {
                 <td style={{ padding: '12px 16px', fontSize: 13, color: W.text }}>{w.full_name}</td>
                 <td style={{ padding: '12px 16px', fontSize: 12, color: W.muted, textTransform: 'capitalize' }}>{w.role}</td>
                 <td style={{ padding: '12px 16px' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#22c55e' }}>Activo</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: '#14B8A6' }}>Activo</span>
                 </td>
               </tr>
             ))}

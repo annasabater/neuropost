@@ -92,7 +92,7 @@ export default function TrabajadoresAdminPage() {
                     </span>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
-                    <button onClick={() => handleToggle(w)} style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, cursor: 'pointer', background: w.is_active ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', color: w.is_active ? '#22c55e' : '#ef4444', border: 'none' }}>
+                    <button onClick={() => handleToggle(w)} style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 20, cursor: 'pointer', background: w.is_active ? 'rgba(20,184,166,0.1)' : 'rgba(239,68,68,0.1)', color: w.is_active ? '#14B8A6' : '#ef4444', border: 'none' }}>
                       {w.is_active ? 'Activo' : 'Inactivo'}
                     </button>
                   </td>

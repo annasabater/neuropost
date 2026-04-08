@@ -52,7 +52,7 @@ function ApplyCouponForm() {
           onKeyDown={(e) => { if (e.key === 'Enter') handleApply(); }}
           placeholder="CODIGO2025"
           style={{
-            border:      `1px solid ${error ? '#ef4444' : message ? '#22c55e' : 'var(--border)'}`,
+            border:      `1px solid ${error ? '#ef4444' : message ? '#14B8A6' : 'var(--border)'}`,
             borderRadius: 8,
             padding:     '10px 14px',
             fontFamily:  'Cabinet Grotesk, sans-serif',
@@ -82,7 +82,7 @@ function ApplyCouponForm() {
         </button>
       </div>
       {message && (
-        <p style={{ fontSize: 13, color: '#16a34a', marginTop: 6, fontFamily: 'Cabinet Grotesk, sans-serif' }}>
+        <p style={{ fontSize: 13, color: '#0F766E', marginTop: 6, fontFamily: 'Cabinet Grotesk, sans-serif' }}>
           ✓ {message}
         </p>
       )}

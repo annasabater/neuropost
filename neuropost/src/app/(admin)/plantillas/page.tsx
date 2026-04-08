@@ -218,7 +218,7 @@ export default function PlantillasPage() {
                       onClick={() => toggleActive(t)}
                       style={{
                         width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer',
-                        background: t.is_active ? '#22c55e' : A.border,
+                        background: t.is_active ? '#14B8A6' : A.border,
                         position: 'relative', transition: 'background 0.2s',
                       }}
                     >
@@ -242,7 +242,7 @@ export default function PlantillasPage() {
                       </button>
                       <button
                         onClick={() => toggleActive(t)}
-                        style={{ padding: '5px 12px', background: t.is_active ? 'rgba(239,68,68,0.08)' : 'rgba(34,197,94,0.08)', color: t.is_active ? '#ef4444' : '#22c55e', border: `1px solid ${t.is_active ? 'rgba(239,68,68,0.2)' : 'rgba(34,197,94,0.2)'}`, borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
+                        style={{ padding: '5px 12px', background: t.is_active ? 'rgba(239,68,68,0.08)' : 'rgba(20,184,166,0.08)', color: t.is_active ? '#ef4444' : '#14B8A6', border: `1px solid ${t.is_active ? 'rgba(239,68,68,0.2)' : 'rgba(20,184,166,0.2)'}`, borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}
                       >
                         {t.is_active ? 'Desactivar' : 'Activar'}
                       </button>
@@ -261,7 +261,15 @@ export default function PlantillasPage() {
           <div style={{ background: '#1a1917', border: `1px solid ${A.border}`, borderRadius: 14, padding: 28, width: '100%', maxWidth: 580, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 22 }}>
               <h2 style={{ fontSize: 17, fontWeight: 800, color: A.text, margin: 0 }}>{editing ? 'Editar plantilla' : 'Nueva plantilla'}</h2>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: A.muted }}><X size={18} /></button>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                title="Cerrar modal"
+                aria-label="Cerrar modal"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: A.muted }}
+              >
+                <X size={18} />
+              </button>
             </div>
 
             {/* Título */}

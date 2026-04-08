@@ -26,19 +26,19 @@ const STEPS: Step[] = [
     cta:  { label: 'Conectar ahora', href: '/settings/connections' },
   },
   {
-    icon: <Lightbulb size={40} color="#ff5c1a" />,
+    icon: <Lightbulb size={40} color="#0F766E" />,
     title: 'Genera ideas de contenido',
     desc:  'Explícanos sobre qué quieres publicar y te prepararemos ideas adaptadas a tu sector y tono de marca.',
     cta:  { label: 'Ver ideas', href: '/ideas' },
   },
   {
-    icon: <Plus size={40} color="#ff5c1a" />,
+    icon: <Plus size={40} color="#0F766E" />,
     title: 'Crea tu primer post',
     desc:  'Sube una foto, el equipo de NeuroPost escribe el caption y los hashtags, y tú decides cuándo publicarlo.',
     cta:  { label: 'Crear post', href: '/posts/new' },
   },
   {
-    icon: <BarChart3 size={40} color="#ff5c1a" />,
+    icon: <BarChart3 size={40} color="#0F766E" />,
     title: 'Analiza tus resultados',
     desc:  'Cada mes preparamos un informe con lo que funcionó y lo que puedes mejorar.',
     cta:  { label: 'Ver analíticas', href: '/analytics' },
