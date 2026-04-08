@@ -295,14 +295,14 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
         {format === 'story' && (
           <div style={{
             padding:      '10px 14px',
-            borderRadius: 10,
-            background:   'var(--orange-light, #fff7ed)',
-            border:       '1px solid var(--orange)',
-            fontSize:     '0.83rem',
-            color:        'var(--ink)',
+            background:   '#f0fdf4',
+            border:       '1px solid #d4d4d8',
+            fontSize:     13,
+            color:        '#111827',
             lineHeight:   1.5,
+            fontFamily:   "var(--font-barlow), 'Barlow', sans-serif",
           }}>
-            <strong style={{ color: 'var(--orange)' }}>Story seleccionada.</strong>{' '}
+            <strong style={{ color: '#0F766E' }}>Story seleccionada.</strong>{' '}
             Las Stories duran 24h y no llevan caption. Solo imagen o video.
           </div>
         )}
@@ -410,7 +410,7 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
               type="checkbox"
               checked={isStory}
               onChange={(e) => setIsStory(e.target.checked)}
-              style={{ width: 16, height: 16, accentColor: 'var(--orange)', cursor: 'pointer' }}
+              style={{ width: 16, height: 16, accentColor: '#0F766E', cursor: 'pointer' }}
             />
             <span>📱 Convertir también en historia</span>
             <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>(formato 9:16)</span>

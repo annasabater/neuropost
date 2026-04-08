@@ -15,6 +15,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const supabase = createBrowserClient();
 
     async function loadBrand() {
+      // Only fetch brand if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setBrand(null);
+        setBrandLoading(false);
+        return;
+      }
       setBrandLoading(true);
       try {
         const res = await fetch('/api/brands');

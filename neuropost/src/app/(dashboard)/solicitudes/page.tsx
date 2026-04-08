@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Calendar, Palette, Zap, MessageCircle, FileText } from 'lucide-react';
+
+const f = "var(--font-barlow), 'Barlow', sans-serif";
+const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 type Request = {
   id: string;
@@ -25,11 +28,11 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
 };
 
 const TYPE_OPTIONS = [
-  { value: 'campaign',     label: '📅 Campaña completa',     desc: 'Una serie de posts para un período o evento' },
-  { value: 'custom',       label: '🎨 Contenido especial',   desc: 'Posts específicos para algo concreto' },
-  { value: 'urgent',       label: '⚡ Urgente',              desc: 'Necesito algo para publicar hoy o mañana' },
-  { value: 'consultation', label: '💬 Consulta',             desc: 'Una pregunta sobre mi estrategia' },
-  { value: 'other',        label: '📝 Otro',                 desc: 'Algo que no encaja en las opciones anteriores' },
+  { value: 'campaign',     label: 'Campaña completa',     desc: 'Una serie de posts para un período o evento', icon: Calendar },
+  { value: 'custom',       label: 'Contenido especial',   desc: 'Posts específicos para algo concreto', icon: Palette },
+  { value: 'urgent',       label: 'Urgente',              desc: 'Necesito algo para publicar hoy o mañana', icon: Zap },
+  { value: 'consultation', label: 'Consulta',             desc: 'Una pregunta sobre mi estrategia', icon: MessageCircle },
+  { value: 'other',        label: 'Otro',                 desc: 'Algo que no encaja en las opciones anteriores', icon: FileText },
 ];
 
 const PLACEHOLDERS: Record<string, string> = {
@@ -43,8 +46,8 @@ const PLACEHOLDERS: Record<string, string> = {
 export default function SolicitudesPage() {
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading]   = useState(true);
-  const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ type: 'campaign', title: '', description: '', deadline_at: '' });
+  const [showDrawer, setShowDrawer] = useState(false);
+  const [form, setForm] = useState({ type: 'campaign', title: '', description: '', deadline_at: '', priority: 'normal' });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -65,61 +68,76 @@ export default function SolicitudesPage() {
     const d = await res.json();
     if (res.ok) {
       setRequests((prev) => [d.request, ...prev]);
-      setShowModal(false);
-      setForm({ type: 'campaign', title: '', description: '', deadline_at: '' });
+      setShowDrawer(false);
+      setForm({ type: 'campaign', title: '', description: '', deadline_at: '', priority: 'normal' });
       toast.success('Solicitud enviada');
     } else toast.error(d.error ?? 'Error');
     setSaving(false);
   }
 
   return (
-    <div style={{ padding: '32px 40px', maxWidth: 900 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 32 }}>
+    <div className="page-content" style={{ maxWidth: 900 }}>
+      {/* Header */}
+      <div style={{ padding: '48px 0 32px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 6 }}>Solicitudes especiales</h1>
-          <p style={{ color: '#6b7280', fontSize: 14 }}>Pídele a tu equipo campañas, contenido especial o cualquier ayuda extra</p>
+          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, marginBottom: 8 }}>
+            Solicitudes
+          </h1>
+          <p style={{ color: '#6b7280', fontSize: 15, fontFamily: f }}>Pídele a tu equipo campañas, contenido especial o cualquier ayuda extra</p>
         </div>
-        <button onClick={() => setShowModal(true)} style={{
-          background: '#ff6b35', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 20px',
-          fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+        <button onClick={() => setShowDrawer(true)} style={{
+          background: '#111827', color: '#ffffff', border: 'none', padding: '10px 24px',
+          fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
+          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
         }}>
-          <Plus size={16} /> Nueva solicitud
+          <Plus size={14} /> Nueva solicitud
         </button>
       </div>
 
-      {loading ? <p style={{ color: '#9ca3af' }}>Cargando...</p> : requests.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '80px 0' }}>
-          <div style={{ fontSize: 56 }}>📝</div>
-          <div style={{ fontWeight: 700, fontSize: 18, marginTop: 16 }}>Sin solicitudes todavía</div>
-          <div style={{ color: '#6b7280', marginTop: 8, fontSize: 14 }}>Crea tu primera solicitud especial y tu equipo te ayudará</div>
-          <button onClick={() => setShowModal(true)} style={{ marginTop: 20, background: '#ff6b35', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 24px', fontWeight: 700, cursor: 'pointer' }}>
-            + Nueva solicitud
+      {/* Content */}
+      {loading ? (
+        <div style={{ border: '1px solid #d4d4d8' }}>
+          {[1,2,3].map((i) => <div key={i} style={{ padding: '16px 24px', borderBottom: i < 3 ? '1px solid #f3f4f6' : 'none', background: '#ffffff' }}><div style={{ width: '40%', height: 12, background: '#f3f4f6', borderRadius: 2 }} /></div>)}
+        </div>
+      ) : requests.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+          <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 28, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Sin solicitudes todavía</p>
+          <p style={{ fontSize: 14, color: '#9ca3af', fontFamily: f, marginBottom: 32 }}>Crea tu primera solicitud especial y tu equipo te ayudará</p>
+          <button onClick={() => setShowDrawer(true)} style={{
+            background: '#111827', color: '#ffffff', border: 'none', padding: '14px 32px',
+            fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer',
+          }}>
+            Nueva solicitud
           </button>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {requests.map((req) => {
+        <div style={{ border: '1px solid #d4d4d8' }}>
+          {requests.map((req, i) => {
             const st = STATUS_CONFIG[req.status] ?? STATUS_CONFIG.pending;
+            const typeOpt = TYPE_OPTIONS.find((t) => t.value === req.type);
             return (
-              <div key={req.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '20px 24px' }}>
+              <div key={req.id} style={{
+                padding: '16px 24px', borderBottom: i < requests.length - 1 ? '1px solid #e5e7eb' : 'none',
+                background: '#ffffff', transition: 'background 0.15s',
+              }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                      <span style={{ fontWeight: 700, fontSize: 15 }}>{req.title}</span>
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, color: st.color, background: st.bg }}>
+                      <span style={{ fontFamily: f, fontWeight: 600, fontSize: 14, color: '#111827' }}>{req.title}</span>
+                      <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, padding: '3px 10px', color: st.color, background: st.bg, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                         {st.label}
                       </span>
                     </div>
-                    {req.description && <p style={{ color: '#6b7280', fontSize: 13, marginBottom: 8, lineHeight: 1.5 }}>{req.description}</p>}
+                    {req.description && <p style={{ color: '#6b7280', fontSize: 13, fontFamily: f, marginBottom: 8, lineHeight: 1.5 }}>{req.description}</p>}
                     {req.worker_response && (
-                      <div style={{ background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 8, padding: '8px 12px', fontSize: 13, color: '#0369a1', marginBottom: 8 }}>
-                        💬 Respuesta del equipo: {req.worker_response}
+                      <div style={{ background: '#f0fdf4', borderLeft: '2px solid #0F766E', padding: '8px 12px', fontSize: 13, fontFamily: f, color: '#0F766E', marginBottom: 8 }}>
+                        Respuesta del equipo: {req.worker_response}
                       </div>
                     )}
-                    <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#9ca3af' }}>
-                      <span>📅 {new Date(req.created_at).toLocaleDateString('es-ES')}</span>
-                      {req.deadline_at && <span>⏰ Plazo: {new Date(req.deadline_at).toLocaleDateString('es-ES')}</span>}
-                      <span>Tipo: {TYPE_OPTIONS.find((t) => t.value === req.type)?.label ?? req.type}</span>
+                    <div style={{ display: 'flex', gap: 16, fontSize: 12, fontFamily: f, color: '#9ca3af' }}>
+                      <span>{new Date(req.created_at).toLocaleDateString('es-ES')}</span>
+                      {req.deadline_at && <span>Plazo: {new Date(req.deadline_at).toLocaleDateString('es-ES')}</span>}
+                      <span>Tipo: {typeOpt?.label ?? req.type}</span>
                     </div>
                   </div>
                 </div>
@@ -129,57 +147,99 @@ export default function SolicitudesPage() {
         </div>
       )}
 
-      {/* Modal */}
-      {showModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: '#fff', borderRadius: 16, padding: '32px', width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 800 }}>Nueva solicitud</h2>
-              <button onClick={() => setShowModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                <X size={20} color="#6b7280" />
-              </button>
+      {/* Drawer */}
+      {showDrawer && (
+        <>
+          <div onClick={() => setShowDrawer(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 50 }} />
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0, width: '100%', maxWidth: 440,
+            background: '#ffffff', zIndex: 51, overflowY: 'auto', padding: 32,
+            boxShadow: '-8px 0 40px rgba(0,0,0,0.12)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+              <h2 style={{ fontFamily: fc, fontSize: 20, fontWeight: 800, textTransform: 'uppercase', color: '#111827' }}>Nueva solicitud</h2>
+              <button onClick={() => setShowDrawer(false)} title="Cerrar" aria-label="Cerrar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}><X size={20} /></button>
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 8 }}>Tipo de solicitud</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {TYPE_OPTIONS.map((opt) => (
-                  <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', border: `2px solid ${form.type === opt.value ? '#ff6b35' : '#e5e7eb'}`, borderRadius: 10, cursor: 'pointer', background: form.type === opt.value ? '#fff8f5' : '#fff' }}>
-                    <input type="radio" name="type" value={opt.value} checked={form.type === opt.value} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))} style={{ display: 'none' }} />
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{opt.label}</div>
-                      <div style={{ fontSize: 12, color: '#9ca3af' }}>{opt.desc}</div>
-                    </div>
-                  </label>
-                ))}
+            {/* Type — category cards with icons */}
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af', marginBottom: 10 }}>Tipo de solicitud</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                {TYPE_OPTIONS.map((opt) => {
+                  const Icon = opt.icon;
+                  const active = form.type === opt.value;
+                  return (
+                    <button key={opt.value} onClick={() => setForm((prev) => ({ ...prev, type: opt.value }))} style={{
+                      padding: '10px 12px', background: active ? '#f0fdf4' : '#ffffff',
+                      border: `1px solid ${active ? '#0F766E' : '#e5e7eb'}`, cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left',
+                      transition: 'all 0.15s',
+                    }}>
+                      <Icon size={14} style={{ color: active ? '#0F766E' : '#9ca3af', flexShrink: 0 }} />
+                      <div>
+                        <span style={{ fontFamily: f, fontSize: 12, fontWeight: active ? 600 : 400, color: active ? '#0F766E' : '#374151', display: 'block' }}>{opt.label}</span>
+                        <span style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', display: 'block', marginTop: 2 }}>{opt.desc}</span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Título *</label>
-              <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} placeholder="Resumen breve de tu solicitud" style={{ width: '100%', padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+            {/* Priority toggle */}
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af', marginBottom: 10 }}>Prioridad</label>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[{ v: 'normal', l: 'Normal' }, { v: 'urgent', l: 'Urgente' }].map((opt) => {
+                  const active = form.priority === opt.v;
+                  return (
+                    <button key={opt.v} onClick={() => setForm((prev) => ({ ...prev, priority: opt.v }))} style={{
+                      padding: '8px 20px', border: `1px solid ${active ? '#111827' : '#e5e7eb'}`,
+                      background: active ? '#111827' : '#ffffff', color: active ? '#ffffff' : '#6b7280',
+                      fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+                    }}>
+                      {opt.l}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
+            {/* Title */}
             <div style={{ marginBottom: 16 }}>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Descripción</label>
-              <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} placeholder={PLACEHOLDERS[form.type]} rows={4} style={{ width: '100%', padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 14, resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+              <label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af', marginBottom: 6 }}>Título *</label>
+              <input value={form.title} onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Resumen breve de tu solicitud"
+                style={{ width: '100%', padding: '12px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', boxSizing: 'border-box', color: '#111827' }} />
             </div>
 
+            {/* Description */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af', marginBottom: 6 }}>Descripción</label>
+              <textarea value={form.description} onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))} placeholder={PLACEHOLDERS[form.type]} rows={4}
+                style={{ width: '100%', padding: '12px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, resize: 'vertical', outline: 'none', boxSizing: 'border-box', color: '#111827' }} />
+            </div>
+
+            {/* Deadline */}
             <div style={{ marginBottom: 28 }}>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: 13, marginBottom: 6 }}>Fecha límite (opcional)</label>
-              <input type="date" value={form.deadline_at} onChange={(e) => setForm((f) => ({ ...f, deadline_at: e.target.value }))} style={{ padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 14, outline: 'none' }} />
+              <label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af', marginBottom: 6 }}>Fecha límite (opcional)</label>
+              <input type="date" value={form.deadline_at} onChange={(e) => setForm((prev) => ({ ...prev, deadline_at: e.target.value }))}
+                style={{ padding: '12px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', color: '#111827' }} />
             </div>
 
-            <div style={{ display: 'flex', gap: 12 }}>
-              <button onClick={() => setShowModal(false)} style={{ flex: 1, padding: '12px', border: '1px solid #e5e7eb', borderRadius: 10, background: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}>
-                Cancelar
-              </button>
-              <button onClick={submit} disabled={saving} style={{ flex: 2, padding: '12px', border: 'none', borderRadius: 10, background: '#ff6b35', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>
-                {saving ? 'Enviando...' : 'Enviar solicitud →'}
-              </button>
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: 1 }}>
+              <button onClick={() => setShowDrawer(false)} style={{
+                flex: 1, padding: 12, border: '1px solid #d4d4d8', background: '#ffffff',
+                fontFamily: f, fontSize: 13, fontWeight: 600, color: '#6b7280', cursor: 'pointer',
+              }}>Cancelar</button>
+              <button onClick={submit} disabled={saving} style={{
+                flex: 2, padding: 12, border: 'none', background: '#111827', color: '#ffffff',
+                fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+                cursor: 'pointer', opacity: saving ? 0.5 : 1,
+              }}>{saving ? 'Enviando...' : 'Enviar solicitud →'}</button>
             </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

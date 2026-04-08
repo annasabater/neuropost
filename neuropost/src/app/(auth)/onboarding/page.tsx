@@ -49,12 +49,12 @@ const SECTOR_GROUPS: SectorGroup[] = [
     { value: 'nutricion', label: 'Nutrición',          img: UNS('1512621776951-a57141f2eefd') },
   ]},
   { group: 'Hogar y Servicios', items: [
-    { value: 'decoracion',  label: 'Decoración',   img: UNS('1555041469-dd5e56068b4d') },
+    { value: 'decoracion',  label: 'Decoración',   img: UNS('1513694203311-0126e4d700d5') },
     { value: 'jardineria',  label: 'Jardinería',   img: UNS('1416879595882-3373a0480b5b') },
     { value: 'reformas',    label: 'Reformas',     img: UNS('1504307651254-35680f356dfd') },
     { value: 'inmobiliaria',label: 'Inmobiliaria', img: UNS('1560518883-ce09059eeffa') },
     { value: 'fotografia',  label: 'Fotografía',   img: UNS('1516035069371-29a1b244cc32') },
-    { value: 'floristeria', label: 'Floristería',  img: UNS('1487530811576-3780949e7b0b') },
+    { value: 'floristeria', label: 'Floristería',  img: UNS('1490750967868-88aa4f44baee') },
     { value: 'otro',        label: 'Otro negocio', img: UNS('1497366216548-37526070297c') },
   ]},
 ];
@@ -138,7 +138,7 @@ const SECTOR_POSTS: Partial<Record<SocialSector, string[]>> = {
   barberia:     [UNS('1503951914875-452162b0f3f1',300), UNS('1508214751196-c5bf6f5e2751',300), UNS('1560066984-138dadb4c305',300)],
   boutique:     [UNS('1441984904996-e0b6ba687e04',300), UNS('1507003211169-0a1dd7228f2d',300), UNS('1558618666-fcd25c85cd64',300)],
   inmobiliaria: [UNS('1560518883-ce09059eeffa',300), UNS('1570129477492-45c003edd2be',300), UNS('1582653291997-79a4f2b7d9a7',300)],
-  floristeria:  [UNS('1487530811576-3780949e7b0b',300), UNS('1499444819541-60e4a698ecf5',300), UNS('1439127989242-9da695f9ca26',300)],
+  floristeria:  [UNS('1490750967868-88aa4f44baee',300), UNS('1499444819541-60e4a698ecf5',300), UNS('1439127989242-9da695f9ca26',300)],
   yoga:         [UNS('1571019614242-c5c5dee9f50b',300), UNS('1506126613408-eca07ce68773',300), UNS('1544367654-00eb648f0b1f',300)],
   cocteleria:   [UNS('1514362545857-3bc16c4c7d1b',300), UNS('1510812431401-41d2bd2722f3',300), UNS('1517248135467-4c7edcad34c4',300)],
   street_food:  [UNS('1565299624946-b28f40a0ae38',300), UNS('1567306226416-28f0efdc88ce',300), UNS('1482049016688-2d3e1b311543',300)],
@@ -153,9 +153,9 @@ const SECTOR_POSTS: Partial<Record<SocialSector, string[]>> = {
   dental:       [UNS('1559757148-5c350d0d3c56',300), UNS('1519494026892-80bbd2d6fd0d',300), UNS('1512621776951-a57141f2eefd',300)],
   clinica:      [UNS('1519494026892-80bbd2d6fd0d',300), UNS('1559757148-5c350d0d3c56',300), UNS('1512621776951-a57141f2eefd',300)],
   nutricion:    [UNS('1512621776951-a57141f2eefd',300), UNS('1571019614242-c5c5dee9f50b',300), UNS('1519494026892-80bbd2d6fd0d',300)],
-  decoracion:   [UNS('1555041469-dd5e56068b4d',300), UNS('1504307651254-35680f356dfd',300), UNS('1416879595882-3373a0480b5b',300)],
-  jardineria:   [UNS('1416879595882-3373a0480b5b',300), UNS('1487530811576-3780949e7b0b',300), UNS('1439127989242-9da695f9ca26',300)],
-  reformas:     [UNS('1504307651254-35680f356dfd',300), UNS('1555041469-dd5e56068b4d',300), UNS('1560518883-ce09059eeffa',300)],
+  decoracion:   [UNS('1513694203311-0126e4d700d5',300), UNS('1504307651254-35680f356dfd',300), UNS('1416879595882-3373a0480b5b',300)],
+  jardineria:   [UNS('1416879595882-3373a0480b5b',300), UNS('1490750967868-88aa4f44baee',300), UNS('1439127989242-9da695f9ca26',300)],
+  reformas:     [UNS('1504307651254-35680f356dfd',300), UNS('1513694203311-0126e4d700d5',300), UNS('1560518883-ce09059eeffa',300)],
   fotografia:   [UNS('1516035069371-29a1b244cc32',300), UNS('1506126613408-eca07ce68773',300), UNS('1544367654-00eb648f0b1f',300)],
 };
 const DEFAULT_POSTS = [UNS('1482049016688-2d3e1b311543',300), UNS('1558618666-fcd25c85cd64',300), UNS('1570129477492-45c003edd2be',300)];
@@ -275,39 +275,45 @@ const PUBLISH_MODE_IMGS: Record<PublishMode, string> = {
 // ─── Shared design tokens ─────────────────────────────────────────────────────
 
 const ACCENT = '#0F766E';
-const BG_L   = '#0f0e0c';
-const BG_R   = '#141720';
-const INK    = '#e8edf8';
-const MUTED  = 'rgba(232,237,248,0.4)';
-const BORDER = 'rgba(255,255,255,0.08)';
+const BG_L   = '#eeeef0';
+const BG_R   = '#f5f5f7';
+const INK    = '#111827';
+const MUTED  = '#6b7280';
+const BORDER = '#d4d4d8';
+const FONT   = "var(--font-barlow), 'Barlow', sans-serif";
+const FONT_C = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '12px 16px',
-  background: 'rgba(255,255,255,0.06)',
-  border: '1px solid rgba(255,255,255,0.12)',
-  borderRadius: 10, color: INK,
-  fontFamily: "'Cabinet Grotesk', sans-serif",
+  width: '100%', padding: '14px 16px',
+  background: '#ffffff',
+  border: `1px solid ${BORDER}`,
+  borderRadius: 8, color: INK,
+  fontFamily: FONT,
   fontSize: '0.9rem', outline: 'none',
+  transition: 'border-color 0.15s',
 };
 
 const selectStyle: React.CSSProperties = {
-  width: '100%', padding: '12px 36px 12px 16px',
-  background: '#1a1e2d',
-  border: '1px solid rgba(255,255,255,0.12)',
-  borderRadius: 10, color: INK,
-  fontFamily: "'Cabinet Grotesk', sans-serif",
-  fontSize: '0.9rem', outline: 'none', cursor: 'pointer',
+  width: '100%', padding: '14px 40px 14px 16px',
+  background: '#ffffff',
+  border: `1px solid ${BORDER}`,
+  borderRadius: 8, color: INK,
+  fontFamily: FONT,
+  fontSize: 14, outline: 'none', cursor: 'pointer',
   appearance: 'none' as React.CSSProperties['appearance'],
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7a99' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14L2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E")`,
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%236b7280' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E")`,
   backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'right 14px center',
+  backgroundPosition: 'right 12px center',
+  backgroundSize: '14px',
+  transition: 'border-color 0.15s, box-shadow 0.15s',
+  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6, fontFamily: "'Cabinet Grotesk', sans-serif" }}>
+    <div style={{ fontSize: 10, fontWeight: 600, color: MUTED, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, fontFamily: FONT }}>
       {children}
     </div>
   );
@@ -315,7 +321,7 @@ function Label({ children }: { children: React.ReactNode }) {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 900, fontSize: '1.55rem', color: INK, letterSpacing: '-0.03em', marginBottom: 6, lineHeight: 1.15 }}>
+    <div style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: 'clamp(1.4rem, 3vw, 1.8rem)', color: INK, letterSpacing: '0.01em', textTransform: 'uppercase', marginBottom: 6, lineHeight: 1.0 }}>
       {children}
     </div>
   );
@@ -323,7 +329,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function StepSub({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.88rem', color: MUTED, marginBottom: 28, lineHeight: 1.6 }}>
+    <div style={{ fontFamily: FONT, fontSize: 14, color: MUTED, marginBottom: 28, lineHeight: 1.6 }}>
       {children}
     </div>
   );
@@ -332,11 +338,14 @@ function StepSub({ children }: { children: React.ReactNode }) {
 function BtnPrimary({ onClick, disabled, children }: { onClick?: () => void; disabled?: boolean; children: React.ReactNode }) {
   return (
     <button onClick={onClick} disabled={disabled} style={{
-      padding: '13px 28px', borderRadius: 40,
-      background: disabled ? 'rgba(255,255,255,0.1)' : ACCENT,
-      color: 'white', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer',
-      fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '0.9rem',
-      display: 'inline-flex', alignItems: 'center', gap: 8, transition: 'all 0.2s',
+      padding: '12px 28px', borderRadius: 8,
+      background: disabled ? '#e5e7eb' : INK,
+      color: disabled ? '#9ca3af' : '#ffffff', border: 'none',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      fontFamily: FONT_C, fontWeight: 700, fontSize: 13,
+      textTransform: 'uppercase', letterSpacing: '0.08em',
+      display: 'inline-flex', alignItems: 'center', gap: 8,
+      transition: 'all 0.15s',
     }}>
       {children}
     </button>
@@ -346,11 +355,11 @@ function BtnPrimary({ onClick, disabled, children }: { onClick?: () => void; dis
 function BtnBack({ onClick }: { onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
-      padding: '13px 20px', borderRadius: 40,
-      background: 'transparent', border: '1px solid rgba(255,255,255,0.15)',
+      padding: '12px 20px', borderRadius: 8,
+      background: '#ffffff', border: `1px solid ${BORDER}`,
       color: MUTED, cursor: 'pointer',
-      fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.9rem',
-      transition: 'all 0.2s',
+      fontFamily: FONT, fontWeight: 600, fontSize: 13,
+      transition: 'all 0.15s',
     }}>
       ← Atrás
     </button>
@@ -363,12 +372,12 @@ function MockPost({ img, caption, index }: { img: string; caption: string; index
   const comms   = [18, 24, 9];
   return (
     <div style={{
-      background: '#1a1d2e', borderRadius: 14, overflow: 'hidden',
-      border: '1px solid rgba(255,255,255,0.07)', flexShrink: 0, width: 200,
+      background: '#ffffff', borderRadius: 14, overflow: 'hidden',
+      border: '1px solid #e5e7eb', flexShrink: 0, width: 200,
     }}>
       <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ width: 28, height: 28, borderRadius: '50%', background: `linear-gradient(135deg, ${ACCENT}, #14B8A6)`, flexShrink: 0 }} />
-        <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.75rem', fontWeight: 700, color: INK }}>{handles[index]}</span>
+        <div style={{ width: 28, height: 28, borderRadius: '50%', background: ACCENT, flexShrink: 0 }} />
+        <span style={{ fontFamily: FONT, fontSize: '0.75rem', fontWeight: 700, color: INK }}>{handles[index]}</span>
       </div>
       <img src={img} alt="" style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />
       <div style={{ padding: '10px 12px' }}>
@@ -376,7 +385,7 @@ function MockPost({ img, caption, index }: { img: string; caption: string; index
           <span style={{ fontSize: '0.78rem', color: MUTED }}>♥ {likes[index]}</span>
           <span style={{ fontSize: '0.78rem', color: MUTED }}>💬 {comms[index]}</span>
         </div>
-        <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.75rem', color: INK, lineHeight: 1.5 }}>
+        <div style={{ fontFamily: FONT, fontSize: '0.75rem', color: INK, lineHeight: 1.5 }}>
           {caption}
         </div>
       </div>
@@ -410,8 +419,8 @@ export default function OnboardingPage() {
   const [publishMode,      setPublishMode]      = useState<PublishMode>('manual');
   const [publishFrequency, setPublishFrequency] = useState<2 | 5 | 7>(5);
   const [locationDropdown, setLocationDropdown] = useState('');
-  const [primaryColor,     setPrimaryColor]     = useState('#FF6B35');
-  const [secondaryColor,   setSecondaryColor]   = useState('#1A1A2E');
+  const [primaryColor,     setPrimaryColor]     = useState('#0F766E');
+  const [secondaryColor,   setSecondaryColor]   = useState('#374151');
   const [promoCodeId,      setPromoCodeId]      = useState<string | null>(null);
   const [discountText,     setDiscountText]     = useState('');
 
@@ -481,7 +490,7 @@ export default function OnboardingPage() {
 
   const rightStep1 = (
     <div style={{ padding: '48px 40px', display: 'flex', flexDirection: 'column', gap: 16, height: '100%', overflowY: 'auto' }}>
-      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Cabinet Grotesk', sans-serif", marginBottom: 8 }}>
+      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT, marginBottom: 8 }}>
         Así quedará tu feed
       </div>
       <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
@@ -489,8 +498,8 @@ export default function OnboardingPage() {
           <MockPost key={i} img={img} caption={previewCaptions[i] ?? DEFAULT_CAPTIONS[i]} index={i} />
         ))}
       </div>
-      <div style={{ marginTop: 'auto', padding: '20px', background: 'rgba(255,255,255,0.04)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.8rem', color: MUTED, lineHeight: 1.7 }}>
+      <div style={{ marginTop: 'auto', padding: '20px', background: '#f3f4f6', borderRadius: 12, border: '1px solid #f3f4f6' }}>
+        <div style={{ fontFamily: FONT, fontSize: '0.8rem', color: MUTED, lineHeight: 1.7 }}>
           NeuroPost adapta el tono, los hashtags y el tipo de contenido según tu sector. Puedes añadir un sector secundario con clic derecho.
         </div>
       </div>
@@ -499,7 +508,7 @@ export default function OnboardingPage() {
 
   const rightStep2 = (
     <div style={{ padding: '48px 40px', height: '100%', overflowY: 'auto' }}>
-      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Cabinet Grotesk', sans-serif", marginBottom: 16 }}>
+      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT, marginBottom: 16 }}>
         Preview de tu feed
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 3, borderRadius: 12, overflow: 'hidden' }}>
@@ -512,7 +521,7 @@ export default function OnboardingPage() {
           <div key={c} style={{ flex: 1, height: 6, borderRadius: 3, background: c }} />
         ))}
       </div>
-      <div style={{ marginTop: 8, fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.78rem', color: MUTED }}>
+      <div style={{ marginTop: 8, fontFamily: FONT, fontSize: '0.78rem', color: MUTED }}>
         Paleta de colores · {selectedStyle.tag}
       </div>
     </div>
@@ -520,29 +529,29 @@ export default function OnboardingPage() {
 
   const rightStep3 = (
     <div style={{ padding: '48px 40px', display: 'flex', flexDirection: 'column', gap: 20, height: '100%' }}>
-      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Cabinet Grotesk', sans-serif" }}>
+      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT }}>
         Tu tarjeta de negocio
       </div>
-      <div style={{ background: '#1a1d2e', borderRadius: 18, padding: '32px', border: '1px solid rgba(255,255,255,0.08)', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ width: 56, height: 56, borderRadius: 14, background: `linear-gradient(135deg, ${ACCENT}, #14B8A6)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: 'white', fontFamily: "'Cabinet Grotesk', sans-serif" }}>
+      <div style={{ background: '#ffffff', borderRadius: 18, padding: '32px', border: '1px solid #e5e7eb', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ width: 56, height: 56, borderRadius: 14, background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: 'white', fontFamily: FONT }}>
           {name ? name[0].toUpperCase() : 'N'}
         </div>
         <div>
-          <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 900, fontSize: '1.4rem', color: INK, letterSpacing: '-0.03em' }}>
+          <div style={{ fontFamily: FONT, fontWeight: 900, fontSize: '1.4rem', color: INK, letterSpacing: '-0.03em' }}>
             {name || 'Tu negocio'}
           </div>
-          {location && <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.85rem', color: MUTED, marginTop: 2 }}>{location}</div>}
+          {location && <div style={{ fontFamily: FONT, fontSize: '0.85rem', color: MUTED, marginTop: 2 }}>{location}</div>}
         </div>
         {slogan && (
-          <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontStyle: 'italic', fontSize: '0.9rem', color: 'rgba(232,237,248,0.6)', borderLeft: `3px solid ${ACCENT}`, paddingLeft: 12 }}>
+          <div style={{ fontFamily: FONT, fontStyle: 'italic', fontSize: '0.9rem', color: '#6b7280', borderLeft: `3px solid ${ACCENT}`, paddingLeft: 12 }}>
             &ldquo;{slogan}&rdquo;
           </div>
         )}
         <div style={{ marginTop: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ background: 'rgba(15,118,110,0.15)', color: ACCENT, fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: 40, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <span style={{ background: 'rgba(15,118,110,0.15)', color: ACCENT, fontFamily: FONT, fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: 40, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             {sector}
           </span>
-          <span style={{ background: 'rgba(255,255,255,0.07)', color: MUTED, fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: 40 }}>
+          <span style={{ background: '#e5e7eb', color: MUTED, fontFamily: FONT, fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: 40 }}>
             {visualStyle}
           </span>
         </div>
@@ -646,24 +655,24 @@ export default function OnboardingPage() {
 
   const rightStep4 = (
     <div style={{ padding: '48px 40px', height: '100%' }}>
-      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Cabinet Grotesk', sans-serif", marginBottom: 16 }}>
+      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT, marginBottom: 16 }}>
         Ejemplo de post con tu tono
       </div>
-      <div style={{ background: '#1a1d2e', borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)' }}>
-        <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ width: 32, height: 32, borderRadius: '50%', background: `linear-gradient(135deg, ${ACCENT}, #14B8A6)` }} />
+      <div style={{ background: '#ffffff', borderRadius: 14, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+        <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid #f3f4f6' }}>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: ACCENT }} />
           <div>
-            <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.82rem', fontWeight: 700, color: INK }}>{name || 'tunegocio'}</div>
-            <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.7rem', color: MUTED }}>hace 2h</div>
+            <div style={{ fontFamily: FONT, fontSize: '0.82rem', fontWeight: 700, color: INK }}>{name || 'tunegocio'}</div>
+            <div style={{ fontFamily: FONT, fontSize: '0.7rem', color: MUTED }}>hace 2h</div>
           </div>
         </div>
         <img src={previewPosts[0]} alt="" style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }} />
         <div style={{ padding: '14px' }}>
-          <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.85rem', color: INK, lineHeight: 1.6, marginBottom: 8 }}>
+          <div style={{ fontFamily: FONT, fontSize: '0.85rem', color: INK, lineHeight: 1.6, marginBottom: 8 }}>
             {toneExamples[tone]}
           </div>
           {keywords.length > 0 && (
-            <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.8rem', color: '#818cf8' }}>
+            <div style={{ fontFamily: FONT, fontSize: '0.8rem', color: ACCENT }}>
               {keywords.slice(0, 3).map((k) => `#${k}`).join(' ')}
             </div>
           )}
@@ -686,33 +695,33 @@ export default function OnboardingPage() {
 
   const rightStep5 = (
     <div style={{ padding: '48px 40px', height: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Cabinet Grotesk', sans-serif" }}>
+      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT }}>
         Cómo funciona
       </div>
-      <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)' }}>
+      <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
         <img src={PUBLISH_MODE_IMGS[publishMode]} alt="" style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />
-        <div style={{ background: '#1a1d2e', padding: 24 }}>
-          <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '1rem', color: INK, marginBottom: 8 }}>
+        <div style={{ background: '#ffffff', padding: 24 }}>
+          <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: '1rem', color: INK, marginBottom: 8 }}>
             {PUBLISH_MODE_OPTIONS.find((m) => m.value === publishMode)?.label}
           </div>
-          <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.85rem', color: MUTED, lineHeight: 1.7, marginBottom: 20 }}>
+          <div style={{ fontFamily: FONT, fontSize: '0.85rem', color: MUTED, lineHeight: 1.7, marginBottom: 20 }}>
             {modeDescriptions[publishMode]}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
             {modeSteps[publishMode].map((s, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 24, height: 24, borderRadius: '50%', background: `rgba(15,118,110,${0.3 + i * 0.2})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, color: ACCENT, fontFamily: "'Cabinet Grotesk', sans-serif", flexShrink: 0 }}>
+                <div style={{ width: 24, height: 24, borderRadius: '50%', background: `rgba(15,118,110,${0.3 + i * 0.2})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, color: ACCENT, fontFamily: FONT, flexShrink: 0 }}>
                   {i + 1}
                 </div>
-                <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.83rem', color: INK }}>{s}</div>
+                <div style={{ fontFamily: FONT, fontSize: '0.83rem', color: INK }}>{s}</div>
               </div>
             ))}
           </div>
           <div style={{ background: 'rgba(15,118,110,0.08)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 900, fontSize: '1.8rem', color: ACCENT }}>{publishFrequency}</div>
+            <div style={{ fontFamily: FONT, fontWeight: 900, fontSize: '1.8rem', color: ACCENT }}>{publishFrequency}</div>
             <div>
-              <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.78rem', fontWeight: 700, color: INK }}>posts por semana</div>
-              <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.72rem', color: MUTED, marginTop: 1 }}>≈ {publishFrequency * 4} publicaciones al mes</div>
+              <div style={{ fontFamily: FONT, fontSize: '0.78rem', fontWeight: 700, color: INK }}>posts por semana</div>
+              <div style={{ fontFamily: FONT, fontSize: '0.72rem', color: MUTED, marginTop: 1 }}>≈ {publishFrequency * 4} publicaciones al mes</div>
             </div>
           </div>
         </div>
@@ -728,22 +737,22 @@ export default function OnboardingPage() {
     <div className="onboarding-page" style={{ position: 'fixed', inset: 0, display: 'flex', zIndex: 50, overflow: 'hidden' }}>
 
       {/* ── Left column ── */}
-      <div style={{ width: '42%', background: BG_L, display: 'flex', flexDirection: 'column', padding: '44px 44px', overflowY: 'auto', flexShrink: 0 }}>
+      <div style={{ width: '58%', background: BG_L, display: 'flex', flexDirection: 'column', padding: '44px 48px', overflowY: 'auto', flexShrink: 0 }}>
 
         {/* Logo */}
-        <Link href="/" style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 900, fontSize: '1.3rem', color: INK, letterSpacing: '-0.04em', marginBottom: 36, flexShrink: 0, textDecoration: 'none', cursor: 'pointer' }}>
+        <Link href="/" style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '1.2rem', color: INK, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 36, flexShrink: 0, textDecoration: 'none', cursor: 'pointer' }}>
           NeuroPost
         </Link>
 
         {/* Progress */}
         <div style={{ marginBottom: 36, flexShrink: 0 }}>
-          <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
+          <div style={{ display: 'flex', gap: 2, marginBottom: 8 }}>
             {([1,2,3,4,5] as Step[]).map((s) => (
-              <div key={s} style={{ flex: 1, height: 3, borderRadius: 2, background: s <= step ? ACCENT : 'rgba(255,255,255,0.1)', transition: 'background 0.3s' }} />
+              <div key={s} style={{ flex: 1, height: 2, background: s <= step ? INK : '#e5e7eb', transition: 'background 0.3s' }} />
             ))}
           </div>
-          <p style={{ fontSize: '0.72rem', color: MUTED, fontFamily: "'Cabinet Grotesk', sans-serif", letterSpacing: '0.06em' }}>
-            PASO {step} DE 5
+          <p style={{ fontSize: 10, color: MUTED, fontFamily: FONT, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+            Paso {step} de 5
           </p>
         </div>
 
@@ -756,7 +765,7 @@ export default function OnboardingPage() {
             <div style={{ flex: 1, overflowY: 'auto', marginBottom: 24 }}>
               {SECTOR_GROUPS.map((group) => (
                 <div key={group.group} style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Cabinet Grotesk', sans-serif", marginBottom: 10 }}>
+                  <div style={{ fontSize: '0.68rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT, marginBottom: 10 }}>
                     {group.group}
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
@@ -771,7 +780,7 @@ export default function OnboardingPage() {
                           onContextMenu={(e) => { e.preventDefault(); toggleSecondary(s.value as SocialSector); }}
                           style={{
                             position: 'relative', height: 80, borderRadius: 10,
-                            overflow: 'hidden', border: `2px solid ${isPrimary ? ACCENT : isSecondary ? '#059669' : 'transparent'}`,
+                            overflow: 'hidden', border: `2px solid ${isPrimary ? ACCENT : isSecondary ? ACCENT : 'transparent'}`,
                             cursor: 'pointer', padding: 0, background: 'transparent',
                             outline: 'none', transition: 'border-color 0.2s, transform 0.15s',
                             transform: isPrimary ? 'scale(1.02)' : 'scale(1)',
@@ -780,14 +789,14 @@ export default function OnboardingPage() {
                         >
                           <img src={s.img} alt={s.label} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                           <div style={{ position: 'absolute', inset: 0, background: isPrimary ? 'rgba(15,118,110,0.25)' : 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.1) 60%)' }} />
-                          <div style={{ position: 'absolute', bottom: 6, left: 7, right: 7, fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.72rem', color: 'white', textAlign: 'left', lineHeight: 1.2 }}>
+                          <div style={{ position: 'absolute', bottom: 6, left: 7, right: 7, fontFamily: FONT, fontWeight: 700, fontSize: '0.72rem', color: 'white', textAlign: 'left', lineHeight: 1.2 }}>
                             {s.label}
                           </div>
                           {isPrimary && (
                             <div style={{ position: 'absolute', top: 6, right: 6, width: 18, height: 18, borderRadius: '50%', background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'white', fontWeight: 900 }}>✓</div>
                           )}
                           {isSecondary && (
-                            <div style={{ position: 'absolute', top: 6, right: 6, width: 18, height: 18, borderRadius: '50%', background: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'white', fontWeight: 900 }}>+</div>
+                            <div style={{ position: 'absolute', top: 6, right: 6, width: 18, height: 18, borderRadius: '50%', background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'white', fontWeight: 900 }}>+</div>
                           )}
                         </button>
                       );
@@ -815,7 +824,7 @@ export default function OnboardingPage() {
                   return (
                     <button key={style.value} type="button" onClick={() => setVisualStyle(style.value)} style={{
                       padding: 0, borderRadius: 12, overflow: 'hidden',
-                      border: `2px solid ${selected ? ACCENT : 'rgba(255,255,255,0.08)'}`,
+                      border: `2px solid ${selected ? ACCENT : '#e5e7eb'}`,
                       cursor: 'pointer', background: 'transparent', outline: 'none',
                       transition: 'border-color 0.2s, box-shadow 0.2s',
                       boxShadow: selected ? `0 0 0 4px rgba(15,118,110,0.12)` : 'none',
@@ -826,11 +835,11 @@ export default function OnboardingPage() {
                           <img key={i} src={img} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block', filter: STYLE_FILTERS[style.value] }} />
                         ))}
                       </div>
-                      <div style={{ background: '#1a1d2e', padding: '9px 11px' }}>
-                        <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '0.8rem', color: INK, marginBottom: 2 }}>
+                      <div style={{ background: '#ffffff', padding: '9px 11px' }}>
+                        <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: '0.8rem', color: INK, marginBottom: 2 }}>
                           {style.title}
                         </div>
-                        <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.65rem', color: MUTED }}>
+                        <div style={{ fontFamily: FONT, fontSize: '0.65rem', color: MUTED }}>
                           {style.tag}
                         </div>
                       </div>
@@ -922,17 +931,17 @@ export default function OnboardingPage() {
                   {TONE_OPTIONS.map((t) => (
                     <button key={t.value} type="button" onClick={() => setTone(t.value)} style={{
                       padding: '14px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
-                      border: `1.5px solid ${tone === t.value ? ACCENT : 'rgba(255,255,255,0.08)'}`,
-                      background: tone === t.value ? 'rgba(15,118,110,0.1)' : 'rgba(255,255,255,0.03)',
+                      border: `1.5px solid ${tone === t.value ? ACCENT : '#e5e7eb'}`,
+                      background: tone === t.value ? 'rgba(15,118,110,0.1)' : '#ffffff',
                       outline: 'none', transition: 'all 0.15s',
                       display: 'flex', flexDirection: 'column', gap: 4,
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: '0.88rem', color: tone === t.value ? INK : 'rgba(232,237,248,0.7)' }}>{t.label}</div>
+                        <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: '0.88rem', color: tone === t.value ? INK : '#6b7280' }}>{t.label}</div>
                         {tone === t.value && <div style={{ width: 16, height: 16, borderRadius: '50%', background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', color: 'white', fontWeight: 900, flexShrink: 0 }}>✓</div>}
                       </div>
-                      <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.72rem', color: MUTED }}>{t.desc}</div>
-                      <div style={{ marginTop: 6, fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.7rem', color: tone === t.value ? 'rgba(232,237,248,0.6)' : 'rgba(232,237,248,0.28)', fontStyle: 'italic', lineHeight: 1.5, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8 }}>
+                      <div style={{ fontFamily: FONT, fontSize: '0.72rem', color: MUTED }}>{t.desc}</div>
+                      <div style={{ marginTop: 6, fontFamily: FONT, fontSize: '0.7rem', color: tone === t.value ? '#6b7280' : '#d1d5db', fontStyle: 'italic', lineHeight: 1.5, borderTop: '1px solid #f3f4f6', paddingTop: 8 }}>
                         &ldquo;{toneExamples[t.value]}&rdquo;
                       </div>
                     </button>
@@ -952,10 +961,10 @@ export default function OnboardingPage() {
                         onClick={() => active ? removeTag(keywords, setKeywords, kw) : addTag(keywords, setKeywords, kw)}
                         style={{
                           padding: '7px 14px', borderRadius: 40, cursor: 'pointer',
-                          fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.82rem', fontWeight: 700,
-                          border: `1.5px solid ${active ? ACCENT : 'rgba(255,255,255,0.1)'}`,
-                          background: active ? ACCENT : 'rgba(255,255,255,0.04)',
-                          color: active ? 'white' : 'rgba(232,237,248,0.6)',
+                          fontFamily: FONT, fontSize: '0.82rem', fontWeight: 700,
+                          border: `1.5px solid ${active ? ACCENT : '#e5e7eb'}`,
+                          background: active ? ACCENT : '#f3f4f6',
+                          color: active ? 'white' : '#6b7280',
                           transition: 'all 0.15s', outline: 'none',
                         }}
                       >
@@ -984,8 +993,8 @@ export default function OnboardingPage() {
               {PUBLISH_MODE_OPTIONS.map((m) => (
                 <button key={m.value} type="button" onClick={() => setPublishMode(m.value)} style={{
                   padding: 0, borderRadius: 14, cursor: 'pointer', textAlign: 'left',
-                  border: `1.5px solid ${publishMode === m.value ? ACCENT : 'rgba(255,255,255,0.08)'}`,
-                  background: publishMode === m.value ? 'rgba(15,118,110,0.08)' : 'rgba(255,255,255,0.02)',
+                  border: `1.5px solid ${publishMode === m.value ? ACCENT : '#e5e7eb'}`,
+                  background: publishMode === m.value ? 'rgba(15,118,110,0.08)' : '#ffffff',
                   outline: 'none', transition: 'all 0.15s', overflow: 'hidden',
                   boxShadow: publishMode === m.value ? `0 0 0 3px rgba(15,118,110,0.1)` : 'none',
                 }}>
@@ -993,8 +1002,8 @@ export default function OnboardingPage() {
                   <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
                     <span style={{ fontSize: '1.3rem', flexShrink: 0 }}>{m.emoji}</span>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.9rem', color: publishMode === m.value ? INK : 'rgba(232,237,248,0.7)' }}>{m.label}</div>
-                      <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.78rem', color: MUTED, marginTop: 2 }}>{m.desc}</div>
+                      <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: '0.9rem', color: publishMode === m.value ? INK : '#6b7280' }}>{m.label}</div>
+                      <div style={{ fontFamily: FONT, fontSize: '0.78rem', color: MUTED, marginTop: 2 }}>{m.desc}</div>
                     </div>
                     {publishMode === m.value && <span style={{ color: ACCENT, fontWeight: 900, fontSize: '1rem', flexShrink: 0 }}>✓</span>}
                   </div>
@@ -1012,20 +1021,20 @@ export default function OnboardingPage() {
                     onClick={() => setPublishFrequency(freq)}
                     style={{
                       flex: 1, padding: '14px 8px', borderRadius: 12, cursor: 'pointer', textAlign: 'center',
-                      border: `1.5px solid ${publishFrequency === freq ? ACCENT : 'rgba(255,255,255,0.08)'}`,
-                      background: publishFrequency === freq ? 'rgba(15,118,110,0.1)' : 'rgba(255,255,255,0.03)',
+                      border: `1.5px solid ${publishFrequency === freq ? ACCENT : '#e5e7eb'}`,
+                      background: publishFrequency === freq ? 'rgba(15,118,110,0.1)' : '#ffffff',
                       outline: 'none', transition: 'all 0.15s',
                     }}
                   >
-                    <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 900, fontSize: '1.5rem', color: publishFrequency === freq ? INK : 'rgba(232,237,248,0.4)' }}>{freq}</div>
-                    <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontSize: '0.7rem', color: MUTED, marginTop: 2 }}>posts/sem</div>
+                    <div style={{ fontFamily: FONT, fontWeight: 900, fontSize: '1.5rem', color: publishFrequency === freq ? INK : '#9ca3af' }}>{freq}</div>
+                    <div style={{ fontFamily: FONT, fontSize: '0.7rem', color: MUTED, marginTop: 2 }}>posts/sem</div>
                   </button>
                 ))}
               </div>
             </div>
 
             <div style={{ marginBottom: 20 }}>
-              <Label>Colores de marca</Label>
+              <Label>Colores de marca <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400, letterSpacing: 0 }}>(opcional)</span></Label>
               <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
                 {[{ label: 'Principal', value: primaryColor, set: setPrimaryColor }, { label: 'Secundario', value: secondaryColor, set: setSecondaryColor }].map((c) => {
                   const colorInputId = `brand-color-${c.label.toLowerCase().replace(/\s+/g, '-')}`;
@@ -1055,7 +1064,7 @@ export default function OnboardingPage() {
                 onValidCoupon={(id, text) => { setPromoCodeId(id); setDiscountText(text); }}
                 onClearCoupon={() => { setPromoCodeId(null); setDiscountText(''); }}
               />
-              {discountText && <p style={{ fontSize: '0.8rem', color: '#4ade80', marginTop: 6, fontFamily: "'Cabinet Grotesk', sans-serif" }}>{discountText}</p>}
+              {discountText && <p style={{ fontSize: '0.8rem', color: '#4ade80', marginTop: 6, fontFamily: FONT }}>{discountText}</p>}
             </div>
 
             <div style={{ display: 'flex', gap: 10, marginTop: 'auto', paddingBottom: 4 }}>
@@ -1096,7 +1105,7 @@ export default function OnboardingPage() {
           display: block;
           font-size: 0.78rem;
           font-weight: 700;
-          font-family: 'Cabinet Grotesk', sans-serif;
+          font-family: 'Barlow', sans-serif;
           color: ${INK};
         }
 

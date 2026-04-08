@@ -1,70 +1,65 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { Download, ExternalLink } from 'lucide-react';
+import { Download, ExternalLink, FileText, BarChart3, CheckCircle2, ArrowRight } from 'lucide-react';
+
+const f = "var(--font-barlow), 'Barlow', sans-serif";
+const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 type Post = {
-  id: string;
-  image_url: string | null;
-  edited_image_url: string | null;
-  caption: string | null;
-  hashtags: string[] | null;
-  status: string;
-  platform: string[];
-  format: string | null;
-  published_at: string | null;
-  created_at: string;
-  ig_post_id: string | null;
+  id: string; image_url: string | null; edited_image_url: string | null;
+  caption: string | null; hashtags: string[] | null; status: string;
+  platform: string[]; format: string | null; published_at: string | null;
+  created_at: string; ig_post_id: string | null;
 };
 
 type Invoice = {
-  id: string;
-  number: string | null;
-  amount: number;
-  currency: string;
-  status: string | null;
-  period_start: number;
-  period_end: number;
-  pdf_url: string | null;
-  created: number;
+  id: string; number: string | null; amount: number; currency: string;
+  status: string | null; period_start: number; period_end: number;
+  pdf_url: string | null; created: number;
 };
 
-const STATUS_COLOR: Record<string, { color: string; bg: string; label: string }> = {
-  published: { color: '#065f46', bg: '#d1fae5', label: 'Publicado' },
-  approved:  { color: '#1d4ed8', bg: '#dbeafe', label: 'Aprobado' },
-  pending:   { color: '#92400e', bg: '#fef3c7', label: 'Pendiente' },
-  rejected:  { color: '#991b1b', bg: '#fee2e2', label: 'Rechazado' },
+const STATUS_STYLE: Record<string, { color: string; bg: string; label: string }> = {
+  published: { color: '#0F766E', bg: '#f0fdf4', label: 'Publicado' },
+  approved:  { color: '#1565c0', bg: '#e3f2fd', label: 'Aprobado' },
+  pending:   { color: '#e65100', bg: '#fff3e0', label: 'Pendiente' },
+  rejected:  { color: '#c62828', bg: '#ffebee', label: 'Rechazado' },
   draft:     { color: '#6b7280', bg: '#f3f4f6', label: 'Borrador' },
-  failed:    { color: '#991b1b', bg: '#fee2e2', label: 'Error' },
+  failed:    { color: '#c62828', bg: '#ffebee', label: 'Error' },
+};
+
+const selectStyle: React.CSSProperties = {
+  padding: '8px 32px 8px 12px', border: '1px solid #d4d4d8', background: '#ffffff',
+  fontFamily: f, fontSize: 13, color: '#111827', cursor: 'pointer', outline: 'none',
+  appearance: 'none' as React.CSSProperties['appearance'],
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%236b7280' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E")`,
+  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center',
 };
 
 export default function HistorialPage() {
-  const [posts, setPosts]       = useState<Post[]>([]);
-  const [stats, setStats]       = useState({ total: 0, published: 0, approvalRate: 0 });
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [stats, setStats] = useState({ total: 0, published: 0, approvalRate: 0 });
   const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [tab, setTab]           = useState<'posts' | 'facturas'>('posts');
-  const [loading, setLoading]   = useState(true);
+  const [tab, setTab] = useState<'posts' | 'facturas'>('posts');
+  const [loading, setLoading] = useState(true);
   const [invoicesLoading, setInvoicesLoading] = useState(false);
-  const [filters, setFilters]   = useState({ status: 'all', platform: 'all', format: 'all', range: '3m' });
+  const [filters, setFilters] = useState({ status: 'all', platform: 'all', format: 'all', range: '3m' });
 
   useEffect(() => {
+    let cancelled = false;
     const params = new URLSearchParams(filters as Record<string, string>);
-    setLoading(true);
     fetch(`/api/historial?${params}`).then((r) => r.json()).then((d) => {
-      setPosts(d.posts ?? []);
-      setStats(d.stats ?? { total: 0, published: 0, approvalRate: 0 });
-      setLoading(false);
+      if (cancelled) return;
+      setPosts(d.posts ?? []); setStats(d.stats ?? { total: 0, published: 0, approvalRate: 0 }); setLoading(false);
     });
+    return () => { cancelled = true; };
   }, [filters]);
 
   useEffect(() => {
     if (tab === 'facturas' && invoices.length === 0) {
-      setInvoicesLoading(true);
-      fetch('/api/billing/invoices').then((r) => r.json()).then((d) => {
-        setInvoices(d.invoices ?? []);
-        setInvoicesLoading(false);
-      });
+      fetch('/api/billing/invoices').then((r) => r.json()).then((d) => { setInvoices(d.invoices ?? []); setInvoicesLoading(false); });
     }
   }, [tab, invoices.length]);
 
@@ -72,103 +67,144 @@ export default function HistorialPage() {
     const res = await fetch('/api/historial/export');
     if (!res.ok) { toast.error('Error al exportar'); return; }
     const blob = await res.blob();
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href = url; a.download = 'historial.csv'; a.click();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'historial.csv'; a.click();
     URL.revokeObjectURL(url);
   }
 
+  const approvalColor = stats.approvalRate >= 70 ? '#0F766E' : stats.approvalRate >= 40 ? '#e65100' : '#c62828';
+
   return (
-    <div style={{ padding: '32px 40px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+    <div className="page-content" style={{ maxWidth: 1000 }}>
+      {/* ── Header ── */}
+      <div style={{ padding: '48px 0 32px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>Historial</h1>
-          <p style={{ color: '#6b7280', fontSize: 14 }}>Todo el contenido creado para tu negocio</p>
+          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, marginBottom: 8 }}>
+            Historial
+          </h1>
+          <p style={{ color: '#6b7280', fontSize: 15, fontFamily: f }}>Analiza, filtra y revisa todo tu contenido</p>
         </div>
-        <button onClick={exportCSV} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '9px 18px', border: '1px solid #e5e7eb', borderRadius: 10, background: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-          <Download size={15} /> Exportar CSV
+        <button onClick={exportCSV} style={{
+          display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px',
+          border: '1px solid #d4d4d8', background: '#ffffff', cursor: 'pointer',
+          fontFamily: f, fontSize: 12, fontWeight: 600, color: '#6b7280', flexShrink: 0,
+        }}>
+          <Download size={14} /> Exportar CSV
         </button>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 24, borderBottom: '1px solid #e5e7eb' }}>
+      {/* ── Tabs ── */}
+      <div style={{ display: 'flex', gap: 32, borderBottom: '1px solid #d4d4d8', marginBottom: 32 }}>
         {(['posts', 'facturas'] as const).map((t) => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            padding: '8px 20px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: tab === t ? 700 : 400,
-            color: tab === t ? '#ff6b35' : '#6b7280',
-            borderBottom: tab === t ? '2px solid #ff6b35' : '2px solid transparent',
+          <button key={t} onClick={() => { if (t === 'facturas' && invoices.length === 0) setInvoicesLoading(true); setTab(t); }} style={{
+            background: 'none', border: 'none', cursor: 'pointer', paddingBottom: 12,
+            fontFamily: fc, fontSize: 18, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em',
+            color: tab === t ? '#111827' : '#9ca3af',
+            borderBottom: tab === t ? '2px solid #111827' : '2px solid transparent',
+            transition: 'all 0.15s',
           }}>
-            {t === 'posts' ? 'Contenido' : 'Mis facturas'}
+            {t === 'posts' ? 'Contenido' : 'Facturas'}
           </button>
         ))}
       </div>
 
       {tab === 'posts' && (
         <>
-          {/* Stats */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 28 }}>
+          {/* ── KPI Stats ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: '#d4d4d8', border: '1px solid #d4d4d8', marginBottom: 32 }}>
             {[
-              { label: 'Total creados', value: stats.total },
-              { label: 'Publicados', value: stats.published },
-              { label: 'Tasa de aprobación', value: `${stats.approvalRate}%` },
-            ].map(({ label, value }) => (
-              <div key={label} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, padding: '16px 20px' }}>
-                <div style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600, marginBottom: 4 }}>{label}</div>
-                <div style={{ fontSize: 28, fontWeight: 800 }}>{value}</div>
+              { icon: FileText, label: 'Total creados', value: String(stats.total), sub: 'Últimos 3 meses' },
+              { icon: CheckCircle2, label: 'Publicados', value: String(stats.published), sub: stats.total > 0 ? `${Math.round((stats.published / stats.total) * 100)}% del total` : '—' },
+              { icon: BarChart3, label: 'Tasa de aprobación', value: `${stats.approvalRate}%`, sub: stats.approvalRate >= 70 ? 'Excelente' : stats.approvalRate >= 40 ? 'Mejorable' : 'Bajo', color: approvalColor },
+            ].map(({ icon: Icon, label, value, sub, color }) => (
+              <div key={label} style={{ background: '#ffffff', padding: '24px 20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <Icon size={14} style={{ color: '#9ca3af' }} />
+                  <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af' }}>{label}</span>
+                </div>
+                <p style={{ fontFamily: fc, fontWeight: 900, fontSize: '2.4rem', letterSpacing: '-0.02em', color: color ?? '#111827', lineHeight: 1 }}>{value}</p>
+                <p style={{ fontFamily: f, fontSize: 11, color: '#9ca3af', marginTop: 4 }}>{sub}</p>
               </div>
             ))}
           </div>
 
-          {/* Filters */}
-          <div style={{ display: 'flex', gap: 10, marginBottom: 24, flexWrap: 'wrap' }}>
+          {/* ── Filters ── */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap', alignItems: 'center' }}>
             {[
-              { key: 'status', options: [{ v: 'all', l: 'Todos' }, { v: 'published', l: 'Publicados' }, { v: 'approved', l: 'Aprobados' }, { v: 'rejected', l: 'Rechazados' }, { v: 'draft', l: 'Borradores' }] },
-              { key: 'platform', options: [{ v: 'all', l: 'Todas' }, { v: 'instagram', l: 'Instagram' }, { v: 'facebook', l: 'Facebook' }] },
-              { key: 'format', options: [{ v: 'all', l: 'Formatos' }, { v: 'image', l: 'Imagen' }, { v: 'reel', l: 'Reel' }, { v: 'story', l: 'Story' }] },
-              { key: 'range', options: [{ v: '1m', l: 'Este mes' }, { v: '3m', l: 'Últimos 3 meses' }, { v: 'all', l: 'Todo' }] },
+              { key: 'status', options: [{ v: 'all', l: 'Estado' }, { v: 'published', l: 'Publicados' }, { v: 'approved', l: 'Aprobados' }, { v: 'rejected', l: 'Rechazados' }, { v: 'draft', l: 'Borradores' }] },
+              { key: 'platform', options: [{ v: 'all', l: 'Plataforma' }, { v: 'instagram', l: 'Instagram' }, { v: 'facebook', l: 'Facebook' }] },
+              { key: 'format', options: [{ v: 'all', l: 'Formato' }, { v: 'image', l: 'Imagen' }, { v: 'reel', l: 'Reel' }, { v: 'story', l: 'Story' }] },
+              { key: 'range', options: [{ v: '1m', l: 'Este mes' }, { v: '3m', l: '3 meses' }, { v: 'all', l: 'Todo' }] },
             ].map(({ key, options }) => (
-              <select key={key} value={(filters as Record<string, string>)[key]} onChange={(e) => setFilters((f) => ({ ...f, [key]: e.target.value }))}
-                style={{ padding: '7px 12px', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, background: '#fff', cursor: 'pointer' }}>
+              <select key={key} value={(filters as Record<string, string>)[key]} onChange={(e) => setFilters((prev) => ({ ...prev, [key]: e.target.value }))} style={selectStyle}>
                 {options.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
               </select>
             ))}
+            {Object.values(filters).some((v) => v !== 'all' && v !== '3m') && (
+              <button onClick={() => setFilters({ status: 'all', platform: 'all', format: 'all', range: '3m' })} style={{
+                background: 'none', border: 'none', cursor: 'pointer', fontFamily: f, fontSize: 12, color: '#9ca3af', textDecoration: 'underline', textUnderlineOffset: 3,
+              }}>
+                Reset filtros
+              </button>
+            )}
           </div>
 
-          {loading ? <p style={{ color: '#9ca3af' }}>Cargando...</p> : posts.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: '#9ca3af' }}>
-              <div style={{ fontSize: 48 }}>📭</div>
-              <div style={{ marginTop: 12 }}>Sin posts con estos filtros</div>
+          {/* ── Posts grid ── */}
+          {loading ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: '#d4d4d8', border: '1px solid #d4d4d8' }}>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} style={{ background: '#ffffff', padding: 0 }}>
+                  <div style={{ aspectRatio: '1', background: '#f3f4f6' }} />
+                  <div style={{ padding: '12px 14px' }}><div style={{ width: '60%', height: 10, background: '#f3f4f6', borderRadius: 2 }} /></div>
+                </div>
+              ))}
+            </div>
+          ) : posts.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+              <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 24, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Sin resultados</p>
+              <p style={{ fontSize: 14, color: '#9ca3af', fontFamily: f, marginBottom: 32 }}>Prueba con otros filtros o crea tu primer post</p>
+              <Link href="/posts/new" style={{
+                background: '#111827', color: '#ffffff', padding: '12px 28px', textDecoration: 'none',
+                fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+              }}>
+                Crear contenido <ArrowRight size={14} />
+              </Link>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: '#d4d4d8', border: '1px solid #d4d4d8' }}>
               {posts.map((post) => {
                 const img = post.edited_image_url ?? post.image_url;
-                const st = STATUS_COLOR[post.status] ?? STATUS_COLOR.draft;
+                const st = STATUS_STYLE[post.status] ?? STATUS_STYLE.draft;
                 return (
-                  <div key={post.id} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.1)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.boxShadow = 'none')}>
-                    <div style={{ aspectRatio: '1', background: '#f3f4f6', overflow: 'hidden' }}>
-                      {img ? <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32 }}>📸</div>}
+                  <Link key={post.id} href={`/posts/${post.id}`} style={{ background: '#ffffff', textDecoration: 'none', color: 'inherit', display: 'block', transition: 'background 0.15s' }}>
+                    <div style={{ aspectRatio: '1', background: '#f3f4f6', overflow: 'hidden', position: 'relative' }}>
+                      {img ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      ) : (
+                        <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, color: '#d1d5db' }}>📸</div>
+                      )}
+                      <span style={{ position: 'absolute', top: 8, left: 8, fontSize: 10, fontWeight: 600, padding: '2px 8px', color: st.color, background: st.bg, fontFamily: f }}>{st.label}</span>
                     </div>
                     <div style={{ padding: '12px 14px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20, color: st.color, background: st.bg }}>{st.label}</span>
-                        <span style={{ fontSize: 11, color: '#9ca3af' }}>
-                          {post.published_at ? new Date(post.published_at).toLocaleDateString('es-ES') : new Date(post.created_at).toLocaleDateString('es-ES')}
-                        </span>
-                      </div>
-                      {post.caption && <p style={{ fontSize: 12, color: '#374151', lineHeight: 1.4, margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{post.caption}</p>}
-                      {post.ig_post_id && (
-                        <a href={`https://www.instagram.com/p/${post.ig_post_id}`} target="_blank" rel="noreferrer"
-                          style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#ff6b35', marginTop: 8, textDecoration: 'none', fontWeight: 600 }}
-                          onClick={(e) => e.stopPropagation()}>
-                          <ExternalLink size={11} /> Ver en Instagram
-                        </a>
+                      {post.caption && (
+                        <p style={{ fontFamily: f, fontSize: 12, color: '#374151', lineHeight: 1.4, margin: '0 0 6px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                          {post.caption}
+                        </p>
                       )}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontFamily: f, fontSize: 11, color: '#9ca3af' }}>
+                          {(post.published_at ? new Date(post.published_at) : new Date(post.created_at)).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                        </span>
+                        {post.ig_post_id && (
+                          <span style={{ fontFamily: f, fontSize: 10, color: '#0F766E', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3 }}>
+                            <ExternalLink size={10} /> IG
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
@@ -176,34 +212,58 @@ export default function HistorialPage() {
         </>
       )}
 
+      {/* ── Facturas ── */}
       {tab === 'facturas' && (
         <div>
-          {invoicesLoading ? <p style={{ color: '#9ca3af' }}>Cargando facturas...</p> : invoices.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 0', color: '#9ca3af' }}>
-              <div style={{ fontSize: 48 }}>🧾</div>
-              <div style={{ marginTop: 12 }}>Sin facturas todavía</div>
+          {invoicesLoading ? (
+            <div style={{ border: '1px solid #d4d4d8' }}>
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} style={{ padding: '16px 24px', borderBottom: i < 2 ? '1px solid #f3f4f6' : 'none', background: '#ffffff' }}>
+                  <div style={{ width: '40%', height: 12, background: '#f3f4f6', borderRadius: 2 }} />
+                </div>
+              ))}
+            </div>
+          ) : invoices.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+              <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 24, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Sin facturas</p>
+              <p style={{ fontSize: 14, color: '#9ca3af', fontFamily: f }}>Las facturas aparecerán aquí después del primer pago</p>
             </div>
           ) : (
-            <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ border: '1px solid #d4d4d8' }}>
+              {/* Table header */}
+              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 80px', padding: '10px 24px', borderBottom: '1px solid #d4d4d8', background: '#f9fafb' }}>
+                {['Periodo', 'Número', 'Estado', 'Importe', ''].map((h) => (
+                  <span key={h} style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af' }}>{h}</span>
+                ))}
+              </div>
               {invoices.map((inv, i) => (
-                <div key={inv.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderBottom: i < invoices.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: 14 }}>
-                      {new Date(inv.period_start * 1000).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
-                    </div>
-                    <div style={{ fontSize: 12, color: '#9ca3af' }}>#{inv.number ?? inv.id.slice(-8)}</div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                    <span style={{ fontWeight: 700 }}>{inv.amount.toFixed(2)} {inv.currency.toUpperCase()}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 20, color: inv.status === 'paid' ? '#065f46' : '#92400e', background: inv.status === 'paid' ? '#d1fae5' : '#fef3c7' }}>
-                      {inv.status === 'paid' ? 'Pagada' : 'Pendiente'}
-                    </span>
-                    {inv.pdf_url && (
-                      <a href={inv.pdf_url} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#ff6b35', fontWeight: 600, textDecoration: 'none' }}>
-                        <Download size={14} /> PDF
-                      </a>
-                    )}
-                  </div>
+                <div key={inv.id} style={{
+                  display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 80px', padding: '14px 24px',
+                  borderBottom: i < invoices.length - 1 ? '1px solid #f3f4f6' : 'none',
+                  background: '#ffffff', alignItems: 'center', transition: 'background 0.15s',
+                }}>
+                  <span style={{ fontFamily: f, fontSize: 13, fontWeight: 600, color: '#111827' }}>
+                    {new Date(inv.period_start * 1000).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+                  </span>
+                  <span style={{ fontFamily: f, fontSize: 12, color: '#9ca3af' }}>#{inv.number ?? inv.id.slice(-8)}</span>
+                  <span style={{
+                    fontFamily: f, fontSize: 10, fontWeight: 600, padding: '2px 8px', alignSelf: 'center', display: 'inline-block', width: 'fit-content',
+                    color: inv.status === 'paid' ? '#0F766E' : '#e65100',
+                    background: inv.status === 'paid' ? '#f0fdf4' : '#fff3e0',
+                  }}>
+                    {inv.status === 'paid' ? 'Pagada' : 'Pendiente'}
+                  </span>
+                  <span style={{ fontFamily: fc, fontSize: 16, fontWeight: 700, color: '#111827' }}>
+                    {inv.amount.toFixed(2)} {inv.currency.toUpperCase()}
+                  </span>
+                  {inv.pdf_url ? (
+                    <a href={inv.pdf_url} target="_blank" rel="noreferrer" style={{
+                      display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#6b7280',
+                      fontWeight: 600, textDecoration: 'none', fontFamily: f,
+                    }}>
+                      <Download size={12} /> PDF
+                    </a>
+                  ) : <span />}
                 </div>
               ))}
             </div>
