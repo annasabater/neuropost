@@ -135,6 +135,17 @@ export default function PlantillasPage() {
   };
   const labelStyle: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 600, color: A.muted, marginBottom: 5 };
 
+  const fieldIds = {
+    title: 'plantilla-title',
+    description: 'plantilla-description',
+    thumbnailUrl: 'plantilla-thumbnail-url',
+    sectors: 'plantilla-sectors',
+    styles: 'plantilla-styles',
+    format: 'plantilla-format',
+    promptTemplate: 'plantilla-prompt-template',
+    tags: 'plantilla-tags',
+  };
+
   return (
     <div style={{ padding: '32px 40px', color: A.text, fontFamily: "'Inter', sans-serif", minHeight: '100vh', background: A.bg }}>
 
@@ -216,6 +227,8 @@ export default function PlantillasPage() {
                   <td style={{ padding: '10px 16px' }}>
                     <button
                       onClick={() => toggleActive(t)}
+                      title={t.is_active ? 'Desactivar plantilla' : 'Activar plantilla'}
+                      aria-label={t.is_active ? 'Desactivar plantilla' : 'Activar plantilla'}
                       style={{
                         width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer',
                         background: t.is_active ? '#14B8A6' : A.border,
@@ -274,46 +287,48 @@ export default function PlantillasPage() {
 
             {/* Título */}
             <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Título *</label>
-              <input value={fTitle} onChange={(e) => setFTitle(e.target.value)} style={inputStyle} />
+              <label htmlFor={fieldIds.title} style={labelStyle}>Título *</label>
+              <input id={fieldIds.title} title="Título de la plantilla" value={fTitle} onChange={(e) => setFTitle(e.target.value)} style={inputStyle} />
             </div>
 
             {/* Descripción */}
             <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Descripción</label>
-              <textarea value={fDescription} onChange={(e) => setFDescription(e.target.value)} rows={2} style={{ ...inputStyle, resize: 'none', fontFamily: 'inherit' }} />
+              <label htmlFor={fieldIds.description} style={labelStyle}>Descripción</label>
+              <textarea id={fieldIds.description} title="Descripción de la plantilla" value={fDescription} onChange={(e) => setFDescription(e.target.value)} rows={2} style={{ ...inputStyle, resize: 'none', fontFamily: 'inherit' }} />
             </div>
 
             {/* URL thumbnail */}
             <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>URL del thumbnail</label>
-              <input value={fThumbnailUrl} onChange={(e) => setFThumbnailUrl(e.target.value)} placeholder="https://..." style={inputStyle} />
+              <label htmlFor={fieldIds.thumbnailUrl} style={labelStyle}>URL del thumbnail</label>
+              <input id={fieldIds.thumbnailUrl} title="URL del thumbnail" value={fThumbnailUrl} onChange={(e) => setFThumbnailUrl(e.target.value)} placeholder="https://..." style={inputStyle} />
             </div>
 
             {/* Sectores */}
             <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Sectores (separados por coma)</label>
-              <input value={fSectors} onChange={(e) => setFSectors(e.target.value)} placeholder="gastronomia, belleza, fitness" style={inputStyle} />
+              <label htmlFor={fieldIds.sectors} style={labelStyle}>Sectores (separados por coma)</label>
+              <input id={fieldIds.sectors} title="Sectores separados por coma" value={fSectors} onChange={(e) => setFSectors(e.target.value)} placeholder="gastronomia, belleza, fitness" style={inputStyle} />
             </div>
 
             {/* Estilos */}
             <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Estilos (separados por coma)</label>
-              <input value={fStyles} onChange={(e) => setFStyles(e.target.value)} placeholder="minimal, elegant, colorit" style={inputStyle} />
+              <label htmlFor={fieldIds.styles} style={labelStyle}>Estilos (separados por coma)</label>
+              <input id={fieldIds.styles} title="Estilos separados por coma" value={fStyles} onChange={(e) => setFStyles(e.target.value)} placeholder="minimal, elegant, colorit" style={inputStyle} />
             </div>
 
             {/* Formato */}
             <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Formato</label>
-              <select value={fFormat} onChange={(e) => setFFormat(e.target.value)} style={{ ...inputStyle }}>
+              <label htmlFor={fieldIds.format} style={labelStyle}>Formato</label>
+              <select id={fieldIds.format} title="Formato de la plantilla" value={fFormat} onChange={(e) => setFFormat(e.target.value)} style={{ ...inputStyle }}>
                 {FORMATS.map((f) => <option key={f} value={f}>{f}</option>)}
               </select>
             </div>
 
             {/* Prompt template */}
             <div style={{ marginBottom: 6 }}>
-              <label style={labelStyle}>Prompt template</label>
+              <label htmlFor={fieldIds.promptTemplate} style={labelStyle}>Prompt template</label>
               <textarea
+                id={fieldIds.promptTemplate}
+                title="Plantilla de prompt"
                 value={fPromptTemplate}
                 onChange={(e) => setFPromptTemplate(e.target.value)}
                 rows={5}
@@ -326,8 +341,8 @@ export default function PlantillasPage() {
 
             {/* Tags */}
             <div style={{ marginBottom: 22 }}>
-              <label style={labelStyle}>Tags (separados por coma)</label>
-              <input value={fTags} onChange={(e) => setFTags(e.target.value)} placeholder="verano, promocion, lifestyle" style={inputStyle} />
+              <label htmlFor={fieldIds.tags} style={labelStyle}>Tags (separados por coma)</label>
+              <input id={fieldIds.tags} title="Tags separados por coma" value={fTags} onChange={(e) => setFTags(e.target.value)} placeholder="verano, promocion, lifestyle" style={inputStyle} />
             </div>
 
             <div style={{ display: 'flex', gap: 10 }}>
