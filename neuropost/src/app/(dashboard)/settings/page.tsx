@@ -981,6 +981,28 @@ export default function SettingsPage() {
             </Link>
           </div>
 
+          {/* ── Cerrar sesión ── */}
+          <div className="settings-section" style={{ marginTop: 32 }}>
+            <button
+              type="button"
+              onClick={async () => {
+                const { createBrowserClient } = await import('@/lib/supabase');
+                const supabase = createBrowserClient();
+                await supabase.auth.signOut();
+                window.location.href = '/';
+              }}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                padding: '10px 20px', border: '1px solid #d4d4d8',
+                background: '#ffffff', color: '#6b7280',
+                fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              Cerrar sesión
+            </button>
+          </div>
+
         </div>{/* end right content */}
       </div>{/* end two-column layout */}
     </div>

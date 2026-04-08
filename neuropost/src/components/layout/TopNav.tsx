@@ -67,11 +67,6 @@ export function TopNav() {
       )}
 
       <div className="topbar-actions">
-        <Link href="/posts/new" className="btn-primary btn-orange topbar-new-btn">
-          <Plus size={16} />
-          <span>Nuevo post</span>
-        </Link>
-
         <LanguageSelector />
         <ThemeToggle />
 
