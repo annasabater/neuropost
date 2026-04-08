@@ -66,20 +66,56 @@ const CAMPAIGNS: { key: string; prompt: string; img: string }[] = [
 const f = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
+type SavedIdea = { id: string; title: string; caption: string; format: string; hashtags: string[]; category: string };
+
+// Pre-loaded idea bank (stored in DB in production)
+const IDEA_BANK: SavedIdea[] = [
+  { id: 's1', title: 'Reel de proceso de cocina', caption: 'Muestra cómo preparas tu plato estrella paso a paso', format: 'reel', hashtags: ['cocina', 'receta', 'restaurante'], category: 'restaurante' },
+  { id: 's2', title: 'Foto de producto con fondo limpio', caption: 'Destaca tu producto estrella con fondo neutro y luz natural', format: 'image', hashtags: ['producto', 'foto', 'ecommerce'], category: 'general' },
+  { id: 's3', title: 'Reel de antes y después', caption: 'Transforma un espacio, look o plato y muestra el resultado', format: 'reel', hashtags: ['antesydespues', 'transformacion'], category: 'general' },
+  { id: 's4', title: 'Carrusel de tips del sector', caption: '3-5 consejos útiles para tu audiencia en formato carrusel', format: 'carousel', hashtags: ['tips', 'consejos'], category: 'general' },
+  { id: 's5', title: 'Video de equipo', caption: 'Presenta a tu equipo de forma cercana y profesional', format: 'video', hashtags: ['equipo', 'detrasdelascamaras'], category: 'general' },
+  { id: 's6', title: 'Foto de ambiente del local', caption: 'Captura la esencia de tu espacio con buena luz', format: 'image', hashtags: ['local', 'ambiente', 'interiorismo'], category: 'general' },
+  { id: 's7', title: 'Reel de un día en el negocio', caption: 'Muestra un día típico desde la apertura hasta el cierre', format: 'reel', hashtags: ['undia', 'negocio', 'rutina'], category: 'general' },
+  { id: 's8', title: 'Story de pregunta a seguidores', caption: 'Usa el sticker de pregunta para interactuar con tu comunidad', format: 'story', hashtags: ['encuesta', 'interaccion'], category: 'general' },
+  { id: 's9', title: 'Foto de mascota del local', caption: 'Si tienes mascota en el negocio, los seguidores la amarán', format: 'image', hashtags: ['mascota', 'perro', 'gato'], category: 'general' },
+  { id: 's10', title: 'Reel de tendencia adaptada', caption: 'Coge un audio viral y adáptalo a tu negocio', format: 'reel', hashtags: ['tendencia', 'viral', 'reels'], category: 'general' },
+  { id: 's11', title: 'Foto de helado close-up', caption: 'Primer plano de tu helado más vendido con textura visible', format: 'image', hashtags: ['helado', 'closeup', 'heladeria'], category: 'heladeria' },
+  { id: 's12', title: 'Reel de corte de pelo', caption: 'Transición de antes a después del corte', format: 'reel', hashtags: ['barberia', 'corte', 'fade'], category: 'barberia' },
+];
+
 export default function IdeasPage() {
   const t = useTranslations('ideas');
   const router = useRouter();
   const brand = useAppStore((s) => s.brand);
   const [ideas, setIdeas] = useState<IdeaItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [count, setCount] = useState(6);
+  const [count, setCount] = useState(3);
   const promptRef = useRef<HTMLInputElement>(null);
+
+  // Saved ideas search
+  const [searchQuery, setSearchQuery] = useState('');
+  const [savedFilter, setSavedFilter] = useState<'all' | 'image' | 'reel' | 'video' | 'carousel'>('all');
+  const filteredSaved = IDEA_BANK.filter(idea => {
+    const matchesSearch = !searchQuery || idea.title.toLowerCase().includes(searchQuery.toLowerCase()) || idea.caption.toLowerCase().includes(searchQuery.toLowerCase()) || idea.hashtags.some(h => h.includes(searchQuery.toLowerCase()));
+    const matchesFormat = savedFilter === 'all' || idea.format === savedFilter;
+    return matchesSearch && matchesFormat;
+  });
 
   // Selection + generation state
   const [selectedIdeas, setSelectedIdeas] = useState<Set<number>>(new Set());
   const [format, setFormat] = useState<'image' | 'reel' | 'video'>('image');
+  const [duration, setDuration] = useState(15);
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState(false);
+
+  // Duration options per plan
+  const plan = brand?.plan ?? 'starter';
+  const DURATION_OPTIONS = plan === 'starter'
+    ? [{ s: 10, label: '10s' }, { s: 15, label: '15s' }]
+    : plan === 'pro'
+    ? [{ s: 10, label: '10s' }, { s: 15, label: '15s' }, { s: 30, label: '30s' }]
+    : [{ s: 10, label: '10s' }, { s: 15, label: '15s' }, { s: 30, label: '30s' }, { s: 60, label: '60s' }];
 
   function toggleIdeaSelection(idx: number) {
     setSelectedIdeas(prev => {
@@ -102,7 +138,7 @@ export default function IdeasPage() {
         body: JSON.stringify({
           type: 'campaign',
           title: `Generar ${selectedItems.length} post(s) - ${format}`,
-          description: `Formato: ${format}\nBasado en:\n${desc}`,
+          description: `Formato: ${format}${format !== 'image' ? ` (${duration}s)` : ''}\nBasado en:\n${desc}`,
           deadline_at: null,
         }),
       });
@@ -187,7 +223,7 @@ export default function IdeasPage() {
             color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none',
           }}
         >
-          {[3, 6, 9, 12, 20].map((n) => <option key={n} value={n}>{n} ideas</option>)}
+          {[1, 2, 3].map((n) => <option key={n} value={n}>{n} {n === 1 ? 'idea' : 'ideas'}</option>)}
         </select>
         <button
           onClick={() => generate()}
@@ -204,6 +240,53 @@ export default function IdeasPage() {
           {loading ? <span className="loading-spinner" /> : <Send size={14} />}
           {loading ? t('generating') : t('generate')}
         </button>
+      </div>
+
+      {/* ── Saved ideas — searchable bank ── */}
+      <div style={{ marginBottom: 48 }}>
+        <h2 style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--text-tertiary)', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
+          Banco de ideas
+        </h2>
+        <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' }}>
+          <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Buscar ideas... (ej: perro, reel, cocina)"
+            style={{ flex: 1, padding: '8px 14px', border: '1px solid var(--border)', fontFamily: f, fontSize: 13, color: 'var(--text-primary)', outline: 'none' }} />
+          <div style={{ display: 'flex', gap: 0 }}>
+            {(['all', 'image', 'reel', 'video', 'carousel'] as const).map((fmt, i, arr) => (
+              <button key={fmt} onClick={() => setSavedFilter(fmt)} style={{
+                padding: '6px 12px', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)',
+                borderLeft: '1px solid var(--border)', borderRight: i === arr.length - 1 ? '1px solid var(--border)' : 'none',
+                background: savedFilter === fmt ? 'var(--text-primary)' : 'var(--bg)',
+                color: savedFilter === fmt ? 'var(--bg)' : 'var(--text-tertiary)',
+                fontFamily: f, fontSize: 10, fontWeight: 600, cursor: 'pointer', textTransform: 'uppercase',
+              }}>
+                {fmt === 'all' ? 'Todo' : fmt === 'image' ? 'Foto' : fmt === 'reel' ? 'Reel' : fmt === 'video' ? 'Video' : 'Carrusel'}
+              </button>
+            ))}
+          </div>
+        </div>
+        {filteredSaved.length === 0 ? (
+          <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-tertiary)', textAlign: 'center', padding: '24px 0' }}>
+            No hay ideas para "{searchQuery}"
+          </p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)' }}>
+            {filteredSaved.map((idea) => (
+              <div key={idea.id} onClick={() => { if (promptRef.current) promptRef.current.value = idea.caption; }}
+                style={{ background: 'var(--bg)', padding: '14px 16px', cursor: 'pointer', transition: 'background 0.1s' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
+                  <span style={{ fontFamily: fc, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase' }}>{idea.title}</span>
+                  <span style={{ fontFamily: f, fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', border: '1px solid var(--border)', padding: '1px 6px', flexShrink: 0 }}>
+                    {idea.format}
+                  </span>
+                </div>
+                <p style={{ fontFamily: f, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.4 }}>{idea.caption}</p>
+                <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+                  {idea.hashtags.slice(0, 3).map(h => <span key={h} style={{ fontFamily: f, fontSize: 9, color: 'var(--text-tertiary)' }}>#{h}</span>)}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Sector ideas — Image carousel ── */}
@@ -415,19 +498,40 @@ export default function IdeasPage() {
               {selectedIdeas.size}/3 ideas seleccionadas
             </span>
             <div style={{ display: 'flex', gap: 0 }}>
-              {(['image', 'reel', 'video'] as const).map((fmt) => (
-                <button key={fmt} onClick={() => setFormat(fmt)} style={{
+              {(['image', 'reel', 'video'] as const).map((fmt, i, arr) => (
+                <button key={fmt} onClick={() => { setFormat(fmt); if (fmt === 'image') setDuration(0); else if (duration === 0) setDuration(DURATION_OPTIONS[0].s); }} style={{
                   padding: '6px 14px', borderTop: '1px solid #374151', borderBottom: '1px solid #374151',
-                  borderLeft: '1px solid #374151', borderRight: fmt === 'video' ? '1px solid #374151' : 'none',
+                  borderLeft: '1px solid #374151', borderRight: i === arr.length - 1 ? '1px solid #374151' : 'none',
                   background: format === fmt ? '#ffffff' : 'transparent',
                   color: format === fmt ? '#111827' : '#9ca3af',
                   fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
                   textTransform: 'uppercase', letterSpacing: '0.06em',
                 }}>
-                  {fmt === 'image' ? 'Imagen' : fmt === 'reel' ? 'Reel' : 'Video'}
+                  {fmt === 'image' ? 'Foto' : fmt === 'reel' ? 'Reel' : 'Video'}
                 </button>
               ))}
             </div>
+            {/* Duration — only for reel/video */}
+            {format !== 'image' && (
+              <div style={{ display: 'flex', gap: 0 }}>
+                {DURATION_OPTIONS.map((opt, i) => (
+                  <button key={opt.s} onClick={() => setDuration(opt.s)} style={{
+                    padding: '6px 10px', borderTop: '1px solid #374151', borderBottom: '1px solid #374151',
+                    borderLeft: '1px solid #374151', borderRight: i === DURATION_OPTIONS.length - 1 ? '1px solid #374151' : 'none',
+                    background: duration === opt.s ? '#ffffff' : 'transparent',
+                    color: duration === opt.s ? '#111827' : '#9ca3af',
+                    fontFamily: f, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                  }}>
+                    {opt.label}
+                  </button>
+                ))}
+                {plan === 'starter' && (
+                  <span style={{ fontFamily: f, fontSize: 9, color: '#6b7280', marginLeft: 8, alignSelf: 'center' }}>
+                    Pro: hasta 30s
+                  </span>
+                )}
+              </div>
+            )}
             <button onClick={() => setSelectedIdeas(new Set())} style={{
               background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer',
               fontFamily: f, fontSize: 12,
