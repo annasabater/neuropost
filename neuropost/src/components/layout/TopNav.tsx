@@ -70,7 +70,7 @@ export function TopNav() {
         <LanguageSelector />
         <ThemeToggle />
 
-        <Link href="/notifications" className="topbar-icon-btn" aria-label="Notificaciones">
+        <Link href="/inbox?tab=notificaciones" className="topbar-icon-btn" aria-label="Notificaciones">
           <Bell size={18} />
           {unreadNotifications > 0 && (
             <span className="topbar-badge">{unreadNotifications}</span>

@@ -18,7 +18,7 @@ const PROTECTED = [
   '/tendencias', '/competencia', '/community',
   '/resumen', '/contactos', '/churn', '/captacion',
   '/mi-feed', '/worker',
-  '/chat', '/solicitudes', '/historial', '/soporte', '/inbox',
+  '/chat', '/solicitudes', '/historial', '/soporte', '/inbox', '/biblioteca',
 ];
 const ADMIN_PATHS = ['/admin', '/cupones'];
 const AUTH_ONLY = ['/login'];

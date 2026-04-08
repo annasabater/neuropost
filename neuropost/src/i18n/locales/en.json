@@ -380,7 +380,7 @@
   },
   "analytics": {
     "title": "Analytics",
-    "subtitle": "Monthly AI-generated report",
+    "subtitle": "Monthly performance report",
     "generate": "Generate report",
     "generated": "Report generated",
     "generating": "Generating…",

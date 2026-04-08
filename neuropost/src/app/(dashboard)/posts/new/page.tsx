@@ -187,7 +187,8 @@ export default function NewPostPage() {
 
     const labelStyle: React.CSSProperties = { display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af', marginBottom: 8 };
     const inputStyle: React.CSSProperties = { width: '100%', padding: '12px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, color: '#111827', outline: 'none', boxSizing: 'border-box' };
-    const toggleStyle = (active: boolean): React.CSSProperties => ({ padding: '8px 16px', border: `1px solid ${active ? '#111827' : '#e5e7eb'}`, background: active ? '#111827' : '#ffffff', color: active ? '#ffffff' : '#6b7280', fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer' });
+    const bc = (active: boolean) => active ? '#111827' : '#e5e7eb';
+    const toggleStyle = (active: boolean): React.CSSProperties => ({ padding: '8px 16px', borderTop: `1px solid ${bc(active)}`, borderBottom: `1px solid ${bc(active)}`, borderLeft: `1px solid ${bc(active)}`, borderRight: `1px solid ${bc(active)}`, background: active ? '#111827' : '#ffffff', color: active ? '#ffffff' : '#6b7280', fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer' });
 
     return (
       <div className="page-content" style={{ maxWidth: 640 }}>

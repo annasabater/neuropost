@@ -72,14 +72,6 @@ const VISUAL_STYLES: {
     palette: ['#D4916A','#C17D52','#F2CDA0','#8B4513'] },
   { value: 'dynamic', title: 'Dinámico y Moderno', tag: 'Energía · Urbano · Tendencia',
     palette: ['#1C1C1E','#FF3B30','#636366','#AEAEB2'] },
-  { value: 'editorial', title: 'Editorial y Realista', tag: 'Natural · Documental · Auténtico',
-    palette: ['#F4EBD0','#8A9E8A','#C4A882','#5C5C5C'] },
-  { value: 'dark', title: 'Oscuro y Premium', tag: 'Exclusivo · Lujoso · Impactante',
-    palette: ['#0D0D0D','#2C1810','#6B4C3B','#C4A882'] },
-  { value: 'fresh', title: 'Fresco y Natural', tag: 'Orgánico · Saludable · Luminoso',
-    palette: ['#C8E6C9','#81C784','#388E3C','#F1F8E9'] },
-  { value: 'vintage', title: 'Vintage y Artesanal', tag: 'Nostálgico · Cálido · Artesano',
-    palette: ['#C4956A','#8B6914','#D4B896','#5C4B3A'] },
 ];
 
 // ─── CSS filters per visual style ────────────────────────────────────────────
@@ -235,14 +227,11 @@ const SECTOR_SERVICE_OPTIONS: Partial<Record<SocialSector, string[]>> = {
   floristeria: ['Ramos de novia', 'Flores naturales', 'Plantas de interior', 'Arreglos florales', 'Flores secas'],
 };
 
-const CITY_OPTIONS = [
-  'Madrid', 'Barcelona', 'Valencia', 'Sevilla', 'Zaragoza', 'Málaga', 'Murcia',
-  'Palma de Mallorca', 'Las Palmas', 'Bilbao', 'Alicante', 'Córdoba', 'Valladolid',
-  'Vigo', 'Gijón', 'Granada', 'San Sebastián', 'A Coruña', 'Vitoria-Gasteiz',
-  'Oviedo', 'Pamplona', 'Santa Cruz de Tenerife', 'Santander', 'Almería',
-  'Burgos', 'Castellón', 'Salamanca', 'Logroño', 'Marbella', 'Jerez de la Frontera',
-  'Toledo', 'Albacete', 'León', 'Huelva', 'Tarragona', 'Lleida', 'Badajoz',
-  'Badalona', 'Terrassa', 'Sabadell', 'Getafe', 'Leganés', 'Móstoles',
+const REGION_OPTIONS = [
+  'Andalucía', 'Aragón', 'Asturias', 'Islas Baleares', 'Canarias',
+  'Cantabria', 'Castilla-La Mancha', 'Castilla y León', 'Cataluña',
+  'Comunidad Valenciana', 'Extremadura', 'Galicia', 'Comunidad de Madrid',
+  'Región de Murcia', 'Navarra', 'País Vasco', 'La Rioja', 'Ceuta', 'Melilla',
 ];
 
 // ─── Step 4 keyword suggestions ───────────────────────────────────────────────
@@ -418,6 +407,7 @@ export default function OnboardingPage() {
   const [objective]                             = useState<PostGoal>('engagement');
   const [publishMode,      setPublishMode]      = useState<PublishMode>('manual');
   const [publishFrequency, setPublishFrequency] = useState<2 | 5 | 7>(5);
+  const [country, setCountry] = useState('España');
   const [locationDropdown, setLocationDropdown] = useState('');
   const [primaryColor,     setPrimaryColor]     = useState('#0F766E');
   const [secondaryColor,   setSecondaryColor]   = useState('#374151');
@@ -455,7 +445,7 @@ export default function OnboardingPage() {
         body: JSON.stringify({
           name, sector, secondary_sectors: secondarySectors,
           visual_style: visualStyle, tone, hashtags: keywords,
-          location: location || null, slogans: slogan ? [slogan] : [],
+          location: location ? `${location}, ${country}` : country || null, slogans: slogan ? [slogan] : [],
           publish_mode: publishMode,
           publish_frequency: publishFrequency,
           colors: { primary: primaryColor, secondary: secondaryColor, accent: primaryColor },
@@ -682,15 +672,15 @@ export default function OnboardingPage() {
   );
 
   const modeDescriptions: Record<PublishMode, string> = {
-    manual: 'Recibirás propuestas de contenido. Tú decides qué publicar y cuándo.',
-    semi:   'Preparamos el contenido y te lo enviamos para aprobación. Un clic y publicamos.',
+    manual: 'Te enviamos propuestas de contenido. Tú decides qué publicar y cuándo.',
+    semi:   'Nuestro equipo prepara el contenido y te lo envía para aprobación. Un clic y publicamos.',
     auto:   'Publicamos de forma autónoma según tu estrategia. Tú revisas los resultados.',
   };
 
   const modeSteps: Record<PublishMode, string[]> = {
-    manual:   ['IA genera propuestas de contenido', 'Tú revisas y decides qué publicar', 'Publicamos en Instagram y Facebook'],
-    semi:     ['IA crea y programa el contenido', 'Te enviamos una notificación para aprobar', 'Un clic y publicamos automáticamente'],
-    auto:     ['IA crea contenido según tu estrategia', 'Publicamos sin interrupciones', 'Recibes informes semanales de resultados'],
+    manual:   ['Nuestro equipo genera propuestas de contenido', 'Tú revisas y decides qué publicar', 'Publicamos en Instagram y Facebook'],
+    semi:     ['El equipo crea y programa el contenido', 'Te enviamos una notificación para aprobar', 'Un clic y publicamos automáticamente'],
+    auto:     ['El equipo crea contenido según tu estrategia', 'Publicamos sin interrupciones', 'Recibes informes semanales de resultados'],
   };
 
   const rightStep5 = (
@@ -891,7 +881,33 @@ export default function OnboardingPage() {
                 );
               })}
               <div>
-                <Label>Ciudad <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
+                <Label>País</Label>
+                <select
+                  style={selectStyle}
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                >
+                  <option value="España">España</option>
+                  <option value="México">México</option>
+                  <option value="Argentina">Argentina</option>
+                  <option value="Colombia">Colombia</option>
+                  <option value="Chile">Chile</option>
+                  <option value="Perú">Perú</option>
+                  <option value="Ecuador">Ecuador</option>
+                  <option value="Francia">Francia</option>
+                  <option value="Portugal">Portugal</option>
+                  <option value="Italia">Italia</option>
+                  <option value="Estados Unidos">Estados Unidos</option>
+                  <option value="Reino Unido">Reino Unido</option>
+                  <option value="Alemania">Alemania</option>
+                  <option value="__otro__">Otro país...</option>
+                </select>
+                {country === '__otro__' && (
+                  <input style={{ ...inputStyle, marginTop: 8 }} type="text" placeholder="Escribe tu país..." onChange={(e) => setCountry(e.target.value)} />
+                )}
+              </div>
+              <div>
+                <Label>Comunidad autónoma <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
                 <select
                   style={selectStyle}
                   value={locationDropdown}
@@ -901,12 +917,12 @@ export default function OnboardingPage() {
                     else setLocation('');
                   }}
                 >
-                  <option value="">Selecciona tu ciudad...</option>
-                  {CITY_OPTIONS.map((city) => <option key={city} value={city}>{city}</option>)}
-                  <option value="__otra__">Otra ciudad...</option>
+                  <option value="">Selecciona tu comunidad...</option>
+                  {REGION_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                  <option value="__otra__">Otra región...</option>
                 </select>
                 {locationDropdown === '__otra__' && (
-                  <input style={{ ...inputStyle, marginTop: 8 }} type="text" placeholder="Escribe tu ciudad..." value={location} onChange={(e) => setLocation(e.target.value)} />
+                  <input style={{ ...inputStyle, marginTop: 8 }} type="text" placeholder="Escribe tu región..." value={location} onChange={(e) => setLocation(e.target.value)} />
                 )}
               </div>
             </div>
@@ -989,23 +1005,24 @@ export default function OnboardingPage() {
             <SectionTitle>Modo de publicación</SectionTitle>
             <StepSub>¿Cómo quieres que gestionemos tu contenido?</StepSub>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
               {PUBLISH_MODE_OPTIONS.map((m) => (
                 <button key={m.value} type="button" onClick={() => setPublishMode(m.value)} style={{
-                  padding: 0, borderRadius: 14, cursor: 'pointer', textAlign: 'left',
+                  padding: 0, borderRadius: 8, cursor: 'pointer', textAlign: 'left',
                   border: `1.5px solid ${publishMode === m.value ? ACCENT : '#e5e7eb'}`,
                   background: publishMode === m.value ? 'rgba(15,118,110,0.08)' : '#ffffff',
                   outline: 'none', transition: 'all 0.15s', overflow: 'hidden',
                   boxShadow: publishMode === m.value ? `0 0 0 3px rgba(15,118,110,0.1)` : 'none',
+                  display: 'flex', flexDirection: 'column',
                 }}>
-                  <img src={PUBLISH_MODE_IMGS[m.value]} alt="" style={{ width: '100%', height: 80, objectFit: 'cover', display: 'block' }} />
-                  <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <span style={{ fontSize: '1.3rem', flexShrink: 0 }}>{m.emoji}</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: '0.9rem', color: publishMode === m.value ? INK : '#6b7280' }}>{m.label}</div>
-                      <div style={{ fontFamily: FONT, fontSize: '0.78rem', color: MUTED, marginTop: 2 }}>{m.desc}</div>
+                  <img src={PUBLISH_MODE_IMGS[m.value]} alt="" style={{ width: '100%', height: 100, objectFit: 'cover', display: 'block' }} />
+                  <div style={{ padding: '12px 14px', flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontFamily: FONT_C, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', color: publishMode === m.value ? INK : '#374151' }}>{m.label}</span>
+                      {m.value === 'semi' && <span style={{ fontFamily: FONT, fontSize: 9, fontWeight: 600, color: ACCENT, background: '#f0fdf4', padding: '1px 6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Recomendado</span>}
                     </div>
-                    {publishMode === m.value && <span style={{ color: ACCENT, fontWeight: 900, fontSize: '1rem', flexShrink: 0 }}>✓</span>}
+                    <div style={{ fontFamily: FONT, fontSize: 11, color: MUTED, lineHeight: 1.4 }}>{m.desc}</div>
+                    {publishMode === m.value && <span style={{ color: ACCENT, fontWeight: 900, fontSize: 14, marginTop: 4 }}>✓</span>}
                   </div>
                 </button>
               ))}

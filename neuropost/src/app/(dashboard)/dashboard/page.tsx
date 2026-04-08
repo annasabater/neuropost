@@ -45,7 +45,27 @@ export default async function DashboardPage() {
   const planLimit  = PLAN_LIMITS[brand.plan].postsPerMonth;
   const isUnlimited = planLimit === Infinity;
   const pct = isUnlimited ? 0 : Math.min(100, Math.round((publishedThisMonth / planLimit) * 100));
-  const upcomingDates = getUpcomingDatesForBrand(allDates ?? [], brand.sector ?? 'otro', 30).slice(0, 5);
+  const dbDates = getUpcomingDatesForBrand(allDates ?? [], brand.sector ?? 'otro', 30).slice(0, 5);
+
+  // Static upcoming dates for Catalunya — always shown as fallback
+  const STATIC_DATES = [
+    { name: 'Sant Jordi', date: '2026-04-23', idea: 'Contingut emocional amb roses i llibres. Packs especials.' },
+    { name: 'Dia de la Mare', date: '2026-05-03', idea: 'Promociona regals i experiències. Crea urgència.' },
+    { name: 'Rebaixes d\'estiu', date: '2026-07-01', idea: 'Ofertes flash, countdown, productes d\'estiu.' },
+    { name: 'La Mercè', date: '2026-09-24', idea: 'Contingut vinculat a la festa major de Barcelona.' },
+    { name: 'Black Friday', date: '2026-11-27', idea: 'Ofertes exclusives amb anticipació. Estoc limitat.' },
+    { name: 'Nadal', date: '2026-12-15', idea: 'Campanya nadalenca. Regals, packs, contingut càlid.' },
+  ];
+  const todayStr = now.toISOString().slice(0, 10);
+  const staticUpcoming = STATIC_DATES
+    .filter(d => d.date > todayStr)
+    .map(d => ({ id: d.date, name: d.name, daysUntil: Math.ceil((new Date(d.date).getTime() - now.getTime()) / 86400000), idea: d.idea }))
+    .slice(0, 4);
+
+  // Combine both: DB dates + static Catalunya dates, deduplicate by name, sort by daysUntil
+  const allUpcoming = [...dbDates.map(d => ({ ...d, idea: undefined as string | undefined })), ...staticUpcoming];
+  const seen = new Set<string>();
+  const upcomingDates = allUpcoming.filter(d => { if (seen.has(d.name)) return false; seen.add(d.name); return true; }).sort((a, b) => a.daysUntil - b.daysUntil).slice(0, 6);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   void (supabase as any).from('brands').update({ last_login_at: now.toISOString() }).eq('id', brand.id);
@@ -168,17 +188,22 @@ export default async function DashboardPage() {
             border: '1px solid var(--border)', marginBottom: 48,
             overflowX: 'auto', scrollbarWidth: 'none',
           }}>
-            {upcomingDates.map((d) => (
+            {upcomingDates.map((d: { id: string; name: string; daysUntil: number; idea?: string }) => (
               <div key={d.id} style={{
                 background: 'var(--bg)', padding: '16px 20px',
-                minWidth: 180, flex: '0 0 auto',
+                minWidth: 220, flex: '0 0 auto',
               }}>
                 <p style={{ fontFamily: fc, fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                   {d.name}
                 </p>
-                <p style={{ fontFamily: f, fontSize: 12, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
                   en {d.daysUntil} días
                 </p>
+                {d.idea && (
+                  <p style={{ fontFamily: f, fontSize: 11, color: '#6b7280', marginTop: 8, lineHeight: 1.5 }}>
+                    {d.idea}
+                  </p>
+                )}
               </div>
             ))}
           </div>

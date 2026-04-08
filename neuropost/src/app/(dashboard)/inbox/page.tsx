@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { MessageSquare, MessageCircle, LifeBuoy, Sparkles, ArrowRight, Plus, Send, X, TrendingUp, AlertCircle, TrendingDown } from 'lucide-react';
+import { MessageSquare, MessageCircle, LifeBuoy, Sparkles, Bell, ArrowRight, Plus, Send, X, TrendingUp, AlertCircle, TrendingDown, CheckCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppStore } from '@/store/useAppStore';
 import { createBrowserClient } from '@/lib/supabase';
@@ -10,14 +10,15 @@ import { createBrowserClient } from '@/lib/supabase';
 const f = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
-type Tab = 'comentarios' | 'mensajes' | 'soporte' | 'novedades';
+type Tab = 'comentarios' | 'mensajes' | 'soporte' | 'novedades' | 'notificaciones';
 type IconProps = { size?: number; style?: React.CSSProperties };
 
 const TABS: { key: Tab; title: string; desc: string; icon: React.ComponentType<IconProps> }[] = [
-  { key: 'comentarios', title: 'Comentarios', desc: 'Instagram y Facebook', icon: MessageSquare },
-  { key: 'mensajes',    title: 'Mensajes',    desc: 'Tu equipo NeuroPost',  icon: MessageCircle },
-  { key: 'soporte',     title: 'Soporte',     desc: 'Tickets y consultas',  icon: LifeBuoy },
-  { key: 'novedades',   title: 'Novedades',   desc: 'Mejoras del producto', icon: Sparkles },
+  { key: 'notificaciones', title: 'Notificaciones', desc: 'Actividad reciente',   icon: Bell },
+  { key: 'mensajes',       title: 'Mensajes',       desc: 'Tu equipo NeuroPost',  icon: MessageCircle },
+  { key: 'comentarios',    title: 'Comentarios',    desc: 'Instagram y Facebook', icon: MessageSquare },
+  { key: 'soporte',        title: 'Soporte',        desc: 'Tickets y consultas',  icon: LifeBuoy },
+  { key: 'novedades',      title: 'Novedades',      desc: 'Mejoras del producto', icon: Sparkles },
 ];
 
 // ── Types ──
@@ -40,6 +41,10 @@ function InboxInner() {
   const searchParams = useSearchParams();
   const tab = (searchParams.get('tab') as Tab) || 'comentarios';
   const unreadComments = useAppStore((s) => s.unreadComments);
+  const unreadNotifications = useAppStore((s) => s.unreadNotifications);
+  const notifications = useAppStore((s) => s.notifications);
+  const setNotifications = useAppStore((s) => s.setNotifications);
+  const markAllNotificationsRead = useAppStore((s) => s.markAllNotificationsRead);
 
   // Soporte state
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -73,7 +78,10 @@ function InboxInner() {
     if (tab === 'novedades' && entries.length === 0) {
       fetch('/api/changelog').then(r => r.json()).then(d => setEntries(d.entries ?? [])).catch(() => {});
     }
-  }, [tab, tickets.length, ticketsLoading, messages.length, chatLoading, entries.length]);
+    if (tab === 'notificaciones' && notifications.length === 0) {
+      fetch('/api/notifications').then(r => r.json()).then(d => { if (d.notifications) setNotifications(d.notifications); }).catch(() => {});
+    }
+  }, [tab, tickets.length, ticketsLoading, messages.length, chatLoading, entries.length, notifications.length, setNotifications]);
 
   useEffect(() => { chatBottom.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
@@ -107,11 +115,11 @@ function InboxInner() {
       </div>
 
       {/* Tab selector — 4 cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#e5e7eb', border: '1px solid #e5e7eb', marginBottom: 40 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: '#e5e7eb', border: '1px solid #e5e7eb', marginBottom: 40 }}>
         {TABS.map((s) => {
           const active = tab === s.key;
           const Icon = s.icon;
-          const badge = s.key === 'comentarios' ? unreadComments : 0;
+          const badge = s.key === 'comentarios' ? unreadComments : s.key === 'notificaciones' ? unreadNotifications : 0;
           return (
             <button key={s.key} onClick={() => setTab(s.key)} style={{
               padding: '24px 20px', background: active ? '#111827' : '#ffffff',
@@ -317,6 +325,93 @@ function InboxInner() {
               })}
             </div>
           )}
+        </div>
+      )}
+      {/* ── NOTIFICACIONES ── */}
+      {tab === 'notificaciones' && (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+            <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: '#111827' }}>Notificaciones</h2>
+            {notifications.filter(n => !n.read).length > 0 && (
+              <button onClick={() => { markAllNotificationsRead(); fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ all: true }) }); }} style={{
+                background: 'none', border: '1px solid #e5e7eb', padding: '6px 14px', cursor: 'pointer',
+                fontFamily: f, fontSize: 12, fontWeight: 600, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                <CheckCheck size={13} /> Marcar todo como leído
+              </button>
+            )}
+          </div>
+
+          {notifications.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', border: '1px solid #e5e7eb' }}>
+              <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 20, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Sin notificaciones</p>
+              <p style={{ fontFamily: f, fontSize: 14, color: '#9ca3af' }}>Aquí aparecerán las novedades sobre tu contenido</p>
+            </div>
+          ) : (() => {
+            // Group by date
+            const groups: { label: string; items: typeof notifications }[] = [];
+            const today = new Date().toDateString();
+            const yesterday = new Date(Date.now() - 86400000).toDateString();
+
+            for (const n of notifications) {
+              const d = new Date(n.created_at).toDateString();
+              const label = d === today ? 'Hoy' : d === yesterday ? 'Ayer' : 'Anteriores';
+              const last = groups[groups.length - 1];
+              if (last && last.label === label) last.items.push(n);
+              else groups.push({ label, items: [n] });
+            }
+
+            const NOTIF_ICON: Record<string, string> = {
+              approval_needed: '⏳', published: '✅', failed: '❌', comment: '💬',
+              limit_reached: '🚫', meta_connected: '🔗', token_expired: '⚠️',
+              payment_failed: '💳', plan_activated: '🎉', team_invite: '👥', trend_detected: '🔥',
+            };
+
+            const NOTIF_LINK: Record<string, string> = {
+              approval_needed: '/posts', published: '/posts', failed: '/posts',
+              comment: '/inbox?tab=comentarios', limit_reached: '/settings/plan',
+              meta_connected: '/settings/connections', token_expired: '/settings/connections',
+              payment_failed: '/settings/plan', plan_activated: '/settings/plan',
+              team_invite: '/settings/team', trend_detected: '/tendencias',
+            };
+
+            return (
+              <div style={{ border: '1px solid #e5e7eb' }}>
+                {groups.map((group) => (
+                  <div key={group.label}>
+                    <div style={{ padding: '10px 20px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                      <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af' }}>{group.label}</span>
+                    </div>
+                    {group.items.map((n) => (
+                      <div
+                        key={n.id}
+                        onClick={() => {
+                          const link = NOTIF_LINK[n.type] ?? '/dashboard';
+                          if (link.startsWith('/inbox')) setTab(link.split('tab=')[1] as Tab);
+                          else router.push(link);
+                        }}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px',
+                          borderBottom: '1px solid #f3f4f6', cursor: 'pointer',
+                          background: n.read ? '#ffffff' : '#f9fafb',
+                          transition: 'background 0.1s',
+                        }}
+                      >
+                        <span style={{ fontSize: 16, flexShrink: 0 }}>{NOTIF_ICON[n.type] ?? '📌'}</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontFamily: f, fontSize: 13, fontWeight: n.read ? 400 : 600, color: '#111827', marginBottom: 2 }}>{n.message}</p>
+                          <p style={{ fontFamily: f, fontSize: 11, color: '#d1d5db' }}>
+                            {new Date(n.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                        {!n.read && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#0F766E', flexShrink: 0 }} />}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
         </div>
       )}
     </div>

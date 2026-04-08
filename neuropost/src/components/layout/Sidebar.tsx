@@ -6,8 +6,8 @@ import { useTranslations } from 'next-intl';
 import { ProgressLink } from '@/components/ui/ProgressLink';
 import {
   LayoutDashboard, Lightbulb, Calendar, MessageSquare, BarChart3,
-  Settings, LogOut, X, Image, Grid3x3, Archive, MessageCircle,
-  Flame, Plus, Upload, ChevronDown, Link2, Zap, CreditCard, Palette,
+  Settings, LogOut, X, Image, Archive, MessageCircle,
+  Flame, Plus, Upload, ChevronDown, Link2, CreditCard, Palette,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { createBrowserClient } from '@/lib/supabase';
@@ -114,7 +114,6 @@ export function Sidebar() {
         <div className="dash-nav-group-label">Crear</div>
         <NavItem href="/posts" label={t('posts')} icon={Image} />
         <NavItem href="/calendar" label={t('calendar')} icon={Calendar} />
-        <NavItem href="/ideas" label={t('ideas')} icon={Lightbulb} />
 
         {/* Rendimiento */}
         <div className="dash-nav-group-label">Rendimiento</div>
@@ -122,7 +121,7 @@ export function Sidebar() {
 
         {/* Biblioteca */}
         <div className="dash-nav-group-label">Biblioteca</div>
-        <NavItem href="/mi-feed" label={t('myFeed')} icon={Grid3x3} />
+        <NavItem href="/biblioteca" label="Contenido" icon={Upload} />
         <NavItem href="/inspiracion" label={t('inspiration')} icon={Flame} />
 
         {/* Otros */}

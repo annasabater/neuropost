@@ -380,7 +380,7 @@
   },
   "analytics": {
     "title": "Analíticas",
-    "subtitle": "Informe mensual generado con IA",
+    "subtitle": "Informe mensual de rendimiento",
     "generate": "Generar informe",
     "generated": "Informe generado",
     "generating": "Generando…",
