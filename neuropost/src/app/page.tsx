@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { LanguageSelector } from '@/components/ui/LanguageSelector';
 
 // ─── Unsplash helper ─────────────────────────────────────────────────────────
 const UNS = (id: string, w = 600) =>
@@ -53,9 +54,12 @@ const STEPS = [
 ];
 
 type FaqCategory = { category: string; items: { q: string; a: string; highlight?: boolean }[] };
+const FEATURED_FAQ = {
+  q: '¿Tengo que crear el contenido yo?',
+  a: 'No. Nos encargamos de todo: desde la idea hasta la publicación. Puedes elegir si prefieres que nuestro equipo lo gestione o si quieres crear contenido tú mismo desde la plataforma.',
+};
 const FAQ_DATA: FaqCategory[] = [
   { category: 'Uso del producto', items: [
-    { q: '¿Tengo que crear el contenido yo?', a: 'No. Nos encargamos de todo: desde la idea hasta la publicación. Puedes elegir si prefieres que nuestro equipo lo gestione o si quieres crear contenido tú mismo desde la plataforma.', highlight: true },
     { q: '¿Puedo generar contenido yo mismo?', a: 'Sí. Puedes crear contenido directamente desde la plataforma utilizando nuestras herramientas. También puedes inspirarte en ideas y generar imágenes o vídeos a partir de ellas.' },
     { q: '¿Puedo usar mis propias fotos o vídeos?', a: 'Sí. Puedes subir tu contenido y nosotros lo utilizamos para crear publicaciones más profesionales y optimizadas.' },
   ]},
@@ -91,7 +95,8 @@ const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 export default function LandingPage() {
   const router = useRouter();
   const [navShadow, setNavShadow] = useState(false);
-  const [openFaq, setOpenFaq] = useState<number>(0);
+  const [activeFaqCategory, setActiveFaqCategory] = useState(0);
+  const [activeFaqQuestion, setActiveFaqQuestion] = useState<number | null>(0);
   const heroEmailRef = useRef<HTMLInputElement>(null);
   const ctaEmailRef  = useRef<HTMLInputElement>(null);
 
@@ -144,6 +149,7 @@ export default function LandingPage() {
               <Link href="/novedades" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Novedades</Link>
             </div>
           </li>
+          <li><LanguageSelector /></li>
           <li><Link href="/login" className="nav-login">Entrar</Link></li>
           <li><Link href="/register" className="nav-cta">Empezar gratis</Link></li>
         </ul>
@@ -355,56 +361,212 @@ export default function LandingPage() {
       </section>
 
       {/* ─── FAQ ─── */}
-      <section id="faq" style={{ padding: '80px 0', background: '#f5f5f5' }}>
+      <section id="faq" style={{ padding: '90px 0', background: 'linear-gradient(180deg, #fcfcfb 0%, #f4f7f7 100%)' }}>
         <div className="container">
-          {/* Header */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 48, marginBottom: 48 }}>
-            <div>
-              <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#9ca3af', marginBottom: 12 }}>FAQ</div>
-              <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
-                Preguntas frecuentes
-              </h2>
-              <p style={{ fontFamily: f, color: '#6b7280', fontSize: 14, lineHeight: 1.7, marginTop: 12 }}>
-                Resolvemos lo que normalmente preguntan antes de empezar
-              </p>
-              <p style={{ fontFamily: f, fontSize: 13, marginTop: 16 }}>
-                <a href="mailto:hola@neuropost.es" style={{ color: '#0F766E', textDecoration: 'none', fontWeight: 600 }}>¿Más dudas? hola@neuropost.es →</a>
-              </p>
-            </div>
-            <div />
-          </div>
+          {(() => {
+            const categoryNames = FAQ_DATA.map((cat) => cat.category === 'Planes y condiciones' ? 'Planes' : cat.category);
+            const categoryIcons = ['◎', '◇', '◍', '▣'];
+            const featured = FEATURED_FAQ;
+            const activeCategory = FAQ_DATA[activeFaqCategory] ?? FAQ_DATA[0];
+            const activeItems = activeCategory.items;
+            const selectedQuestion =
+              activeFaqQuestion !== null
+                ? Math.min(activeFaqQuestion, Math.max(activeItems.length - 1, 0))
+                : null;
 
-          {/* FAQ by categories */}
-          {FAQ_DATA.map((cat) => {
-            const startIdx = FAQ_DATA.slice(0, FAQ_DATA.indexOf(cat)).reduce((acc, c) => acc + c.items.length, 0);
             return (
-              <div key={cat.category} style={{ marginBottom: 32 }}>
-                <div style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#9ca3af', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #e5e7eb' }}>
-                  {cat.category}
+              <>
+                <div style={{ marginBottom: 42 }}>
+                  <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>FAQ</div>
+                  <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(1.8rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95, marginBottom: 12 }}>
+                    Respuestas sin rodeos,
+                    <br />
+                    con foco en tu negocio
+                  </h2>
+                  <p style={{ fontFamily: f, color: '#6b7280', fontSize: 15, lineHeight: 1.7, maxWidth: 620 }}>
+                    Explora por temas y abre solo lo que te interesa. Diseñado como un panel interactivo, no como un acordeón clásico.
+                  </p>
                 </div>
-                {cat.items.map((item, j) => {
-                  const idx = startIdx + j;
-                  const isOpen = openFaq === idx;
-                  return (
-                    <div key={idx} style={{ borderBottom: '1px solid #e5e7eb', background: item.highlight && !isOpen ? '#f0fdf4' : 'transparent' }}>
-                      <button onClick={() => setOpenFaq(isOpen ? -1 : idx)} style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
-                        padding: '14px 0', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
-                      }}>
-                        <span style={{ fontFamily: f, fontSize: 15, fontWeight: 600, color: isOpen ? '#0F766E' : '#111827' }}>{item.q}</span>
-                        <span style={{ fontFamily: f, fontSize: 18, color: '#9ca3af', transform: isOpen ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0, marginLeft: 16 }}>+</span>
-                      </button>
-                      {isOpen && (
-                        <div style={{ paddingBottom: 14 }}>
-                          <p style={{ fontFamily: f, fontSize: 14, color: '#6b7280', lineHeight: 1.7, margin: 0, maxWidth: 600 }}>{item.a}</p>
-                        </div>
-                      )}
+
+                {/* Featured answer */}
+                <div style={{
+                  marginBottom: 34,
+                  padding: '24px 28px',
+                  borderTop: '2px solid #0F766E',
+                  borderBottom: '1px solid #dce7e6',
+                  background: 'linear-gradient(90deg, rgba(15,118,110,0.08) 0%, rgba(15,118,110,0.02) 58%, rgba(15,118,110,0) 100%)',
+                }}>
+                  <div style={{
+                    fontFamily: f,
+                    fontSize: 10,
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.12em',
+                    color: '#0F766E',
+                    marginBottom: 10,
+                  }}>
+                    Respuesta rapida
+                  </div>
+                  <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, color: '#111111', marginBottom: 8 }}>
+                    {featured.q}
+                  </p>
+                  <p style={{ fontFamily: f, fontSize: 14, lineHeight: 1.75, color: '#374151', maxWidth: 800, margin: 0 }}>
+                    {featured.a}
+                  </p>
+                </div>
+
+                {/* Interactive panel */}
+                <div className="faq-knowledge-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(240px, 34%) minmax(0, 66%)', gap: 36, alignItems: 'start' }}>
+                  {/* LEFT: categories */}
+                  <div style={{ paddingRight: 8 }}>
+                    <div style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#9ca3af', marginBottom: 12 }}>
+                      Categorias
                     </div>
-                  );
-                })}
-              </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', borderTop: '1px solid #e5e7eb' }}>
+                      {categoryNames.map((name, idx) => {
+                        const active = idx === activeFaqCategory;
+                        return (
+                          <button
+                            key={name}
+                            onClick={() => { setActiveFaqCategory(idx); setActiveFaqQuestion(null); }}
+                            className="faq-cat-item"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              gap: 12,
+                              padding: '14px 0',
+                              background: 'none',
+                              border: 'none',
+                              borderBottom: '1px solid #e5e7eb',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              color: active ? '#0F766E' : '#6b7280',
+                              transition: 'color 0.18s ease',
+                            }}
+                          >
+                            <span style={{ fontFamily: f, fontSize: 14, fontWeight: active ? 700 : 500 }}>{name}</span>
+                            <span style={{ fontFamily: f, fontSize: 11, fontWeight: 600, color: active ? '#0F766E' : '#9ca3af' }}>{categoryIcons[idx] ?? '•'}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p style={{ fontFamily: f, fontSize: 12, color: '#9ca3af', marginTop: 14, lineHeight: 1.6 }}>
+                      ¿No encuentras tu caso?
+                      <br />
+                      <a href="mailto:hola@neuropost.es" style={{ color: '#0F766E', textDecoration: 'none', fontWeight: 600 }}>hola@neuropost.es →</a>
+                    </p>
+                  </div>
+
+                  {/* RIGHT: question explorer */}
+                  <div style={{ borderTop: '1px solid #d1d5db', paddingTop: 14 }}>
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: 20,
+                      gap: 12,
+                      flexWrap: 'wrap',
+                    }}>
+                      <div style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#9ca3af' }}>
+                        {categoryNames[activeFaqCategory]}
+                      </div>
+                      <div style={{ fontFamily: f, fontSize: 11, color: '#6b7280' }}>
+                        {selectedQuestion !== null ? `${selectedQuestion + 1}/${activeItems.length}` : `0/${activeItems.length}`}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gap: 6, alignContent: 'start' }}>
+                      {activeItems.map((item, idx) => {
+                        const isOpen = idx === selectedQuestion;
+                        return (
+                          <div
+                            key={item.q}
+                            style={{
+                              borderBottom: '1px solid #e5e7eb',
+                              paddingBottom: 8,
+                              opacity: isOpen ? 1 : 0.45,
+                              transition: 'opacity 0.18s ease',
+                            }}
+                          >
+                            <button
+                              onClick={() => setActiveFaqQuestion(isOpen ? null : idx)}
+                              style={{
+                                width: '100%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: 12,
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                textAlign: 'left',
+                                padding: '8px 0',
+                              }}
+                            >
+                              <span style={{ fontFamily: fc, fontWeight: 700, fontSize: 20, lineHeight: 1.1, color: '#111111' }}>
+                                {item.q}
+                              </span>
+                              <span style={{
+                                width: 26,
+                                height: 26,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontFamily: f,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                color: isOpen ? '#ffffff' : '#6b7280',
+                                background: isOpen ? '#0F766E' : '#eef2f2',
+                                transition: 'all 0.18s ease',
+                              }}>
+                                {isOpen ? '−' : '+'}
+                              </span>
+                            </button>
+
+                            <div style={{
+                              maxHeight: isOpen ? 220 : 0,
+                              opacity: isOpen ? 1 : 0,
+                              transform: isOpen ? 'translateY(0px)' : 'translateY(8px)',
+                              transition: 'max-height 0.2s ease, opacity 0.18s ease, transform 0.18s ease',
+                              overflow: 'hidden',
+                            }}>
+                              <div style={{
+                                marginTop: 8,
+                                marginLeft: 20,
+                                padding: '12px 14px',
+                                background: 'rgba(15, 118, 110, 0.06)',
+                                borderLeft: '2px solid #0F766E',
+                              }}>
+                                <div style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#0F766E', marginBottom: 8 }}>
+                                  Respuesta rapida
+                                </div>
+                                <p style={{ fontFamily: f, fontSize: 14, lineHeight: 1.7, color: '#374151', margin: 0 }}>
+                                  {item.a}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <style>{`
+                  .faq-cat-item:hover {
+                    color: #0F766E !important;
+                  }
+                  @media (max-width: 920px) {
+                    .faq-knowledge-grid {
+                      grid-template-columns: 1fr !important;
+                      gap: 24px !important;
+                    }
+                  }
+                `}</style>
+              </>
             );
-          })}
+          })()}
         </div>
       </section>
 

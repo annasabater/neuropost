@@ -378,9 +378,9 @@ export default function AboutPage() {
                 ))}
               </div>
 
-              <div style={{ display: 'flex', gap: 16 }}>
-                <a href="https://instagram.com/neuropost_es" target="_blank" rel="noreferrer" style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 12, color: '#0F766E', fontWeight: 600, textDecoration: 'none' }}>📷 @neuropost_es</a>
-                <a href="https://linkedin.com/company/neuropost" target="_blank" rel="noreferrer" style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 12, color: '#0F766E', fontWeight: 600, textDecoration: 'none' }}>💼 LinkedIn</a>
+              <div className="contact-social-links">
+                <a href="https://instagram.com/neuropost_es" target="_blank" rel="noopener noreferrer" className="contact-social-link">📷 @neuropost_es</a>
+                <a href="https://linkedin.com/company/neuropost" target="_blank" rel="noopener noreferrer" className="contact-social-link">💼 LinkedIn</a>
               </div>
             </div>
 
@@ -515,10 +515,10 @@ export default function AboutPage() {
         <div className="container">
           <div className="footer-grid">
             <div className="footer-brand">
-              <a href="/" className="nav-logo" style={{ color: 'var(--cream)' }}>
+              <Link href="/">
                 <span className="logo-dot" />
                 NeuroPost
-              </a>
+              </Link>
               <p>IA para que los negocios locales gestionen sus redes sociales sin esfuerzo. Hecho con ❤️ en España.</p>
               <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <a href="mailto:hola@neuropost.es" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', textDecoration: 'none', fontFamily: "'Cabinet Grotesk',sans-serif" }}>📧 hola@neuropost.es</a>
@@ -528,9 +528,9 @@ export default function AboutPage() {
             <div>
               <div className="footer-col-title">Producto</div>
               <ul className="footer-links">
-                <li><a href="/#funciones">Funciones</a></li>
-                <li><a href="/#como-funciona">Cómo funciona</a></li>
-                <li><a href="/#precios">Precios</a></li>
+                <li><Link href="/#funciones">Funciones</Link></li>
+                <li><Link href="/#como-funciona">Cómo funciona</Link></li>
+                <li><Link href="/#precios">Precios</Link></li>
                 <li><a href="#">Changelog</a></li>
               </ul>
             </div>
@@ -560,6 +560,21 @@ export default function AboutPage() {
           </div>
         </div>
       </footer>
+
+      <style jsx>{`
+        .contact-social-links {
+          display: flex;
+          gap: 16px;
+        }
+
+        .contact-social-link {
+          font-family: var(--font-barlow), 'Barlow', sans-serif;
+          font-size: 12px;
+          color: #0f766e;
+          font-weight: 600;
+          text-decoration: none;
+        }
+      `}</style>
     </>
   );
 }
