@@ -11,19 +11,18 @@ export default function ResetPasswordPage() {
   const t = useTranslations('auth.resetPassword');
   const passwordRef        = useRef<HTMLInputElement>(null);
   const confirmRef         = useRef<HTMLInputElement>(null);
-  const [loading, setLoading] = useState(false);
-  const router                = useRouter();
+  const [loading, setLoading]   = useState(false);
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm]   = useState('');
+  const router                  = useRouter();
+
+  const meetsLength = password.length >= 8;
+  const matches     = password.length > 0 && confirm.length > 0 && password === confirm;
+  const mismatch    = confirm.length > 0 && password !== confirm;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const password = passwordRef.current!.value;
-    const confirm  = confirmRef.current!.value;
-
-    if (password !== confirm) {
-      toast.error(t('noMatch'));
-      return;
-    }
-
+    if (!matches) { toast.error(t('noMatch')); return; }
     setLoading(true);
     try {
       const supabase = createBrowserClient();
@@ -47,13 +46,43 @@ export default function ResetPasswordPage() {
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
             <label htmlFor="password">{t('newPassword')}</label>
-            <input ref={passwordRef} id="password" type="password" placeholder="Mín. 8 caracteres" minLength={8} required autoComplete="new-password" />
+            <input
+              ref={passwordRef}
+              id="password"
+              type="password"
+              placeholder="Mín. 8 caracteres"
+              minLength={8}
+              required
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <p style={{
+              fontFamily: "var(--font-barlow), sans-serif",
+              fontSize: 11, marginTop: 5,
+              color: meetsLength ? '#16a34a' : (password.length > 0 ? '#dc2626' : 'var(--text-tertiary)'),
+            }}>
+              {meetsLength ? '✓ Mínimo 8 caracteres' : 'Mínimo 8 caracteres'}
+            </p>
           </div>
           <div className="form-group">
             <label htmlFor="confirm">{t('confirm')}</label>
-            <input ref={confirmRef} id="confirm" type="password" placeholder="Repite la contraseña" minLength={8} required autoComplete="new-password" />
+            <input
+              ref={confirmRef}
+              id="confirm"
+              type="password"
+              placeholder="Repite la contraseña"
+              minLength={8}
+              required
+              autoComplete="new-password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              style={{ borderColor: mismatch ? '#dc2626' : matches ? '#16a34a' : undefined }}
+            />
+            {matches  && <p style={{ fontFamily: "var(--font-barlow), sans-serif", fontSize: 11, marginTop: 5, color: '#16a34a' }}>✓ Las contraseñas coinciden</p>}
+            {mismatch && <p style={{ fontFamily: "var(--font-barlow), sans-serif", fontSize: 11, marginTop: 5, color: '#dc2626' }}>Las contraseñas no coinciden</p>}
           </div>
-          <button type="submit" className="btn-primary btn-full" disabled={loading} style={{ marginTop: 4 }}>
+          <button type="submit" className="btn-primary btn-full" disabled={loading || !matches} style={{ marginTop: 4 }}>
             {loading ? <><span className="loading-spinner" />{t('saving')}</> : t('submit')}
           </button>
         </form>

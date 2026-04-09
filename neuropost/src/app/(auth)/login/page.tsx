@@ -9,6 +9,7 @@ import { createBrowserClient } from '@/lib/supabase';
 
 function LoginForm() {
   const [loading, setLoading]   = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const emailRef                = useRef<HTMLInputElement>(null);
   const passwordRef             = useRef<HTMLInputElement>(null);
   const router                  = useRouter();
@@ -26,6 +27,8 @@ function LoginForm() {
     if (error) { setLoading(false); toast.error(error.message); return; }
 
     // Check if user has a brand → dashboard or onboarding
+    setLoading(false);
+    setVerifying(true);
     const { data: brand } = await supabase
       .from('brands')
       .select('id')
@@ -33,6 +36,20 @@ function LoginForm() {
       .maybeSingle();
 
     router.push(brand ? '/dashboard' : '/onboarding');
+  }
+
+  if (verifying) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card" style={{ textAlign: 'center' }}>
+          <Link href="/" className="auth-logo">NeuroPost</Link>
+          <span className="loading-spinner" style={{ display: 'inline-block', margin: '24px auto 16px' }} />
+          <p style={{ fontSize: 15, color: 'var(--text-secondary)', fontFamily: "var(--font-barlow), sans-serif" }}>
+            Verificando tu cuenta…
+          </p>
+        </div>
+      </div>
+    );
   }
 
   return (

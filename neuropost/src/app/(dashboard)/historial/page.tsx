@@ -67,19 +67,29 @@ export default function HistorialPage() {
         </div>
       ) : posts.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', border: '1px solid var(--border)', background: 'var(--bg)' }}>
+          <div style={{ fontSize: 36, marginBottom: 16 }}>📭</div>
           <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 22, textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 8 }}>
-            Aún no has publicado nada
+            Tu historial está vacío
           </p>
-          <p style={{ fontSize: 14, color: 'var(--text-tertiary)', fontFamily: f, maxWidth: 400, margin: '0 auto 28px' }}>
-            Tienes contenido pendiente en tu panel de posts. Revísalo y publícalo para que aparezca aquí.
+          <p style={{ fontSize: 14, color: 'var(--text-tertiary)', fontFamily: f, maxWidth: 400, margin: '0 auto 28px', lineHeight: 1.6 }}>
+            Aquí aparecerán todas las publicaciones que hagas. Crea tu primer post y publícalo para empezar.
           </p>
-          <Link href="/posts" style={{
-            background: 'var(--accent)', color: '#fff', padding: '11px 26px', textDecoration: 'none',
-            fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-          }}>
-            Ver posts pendientes
-          </Link>
+          <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/posts/new" style={{
+              background: '#111827', color: '#fff', padding: '11px 26px', textDecoration: 'none',
+              fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+            }}>
+              + Crear primer post
+            </Link>
+            <Link href="/posts" style={{
+              background: 'var(--bg)', color: 'var(--text-primary)', padding: '11px 26px', textDecoration: 'none',
+              fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
+              display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)',
+            }}>
+              Ver posts pendientes
+            </Link>
+          </div>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)' }}>

@@ -30,6 +30,8 @@ export default function ForgotPasswordPage() {
     }
   }
 
+  const sentEmail = emailRef.current?.value ?? '';
+
   return (
     <div className="auth-page">
       <div className="auth-card">
@@ -38,10 +40,31 @@ export default function ForgotPasswordPage() {
 
         {sent ? (
           <>
-            <p className="auth-sub" style={{ color: 'var(--ink)' }}>
-              {t('sentMessage')}
-            </p>
-            <p className="auth-footer" style={{ marginTop: 24 }}>
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              padding: '24px 0 8px', gap: 12,
+            }}>
+              <div style={{
+                width: 52, height: 52, borderRadius: '50%',
+                background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+              <p style={{ fontFamily: "var(--font-barlow), sans-serif", fontSize: 15, color: 'var(--text-primary)', textAlign: 'center', fontWeight: 600 }}>
+                Email enviado
+              </p>
+              {sentEmail && (
+                <p style={{ fontFamily: "var(--font-barlow), sans-serif", fontSize: 13, color: 'var(--text-secondary)', textAlign: 'center' }}>
+                  Revisa <strong>{sentEmail}</strong>
+                </p>
+              )}
+              <p style={{ fontFamily: "var(--font-barlow), sans-serif", fontSize: 12, color: 'var(--text-tertiary)', textAlign: 'center', lineHeight: 1.6 }}>
+                Si no lo ves en bandeja de entrada, revisa la carpeta de spam.
+              </p>
+            </div>
+            <p className="auth-footer" style={{ marginTop: 16 }}>
               <Link href="/login">{t('backToLogin')}</Link>
             </p>
           </>

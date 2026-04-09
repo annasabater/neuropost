@@ -40,6 +40,7 @@ export default function ConnectionsPage() {
   const [status,  setStatus]  = useState<ConnectionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [confirmDisconnect, setConfirmDisconnect] = useState(false);
   const [showManual, setShowManual] = useState(false);
   const [manualToken, setManualToken] = useState('');
   const [connecting, setConnecting] = useState(false);
@@ -70,8 +71,8 @@ export default function ConnectionsPage() {
   }
 
   async function disconnect() {
-    if (!confirm('¿Seguro que quieres desconectar tus cuentas de Instagram y Facebook?')) return;
     setDisconnecting(true);
+    setConfirmDisconnect(false);
     try {
       await fetch('/api/meta/status', { method: 'DELETE' });
       toast.success('Cuentas desconectadas');
@@ -285,15 +286,49 @@ export default function ConnectionsPage() {
           {/* Disconnect all */}
           {anyConnected && (
             <div style={{ marginTop: 8 }}>
-              <button
-                className="btn-outline"
-                onClick={disconnect}
-                disabled={disconnecting}
-                style={{ color: 'var(--red, #dc2626)', borderColor: 'var(--red, #dc2626)', fontSize: 13 }}
-              >
-                <Trash2 size={13} />
-                {disconnecting ? 'Desconectando...' : 'Desconectar todas las cuentas'}
-              </button>
+              {confirmDisconnect ? (
+                <div style={{
+                  border: '1px solid #fca5a5', background: '#fff7f7',
+                  padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12,
+                }}>
+                  <div>
+                    <p style={{ fontWeight: 700, fontSize: 14, color: '#991b1b', marginBottom: 4 }}>
+                      ¿Desconectar Instagram y Facebook?
+                    </p>
+                    <p style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.5 }}>
+                      Las publicaciones programadas quedarán pendientes y no se publicarán automáticamente hasta que vuelvas a conectar.
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      className="btn-outline"
+                      onClick={disconnect}
+                      disabled={disconnecting}
+                      style={{ color: '#dc2626', borderColor: '#dc2626', fontSize: 13 }}
+                    >
+                      <Trash2 size={13} />
+                      {disconnecting ? 'Desconectando...' : 'Sí, desconectar'}
+                    </button>
+                    <button
+                      className="btn-outline"
+                      onClick={() => setConfirmDisconnect(false)}
+                      style={{ fontSize: 13 }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  className="btn-outline"
+                  onClick={() => setConfirmDisconnect(true)}
+                  disabled={disconnecting}
+                  style={{ color: 'var(--red, #dc2626)', borderColor: 'var(--red, #dc2626)', fontSize: 13 }}
+                >
+                  <Trash2 size={13} />
+                  Desconectar todas las cuentas
+                </button>
+              )}
             </div>
           )}
         </div>

@@ -79,7 +79,8 @@ export default function PostDetailPage() {
   }
 
   // ── Shared state (must be before early returns to respect Rules of Hooks) ──
-  const [deleting, setDeleting] = useState(false);
+  const [deleting, setDeleting]         = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('10:00');
@@ -179,12 +180,11 @@ export default function PostDetailPage() {
 
   async function deleteRequest() {
     if (!post) return;
-    if (!confirm('¿Eliminar esta solicitud? Esta acción no se puede deshacer.')) return;
     setDeleting(true);
     const res = await fetch(`/api/posts/${post.id}`, { method: 'DELETE' });
     if (!res.ok) { toast.error('Error al eliminar'); setDeleting(false); return; }
     removePost(post.id);
-    toast.success('Solicitud eliminada');
+    toast.success('Post eliminado');
     router.push('/posts');
   }
 
@@ -289,13 +289,32 @@ export default function PostDetailPage() {
           }}>
             <Edit2 size={12} /> Editar
           </button>
-          <button onClick={deleteRequest} disabled={deleting} style={{
-            padding: '7px 14px', background: 'var(--bg)', border: '1px solid var(--border)',
-            fontFamily: f, fontSize: 12, fontWeight: 600, cursor: deleting ? 'wait' : 'pointer',
-            display: 'flex', alignItems: 'center', gap: 5, color: 'var(--error)',
-          }}>
-            <Trash2 size={12} /> Eliminar
-          </button>
+          {confirmDelete ? (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <span style={{ fontFamily: f, fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>¿Seguro?</span>
+              <button onClick={deleteRequest} disabled={deleting} style={{
+                padding: '7px 14px', background: '#dc2626', border: '1px solid #dc2626',
+                fontFamily: f, fontSize: 12, fontWeight: 600, cursor: deleting ? 'wait' : 'pointer',
+                color: '#fff',
+              }}>
+                {deleting ? 'Eliminando…' : 'Sí, borrar'}
+              </button>
+              <button onClick={() => setConfirmDelete(false)} style={{
+                padding: '7px 14px', background: 'var(--bg)', border: '1px solid var(--border)',
+                fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer', color: 'var(--text-secondary)',
+              }}>
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmDelete(true)} style={{
+              padding: '7px 14px', background: 'var(--bg)', border: '1px solid var(--border)',
+              fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 5, color: 'var(--error)',
+            }}>
+              <Trash2 size={12} /> Eliminar
+            </button>
+          )}
         </div>
       </div>
 
