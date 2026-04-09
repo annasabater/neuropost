@@ -149,7 +149,7 @@
       "subtitle": "Créez votre premier post avec l'IA"
     },
     "new": { "title": "Nouveau post", "generateButton": "✦ Générer avec l'IA", "generating": "Génération...", "qualityScore": "Qualité du post", "captionPlaceholder": "Écrivez ou modifiez la légende...", "hashtagsPlaceholder": "Ajouter un hashtag", "actions": { "approve": "Approuver et programmer", "publishNow": "Publier maintenant", "saveDraft": "Enregistrer le brouillon", "regenerate": "Régénérer", "regenerateCaption": "Régénérer la légende" } },
-    "status": { "all": "Tous", "draft": "Brouillon", "generated": "Généré", "pending": "En attente", "approved": "Approuvé", "scheduled": "Programmé", "published": "Publié", "failed": "Échoué", "cancelled": "Annulé" },
+    "status": { "all": "Tous", "request": "En pr\u00e9paration", "draft": "Brouillon", "generated": "Généré", "pending": "En attente", "approved": "Approuvé", "scheduled": "Programmé", "published": "Publié", "failed": "Échoué", "cancelled": "Annulé" },
     "toast": { "published": "🚀 Post publié sur Instagram !", "approved": "✅ Post approuvé", "saved": "💾 Brouillon enregistré", "failed": "❌ Échec de la publication. Veuillez réessayer" }
   },
   "calendar": {

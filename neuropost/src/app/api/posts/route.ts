@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import { requireServerUser, createServerClient } from '@/lib/supabase';
+import { requireServerUser, createServerClient, createAdminClient } from '@/lib/supabase';
 import { checkPostLimit } from '@/lib/plan-limits';
 import { requirePermission } from '@/lib/rbac';
+import { syncPostIntoFeedQueue } from '@/lib/feedQueue';
 import type { Post, Brand } from '@/types';
 import { PLAN_LIMITS } from '@/types';
 
@@ -84,6 +85,7 @@ export async function POST(request: Request) {
     if (error) throw error;
 
     const insertedPost = data as Post;
+    await syncPostIntoFeedQueue(createAdminClient(), insertedPost);
 
     // Auto-publish: call shared publisher directly (avoids HTTP auth issues)
     if (canAutoPublish && insertedPost.image_url) {

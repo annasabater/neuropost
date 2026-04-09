@@ -140,7 +140,7 @@
       "subtitle": "Crie a sua primeira publicação com IA"
     },
     "new": { "title": "Nova publicação", "generateButton": "✦ Gerar com IA", "generating": "A gerar...", "qualityScore": "Qualidade da publicação", "captionPlaceholder": "Escreva ou edite a legenda...", "hashtagsPlaceholder": "Adicionar hashtag", "actions": { "approve": "Aprovar e agendar", "publishNow": "Publicar agora", "saveDraft": "Guardar rascunho", "regenerate": "Regenerar", "regenerateCaption": "Regenerar legenda" } },
-    "status": { "all": "Todos", "draft": "Rascunho", "generated": "Gerado", "pending": "Pendente", "approved": "Aprovado", "scheduled": "Agendado", "published": "Publicado", "failed": "Falhou", "cancelled": "Cancelado" },
+    "status": { "all": "Todos", "request": "Em prepara\u00e7\u00e3o", "draft": "Rascunho", "generated": "Gerado", "pending": "Pendente", "approved": "Aprovado", "scheduled": "Agendado", "published": "Publicado", "failed": "Falhou", "cancelled": "Cancelado" },
     "toast": { "published": "🚀 Publicação publicada no Instagram!", "approved": "✅ Publicação aprovada", "saved": "💾 Rascunho guardado", "failed": "❌ Falha ao publicar. Tente novamente" }
   },
   "calendar": {

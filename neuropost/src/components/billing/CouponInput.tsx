@@ -57,7 +57,7 @@ export default function CouponInput({ onValidCoupon, onClearCoupon, appliedCode 
   }
 
   const borderColor =
-    status === 'valid'   ? '#14B8A6' :
+    status === 'valid'   ? 'var(--accent)' :
     status === 'invalid' ? '#ef4444' :
     'var(--border)';
 
@@ -80,14 +80,14 @@ export default function CouponInput({ onValidCoupon, onClearCoupon, appliedCode 
           disabled={status === 'valid'}
           style={{
             border:      `1px solid ${borderColor}`,
-            borderRadius: 8,
+            borderRadius: 0,
             padding:     '10px 14px',
             fontFamily:  'Cabinet Grotesk, sans-serif',
             fontSize:    14,
             width:       '100%',
             outline:     'none',
             transition:  'border-color 0.2s',
-            background:  status === 'valid' ? '#f0fdf4' : '#fff',
+            background:  status === 'valid' ? 'var(--accent-light)' : '#fff',
           }}
         />
 
@@ -97,9 +97,9 @@ export default function CouponInput({ onValidCoupon, onClearCoupon, appliedCode 
             onClick={handleClear}
             style={{
               background:  'transparent',
-              color:       '#0F766E',
-              border:      '1px solid #14B8A6',
-              borderRadius: 8,
+              color:       'var(--accent)',
+              border:      '1px solid var(--accent)',
+              borderRadius: 0,
               padding:     '10px 14px',
               fontWeight:  600,
               cursor:      'pointer',
@@ -116,10 +116,10 @@ export default function CouponInput({ onValidCoupon, onClearCoupon, appliedCode 
             onClick={handleApply}
             disabled={!code.trim() || status === 'loading'}
             style={{
-              background:  !code.trim() || status === 'loading' ? '#fdba74' : 'var(--orange)',
+              background:  !code.trim() || status === 'loading' ? '#9ca3af' : 'var(--accent)',
               color:       'white',
               border:      'none',
-              borderRadius: 8,
+              borderRadius: 0,
               padding:     '10px 20px',
               fontWeight:  700,
               cursor:      !code.trim() || status === 'loading' ? 'not-allowed' : 'pointer',
@@ -135,7 +135,7 @@ export default function CouponInput({ onValidCoupon, onClearCoupon, appliedCode 
       </div>
 
       {status === 'valid' && (
-        <p style={{ fontSize: 13, color: '#0F766E', marginTop: 6, fontFamily: 'Cabinet Grotesk, sans-serif' }}>
+        <p style={{ fontSize: 13, color: 'var(--accent)', marginTop: 6, fontFamily: 'Cabinet Grotesk, sans-serif' }}>
           ✓ {discountText || 'Descuento aplicado correctamente'}
         </p>
       )}

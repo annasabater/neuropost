@@ -2,6 +2,7 @@
 import { createAdminClient } from '@/lib/supabase';
 import { publishToInstagram, publishToFacebook, publishStoryToInstagram, publishReelToInstagram } from '@/lib/meta';
 import { incrementPostCounter, incrementStoryCounter } from '@/lib/plan-limits';
+import { markPostAsPublishedInFeedQueue } from '@/lib/feedQueue';
 import type { Post, Brand } from '@/types';
 
 export interface PublishResult {
@@ -111,6 +112,7 @@ export async function publishPostById(postId: string, userId: string): Promise<P
   }
 
   await supabase.from('posts').update(updates).eq('id', postId);
+  await markPostAsPublishedInFeedQueue(supabase, typedBrand.id, postId, mediaUrl);
 
   await supabase.from('activity_log').insert({
     brand_id:    typedBrand.id,

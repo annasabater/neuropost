@@ -14,6 +14,8 @@ const REQUIRED: Record<string, string> = {
   ANTHROPIC_API_KEY:             'Anthropic API key for AI agents',
   META_APP_ID:                   'Meta App ID for Instagram/Facebook OAuth',
   META_APP_SECRET:               'Meta App Secret',
+  META_REDIRECT_URI:             'Meta OAuth callback URL',
+  NEXTAUTH_SECRET:               'Auth secret used to sign OAuth state',
   NEXT_PUBLIC_APP_URL:           'Public app URL (e.g. https://neuropost.app)',
 };
 

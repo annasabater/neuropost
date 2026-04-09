@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { requireServerUser, createServerClient } from '@/lib/supabase';
+import { requireServerUser, createServerClient, createAdminClient } from '@/lib/supabase';
 import { requirePermission } from '@/lib/rbac';
+import { syncPostIntoFeedQueue } from '@/lib/feedQueue';
 import type { Post } from '@/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -50,6 +51,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const { data, error } = await supabase
       .from('posts').update(updatePayload).eq('id', id).eq('brand_id', brand.id).select().single();
     if (error) throw error;
+    await syncPostIntoFeedQueue(createAdminClient(), data as Post);
     return NextResponse.json({ post: data as Post });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

@@ -7,6 +7,12 @@ import { createHmac } from 'crypto';
 
 const GRAPH_BASE = 'https://graph.facebook.com/v19.0';
 
+function getRequiredEnv(name: 'META_APP_ID' | 'META_APP_SECRET' | 'META_REDIRECT_URI' | 'NEXTAUTH_SECRET'): string {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`Missing ${name} environment variable`);
+  return value;
+}
+
 // ─── Error ────────────────────────────────────────────────────────────────────
 
 export class MetaGraphError extends Error {
@@ -48,28 +54,29 @@ async function graphFetch<T>(
 
 const enc = new TextEncoder();
 
-export async function signMetaState(userId: string): Promise<string> {
-  const secret = enc.encode(process.env.NEXTAUTH_SECRET ?? 'neuropost-secret-key');
+export async function signMetaState(userId: string, source: 'instagram' | 'facebook' = 'instagram'): Promise<string> {
+  const secret = enc.encode(getRequiredEnv('NEXTAUTH_SECRET'));
   const key    = await crypto.subtle.importKey('raw', secret, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const ts     = Date.now().toString();
-  const data   = `${userId}.${ts}`;
+  const data   = `${userId}.${source}.${ts}`;
   const sig    = await crypto.subtle.sign('HMAC', key, enc.encode(data));
   const sigB64 = Buffer.from(sig).toString('base64url');
   return Buffer.from(`${data}.${sigB64}`).toString('base64url');
 }
 
-export async function verifyMetaState(state: string): Promise<string> {
+export async function verifyMetaState(state: string): Promise<{ userId: string; source: 'instagram' | 'facebook' }> {
   const decoded = Buffer.from(state, 'base64url').toString();
   const dots    = decoded.split('.');
-  if (dots.length !== 3) throw new Error('Invalid state format');
-  const [userId, ts, sigB64] = dots;
+  if (dots.length !== 4) throw new Error('Invalid state format');
+  const [userId, source, ts, sigB64] = dots as [string, 'instagram' | 'facebook', string, string];
+  if (source !== 'instagram' && source !== 'facebook') throw new Error('Invalid state source');
   if (Date.now() - parseInt(ts) > 30 * 60 * 1000) throw new Error('State expired');
-  const secret   = enc.encode(process.env.NEXTAUTH_SECRET ?? 'neuropost-secret-key');
+  const secret   = enc.encode(getRequiredEnv('NEXTAUTH_SECRET'));
   const key      = await crypto.subtle.importKey('raw', secret, { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
   const sigBytes = Buffer.from(sigB64, 'base64url');
-  const valid    = await crypto.subtle.verify('HMAC', key, sigBytes, enc.encode(`${userId}.${ts}`));
+  const valid    = await crypto.subtle.verify('HMAC', key, sigBytes, enc.encode(`${userId}.${source}.${ts}`));
   if (!valid) throw new Error('Invalid state signature');
-  return userId;
+  return { userId, source };
 }
 
 // ─── Webhook signature verification ──────────────────────────────────────────
@@ -87,8 +94,8 @@ export function verifyMetaWebhookSignature(payload: string, signature: string): 
 // ─── OAuth helpers ────────────────────────────────────────────────────────────
 
 export function getOAuthUrl(state: string): string {
-  const appId       = process.env.META_APP_ID       ?? '';
-  const redirectUri = process.env.META_REDIRECT_URI ?? '';
+  const appId       = getRequiredEnv('META_APP_ID');
+  const redirectUri = getRequiredEnv('META_REDIRECT_URI');
 
   const params = new URLSearchParams({
     client_id:     appId,
@@ -112,9 +119,9 @@ export function getOAuthUrl(state: string): string {
 }
 
 export async function exchangeCodeForToken(code: string): Promise<{ accessToken: string; expiresIn: number }> {
-  const appId       = process.env.META_APP_ID       ?? '';
-  const appSecret   = process.env.META_APP_SECRET   ?? '';
-  const redirectUri = process.env.META_REDIRECT_URI ?? '';
+  const appId       = getRequiredEnv('META_APP_ID');
+  const appSecret   = getRequiredEnv('META_APP_SECRET');
+  const redirectUri = getRequiredEnv('META_REDIRECT_URI');
 
   const result = await graphFetch<{ access_token: string; expires_in: number }>(
     `oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`,
@@ -124,8 +131,8 @@ export async function exchangeCodeForToken(code: string): Promise<{ accessToken:
 }
 
 export async function getLongLivedToken(shortToken: string): Promise<{ accessToken: string; expiresIn: number }> {
-  const appId     = process.env.META_APP_ID     ?? '';
-  const appSecret = process.env.META_APP_SECRET ?? '';
+  const appId     = getRequiredEnv('META_APP_ID');
+  const appSecret = getRequiredEnv('META_APP_SECRET');
 
   const result = await graphFetch<{ access_token: string; expires_in: number }>(
     `oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${shortToken}`,
@@ -151,6 +158,16 @@ export interface IGBusinessAccount {
   username?: string;
 }
 
+export interface IGMediaItem {
+  id:            string;
+  caption?:      string;
+  media_type:    'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM' | 'STORY' | string;
+  media_url?:    string;
+  thumbnail_url?: string;
+  permalink?:    string;
+  timestamp?:    string;
+}
+
 export async function getFacebookPages(userAccessToken: string): Promise<FacebookPage[]> {
   const result = await graphFetch<{ data: FacebookPage[] }>(
     `me/accounts?access_token=${userAccessToken}&fields=id,name,access_token`,
@@ -163,6 +180,13 @@ export async function getIGAccountFromPage(pageId: string, pageToken: string): P
     `${pageId}?fields=instagram_business_account%7Bid%2Cusername%7D&access_token=${pageToken}`,
   );
   return result.instagram_business_account ?? null;
+}
+
+export async function getIGFeedMedia(igAccountId: string, accessToken: string, limit = 9): Promise<IGMediaItem[]> {
+  const result = await graphFetch<{ data: IGMediaItem[] }>(
+    `${igAccountId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&limit=${limit}&access_token=${accessToken}`,
+  );
+  return result.data ?? [];
 }
 
 // ─── Container polling ────────────────────────────────────────────────────────

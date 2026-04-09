@@ -180,6 +180,40 @@ create policy "activity_log: brand owner access"
     )
   );
 
+-- ─── Media Library ────────────────────────────────────────────────────────
+create table if not exists public.media_library (
+  id          uuid primary key default uuid_generate_v4(),
+  brand_id    uuid not null references public.brands(id) on delete cascade,
+  storage_path text not null,
+  url         text not null,
+  type        text not null check (type in ('image', 'video')),
+  mime_type   text,
+  size_bytes  bigint,
+  duration    real,          -- duración en segundos (solo vídeos)
+  width       integer,
+  height      integer,
+  created_at  timestamptz default now()
+);
+
+alter table public.media_library enable row level security;
+
+create policy "media_library: brand owner access"
+  on public.media_library for all
+  using (
+    exists (
+      select 1 from public.brands
+      where brands.id = media_library.brand_id
+        and brands.user_id = auth.uid()
+    )
+  )
+  with check (
+    exists (
+      select 1 from public.brands
+      where brands.id = media_library.brand_id
+        and brands.user_id = auth.uid()
+    )
+  );
+
 -- ─── Indexes ──────────────────────────────────────────────────────────────────
 create index if not exists idx_brands_user_id       on public.brands(user_id);
 create index if not exists idx_posts_brand_id       on public.posts(brand_id);
@@ -188,3 +222,5 @@ create index if not exists idx_posts_scheduled_at   on public.posts(scheduled_at
 create index if not exists idx_comments_brand_id    on public.comments(brand_id);
 create index if not exists idx_notifications_brand  on public.notifications(brand_id);
 create index if not exists idx_notifications_read   on public.notifications(brand_id, read);
+create index if not exists idx_media_library_brand  on public.media_library(brand_id);
+create index if not exists idx_media_library_type   on public.media_library(brand_id, type);

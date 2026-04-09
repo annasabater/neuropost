@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { publishToInstagram, publishToFacebook } from '@/lib/meta';
+import { markPostAsPublishedInFeedQueue } from '@/lib/feedQueue';
 import type { Post, Brand } from '@/types';
 
 // Vercel Cron: runs every hour — publishes posts whose scheduled_at has passed
@@ -73,6 +74,9 @@ export async function GET(request: Request) {
     }
 
     await supabase.from('posts').update(updates).eq('id', post.id);
+    if (updates.status !== 'failed') {
+      await markPostAsPublishedInFeedQueue(supabase, brand.id, post.id, imageUrl);
+    }
 
     await supabase.from('notifications').insert({
       brand_id: brand.id,

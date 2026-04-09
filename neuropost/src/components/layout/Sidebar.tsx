@@ -24,22 +24,19 @@ export function Sidebar() {
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
   const unreadComments = useAppStore((s) => s.unreadComments);
 
-  const [createOpen, setCreateOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const createRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
   // Close dropdowns on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (createRef.current && !createRef.current.contains(e.target as Node)) setCreateOpen(false);
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
     }
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const nav = (href: string) => { if (sidebarOpen) toggleSidebar(); setCreateOpen(false); setProfileOpen(false); };
+  const nav = (href: string) => { if (sidebarOpen) toggleSidebar(); setProfileOpen(false); };
 
   function NavItem({ href, label, icon: Icon, badge }: { href: string; label: string; icon: React.ComponentType<{ size?: number }>; badge?: number }) {
     const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
@@ -68,41 +65,21 @@ export function Sidebar() {
         </button>
       </div>
 
-      {/* ── Create button with dropdown ── */}
-      <div ref={createRef} style={{ padding: '8px 8px 4px', position: 'relative', flexShrink: 0 }}>
-        <button
-          onClick={() => setCreateOpen(!createOpen)}
+      {/* ── Create button — direct link ── */}
+      <div style={{ padding: '8px 8px 4px', flexShrink: 0 }}>
+        <ProgressLink
+          href="/posts/new"
+          onClick={() => nav('/posts/new')}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             padding: '9px 12px', background: '#111827', color: '#ffffff', border: 'none',
             fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase',
             letterSpacing: '0.06em', cursor: 'pointer', width: '100%',
-            transition: 'background 0.15s',
+            transition: 'background 0.15s', textDecoration: 'none', boxSizing: 'border-box',
           }}
         >
           <Plus size={14} /> Crear
-        </button>
-        {createOpen && (
-          <div style={{
-            position: 'absolute', top: '100%', left: 8, right: 8, marginTop: 2,
-            background: '#ffffff', border: '1px solid #e5e7eb', zIndex: 100,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.12)',
-          }}>
-            {[
-              { href: '/posts/new', label: 'Nuevo post', icon: Image },
-              { href: '/ideas', label: 'Generar ideas', icon: Lightbulb },
-            ].map(({ href, label, icon: Icon }) => (
-              <ProgressLink key={href} href={href} onClick={() => nav(href)} style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-                textDecoration: 'none', color: '#111827', fontFamily: f, fontSize: 13,
-                fontWeight: 500, transition: 'background 0.1s', borderBottom: '1px solid #f3f4f6',
-              }}>
-                <Icon size={14} style={{ color: '#9ca3af' }} />
-                {label}
-              </ProgressLink>
-            ))}
-          </div>
-        )}
+        </ProgressLink>
       </div>
 
       {/* ── Navigation ── */}

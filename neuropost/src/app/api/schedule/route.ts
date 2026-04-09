@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { requireServerUser, createServerClient } from '@/lib/supabase';
+import { requireServerUser, createServerClient, createAdminClient } from '@/lib/supabase';
+import { syncPostIntoFeedQueue } from '@/lib/feedQueue';
 import type { Post } from '@/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
       .single();
 
     if (error) throw error;
+    await syncPostIntoFeedQueue(createAdminClient(), data as Post);
     return NextResponse.json({ ok: true, post: data });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

@@ -197,6 +197,7 @@ export default function LandingPage() {
         '1 cuenta (Instagram o Facebook)',
         '2 posts de foto por semana',
         'Sin posts de vídeo',
+        'Carruseles hasta 3 fotos',
         'Edición gestionada por nuestro equipo (base)',
         'Publicación manual (sin automatización)',
       ],
@@ -210,6 +211,7 @@ export default function LandingPage() {
       features: [
         'Instagram + Facebook conectados',
         '3 posts de foto + 2 de vídeo por semana',
+        'Carruseles hasta 8 fotos',
         'Edición gestionada por nuestro equipo (prioritaria)',
         'Solicitudes con IA incluidas',
         'Publicación automática programada',
@@ -225,6 +227,7 @@ export default function LandingPage() {
       features: [
         'Instagram + Facebook conectados',
         '7 posts de foto + 7 de vídeo por semana',
+        'Carruseles hasta 20 fotos',
         'Edición gestionada por nuestro equipo (prioritaria)',
         'Solicitudes con IA incluidas',
         'Publicación automática programada',
@@ -239,6 +242,7 @@ export default function LandingPage() {
       desc: 'Para agencias y gestión de múltiples marcas',
       features: [
         'Volumen de foto y vídeo a medida por marca',
+        'Carruseles hasta 20 fotos',
         'Hasta 20 plataformas conectadas',
         'Panel de gestión unificado',
         'Edición gestionada por nuestro equipo (por marca)',

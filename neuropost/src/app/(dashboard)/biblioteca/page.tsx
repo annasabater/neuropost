@@ -1,14 +1,41 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Upload, Trash2, Check, Film } from 'lucide-react';
+import { Upload, Trash2, Check, Play } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createBrowserClient } from '@/lib/supabase';
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
-type MediaItem = { id: string; url: string; type: 'image' | 'video'; name: string; created_at: string };
+type MediaItem = {
+  id: string;
+  storage_path: string;
+  url: string;
+  type: 'image' | 'video';
+  duration: number | null;
+  created_at: string;
+};
+
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+/** Extracts video duration (seconds) from a File via a temporary <video> element */
+function getVideoDuration(file: File): Promise<number> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      resolve(video.duration);
+      URL.revokeObjectURL(video.src);
+    };
+    video.onerror = () => resolve(0);
+    video.src = URL.createObjectURL(file);
+  });
+}
 
 export default function BibliotecaPage() {
   const [items, setItems] = useState<MediaItem[]>([]);
@@ -17,27 +44,39 @@ export default function BibliotecaPage() {
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [dragOver, setDragOver] = useState(false);
+  const [brandId, setBrandId] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const supabase = createBrowserClient();
 
-  // Load existing files from Supabase Storage
+  // Get brand for current user
   useEffect(() => {
-    async function loadFiles() {
-      const { data, error } = await supabase.storage.from('posts').list('biblioteca', { limit: 200, sortBy: { column: 'created_at', order: 'desc' } });
-      if (error || !data) { setLoading(false); return; }
-      const loaded: MediaItem[] = data
-        .filter(f => !f.name.startsWith('.'))
-        .map(f => {
-          const { data: { publicUrl } } = supabase.storage.from('posts').getPublicUrl(`biblioteca/${f.name}`);
-          const isVideo = /\.(mp4|mov|webm|avi)$/i.test(f.name);
-          return { id: f.id ?? f.name, url: publicUrl, type: isVideo ? 'video' as const : 'image' as const, name: f.name, created_at: f.created_at ?? new Date().toISOString() };
-        });
-      setItems(loaded);
-      setLoading(false);
+    async function loadBrand() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.from('brands').select('id').eq('user_id', user.id).single();
+      if (data) setBrandId(data.id);
     }
-    loadFiles();
+    loadBrand();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Load media from database
+  useEffect(() => {
+    if (!brandId) return;
+    async function loadMedia() {
+      const { data, error } = await supabase
+        .from('media_library')
+        .select('id, storage_path, url, type, duration, created_at')
+        .eq('brand_id', brandId)
+        .order('created_at', { ascending: false })
+        .limit(200);
+      if (error || !data) { setLoading(false); return; }
+      setItems(data as MediaItem[]);
+      setLoading(false);
+    }
+    loadMedia();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brandId]);
 
   const filtered = filter === 'all' ? items : items.filter(i => i.type === filter);
 
@@ -46,44 +85,76 @@ export default function BibliotecaPage() {
   }
 
   const handleFiles = useCallback(async (files: FileList | File[]) => {
+    if (!brandId) { toast.error('No se encontró la marca'); return; }
     const validFiles = Array.from(files).filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'));
     if (validFiles.length === 0) { toast.error('Solo imágenes y vídeos'); return; }
 
-    // Add immediately with local preview
-    const newItems: MediaItem[] = validFiles.map(file => ({
-      id: crypto.randomUUID(),
-      url: URL.createObjectURL(file),
-      type: (file.type.startsWith('video/') ? 'video' : 'image') as 'image' | 'video',
-      name: file.name,
-      created_at: new Date().toISOString(),
-    }));
-    setItems(prev => [...newItems, ...prev]);
-
-    // Upload to Supabase in background
     setUploading(true);
     let uploaded = 0;
-    for (let i = 0; i < validFiles.length; i++) {
-      const file = validFiles[i];
+
+    for (const file of validFiles) {
+      const isVideo = file.type.startsWith('video/');
       const ext = file.name.split('.').pop() ?? 'jpg';
-      const path = `biblioteca/${newItems[i].id}.${ext}`;
-      const { error } = await supabase.storage.from('posts').upload(path, file, { contentType: file.type });
-      if (error) { toast.error(`Error: ${file.name}`); continue; }
-      // Update URL from local blob to public URL
-      const { data: { publicUrl } } = supabase.storage.from('posts').getPublicUrl(path);
-      setItems(prev => prev.map(item => item.id === newItems[i].id ? { ...item, url: publicUrl, id: path } : item));
+      const fileId = crypto.randomUUID();
+      const storagePath = `biblioteca/${fileId}.${ext}`;
+
+      // Show optimistic preview
+      const previewUrl = URL.createObjectURL(file);
+      const duration = isVideo ? await getVideoDuration(file) : null;
+
+      const tempItem: MediaItem = {
+        id: fileId,
+        storage_path: storagePath,
+        url: previewUrl,
+        type: isVideo ? 'video' : 'image',
+        duration,
+        created_at: new Date().toISOString(),
+      };
+      setItems(prev => [tempItem, ...prev]);
+
+      // Upload to storage
+      const { error: uploadErr } = await supabase.storage.from('posts').upload(storagePath, file, { contentType: file.type });
+      if (uploadErr) { toast.error(`Error: ${file.name}`); continue; }
+
+      const { data: { publicUrl } } = supabase.storage.from('posts').getPublicUrl(storagePath);
+
+      // Insert into database
+      const { data: row, error: dbErr } = await supabase.from('media_library').insert({
+        brand_id: brandId,
+        storage_path: storagePath,
+        url: publicUrl,
+        type: isVideo ? 'video' : 'image',
+        mime_type: file.type,
+        size_bytes: file.size,
+        duration: duration ?? null,
+      }).select('id').single();
+
+      if (dbErr) { toast.error(`Error guardando ${file.name}`); continue; }
+
+      // Replace temp item with real DB row
+      setItems(prev => prev.map(item =>
+        item.id === fileId ? { ...item, id: row.id, url: publicUrl, storage_path: storagePath } : item
+      ));
       uploaded++;
     }
+
     setUploading(false);
     if (uploaded > 0) toast.success(`${uploaded} archivo(s) subido(s)`);
-  }, [supabase]);
+  }, [brandId, supabase]);
 
   function handleDrop(e: React.DragEvent) { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); }
 
   async function deleteSelected() {
     if (selected.size === 0) return;
-    for (const id of selected) {
-      await supabase.storage.from('posts').remove([id]);
-    }
+    const toDelete = items.filter(i => selected.has(i.id));
+
+    // Delete from storage and DB
+    const storagePaths = toDelete.map(i => i.storage_path);
+    const dbIds = toDelete.map(i => i.id);
+
+    await supabase.storage.from('posts').remove(storagePaths);
+    await supabase.from('media_library').delete().in('id', dbIds);
+
     setItems(prev => prev.filter(i => !selected.has(i.id)));
     toast.success(`${selected.size} eliminado(s)`);
     setSelected(new Set());
@@ -165,7 +236,7 @@ export default function BibliotecaPage() {
           </div>
         )}
 
-        {/* Empty state inside the zone */}
+        {/* Empty state */}
         {!loading && filtered.length === 0 && (
           <div onClick={() => fileRef.current?.click()} style={{ padding: '80px 20px', textAlign: 'center', cursor: 'pointer' }}>
             <Upload size={32} style={{ color: '#d1d5db', marginBottom: 16 }} />
@@ -179,33 +250,58 @@ export default function BibliotecaPage() {
           </div>
         )}
 
-        {/* Grid inside the zone */}
+        {/* Grid */}
         {!loading && filtered.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#e5e7eb' }}>
             {filtered.map((item) => {
               const isSel = selected.has(item.id);
               return (
-                <div key={item.id} onClick={() => toggleSelect(item.id)} style={{ position: 'relative', background: '#ffffff', cursor: 'pointer' }}>
+                <div key={item.id} onClick={() => toggleSelect(item.id)} style={{ position: 'relative', background: '#000', cursor: 'pointer' }}>
                   {item.type === 'video' ? (
-                    <div style={{ aspectRatio: '1', background: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Film size={32} style={{ color: '#6b7280' }} /></div>
+                    <div style={{ position: 'relative' }}>
+                      <video
+                        src={item.url}
+                        muted
+                        preload="metadata"
+                        style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }}
+                      />
+                      {/* Play icon overlay */}
+                      <div style={{
+                        position: 'absolute', inset: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: 'rgba(0,0,0,0.15)', pointerEvents: 'none',
+                      }}>
+                        <Play size={28} fill="#fff" color="#fff" style={{ opacity: 0.85 }} />
+                      </div>
+                      {/* Duration badge */}
+                      {item.duration != null && item.duration > 0 && (
+                        <div style={{
+                          position: 'absolute', bottom: 6, right: 6,
+                          background: 'rgba(0,0,0,0.7)', color: '#fff',
+                          fontFamily: f, fontSize: 11, fontWeight: 600,
+                          padding: '2px 6px', borderRadius: 2,
+                        }}>
+                          {formatDuration(item.duration)}
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.url} alt={item.name} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
+                    <img src={item.url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
                   )}
+                  {/* Selection overlay */}
                   {isSel && (
                     <div style={{ position: 'absolute', inset: 0, background: 'rgba(15,118,110,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <div style={{ width: 28, height: 28, background: '#0F766E', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check size={16} color="#ffffff" /></div>
                     </div>
                   )}
-                  {item.type === 'video' && <div style={{ position: 'absolute', top: 6, right: 6, background: 'rgba(0,0,0,0.6)', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 600, padding: '2px 6px' }}>Video</div>}
-                  <div style={{ padding: '6px 8px' }}><p style={{ fontFamily: f, fontSize: 10, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</p></div>
                 </div>
               );
             })}
           </div>
         )}
 
-        {/* Drag hover overlay — always available */}
+        {/* Drag hover overlay */}
         {dragOver && (
           <div style={{ position: 'absolute', inset: 0, background: 'rgba(17,24,39,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}>
             <div style={{ background: '#ffffff', padding: '24px 40px', textAlign: 'center' }}>

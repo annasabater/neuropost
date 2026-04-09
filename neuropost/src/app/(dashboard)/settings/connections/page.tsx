@@ -40,6 +40,9 @@ export default function ConnectionsPage() {
   const [status,  setStatus]  = useState<ConnectionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [showManual, setShowManual] = useState(false);
+  const [manualToken, setManualToken] = useState('');
+  const [connecting, setConnecting] = useState(false);
 
   async function fetchStatus() {
     setLoading(true);
@@ -54,10 +57,16 @@ export default function ConnectionsPage() {
 
   useEffect(() => { fetchStatus(); }, []);
 
-  async function connectMeta() {
-    const res  = await fetch('/api/meta/oauth-url');
-    const json = await res.json();
-    if (json.url) window.location.href = json.url;
+  async function connectMeta(source: 'instagram' | 'facebook') {
+    try {
+      const res  = await fetch(`/api/meta/oauth-url?source=${source}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'No se pudo iniciar la conexión con Meta');
+      if (!json.url) throw new Error('Meta no devolvió una URL de autorización');
+      window.location.href = json.url;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo iniciar la conexión con Meta');
+    }
   }
 
   async function disconnect() {
@@ -74,6 +83,30 @@ export default function ConnectionsPage() {
     }
   }
 
+  async function manualConnect() {
+    if (!manualToken.trim()) { toast.error('Pega tu access token'); return; }
+    setConnecting(true);
+    try {
+      const res = await fetch('/api/meta/manual-connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: manualToken.trim() }),
+      });
+      const json = await res.json();
+      if (!res.ok) { toast.error(json.error ?? 'Error al conectar'); return; }
+      toast.success(
+        `Conectado: ${json.facebook?.pageName ?? 'Facebook'}${json.instagram ? ` + @${json.instagram.username}` : ''}`
+      );
+      setManualToken('');
+      setShowManual(false);
+      fetchStatus();
+    } catch {
+      toast.error('Error de conexión');
+    } finally {
+      setConnecting(false);
+    }
+  }
+
   const anyConnected = status?.instagram || status?.facebook;
 
   return (
@@ -83,7 +116,6 @@ export default function ConnectionsPage() {
           <h1 className="page-title">Conexiones</h1>
           <p className="page-sub">Conecta tus cuentas de Instagram y Facebook</p>
         </div>
-        <Link href="/settings" style={{ fontSize: 13, color: 'var(--muted)' }}>← Ajustes</Link>
       </div>
 
       {loading ? (
@@ -119,10 +151,10 @@ export default function ConnectionsPage() {
                   </p>
                 )}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button className="btn-outline" onClick={connectMeta} style={{ alignSelf: 'flex-start' }}>
+                  <button type="button" className="btn-outline" onClick={() => connectMeta('instagram')} style={{ alignSelf: 'flex-start' }}>
                     <RefreshCw size={14} /> Reconectar
                   </button>
-                  <button className="btn-primary" onClick={connectMeta} style={{ alignSelf: 'flex-start' }}>
+                  <button type="button" className="btn-primary" onClick={() => connectMeta('instagram')} style={{ alignSelf: 'flex-start' }}>
                     <ExternalLink size={14} /> Conectar otra cuenta
                   </button>
                 </div>
@@ -132,7 +164,7 @@ export default function ConnectionsPage() {
                 <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
                   Necesitas una cuenta de Instagram Business o Creator vinculada a una página de Facebook.
                 </p>
-                <button className="btn-primary" onClick={connectMeta}>
+                <button type="button" className="btn-primary" onClick={() => connectMeta('instagram')}>
                   <ExternalLink size={14} /> Conectar Instagram
                 </button>
               </div>
@@ -167,10 +199,10 @@ export default function ConnectionsPage() {
                   </p>
                 )}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button className="btn-outline" onClick={connectMeta} style={{ alignSelf: 'flex-start' }}>
+                  <button type="button" className="btn-outline" onClick={() => connectMeta('facebook')} style={{ alignSelf: 'flex-start' }}>
                     <RefreshCw size={14} /> Reconectar
                   </button>
-                  <button className="btn-primary" onClick={connectMeta} style={{ alignSelf: 'flex-start' }}>
+                  <button type="button" className="btn-primary" onClick={() => connectMeta('facebook')} style={{ alignSelf: 'flex-start' }}>
                     <ExternalLink size={14} /> Conectar otra página
                   </button>
                 </div>
@@ -180,9 +212,72 @@ export default function ConnectionsPage() {
                 <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
                   Conecta con el mismo botón de Instagram — ambas cuentas se conectan juntas a través de Facebook Login.
                 </p>
-                <button className="btn-outline" onClick={connectMeta}>
+                <button type="button" className="btn-outline" onClick={() => connectMeta('facebook')}>
                   <ExternalLink size={14} /> Conectar mediante Facebook
                 </button>
+              </div>
+            )}
+          </div>
+
+          {/* Manual connection */}
+          <div className="settings-section" style={{ marginBottom: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <span style={{ fontSize: 20, lineHeight: 1 }}>🔑</span>
+              <h2 className="settings-section-title" style={{ margin: 0 }}>Conexión manual</h2>
+            </div>
+
+            {!showManual ? (
+              <div>
+                <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
+                  Si los botones de conectar no funcionan, puedes conectar manualmente con un token de Meta.
+                </p>
+                <button type="button" className="btn-outline" onClick={() => setShowManual(true)}>
+                  Conectar con token manual
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ background: 'var(--accent-bg, #f0fdfa)', border: '1px solid var(--accent)', padding: 16 }}>
+                  <p style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600, marginBottom: 8 }}>Pasos:</p>
+                  <ol style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.8, paddingLeft: 16, margin: 0 }}>
+                    <li>Ve a <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 600 }}>Graph API Explorer</a></li>
+                    <li>Inicia sesión con tu cuenta de Facebook</li>
+                    <li>En <strong>&quot;Meta App&quot;</strong> selecciona cualquier app (o crea una de prueba)</li>
+                    <li>En <strong>&quot;Permissions&quot;</strong> añade: <code style={{ background: 'var(--bg-1)', padding: '1px 4px', fontSize: 11 }}>pages_show_list, pages_manage_posts, instagram_basic, instagram_content_publish</code></li>
+                    <li>Pulsa <strong>&quot;Generate Access Token&quot;</strong> y acepta los permisos</li>
+                    <li>Copia el token y pégalo aquí abajo</li>
+                  </ol>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 4, display: 'block' }}>
+                    Access Token
+                  </label>
+                  <input
+                    type="text"
+                    value={manualToken}
+                    onChange={(e) => setManualToken(e.target.value)}
+                    placeholder="EAAxxxxxxx..."
+                    style={{
+                      width: '100%', padding: '10px 12px',
+                      border: '1px solid var(--border)', fontSize: 13,
+                      fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box',
+                    }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={manualConnect}
+                    disabled={connecting}
+                    style={{ opacity: connecting ? 0.5 : 1 }}
+                  >
+                    {connecting ? 'Conectando...' : 'Conectar'}
+                  </button>
+                  <button type="button" className="btn-outline" onClick={() => { setShowManual(false); setManualToken(''); }}>
+                    Cancelar
+                  </button>
+                </div>
               </div>
             )}
           </div>

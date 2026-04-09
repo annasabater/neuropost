@@ -41,6 +41,7 @@ const PLANS: Plan[] = [
       '1 cuenta (Instagram o Facebook)',
       '2 posts de foto por semana',
       'Sin posts de vídeo',
+      'Carruseles hasta 3 fotos',
       'Edición gestionada por nuestro equipo (base)',
       'Publicación manual (sin automatización)',
     ],
@@ -54,6 +55,7 @@ const PLANS: Plan[] = [
     features: [
       'Instagram + Facebook conectados',
       '3 posts de foto + 2 de vídeo por semana',
+      'Carruseles hasta 8 fotos',
       'Edición gestionada por nuestro equipo (prioritaria)',
       'Solicitudes con IA incluidas',
       'Publicación automática programada',
@@ -70,6 +72,7 @@ const PLANS: Plan[] = [
     features: [
       'Instagram + Facebook conectados',
       '7 posts de foto + 7 de vídeo por semana',
+      'Carruseles hasta 20 fotos',
       'Edición gestionada por nuestro equipo (prioritaria)',
       'Solicitudes con IA incluidas',
       'Publicación automática programada',
@@ -85,6 +88,7 @@ const PLANS: Plan[] = [
     featured: false,
     features: [
       'Volumen de foto y vídeo a medida por marca',
+      'Carruseles hasta 20 fotos',
       'Hasta 20 plataformas conectadas',
       'Panel de gestión unificado',
       'Edición gestionada por nuestro equipo (por marca)',
@@ -98,6 +102,7 @@ const PLANS: Plan[] = [
 const COMPARISON_ROWS: ComparisonRow[] = [
   { feature: 'Posts de foto por semana', starter: '2', pro: '3', total: '7', agencia: 'A medida × marca' },
   { feature: 'Posts de vídeo por semana', starter: '—', pro: '2', total: '7', agencia: 'A medida × marca' },
+  { feature: 'Fotos por carrusel', starter: '3', pro: '8', total: '20', agencia: '20' },
   { feature: 'Plataformas',            starter: '1',    pro: '2 (IG + FB)', total: '2 (IG + FB)',   agencia: 'Hasta 20' },
   { feature: 'Publicación automática', starter: '—',    pro: '✓',           total: '✓',             agencia: '✓' },
   { feature: 'Edición gestionada por nuestro equipo', starter: 'Sí (base)', pro: 'Sí (prioritaria)', total: 'Sí (prioritaria)', agencia: 'Sí (por marca)' },

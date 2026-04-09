@@ -23,18 +23,27 @@ export default async function DashboardPage() {
   const now = new Date();
   const t = await getTranslations('dashboard');
 
-  const [{ data: posts }, { data: allDates }] = await Promise.all([
+  const [{ data: posts }, { data: publishedPosts }, { data: allDates }] = await Promise.all([
     supabase
       .from('posts')
       .select('id, caption, status, published_at, created_at, quality_score, image_url')
       .eq('brand_id', brand.id)
       .order('created_at', { ascending: false })
       .limit(6),
+    supabase
+      .from('posts')
+      .select('id, caption, status, published_at, created_at, quality_score, image_url')
+      .eq('brand_id', brand.id)
+      .eq('status', 'published')
+      .not('published_at', 'is', null)
+      .order('published_at', { ascending: false })
+      .limit(6),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any).from('seasonal_dates').select('*'),
   ]);
 
   const allPosts = posts ?? [];
+  const recentPublishedPosts = publishedPosts ?? [];
   const publishedThisMonth = allPosts.filter((p) => {
     if (!p.published_at) return false;
     const d = new Date(p.published_at);
@@ -65,7 +74,7 @@ export default async function DashboardPage() {
   // Combine both: DB dates + static Catalunya dates, deduplicate by name, sort by daysUntil
   const allUpcoming = [...dbDates.map(d => ({ ...d, idea: undefined as string | undefined })), ...staticUpcoming];
   const seen = new Set<string>();
-  const upcomingDates = allUpcoming.filter(d => { if (seen.has(d.name)) return false; seen.add(d.name); return true; }).sort((a, b) => a.daysUntil - b.daysUntil).slice(0, 6);
+  const upcomingDates = allUpcoming.filter(d => { if (seen.has(d.name)) return false; seen.add(d.name); return true; }).sort((a, b) => a.daysUntil - b.daysUntil).slice(0, 4);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   void (supabase as any).from('brands').update({ last_login_at: now.toISOString() }).eq('id', brand.id);
@@ -177,21 +186,23 @@ export default async function DashboardPage() {
             <h2 style={{
               fontFamily: f, fontSize: 10, fontWeight: 600,
               textTransform: 'uppercase', letterSpacing: '0.14em',
-              color: 'var(--text-tertiary)', margin: 0,
-              paddingBottom: 8, borderBottom: '1px solid var(--border)',
+              color: 'var(--accent)', margin: 0,
+              paddingBottom: 8, borderBottom: '1px solid var(--accent-soft)',
             }}>
               {t('sections.upcomingDates')}
             </h2>
           </div>
           <div style={{
-            display: 'flex', gap: '1px', background: 'var(--border)',
+            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1px', background: 'var(--border)',
             border: '1px solid var(--border)', marginBottom: 48,
-            overflowX: 'auto', scrollbarWidth: 'none',
           }}>
             {upcomingDates.map((d: { id: string; name: string; daysUntil: number; idea?: string }) => (
               <div key={d.id} style={{
                 background: 'var(--bg)', padding: '16px 20px',
-                minWidth: 220, flex: '0 0 auto',
+                minHeight: 122,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
               }}>
                 <p style={{ fontFamily: fc, fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                   {d.name}
@@ -214,7 +225,7 @@ export default async function DashboardPage() {
       <h2 style={{
         fontFamily: f, fontSize: 10, fontWeight: 600,
         textTransform: 'uppercase', letterSpacing: '0.14em',
-        color: 'var(--text-tertiary)', marginBottom: 16,
+        color: 'var(--accent)', marginBottom: 16,
         paddingBottom: 8, borderBottom: '1px solid var(--border)',
       }}>
         {t('sections.quickActions')}
@@ -239,9 +250,9 @@ export default async function DashboardPage() {
             fontFamily: f, fontSize: 13, fontWeight: 600,
             transition: 'background 0.15s',
           }}>
-            <Icon size={18} style={{ color: 'var(--text-tertiary)' }} />
+            <Icon size={18} style={{ color: 'var(--accent)' }} />
             <span>{label}</span>
-            <ChevronRight size={14} style={{ marginLeft: 'auto', color: 'var(--text-tertiary)' }} />
+            <ChevronRight size={14} style={{ marginLeft: 'auto', color: 'var(--accent)' }} />
           </Link>
         ))}
       </div>
@@ -266,7 +277,7 @@ export default async function DashboardPage() {
           <Link href="/posts" style={{
             fontFamily: fc, fontSize: 12, fontWeight: 700,
             textTransform: 'uppercase', letterSpacing: '0.08em',
-            color: 'var(--bg)', background: 'var(--text-primary)',
+              color: 'var(--bg)', background: 'var(--accent)',
             padding: '10px 24px', textDecoration: 'none',
             display: 'inline-flex', alignItems: 'center', gap: 6,
             transition: 'opacity 0.15s', whiteSpace: 'nowrap',
@@ -277,29 +288,29 @@ export default async function DashboardPage() {
       )}
 
       {/* ── Recent posts ── */}
-      {allPosts.length > 0 && (
+      {recentPublishedPosts.length > 0 && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
             <h2 style={{
               fontFamily: f, fontSize: 10, fontWeight: 600,
               textTransform: 'uppercase', letterSpacing: '0.14em',
-              color: 'var(--text-tertiary)', margin: 0,
+              color: 'var(--accent)', margin: 0,
             }}>
               {t('sections.recentPosts')}
             </h2>
             <Link href="/posts" style={{
-              fontSize: 11, color: 'var(--text-tertiary)', textDecoration: 'none',
+              fontSize: 11, color: 'var(--accent)', textDecoration: 'none',
               fontFamily: f, fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.08em',
             }}>
               Ver todo →
             </Link>
           </div>
           <div style={{ border: '1px solid var(--border)', marginBottom: 48 }}>
-            {allPosts.map((post, i) => (
+            {recentPublishedPosts.map((post, i) => (
               <Link key={post.id} href={`/posts/${post.id}`} style={{
                 display: 'flex', alignItems: 'center', gap: 16,
                 padding: '14px 20px', textDecoration: 'none', color: 'inherit',
-                borderBottom: i < allPosts.length - 1 ? '1px solid var(--border)' : 'none',
+                borderBottom: i < recentPublishedPosts.length - 1 ? '1px solid var(--border)' : 'none',
                 transition: 'background 0.15s',
               }}>
                 {post.image_url ? (
@@ -327,7 +338,7 @@ export default async function DashboardPage() {
                   </div>
                 </div>
                 <span style={{ fontFamily: f, fontSize: 12, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  {new Date(post.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                  {new Date(post.published_at ?? post.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                 </span>
               </Link>
             ))}

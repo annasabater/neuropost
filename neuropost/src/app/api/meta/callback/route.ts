@@ -7,6 +7,7 @@ import {
   verifyMetaState,
 } from '@/lib/meta';
 import { createAdminClient } from '@/lib/supabase';
+import { syncBrandPostsIntoFeedQueue, syncInstagramPublishedSnapshot } from '@/lib/feedQueue';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -19,8 +20,11 @@ export async function GET(request: Request) {
   }
 
   let userId: string;
+  let source: 'instagram' | 'facebook' = 'instagram';
   try {
-    userId = await verifyMetaState(state);
+    const verified = await verifyMetaState(state);
+    userId = verified.userId;
+    source = verified.source;
   } catch {
     return NextResponse.redirect(new URL('/settings?meta_error=invalid_state', origin));
   }
@@ -49,15 +53,18 @@ export async function GET(request: Request) {
     const supabase = createAdminClient();
 
     const update: Record<string, string | null> = {
-      fb_page_id:            page.id,
-      fb_page_name:          page.name,
-      fb_access_token:       page.access_token,
       meta_token_expires_at: expiresAt,
     };
 
+    if (source === 'facebook') {
+      update.fb_page_id      = page.id;
+      update.fb_page_name    = page.name;
+      update.fb_access_token = page.access_token;
+    }
+
     if (igAccount) {
-      update.ig_account_id  = igAccount.id;
-      update.ig_username    = igAccount.username ?? null;
+      update.ig_account_id   = igAccount.id;
+      update.ig_username     = igAccount.username ?? null;
       update.ig_access_token = page.access_token; // page token works for IG Business
     }
 
@@ -66,22 +73,31 @@ export async function GET(request: Request) {
       .update(update)
       .eq('user_id', userId);
 
+    const { data: brandRow } = await supabase.from('brands').select('id').eq('user_id', userId).single();
+    if (brandRow?.id) {
+      await syncBrandPostsIntoFeedQueue(supabase, brandRow.id);
+      if (igAccount) {
+        await syncInstagramPublishedSnapshot(supabase, brandRow.id, igAccount.id, page.access_token);
+      }
+    }
+
     // 6 — Activity log
     await supabase.from('activity_log').insert({
-      brand_id:    (await supabase.from('brands').select('id').eq('user_id', userId).single()).data?.id,
+      brand_id:    brandRow?.id,
       user_id:     userId,
       action:      'meta_connected',
       entity_type: 'brand',
-      details:     { fb_page_id: page.id, ig_account_id: igAccount?.id },
+      details:     { fb_page_id: source === 'facebook' ? page.id : null, ig_account_id: igAccount?.id, source },
     });
 
     // 7 — Notification
-    const { data: brand } = await supabase.from('brands').select('id').eq('user_id', userId).single();
-    if (brand?.id) {
+    if (brandRow?.id) {
       await supabase.from('notifications').insert({
-        brand_id: brand.id,
+        brand_id: brandRow.id,
         type:     'meta_connected',
-        message:  igAccount
+        message:  igAccount && source === 'instagram'
+          ? `Instagram @${igAccount.username ?? igAccount.id} conectado correctamente.`
+          : igAccount
           ? `Instagram @${igAccount.username ?? igAccount.id} conectado correctamente.`
           : `Facebook "${page.name}" conectado correctamente.`,
         read:     false,

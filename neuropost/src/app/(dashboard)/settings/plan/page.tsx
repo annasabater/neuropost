@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { Check, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import type { SubscriptionPlan } from '@/types';
 import CouponInput from '@/components/billing/CouponInput';
+
+type BillingCycle = 'monthly' | 'annual';
 
 // ─── Inline ApplyCouponForm ───────────────────────────────────────────────────
 
@@ -52,8 +53,8 @@ function ApplyCouponForm() {
           onKeyDown={(e) => { if (e.key === 'Enter') handleApply(); }}
           placeholder="CODIGO2025"
           style={{
-            border:      `1px solid ${error ? '#ef4444' : message ? '#14B8A6' : 'var(--border)'}`,
-            borderRadius: 8,
+            border:      `1px solid ${error ? '#ef4444' : message ? 'var(--accent)' : 'var(--border)'}`,
+            borderRadius: 0,
             padding:     '10px 14px',
             fontFamily:  'Cabinet Grotesk, sans-serif',
             fontSize:    14,
@@ -66,10 +67,10 @@ function ApplyCouponForm() {
           onClick={handleApply}
           disabled={!code.trim() || loading}
           style={{
-            background:  !code.trim() || loading ? '#fdba74' : 'var(--orange)',
+            background:  !code.trim() || loading ? '#9ca3af' : 'var(--accent)',
             color:       'white',
             border:      'none',
-            borderRadius: 8,
+            borderRadius: 0,
             padding:     '10px 20px',
             fontWeight:  700,
             cursor:      !code.trim() || loading ? 'not-allowed' : 'pointer',
@@ -98,43 +99,60 @@ function ApplyCouponForm() {
 const PLANS: {
   id:      SubscriptionPlan;
   name:    string;
-  price:   string;
+  monthlyPrice: number;
+  desc: string;
   perks:   string[];
-  popular: boolean;
+  featured: boolean;
+  badge?: string;
 }[] = [
   {
     id:      'starter',
     name:    'Starter',
-    price:   '29€/mes',
+    monthlyPrice:   29,
+    desc: 'Para empezar con presencia constante en redes',
     perks:   ['2 posts/semana', 'Instagram o Facebook', 'Generación con IA', 'Planificador de contenido', 'Aprobación manual'],
-    popular: false,
+    featured: false,
   },
   {
     id:      'pro',
     name:    'Pro',
-    price:   '69€/mes',
+    monthlyPrice:   69,
+    desc: 'Para crecer con foto, vídeo y automatización',
     perks:   ['5 posts + 3 historias/semana', 'Instagram + Facebook', 'Publicación automática', 'Análisis de métricas', '14 días de prueba gratis'],
-    popular: true,
+    featured: true,
+    badge: '⚡ Más popular',
   },
   {
     id:      'total',
     name:    'Total',
-    price:   '129€/mes',
+    monthlyPrice:   129,
+    desc: 'Para escalar volumen con soporte y operación avanzada',
     perks:   ['7 posts + 7 historias/semana', 'Agente competencia', 'Detección de tendencias', 'Analytics avanzado', 'Estilos visuales IA'],
-    popular: false,
+    featured: false,
+    badge: '🚀 Completo',
   },
   {
     id:      'agency',
     name:    'Agency',
-    price:   '199€/mes',
+    monthlyPrice:   199,
+    desc: 'Para agencias y gestión de múltiples marcas',
     perks:   ['Todo lo de Total', 'Hasta 10 marcas', 'Panel multicliente', 'Soporte prioritario 24 h'],
-    popular: false,
+    featured: false,
   },
 ];
+
+function annualPrice(monthly: number): number {
+  return Math.round(monthly * 0.8);
+}
+
+function annualSavings(monthly: number): number {
+  return Math.round((monthly - annualPrice(monthly)) * 12);
+}
 
 export default function PlanPage() {
   const brand       = useAppStore((s) => s.brand);
   const params      = useSearchParams();
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('annual');
   const [billing,   setBilling]   = useState(false);
   const [upgrading, setUpgrading] = useState<SubscriptionPlan | null>(null);
   const [promoCodeId, setPromoCodeId] = useState<string | null>(null);
@@ -206,28 +224,27 @@ export default function PlanPage() {
           <h1 className="page-title">Plan y facturación</h1>
           <p className="page-sub">Plan actual: <strong style={{ textTransform: 'capitalize' }}>{currentPlan}</strong>
             {brand?.trial_ends_at && new Date(brand.trial_ends_at) > new Date() && (
-              <span style={{ marginLeft: 8, background: '#e6f9f0', color: '#1a7a45', padding: '2px 8px', borderRadius: 20, fontSize: 12 }}>
+              <span style={{ marginLeft: 8, background: '#e6f9f0', color: '#1a7a45', padding: '2px 8px', borderRadius: 0, fontSize: 12 }}>
                 Prueba gratis activa
               </span>
             )}
           </p>
         </div>
-        <Link href="/settings" style={{ fontSize: 13, color: 'var(--muted)' }}>← Ajustes</Link>
       </div>
 
       {subStatus?.discount && (
-        <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 10, padding: '12px 16px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 0, padding: '12px 16px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 20 }}>🏷️</span>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 14, color: '#92400e' }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--accent)' }}>
               Descuento activo
               {subStatus.discount.code && (
-                <span style={{ fontFamily: 'monospace', background: '#fde68a', padding: '1px 6px', borderRadius: 4, marginLeft: 6 }}>
+                <span style={{ fontFamily: 'monospace', background: 'var(--accent-soft)', color: 'var(--accent)', padding: '1px 6px', borderRadius: 0, marginLeft: 6 }}>
                   {subStatus.discount.code}
                 </span>
               )}
             </div>
-            <div style={{ fontSize: 13, color: '#b45309', marginTop: 2 }}>
+            <div style={{ fontSize: 13, color: 'var(--accent)', marginTop: 2 }}>
               {subStatus.discount.percentOff
                 ? `${subStatus.discount.percentOff}% de descuento`
                 : subStatus.discount.amountOff
@@ -243,57 +260,113 @@ export default function PlanPage() {
         </div>
       )}
 
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+        <div style={{ display: 'inline-flex', background: '#ffffff', border: '1px solid var(--border)', borderRadius: 0, padding: '4px', gap: '4px' }}>
+          {(['monthly', 'annual'] as const).map((cycle) => (
+            <button
+              key={cycle}
+              onClick={() => setBillingCycle(cycle)}
+              style={{
+                padding: '9px 22px',
+                borderRadius: 0,
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                fontWeight: 700,
+                fontSize: '0.88rem',
+                transition: 'all 0.2s',
+                background: billingCycle === cycle ? 'var(--accent)' : 'transparent',
+                color: billingCycle === cycle ? '#ffffff' : 'var(--text-secondary)',
+              }}
+            >
+              {cycle === 'monthly' ? 'Mensual' : 'Anual'}
+              {cycle === 'annual' && (
+                <span
+                  style={{
+                    marginLeft: '6px',
+                    background: billingCycle === 'annual' ? 'rgba(255,255,255,0.2)' : 'var(--accent-light)',
+                    color: billingCycle === 'annual' ? '#ffffff' : 'var(--accent)',
+                    borderRadius: 0,
+                    padding: '2px 8px',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                  }}
+                >
+                  −20%
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Plans grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 32 }}>
+      <div style={{ overflowX: 'auto', overflowY: 'visible', paddingTop: 10, paddingBottom: 4, marginBottom: 32 }}>
+      <div className="pricing-grid" style={{ minWidth: 1040, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, alignItems: 'stretch' }}>
         {PLANS.map((plan) => {
           const isCurrent = plan.id === currentPlan;
+          const displayPrice = billingCycle === 'annual' ? annualPrice(plan.monthlyPrice) : plan.monthlyPrice;
+          const savings = annualSavings(plan.monthlyPrice);
+
           return (
             <div
               key={plan.id}
-              style={{
-                border:       `2px solid ${plan.popular ? 'var(--orange)' : isCurrent ? 'var(--ink)' : 'var(--border)'}`,
-                borderRadius: 14,
-                padding:      24,
-                position:     'relative',
-                background:   isCurrent ? 'var(--orange-light, #fff5f0)' : '#fff',
-              }}
+              className={`plan${plan.featured ? ' featured' : ''}`}
             >
-              {plan.popular && (
-                <span style={{
-                  position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)',
-                  background: 'var(--orange)', color: '#fff', padding: '3px 14px',
-                  borderRadius: 20, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
-                }}>
-                  MÁS POPULAR
-                </span>
+              {plan.badge && (
+                <div className="plan-badge">{plan.badge}</div>
               )}
+
               {isCurrent && (
                 <span style={{
                   position: 'absolute', top: -12, right: 16,
                   background: 'var(--ink)', color: '#fff', padding: '3px 14px',
-                  borderRadius: 20, fontSize: 11, fontWeight: 700,
+                  borderRadius: 0, fontSize: 11, fontWeight: 700,
                 }}>
                   ACTIVO
                 </span>
               )}
 
-              <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: 18, marginBottom: 4 }}>{plan.name}</p>
-              <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--orange)', marginBottom: 16 }}>{plan.price}</p>
+              <div className="plan-name">{plan.name}</div>
+              <div className="plan-price">
+                <sup>€</sup>
+                {displayPrice}
+                <span>/mes</span>
+              </div>
 
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {billingCycle === 'annual' && (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: plan.featured ? 'rgba(15,118,110,0.22)' : 'var(--accent-light)',
+                    color: plan.featured ? '#7cf5ea' : 'var(--accent)',
+                    fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    padding: '4px 12px',
+                    borderRadius: 0,
+                    marginBottom: '8px',
+                  }}
+                >
+                  Ahorras €{savings}/año
+                </div>
+              )}
+
+              <div className="plan-desc">{plan.desc}</div>
+
+              <ul className="plan-features">
                 {plan.perks.map((perk) => (
-                  <li key={perk} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)' }}>
-                    <Check size={14} style={{ color: 'var(--orange)', flexShrink: 0 }} />
-                    {perk}
-                  </li>
+                  <li key={perk}>{perk}</li>
                 ))}
               </ul>
 
               {isCurrent ? (
-                <button className="btn-outline btn-full" disabled style={{ opacity: 0.5 }}>Plan actual</button>
+                <button className="plan-btn" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>Plan actual</button>
               ) : (
                 <button
-                  className={plan.popular ? 'btn-primary btn-full' : 'btn-outline btn-full'}
+                  className="plan-btn"
                   onClick={() => handleUpgrade(plan.id)}
                   disabled={upgrading === plan.id}
                 >
@@ -303,6 +376,7 @@ export default function PlanPage() {
             </div>
           );
         })}
+      </div>
       </div>
 
       {/* Coupon for upgrade */}
@@ -327,14 +401,6 @@ export default function PlanPage() {
         </div>
       )}
 
-      {/* Apply coupon to existing subscription */}
-      <div style={{ border: '1px solid var(--border)', borderRadius: 14, padding: 24, marginTop: 32 }}>
-        <h3 style={{ margin: '0 0 8px', fontSize: 16 }}>Aplicar código de descuento</h3>
-        <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--muted)' }}>
-          Si tienes un código promocional, puedes aplicarlo a tu suscripción actual. El descuento se aplicará a partir del próximo ciclo de facturación.
-        </p>
-        <ApplyCouponForm />
-      </div>
     </div>
   );
 }

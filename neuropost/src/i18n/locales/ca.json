@@ -140,7 +140,7 @@
       "subtitle": "Crea el teu primer post amb IA"
     },
     "new": { "title": "Nova publicació", "generateButton": "✦ Genera amb IA", "generating": "Generant...", "qualityScore": "Qualitat de la publicació", "captionPlaceholder": "Escriu o edita el caption...", "hashtagsPlaceholder": "Afegir hashtag", "actions": { "approve": "Aprova i programa", "publishNow": "Publica ara", "saveDraft": "Desa l'esborrany", "regenerate": "Regenera", "regenerateCaption": "Regenera el caption" } },
-    "status": { "all": "Tots", "draft": "Esborrany", "generated": "Generat", "pending": "Pendent", "approved": "Aprovat", "scheduled": "Programat", "published": "Publicat", "failed": "Fallat", "cancelled": "Cancel·lat" },
+    "status": { "all": "Tots", "request": "En preparaci\u00f3", "draft": "Esborrany", "generated": "Generat", "pending": "Pendent", "approved": "Aprovat", "scheduled": "Programat", "published": "Publicat", "failed": "Fallat", "cancelled": "Cancel·lat" },
     "toast": { "published": "🚀 Publicació publicada a Instagram!", "approved": "✅ Publicació aprovada", "saved": "💾 Esborrany desat", "failed": "❌ Error en publicar. Torna-ho a provar" }
   },
   "calendar": {

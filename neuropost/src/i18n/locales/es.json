@@ -227,7 +227,7 @@
     },
     "sections": {
       "pendingApproval": "{count} post pendiente de aprobación|{count} posts pendientes de aprobación",
-      "pendingSubtitle": "Revísalos y apruébalos para que la IA los publique según el calendario",
+      "pendingSubtitle": "Revísalos y apruébalos para que se publiquen según el calendario",
       "pendingAction": "Revisar posts →",
       "upcomingDates": "Próximas fechas importantes",
       "quickActions": "Acciones rápidas",
@@ -289,6 +289,7 @@
     },
     "status": {
       "all": "Todos",
+      "request": "En preparaci\u00f3n",
       "draft": "Borrador",
       "generated": "Generado",
       "pending": "Pendiente",

@@ -17,8 +17,13 @@ type CalPost = {
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const STATUS_DOT: Record<string, string> = {
-  scheduled: '#111827', published: '#0F766E', approved: '#1565c0',
-  pending: '#e65100', draft: '#d1d5db',
+  scheduled: '#0F766E', published: '#0F766E', approved: '#1565c0',
+  pending: '#e65100', draft: '#d1d5db', request: '#0F766E',
+};
+
+const STATUS_LABEL_CAL: Record<string, string> = {
+  scheduled: 'Programado', published: 'Publicado', approved: 'Aprobado',
+  pending: 'Pendiente', draft: 'Borrador', request: 'En preparación',
 };
 
 function getDaysInMonth(year: number, month: number) {
@@ -42,14 +47,20 @@ export default function CalendarPage() {
   const fetchPosts = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/posts?limit=100`);
+      const res = await fetch(`/api/posts?limit=100&_t=${Date.now()}`);
       const json = await res.json();
       setPosts(json.posts ?? []);
     } catch { /* silent */ }
     setLoading(false);
   }, []);
 
+  // Re-fetch on mount and when navigating back to this page
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
+  useEffect(() => {
+    function onFocus() { fetchPosts(); }
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [fetchPosts]);
 
   function prevMonth() {
     if (month === 1) { setMonth(12); setYear(y => y - 1); }
@@ -88,9 +99,10 @@ export default function CalendarPage() {
   const today = new Date();
   const isToday = (d: number) => d === today.getDate() && month === today.getMonth() + 1 && year === today.getFullYear();
 
-  // Group posts by day
+  // Group posts by day — only scheduled and published
   const postsByDay: Record<number, CalPost[]> = {};
   for (const p of posts) {
+    if (p.status !== 'scheduled' && p.status !== 'published') continue;
     const dateStr = p.scheduled_at ?? p.published_at;
     if (!dateStr) continue;
     const d = new Date(dateStr);
@@ -178,23 +190,29 @@ export default function CalendarPage() {
                           {importantDate}
                         </div>
                       )}
-                      {dayPosts.slice(0, 3).map(p => (
-                        <Link key={p.id} href={`/posts/${p.id}`} style={{
-                          display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3,
-                          textDecoration: 'none', padding: '2px 4px',
-                          background: '#f3f4f6', transition: 'background 0.1s',
-                        }}>
-                          {p.image_url ? (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={p.image_url} alt="" style={{ width: 16, height: 16, objectFit: 'cover', flexShrink: 0 }} />
-                          ) : (
-                            <div style={{ width: 4, height: 4, background: STATUS_DOT[p.status] ?? '#d1d5db', borderRadius: '50%', flexShrink: 0 }} />
-                          )}
-                          <span style={{ fontFamily: f, fontSize: 10, color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {p.caption?.slice(0, 20) ?? p.status}
-                          </span>
-                        </Link>
-                      ))}
+                      {dayPosts.slice(0, 3).map(p => {
+                        const isScheduled = p.status === 'scheduled';
+                        const dotColor = STATUS_DOT[p.status] ?? '#d1d5db';
+                        return (
+                          <Link key={p.id} href={`/posts/${p.id}`} style={{
+                            display: 'flex', alignItems: 'center', gap: 4, marginBottom: 3,
+                            textDecoration: 'none', padding: '2px 4px',
+                            background: isScheduled ? 'rgba(15,118,110,0.1)' : '#f3f4f6',
+                            borderLeft: `2px solid ${dotColor}`,
+                            transition: 'background 0.1s',
+                          }}>
+                            {p.image_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={p.image_url} alt="" style={{ width: 16, height: 16, objectFit: 'cover', flexShrink: 0 }} />
+                            ) : (
+                              <div style={{ width: 4, height: 4, background: dotColor, borderRadius: '50%', flexShrink: 0 }} />
+                            )}
+                            <span style={{ fontFamily: f, fontSize: 10, color: isScheduled ? '#0F766E' : '#374151', fontWeight: isScheduled ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {p.caption?.slice(0, 18) ?? (STATUS_LABEL_CAL[p.status] ?? p.status)}
+                            </span>
+                          </Link>
+                        );
+                      })}
                       {dayPosts.length > 3 && (
                         <span style={{ fontFamily: f, fontSize: 9, color: '#9ca3af' }}>+{dayPosts.length - 3} más</span>
                       )}
@@ -209,9 +227,9 @@ export default function CalendarPage() {
 
       {/* Stats */}
       <div style={{ display: 'flex', gap: 24, marginTop: 24, fontFamily: f, fontSize: 12, color: '#9ca3af' }}>
-        <span>{posts.filter(p => p.scheduled_at).length} programados</span>
+        <span>{posts.filter(p => p.status === 'scheduled').length} programados</span>
         <span>{posts.filter(p => p.status === 'published').length} publicados</span>
-        <span>{posts.filter(p => p.status === 'pending' || p.status === 'draft').length} pendientes</span>
+        <span>{posts.filter(p => ['pending', 'draft', 'request'].includes(p.status)).length} pendientes</span>
       </div>
     </div>
   );

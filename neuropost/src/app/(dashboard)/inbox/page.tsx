@@ -26,13 +26,13 @@ type Ticket = { id: string; subject: string; status: string; category: string; c
 type ChatMsg = { id: string; sender_type: 'client' | 'worker'; message: string; created_at: string };
 type ChangeEntry = { id: string; version: string | null; title: string; summary: string | null; changes: { type: string; text: string }[]; published_at: string | null };
 
-const TYPE_COLOR: Record<string, string> = { new: '#0F766E', improved: '#1565c0', fixed: '#e65100', removed: '#6b7280' };
+const TYPE_COLOR: Record<string, string> = { new: '#0F766E', improved: '#0D9488', fixed: '#0F766E', removed: '#6b7280' };
 const TYPE_LABEL: Record<string, string> = { new: 'NUEVO', improved: 'MEJORADO', fixed: 'CORREGIDO', removed: 'ELIMINADO' };
 const TYPE_ICON: Record<string, React.ComponentType<IconProps>> = { new: TrendingUp, improved: TrendingUp, fixed: AlertCircle, removed: TrendingDown };
 const STATUS_STYLE: Record<string, { color: string; bg: string; label: string }> = {
-  open: { color: '#e65100', bg: '#fff3e0', label: 'Abierto' },
-  in_progress: { color: '#1565c0', bg: '#e3f2fd', label: 'En proceso' },
-  resolved: { color: '#0F766E', bg: '#f0fdf4', label: 'Resuelto' },
+  open: { color: '#0F766E', bg: '#f0fdfa', label: 'Abierto' },
+  in_progress: { color: '#0D9488', bg: '#ecfeff', label: 'En proceso' },
+  resolved: { color: '#0F766E', bg: '#ecfdf5', label: 'Resuelto' },
   closed: { color: '#6b7280', bg: '#f3f4f6', label: 'Cerrado' },
 };
 
@@ -115,19 +115,19 @@ function InboxInner() {
       </div>
 
       {/* Tab selector — 4 cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: '#e5e7eb', border: '1px solid #e5e7eb', marginBottom: 40 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', marginBottom: 40 }}>
         {TABS.map((s) => {
           const active = tab === s.key;
           const Icon = s.icon;
           const badge = s.key === 'comentarios' ? unreadComments : s.key === 'notificaciones' ? unreadNotifications : 0;
           return (
             <button key={s.key} onClick={() => setTab(s.key)} style={{
-              padding: '24px 20px', background: active ? '#111827' : '#ffffff',
+              padding: '24px 20px', background: active ? 'var(--accent)' : '#ffffff',
               border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <Icon size={18} style={{ color: active ? '#ffffff' : '#9ca3af' }} />
-                {badge > 0 && <span style={{ fontSize: 10, background: '#0F766E', color: '#fff', padding: '1px 6px', fontFamily: f, fontWeight: 700 }}>{badge}</span>}
+                <Icon size={18} style={{ color: active ? '#ffffff' : 'var(--accent)' }} />
+                {badge > 0 && <span style={{ fontSize: 10, background: 'var(--accent)', color: '#fff', padding: '1px 6px', fontFamily: f, fontWeight: 700 }}>{badge}</span>}
               </div>
               <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 15, textTransform: 'uppercase', color: active ? '#ffffff' : '#111827', marginBottom: 4 }}>{s.title}</p>
               <p style={{ fontFamily: f, fontSize: 12, color: active ? 'rgba(255,255,255,0.5)' : '#9ca3af' }}>{s.desc}</p>
@@ -148,7 +148,7 @@ function InboxInner() {
               { name: 'Pedro Ruiz', platform: 'Instagram', msg: 'El mejor sitio de la ciudad', time: 'Hace 2 días' },
             ].map((item, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: i < 3 ? '1px solid #f3f4f6' : 'none' }}>
-                <div style={{ width: 32, height: 32, background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 12, fontWeight: 700, color: '#6b7280', flexShrink: 0 }}>{item.name.charAt(0)}</div>
+                  <div style={{ width: 32, height: 32, background: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 12, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>{item.name.charAt(0)}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                     <span style={{ fontFamily: f, fontSize: 13, fontWeight: 600, color: '#111827' }}>{item.name}</span>
@@ -160,9 +160,6 @@ function InboxInner() {
               </div>
             ))}
           </div>
-          <p style={{ fontFamily: f, fontSize: 12, color: '#9ca3af', marginTop: 16, textAlign: 'center' }}>
-            Comentarios de ejemplo. <button onClick={() => router.push('/comments')} style={{ color: '#0F766E', background: 'none', border: 'none', cursor: 'pointer', fontFamily: f, fontSize: 12, textDecoration: 'underline', textUnderlineOffset: 3 }}>Procesar con IA →</button>
-          </p>
         </div>
       )}
 
@@ -184,7 +181,7 @@ function InboxInner() {
               ) : (
                 messages.map((msg) => (
                   <div key={msg.id} style={{ display: 'flex', justifyContent: msg.sender_type === 'client' ? 'flex-end' : 'flex-start', marginBottom: 8 }}>
-                    <div style={{ maxWidth: '65%', background: msg.sender_type === 'client' ? '#eef2ff' : '#ffffff', border: `1px solid ${msg.sender_type === 'client' ? '#c7d2fe' : '#e5e7eb'}`, padding: '10px 14px' }}>
+                    <div style={{ maxWidth: '65%', background: msg.sender_type === 'client' ? '#f3f4f6' : '#e6f6f3', border: `1px solid ${msg.sender_type === 'client' ? '#d1d5db' : '#6fb7aa'}`, padding: '10px 14px' }}>
                       <p style={{ fontFamily: f, fontSize: 13, color: '#111827', lineHeight: 1.5, whiteSpace: 'pre-wrap', margin: 0 }}>{msg.message}</p>
                       <p style={{ fontFamily: f, fontSize: 10, color: '#d1d5db', marginTop: 4, textAlign: 'right' }}>{new Date(msg.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
@@ -198,7 +195,7 @@ function InboxInner() {
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }}
                 placeholder="Escribe un mensaje..." style={{ flex: 1, padding: '10px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', color: '#111827', background: '#f9fafb' }} />
               <button onClick={sendChat} disabled={!chatText.trim()} style={{
-                width: 36, height: 36, background: chatText.trim() ? '#111827' : '#e5e7eb', border: 'none',
+                width: 36, height: 36, background: chatText.trim() ? 'var(--accent)' : '#e5e7eb', border: 'none',
                 cursor: chatText.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <Send size={14} color="#ffffff" />
@@ -214,7 +211,7 @@ function InboxInner() {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
             <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: '#111827' }}>Soporte</h2>
             <button onClick={() => setCreating(true)} style={{
-              background: '#111827', color: '#ffffff', border: 'none', padding: '8px 20px',
+              background: 'var(--accent)', color: '#ffffff', border: 'none', padding: '8px 20px',
               fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
               cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
             }}>
@@ -242,7 +239,7 @@ function InboxInner() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => setCreating(false)} style={{ padding: '10px 20px', border: '1px solid #e5e7eb', background: '#ffffff', fontFamily: f, fontSize: 13, fontWeight: 600, color: '#6b7280', cursor: 'pointer' }}>Cancelar</button>
                 <button onClick={createTicket} disabled={saving} style={{
-                  padding: '10px 24px', background: '#111827', color: '#ffffff', border: 'none',
+                  padding: '10px 24px', background: 'var(--accent)', color: '#ffffff', border: 'none',
                   fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', opacity: saving ? 0.5 : 1,
                 }}>{saving ? 'Enviando...' : 'Abrir ticket →'}</button>
               </div>
@@ -259,7 +256,7 @@ function InboxInner() {
               <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 20, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Todo en orden</p>
               <p style={{ fontFamily: f, fontSize: 14, color: '#9ca3af', marginBottom: 24 }}>Si necesitas ayuda, abre un ticket</p>
               <button onClick={() => setCreating(true)} style={{
-                background: '#111827', color: '#ffffff', border: 'none', padding: '12px 28px',
+                background: 'var(--accent)', color: '#ffffff', border: 'none', padding: '12px 28px',
                 fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer',
               }}>Abrir ticket</button>
             </div>
@@ -298,10 +295,10 @@ function InboxInner() {
                 for (const c of (Array.isArray(entry.changes) ? entry.changes : [])) { if (!byType[c.type]) byType[c.type] = []; byType[c.type].push(c); }
                 return (
                   <div key={entry.id} style={{ position: 'relative', marginBottom: 24 }}>
-                    <div style={{ position: 'absolute', left: -24, top: 4, width: 8, height: 8, background: '#111827', borderRadius: '50%' }} />
+                    <div style={{ position: 'absolute', left: -24, top: 4, width: 8, height: 8, background: 'var(--accent)', borderRadius: '50%' }} />
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                       {entry.published_at && <span style={{ fontFamily: f, fontSize: 11, color: '#9ca3af' }}>{new Date(entry.published_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>}
-                      {entry.version && <span style={{ fontFamily: f, fontSize: 9, fontWeight: 600, color: '#0F766E', background: '#f0fdf4', padding: '1px 6px', textTransform: 'uppercase' }}>v{entry.version}</span>}
+                      {entry.version && <span style={{ fontFamily: f, fontSize: 9, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-light)', padding: '1px 6px', textTransform: 'uppercase' }}>v{entry.version}</span>}
                     </div>
                     <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', padding: '16px 20px' }}>
                       <h3 style={{ fontFamily: fc, fontSize: 16, fontWeight: 800, textTransform: 'uppercase', color: '#111827', marginBottom: entry.summary ? 4 : 10 }}>{entry.title}</h3>
@@ -310,7 +307,7 @@ function InboxInner() {
                         const Icon = TYPE_ICON[type] ?? TrendingUp;
                         return (
                           <div key={type} style={{ marginBottom: 6 }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', background: '#f3f4f6', fontFamily: f, fontSize: 9, fontWeight: 600, color: TYPE_COLOR[type] ?? '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', background: 'var(--accent-light)', fontFamily: f, fontSize: 9, fontWeight: 600, color: TYPE_COLOR[type] ?? '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                               <Icon size={10} style={{ color: TYPE_COLOR[type] }} /> {TYPE_LABEL[type] ?? type}
                             </span>
                             <ul style={{ margin: '4px 0 0', paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -334,8 +331,8 @@ function InboxInner() {
             <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: '#111827' }}>Notificaciones</h2>
             {notifications.filter(n => !n.read).length > 0 && (
               <button onClick={() => { markAllNotificationsRead(); fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ all: true }) }); }} style={{
-                background: 'none', border: '1px solid #e5e7eb', padding: '6px 14px', cursor: 'pointer',
-                fontFamily: f, fontSize: 12, fontWeight: 600, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 6,
+                background: '#ffffff', border: '1px solid var(--accent)', padding: '6px 14px', cursor: 'pointer',
+                fontFamily: f, fontSize: 12, fontWeight: 600, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 6,
               }}>
                 <CheckCheck size={13} /> Marcar todo como leído
               </button>
@@ -380,7 +377,7 @@ function InboxInner() {
                 {groups.map((group) => (
                   <div key={group.label}>
                     <div style={{ padding: '10px 20px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                      <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af' }}>{group.label}</span>
+                      <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--accent)' }}>{group.label}</span>
                     </div>
                     {group.items.map((n) => (
                       <div
@@ -393,7 +390,7 @@ function InboxInner() {
                         style={{
                           display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px',
                           borderBottom: '1px solid #f3f4f6', cursor: 'pointer',
-                          background: n.read ? '#ffffff' : '#f9fafb',
+                          background: n.read ? '#ffffff' : 'var(--accent-light)',
                           transition: 'background 0.1s',
                         }}
                       >
@@ -404,7 +401,7 @@ function InboxInner() {
                             {new Date(n.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
-                        {!n.read && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#0F766E', flexShrink: 0 }} />}
+                        {!n.read && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />}
                       </div>
                     ))}
                   </div>

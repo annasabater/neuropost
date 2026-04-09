@@ -1696,10 +1696,134 @@ footer {
 
 /* ─── PAGE CONTENT ─── */
 .page-content { max-width: 960px; }
-.page-header { margin-bottom: 32px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.page-header { margin-bottom: 32px; padding-top: 48px; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .page-title { font-family: var(--font-barlow-condensed), 'Barlow Condensed', sans-serif; font-weight: 800; font-size: clamp(2.5rem, 5vw, 4rem); letter-spacing: 0.02em; color: var(--text-primary); margin-bottom: 4px; text-transform: uppercase; line-height: 1.0; }
 .page-sub { font-size: 15px; color: var(--text-secondary); font-family: var(--font-barlow), 'Barlow', sans-serif; line-height: 1.6; }
 .section-title { font-family: var(--font-barlow), 'Barlow', sans-serif; font-weight: 500; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-tertiary); margin: 32px 0 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+
+/* ─── DASHBOARD LOOK & FEEL (aligned with landing #funciones) ─────────────── */
+.dash-root .section-title,
+.dash-root .settings-section-title,
+.dash-root .stat-label,
+.dash-root .score-label {
+  color: #111827;
+}
+
+.dash-root .stats-grid,
+.dash-root .ideas-grid,
+.dash-root .scores-grid {
+  gap: 2px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  padding: 1px;
+}
+
+.dash-root .stat-card,
+.dash-root .quick-action-card,
+.dash-root .post-list-item,
+.dash-root .idea-card,
+.dash-root .interaction-card,
+.dash-root .score-card,
+.dash-root .insight-card,
+.dash-root .rec-card,
+.dash-root .post-preview-card,
+.dash-root .settings-section,
+.dash-root .day-detail-panel,
+.dash-root .tone-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.dash-root .stat-card:hover,
+.dash-root .quick-action-card:hover,
+.dash-root .post-list-item:hover,
+.dash-root .idea-card:hover,
+.dash-root .interaction-card:hover,
+.dash-root .score-card:hover,
+.dash-root .insight-card:hover,
+.dash-root .rec-card:hover,
+.dash-root .tone-card:hover {
+  background: var(--warm);
+  transform: none;
+}
+
+.dash-root .page-title,
+.dash-root .stat-value,
+.dash-root .score-value.mid,
+.dash-root .quality-score,
+.dash-root .idea-hashtags,
+.dash-root .dash-nav-item.active svg {
+  color: #111827;
+}
+
+.dash-root .dash-nav-item.active {
+  background: var(--accent-soft);
+  color: var(--text-primary);
+}
+
+.dash-root .btn-primary,
+.dash-root .btn-outline,
+.dash-root .topbar-new-btn {
+  border-radius: 0 !important;
+}
+
+.dash-root .btn-primary,
+.dash-root .topbar-new-btn {
+  background: var(--accent) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--accent) !important;
+}
+
+.dash-root .btn-primary:hover,
+.dash-root .topbar-new-btn:hover {
+  background: #0d5e58 !important;
+}
+
+.dash-root .btn-outline {
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.dash-root .btn-outline:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.dash-root .page-sub,
+.dash-root .post-list-meta,
+.dash-root .post-list-date,
+.dash-root .notif-date,
+.dash-root .approval-explanation {
+  color: #111827;
+}
+
+.dash-root .topbar-icon-btn:hover {
+  color: var(--accent-glow);
+}
+
+.dash-root .topbar-badge,
+.dash-root .nav-badge {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.dash-root .quick-action-card svg,
+.dash-root .cal-header-cell,
+.dash-root .cal-more,
+.dash-root .back-link:hover,
+.dash-root .filter-btn.active {
+  color: var(--accent);
+}
+
+.dash-root .notif-item.unread,
+.dash-root .post-list-item:hover,
+.dash-root .interaction-reply,
+.dash-root .tone-card.active {
+  border-left: 3px solid var(--accent);
+}
 
 .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); margin-bottom: 8px; }
 .stat-card { background: var(--bg-1); border: 1px solid var(--border); border-radius: 0; padding: 28px 24px; transition: transform 0.2s; }
@@ -1725,6 +1849,7 @@ footer {
 .post-list-meta { font-size: 11px; color: var(--text-tertiary); }
 
 .status-badge { font-family: var(--font-barlow), 'Barlow', sans-serif; font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 9999px; display: inline-flex; align-items: center; }
+.status-request   { background: var(--accent-soft); color: var(--accent); }
 .status-draft     { background: var(--bg-3); color: var(--text-tertiary); }
 .status-generated { background: var(--info-dim); color: var(--info); }
 .status-pending   { background: var(--warning-dim); color: var(--warning); }
@@ -1733,6 +1858,11 @@ footer {
 .status-published { background: rgba(48,209,88,0.15); color: var(--success); }
 .status-failed    { background: var(--error-dim); color: var(--error); }
 .status-cancelled { background: var(--bg-3); color: var(--text-tertiary); }
+
+/* Post card hover effects */
+.post-card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(15,118,110,0.12); }
+.post-card-hover:hover img { transform: scale(1.05); }
+.post-card-hover:hover .post-card-actions { opacity: 1 !important; }
 
 .ideas-prompt-area { background: var(--bg-2); border: none; border-radius: 16px; padding: 24px; margin-bottom: 24px; }
 .ideas-prompt-row { display: flex; gap: 12px; align-items: flex-end; }
@@ -1812,6 +1942,73 @@ footer {
 .connection-name { font-family: var(--font-barlow), 'Barlow', sans-serif; font-weight: 700; font-size: 13px; color: var(--text-primary); }
 .connection-status { font-family: var(--font-barlow), 'Barlow', sans-serif; font-size: 12px; color: var(--text-tertiary); }
 .connection-status.connected { color: var(--success); }
+
+/* Settings page inspired by blog editorial style */
+.settings-blog-theme {
+  max-width: 1100px;
+}
+
+.settings-blog-theme .page-title {
+  font-family: var(--font-barlow-condensed), 'Barlow Condensed', sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  line-height: 0.92;
+}
+
+.settings-blog-theme .page-sub {
+  max-width: 640px;
+  color: #4b5563;
+}
+
+.settings-blog-theme .settings-sidenav {
+  border-right: 1px solid #eceff1;
+  padding-right: 14px;
+}
+
+.settings-blog-theme .settings-section {
+  border: 1px solid #e5e7eb;
+  background: linear-gradient(180deg, #ffffff 0%, #fcfcfc 100%);
+  padding: 26px 30px;
+  margin-bottom: 14px;
+}
+
+.settings-blog-theme .settings-section-title {
+  font-family: var(--font-barlow-condensed), 'Barlow Condensed', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #111111;
+  margin-bottom: 18px;
+}
+
+.settings-blog-theme .form-group label {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #6b7280;
+}
+
+.settings-blog-theme .form-group input,
+.settings-blog-theme .form-group select,
+.settings-blog-theme .form-group textarea,
+.settings-blog-theme .tags-input-area {
+  border-radius: 0;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+}
+
+.settings-blog-theme .form-group input:focus,
+.settings-blog-theme .form-group select:focus,
+.settings-blog-theme .form-group textarea:focus,
+.settings-blog-theme .tags-input-area:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(15, 118, 110, 0.08);
+}
+
+.settings-blog-theme .tag-chip {
+  background: #f0fdfa;
+  color: #115e59;
+}
 
 /* ─── EMPTY STATE ────────────────────────────────────────────────────────────── */
 .empty-state { text-align: center; padding: 80px 20px; }
@@ -1973,7 +2170,7 @@ footer {
 .filter-btn.active { color: var(--text-primary); border-bottom-color: var(--accent); }
 
 /* ─── POST DETAIL ────────────────────────────────────────────────────────────── */
-.post-detail-layout { display: grid; grid-template-columns: 360px 1fr; gap: 28px; align-items: flex-start; }
+.post-detail-layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 28px; align-items: flex-start; }
 .post-detail-preview { position: sticky; top: 88px; }
 .post-detail-panel { display: flex; flex-direction: column; gap: 16px; }
 .post-meta-list { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; font-family: var(--font-barlow), 'Barlow', sans-serif; font-size: 13px; }

@@ -63,7 +63,7 @@
   "posts": {
     "title": "Post",
     "new": { "title": "Nuovo post", "generateButton": "✦ Genera con IA", "generating": "Generazione...", "qualityScore": "Qualità del post", "captionPlaceholder": "Scrivi o modifica la didascalia...", "hashtagsPlaceholder": "Aggiungi hashtag", "actions": { "approve": "Approva e programma", "publishNow": "Pubblica ora", "saveDraft": "Salva bozza", "regenerate": "Rigenera", "regenerateCaption": "Rigenera didascalia" } },
-    "status": { "draft": "Bozza", "generated": "Generato", "pending": "In attesa", "approved": "Approvato", "scheduled": "Programmato", "published": "Pubblicato", "failed": "Fallito", "cancelled": "Annullato" },
+    "status": { "all": "Tutti", "request": "In preparazione", "draft": "Bozza", "generated": "Generato", "pending": "In attesa", "approved": "Approvato", "scheduled": "Programmato", "published": "Pubblicato", "failed": "Fallito", "cancelled": "Annullato" },
     "toast": { "published": "🚀 Post pubblicato su Instagram!", "approved": "✅ Post approvato", "saved": "💾 Bozza salvata", "failed": "❌ Pubblicazione fallita. Riprova" }
   },
   "calendar": {

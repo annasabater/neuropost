@@ -270,10 +270,16 @@ export default function SettingsPage() {
     if (json.url) window.location.href = json.url;
   }
 
-  async function connectMeta() {
-    const res  = await fetch('/api/meta/oauth-url');
-    const json = await res.json();
-    if (json.url) window.location.href = json.url;
+  async function connectMeta(source: 'instagram' | 'facebook') {
+    try {
+      const res  = await fetch(`/api/meta/oauth-url?source=${source}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'No se pudo iniciar la conexión con Meta');
+      if (!json.url) throw new Error('Meta no devolvió una URL de autorización');
+      window.location.href = json.url;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo iniciar la conexión con Meta');
+    }
   }
 
   function scrollTo(id: string) {
@@ -288,7 +294,7 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="page-content">
+    <div className="page-content settings-blog-theme">
       <div className="page-header">
         <div className="page-header-text">
           <h1 className="page-title">{t('title')}</h1>
@@ -297,7 +303,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Two-column layout */}
-      <div style={{ display: 'flex', gap: 32, alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: 36, alignItems: 'flex-start' }}>
 
         {/* Left sticky nav */}
         <div
@@ -320,11 +326,11 @@ export default function SettingsPage() {
                     width: '100%',
                     textAlign: 'left',
                     padding: '7px 12px',
-                    borderRadius: 8,
-                    border: 'none',
-                    background: activeSection === id ? 'var(--orange-light)' : 'transparent',
-                    color: activeSection === id ? 'var(--orange)' : 'var(--muted)',
-                    fontFamily: "'Cabinet Grotesk', sans-serif",
+                    borderRadius: 0,
+                    border: `1px solid ${activeSection === id ? 'var(--accent)' : 'transparent'}`,
+                    background: activeSection === id ? 'var(--accent-light)' : 'transparent',
+                    color: activeSection === id ? 'var(--accent)' : 'var(--muted)',
+                    fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
                     fontWeight: activeSection === id ? 700 : 500,
                     fontSize: '0.82rem',
                     cursor: 'pointer',
@@ -366,13 +372,13 @@ export default function SettingsPage() {
               align-items: center;
               justify-content: space-between;
               padding: 14px 16px;
-              border-radius: 10px;
+              border-radius: 0;
               border: 1px solid var(--border);
-              background: var(--surface);
+              background: #ffffff;
             }
 
             .notif-card-title {
-              font-family: 'Cabinet Grotesk', sans-serif;
+              font-family: var(--font-barlow), 'Barlow', sans-serif;
               font-weight: 600;
               font-size: 0.88rem;
               margin: 0;
@@ -387,7 +393,7 @@ export default function SettingsPage() {
             .notif-switch {
               width: 44px;
               height: 24px;
-              border-radius: 12px;
+              border-radius: 0;
               border: none;
               cursor: pointer;
               background: var(--border);
@@ -397,7 +403,7 @@ export default function SettingsPage() {
             }
 
             .notif-switch.is-on {
-              background: var(--orange);
+              background: var(--accent);
             }
 
             .notif-switch-thumb {
@@ -406,7 +412,7 @@ export default function SettingsPage() {
               left: 3px;
               width: 18px;
               height: 18px;
-              border-radius: 50%;
+              border-radius: 0;
               background: #fff;
               transition: left 0.2s;
               display: block;
@@ -474,12 +480,12 @@ export default function SettingsPage() {
                     type="button"
                     onClick={() => setVisualStyle(s.value)}
                     style={{
-                      padding: '12px 14px', borderRadius: 10, textAlign: 'left', cursor: 'pointer',
-                      border: `1.5px solid ${visualStyle === s.value ? 'var(--orange)' : 'var(--border)'}`,
-                      background: visualStyle === s.value ? 'var(--orange-light)' : 'var(--surface)',
+                      padding: '12px 14px', borderRadius: 0, textAlign: 'left', cursor: 'pointer',
+                      border: `1.5px solid ${visualStyle === s.value ? 'var(--accent)' : 'var(--border)'}`,
+                      background: visualStyle === s.value ? 'var(--accent-light)' : '#ffffff',
                     }}
                   >
-                    <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.88rem', marginBottom: 3 }}>
+                    <div style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 700, fontSize: '0.88rem', marginBottom: 3 }}>
                       {s.emoji} {s.label}
                     </div>
                     <div style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>{s.desc}</div>
@@ -506,9 +512,9 @@ export default function SettingsPage() {
                       alignItems:  'center',
                       gap:         14,
                       padding:     '12px 16px',
-                      borderRadius: 10,
-                      border:      `1.5px solid ${publishMode === m.value ? 'var(--orange)' : 'var(--border)'}`,
-                      background:  publishMode === m.value ? 'var(--orange-light)' : 'var(--surface)',
+                      borderRadius: 0,
+                      border:      `1.5px solid ${publishMode === m.value ? 'var(--accent)' : 'var(--border)'}`,
+                      background:  publishMode === m.value ? 'var(--accent-light)' : '#ffffff',
                       cursor:      'pointer',
                     }}
                   >
@@ -518,10 +524,10 @@ export default function SettingsPage() {
                       value={m.value}
                       checked={publishMode === m.value}
                       onChange={() => setPublishMode(m.value)}
-                      style={{ accentColor: 'var(--orange)', width: 16, height: 16 }}
+                      style={{ accentColor: 'var(--accent)', width: 16, height: 16 }}
                     />
                     <div>
-                      <div style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.88rem' }}>{m.label}</div>
+                      <div style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 700, fontSize: '0.88rem' }}>{m.label}</div>
                       <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 2 }}>{m.desc}</div>
                     </div>
                   </label>
@@ -544,11 +550,11 @@ export default function SettingsPage() {
                       onClick={() => toggleDay(i)}
                       style={{
                         padding:      '6px 12px',
-                        borderRadius: 8,
-                        border:       `1.5px solid ${noPublishDays.includes(i) ? '#dc2626' : 'var(--border)'}`,
-                        background:   noPublishDays.includes(i) ? '#fef2f2' : 'var(--surface)',
-                        color:        noPublishDays.includes(i) ? '#dc2626' : 'var(--ink)',
-                        fontFamily:   "'Cabinet Grotesk', sans-serif",
+                        borderRadius: 0,
+                        border:       `1.5px solid ${noPublishDays.includes(i) ? 'var(--accent)' : 'var(--border)'}`,
+                        background:   noPublishDays.includes(i) ? 'var(--accent-light)' : '#ffffff',
+                        color:        noPublishDays.includes(i) ? 'var(--accent)' : 'var(--ink)',
+                        fontFamily:   "var(--font-barlow), 'Barlow', sans-serif",
                         fontWeight:   600,
                         fontSize:     '0.82rem',
                         cursor:       'pointer',
@@ -610,10 +616,10 @@ export default function SettingsPage() {
                     type="checkbox"
                     checked={noEmojis}
                     onChange={(e) => setNoEmojis(e.target.checked)}
-                    style={{ width: 18, height: 18, accentColor: 'var(--orange)' }}
+                    style={{ width: 18, height: 18, accentColor: 'var(--accent)' }}
                   />
                   <div>
-                    <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 600, fontSize: '0.88rem' }}>{t('rules.noEmojis')}</span>
+                    <span style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 600, fontSize: '0.88rem' }}>{t('rules.noEmojis')}</span>
                     <span style={{ fontSize: '0.78rem', color: 'var(--muted)', marginLeft: 8 }}>{t('rules.noEmojisDesc')}</span>
                   </div>
                 </label>
@@ -622,10 +628,10 @@ export default function SettingsPage() {
                     type="checkbox"
                     checked={noAutoReplyNegative}
                     onChange={(e) => setNoAutoReplyNegative(e.target.checked)}
-                    style={{ width: 18, height: 18, accentColor: 'var(--orange)' }}
+                    style={{ width: 18, height: 18, accentColor: 'var(--accent)' }}
                   />
                   <div>
-                    <span style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 600, fontSize: '0.88rem' }}>{t('rules.noAutoReply')}</span>
+                    <span style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 600, fontSize: '0.88rem' }}>{t('rules.noAutoReply')}</span>
                     <span style={{ fontSize: '0.78rem', color: 'var(--muted)', marginLeft: 8 }}>{t('rules.noAutoReplyDesc')}</span>
                   </div>
                 </label>
@@ -713,7 +719,7 @@ export default function SettingsPage() {
                   {brand.ig_account_id ? `${t('connections.connected')} · @${brand.ig_username ?? brand.ig_account_id}` : t('social.notConnected')}
                 </p>
               </div>
-              <button className="btn-outline" onClick={connectMeta}>
+              <button type="button" className="btn-outline" onClick={() => connectMeta('instagram')}>
                 <ExternalLink size={14} />
                 {brand.ig_account_id ? t('connections.reconnect') : t('connections.connect')}
               </button>
@@ -727,7 +733,7 @@ export default function SettingsPage() {
                     : t('social.notConnected')}
                 </p>
               </div>
-              <button className="btn-outline" onClick={connectMeta}>
+              <button type="button" className="btn-outline" onClick={() => connectMeta('facebook')}>
                 <ExternalLink size={14} />
                 {brand.fb_page_id ? t('connections.reconnect') : t('connections.connect')}
               </button>
@@ -755,7 +761,7 @@ export default function SettingsPage() {
                   gap:            6,
                   padding:        '9px 18px',
                   border:         '1px solid var(--border)',
-                  borderRadius:   8,
+                  borderRadius:   0,
                   fontSize:       13,
                   fontWeight:     600,
                   color:          'var(--ink)',
@@ -774,11 +780,11 @@ export default function SettingsPage() {
                   alignItems:     'center',
                   gap:            6,
                   padding:        '9px 18px',
-                  border:         '1.5px solid var(--orange)',
-                  borderRadius:   8,
+                  border:         '1.5px solid var(--accent)',
+                  borderRadius:   0,
                   fontSize:       13,
                   fontWeight:     600,
-                  color:          'var(--orange)',
+                  color:          'var(--accent)',
                   textDecoration: 'none',
                   background:     'var(--surface)',
                   cursor:         'pointer',
@@ -797,7 +803,7 @@ export default function SettingsPage() {
             </h2>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
               <div>
-                <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700 }}>
+                <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 700 }}>
                   {t('plan.current')}: <span style={{ textTransform: 'capitalize' }}>{brand.plan}</span>
                 </p>
                 <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginTop: 4 }}>
@@ -812,15 +818,15 @@ export default function SettingsPage() {
               </button>
             </div>
             {brand.plan === 'starter' && (
-              <div style={{ marginTop: 20, padding: '16px 20px', background: 'var(--orange-light)', borderRadius: 10, border: '1px solid var(--orange)' }}>
-                <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, color: 'var(--orange)', marginBottom: 4 }}>
+              <div style={{ marginTop: 20, padding: '16px 20px', background: 'var(--accent-light)', borderRadius: 0, border: '1px solid var(--accent)' }}>
+                <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 700, color: 'var(--accent)', marginBottom: 4 }}>
                   {t('billing.upgradeTitle')}
                 </p>
                 <p style={{ fontSize: '0.85rem', color: 'var(--ink)', marginBottom: 12 }}>
                   {t('billing.upgradeDesc')}
                 </p>
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <button className="btn-primary btn-orange" onClick={() => handleUpgrade('pro')}>
+                  <button className="btn-primary" onClick={() => handleUpgrade('pro')}>
                     {t('billing.upgradeCTA')}
                   </button>
                   <button className="btn-outline" onClick={() => handleUpgrade('agency')}>
@@ -850,7 +856,7 @@ export default function SettingsPage() {
 
             {/* Change password */}
             <form onSubmit={changePassword}>
-              <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.92rem', marginBottom: 12 }}>
+              <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 700, fontSize: '0.92rem', marginBottom: 12 }}>
                 {t('account.changePassword')}
               </p>
               <div className="settings-grid" style={{ marginBottom: 14 }}>
@@ -884,7 +890,7 @@ export default function SettingsPage() {
 
             {/* Danger zone */}
             <div style={{ marginTop: 32 }}>
-              <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: '0.92rem', color: '#dc2626', marginBottom: 8 }}>
+              <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 700, fontSize: '0.92rem', color: '#dc2626', marginBottom: 8 }}>
                 {t('account.dangerZone')}
               </p>
               <p style={{ fontSize: '0.84rem', color: 'var(--muted)', marginBottom: 14 }}>
@@ -897,16 +903,16 @@ export default function SettingsPage() {
                   onClick={() => setShowDeleteZone(true)}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 8,
-                    padding: '9px 18px', borderRadius: 8, border: '1.5px solid #dc2626',
+                    padding: '9px 18px', borderRadius: 0, border: '1.5px solid #dc2626',
                     background: 'transparent', color: '#dc2626',
-                    fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 600,
+                    fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 600,
                     fontSize: '0.85rem', cursor: 'pointer',
                   }}
                 >
                   <Trash2 size={14} />{t('account.deleteAccount')}
                 </button>
               ) : (
-                <div style={{ padding: '16px 20px', borderRadius: 10, border: '1.5px solid #dc2626', background: '#fef2f2' }}>
+                <div style={{ padding: '16px 20px', borderRadius: 0, border: '1.5px solid #dc2626', background: '#fef2f2' }}>
                   <p style={{ fontSize: '0.85rem', color: '#dc2626', fontWeight: 600, marginBottom: 10 }}>
                     {t('account.deleteConfirmPrompt')}
                   </p>
@@ -917,7 +923,7 @@ export default function SettingsPage() {
                       onChange={(e) => setDeleteConfirm(e.target.value)}
                       placeholder={confirmWord}
                       style={{
-                        padding: '8px 12px', borderRadius: 8, border: '1px solid #dc2626',
+                        padding: '8px 12px', borderRadius: 0, border: '1px solid #dc2626',
                         fontSize: '0.88rem', width: 160,
                       }}
                     />
@@ -927,10 +933,10 @@ export default function SettingsPage() {
                       disabled={deletingAccount || deleteConfirm !== confirmWord}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 8,
-                        padding: '9px 18px', borderRadius: 8, border: 'none',
+                        padding: '9px 18px', borderRadius: 0, border: 'none',
                         background: deleteConfirm === confirmWord ? '#dc2626' : '#fca5a5',
                         color: '#fff',
-                        fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700,
+                        fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 700,
                         fontSize: '0.85rem', cursor: deleteConfirm === confirmWord ? 'pointer' : 'not-allowed',
                       }}
                     >
@@ -940,7 +946,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => { setShowDeleteZone(false); setDeleteConfirm(''); }}
                       style={{
-                        padding: '9px 14px', borderRadius: 8, border: '1px solid var(--border)',
+                        padding: '9px 14px', borderRadius: 0, border: '1px solid var(--border)',
                         background: 'var(--surface)', color: 'var(--muted)',
                         fontSize: '0.85rem', cursor: 'pointer',
                       }}
@@ -969,7 +975,7 @@ export default function SettingsPage() {
                 gap:            8,
                 padding:        '10px 18px',
                 border:         '1px solid var(--border)',
-                borderRadius:   10,
+                borderRadius:   0,
                 fontSize:       13,
                 fontWeight:     600,
                 color:          'var(--ink)',
