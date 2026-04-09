@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Edit2, Trash2, Calendar } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Calendar, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { VersionsPanel } from '@/components/posts/VersionsPanel';
+import { AssetVersions } from '@/components/posts/AssetVersions';
 import { useAppStore } from '@/store/useAppStore';
 import type { Post, PostVersion } from '@/types';
 import toast from 'react-hot-toast';
@@ -79,6 +80,7 @@ export default function PostDetailPage() {
 
   // ── Shared state (must be before early returns to respect Rules of Hooks) ──
   const [deleting, setDeleting] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
   const [scheduleDate, setScheduleDate] = useState('');
   const [scheduleTime, setScheduleTime] = useState('10:00');
 
@@ -143,6 +145,26 @@ export default function PostDetailPage() {
 
   async function changeRequestStatus(newStatus: string) {
     if (!post) return;
+
+    // Handle regeneration separately
+    if (newStatus === 'regenerate') {
+      setRegenerating(true);
+      try {
+        // Move post back to preparation and trigger new generation
+        const res = await fetch(`/api/posts/${post.id}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'request' }),
+        });
+        if (!res.ok) { toast.error('Error al regenerar'); return; }
+        const json = await res.json();
+        updatePost(post.id, json.post);
+        setPost(json.post);
+        toast.success('Regenerando contenido — recibirás una nueva propuesta');
+      } catch { toast.error('Error'); }
+      finally { setRegenerating(false); }
+      return;
+    }
+
     const body: Record<string, unknown> = { status: newStatus };
     const res = await fetch(`/api/posts/${post.id}`, {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
@@ -205,11 +227,13 @@ export default function PostDetailPage() {
       case 'pending':
         return [
           { status: 'request', label: 'Devolver a En preparación', bg: 'var(--bg)', color: 'var(--text-secondary)', border: 'var(--border)' },
+          { status: 'regenerate', label: 'Regenerar propuesta', bg: 'var(--accent)', color: '#fff', border: 'var(--accent)' },
           { status: 'published', label: 'Publicar ahora', bg: '#111827', color: '#fff', border: '#111827' },
         ];
       case 'generated':
         return [
           { status: 'pending', label: 'Enviar a revisión', bg: 'var(--bg)', color: '#111827', border: 'var(--border-dark)' },
+          { status: 'regenerate', label: 'Regenerar propuesta', bg: 'var(--accent)', color: '#fff', border: 'var(--accent)' },
           { status: 'published', label: 'Publicar ahora', bg: '#111827', color: '#fff', border: '#111827' },
         ];
       case 'approved':
@@ -277,13 +301,45 @@ export default function PostDetailPage() {
 
       <div className="post-detail-layout" style={{ marginBottom: 24, gridTemplateColumns: post.image_url ? '360px minmax(0, 1fr)' : '1fr' }}>
         {post.image_url && (
-          <div className="post-detail-preview" style={{ border: '1px solid var(--border)', background: '#000' }}>
-            {/\.(mp4|mov|webm|avi)(\?|$)/i.test(post.image_url) ? (
-              <video src={post.image_url} controls style={{ width: '100%', maxHeight: 560, objectFit: 'contain', display: 'block' }} />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={post.image_url} alt="" style={{ width: '100%', maxHeight: 560, objectFit: 'contain', display: 'block' }} />
-            )}
+          <div>
+            <div className="post-detail-preview" style={{ border: '1px solid var(--border)', background: '#000' }}>
+              {/\.(mp4|mov|webm|avi)(\?|$)/i.test(post.image_url) ? (
+                <video src={post.image_url} controls style={{ width: '100%', maxHeight: 560, objectFit: 'contain', display: 'block' }} />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={post.image_url} alt="" style={{ width: '100%', maxHeight: 560, objectFit: 'contain', display: 'block' }} />
+              )}
+            </div>
+
+            {/* Generated asset versions */}
+            <AssetVersions
+              postId={post.id}
+              currentImageUrl={post.image_url}
+              onImageChange={(url) => {
+                setPost(p => p ? { ...p, image_url: url } : p);
+                updatePost(post.id, { image_url: url });
+              }}
+              onApprove={async () => {
+                // Move post to pending so user can schedule it
+                const res = await fetch(`/api/posts/${post.id}`, {
+                  method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ status: 'pending' }),
+                });
+                if (res.ok) {
+                  const json = await res.json();
+                  updatePost(post.id, json.post);
+                  setPost(json.post);
+                }
+              }}
+              onReject={(action) => {
+                if (action === 'delete') {
+                  deleteRequest();
+                } else {
+                  // Edit = send back to preparation for regeneration
+                  changeRequestStatus('request');
+                }
+              }}
+            />
           </div>
         )}
 

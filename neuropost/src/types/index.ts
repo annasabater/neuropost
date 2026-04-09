@@ -633,12 +633,50 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, {
   competitorAgent:  boolean;
   trendsAgent:      boolean;
   autoComments:     boolean;
+  // ── Per-mode limits ──
+  autoProposalsPerWeek: number;   // Weekly auto-generated proposals
+  videosPerWeek:        number;   // Video generation limit
+  requestsPerMonth:     number;   // On-demand requests (pedidos)
+  selfServiceActions:   number;   // Self-service editor actions/month
+  autopilot:            boolean;  // Auto-publish approved proposals
+  inspirationAccess:    boolean;  // Access to inspiration library
+  carouselMaxPhotos:    number;   // Max photos per carousel
 }> = {
-  starter: { postsPerMonth: Infinity, postsPerWeek: 2,  storiesPerWeek: 0,  brands: 1,  platforms: 1, autoPublish: false, competitorAgent: false, trendsAgent: false, autoComments: false },
-  pro:     { postsPerMonth: Infinity, postsPerWeek: 5,  storiesPerWeek: 3,  brands: 1,  platforms: 2, autoPublish: true,  competitorAgent: false, trendsAgent: false, autoComments: false },
-  total:   { postsPerMonth: Infinity, postsPerWeek: 7,  storiesPerWeek: 7,  brands: 1,  platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true  },
-  agency:  { postsPerMonth: Infinity, postsPerWeek: 7,  storiesPerWeek: 7,  brands: 10, platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true  },
+  starter: { postsPerMonth: Infinity, postsPerWeek: 2,  storiesPerWeek: 0,  brands: 1,  platforms: 1, autoPublish: false, competitorAgent: false, trendsAgent: false, autoComments: false, autoProposalsPerWeek: 3, videosPerWeek: 0, requestsPerMonth: 2,  selfServiceActions: 10,       autopilot: false, inspirationAccess: true,  carouselMaxPhotos: 3  },
+  pro:     { postsPerMonth: Infinity, postsPerWeek: 5,  storiesPerWeek: 3,  brands: 1,  platforms: 2, autoPublish: true,  competitorAgent: false, trendsAgent: false, autoComments: false, autoProposalsPerWeek: 5, videosPerWeek: 2, requestsPerMonth: 10, selfServiceActions: 50,       autopilot: false, inspirationAccess: true,  carouselMaxPhotos: 8  },
+  total:   { postsPerMonth: Infinity, postsPerWeek: 7,  storiesPerWeek: 7,  brands: 1,  platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true,  autoProposalsPerWeek: 7, videosPerWeek: 7, requestsPerMonth: Infinity, selfServiceActions: Infinity, autopilot: true,  inspirationAccess: true,  carouselMaxPhotos: 20 },
+  agency:  { postsPerMonth: Infinity, postsPerWeek: 7,  storiesPerWeek: 7,  brands: 10, platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true,  autoProposalsPerWeek: 7, videosPerWeek: 7, requestsPerMonth: Infinity, selfServiceActions: Infinity, autopilot: true,  inspirationAccess: true,  carouselMaxPhotos: 20 },
 };
+
+// ─── Content mode type ───────────────────────────────────────────────────────
+
+export type ContentMode = 'auto' | 'request' | 'self-service';
+
+// ─── Generated Assets ────────────────────────────────────────────────────────
+
+export type AssetStatus = 'generated' | 'approved' | 'rejected' | 'published';
+
+export interface GeneratedAsset {
+  id:               string;
+  brand_id:         string;
+  post_id:          string;
+  version:          number;
+  asset_url:        string;
+  asset_type:       'image' | 'video';
+  storage_path:     string | null;
+  prompt:           string | null;
+  inspiration_id:   string | null;
+  model:            string | null;
+  parameters:       Record<string, unknown>;
+  status:           AssetStatus;
+  is_current:       boolean;
+  approved_at:      string | null;
+  approved_by:      string | null;
+  rejection_reason: string | null;
+  quality_score:    number | null;
+  ai_analysis:      Record<string, unknown> | null;
+  created_at:       string;
+}
 
 // ─── Worker Portal Types ──────────────────────────────────────────────────────
 

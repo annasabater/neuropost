@@ -3,13 +3,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { Save, ExternalLink, CreditCard, Users, Bell, Lock, Trash2 } from 'lucide-react';
+import { Save, ExternalLink, CreditCard, Users, Bell, Lock, Trash2, Sun, Moon, Globe } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAppStore } from '@/store/useAppStore';
 import type { SocialSector, BrandTone, PublishMode, BrandRules, VisualStyle } from '@/types';
 import { SECTOR_OPTIONS, TONE_OPTIONS, PUBLISH_MODE_OPTIONS } from '@/lib/brand-options';
 import { createBrowserClient } from '@/lib/supabase';
 import { useTagInput } from '@/hooks/useTagInput';
+import { useRouter } from 'next/navigation';
+import { locales, localeNames, defaultLocale, type Locale } from '@/i18n/config';
 
 export default function SettingsPage() {
   const brand        = useAppStore((s) => s.brand);
@@ -79,6 +81,8 @@ export default function SettingsPage() {
     { id: 'estilo',         label: t('nav.visualStyle') },
     { id: 'publicacion',    label: t('nav.publishMode') },
     { id: 'reglas',         label: t('nav.rules') },
+    { id: 'tema',           label: 'Tema' },
+    { id: 'idioma',         label: 'Idioma' },
     { id: 'notificaciones', label: t('sections.notifications') },
     { id: 'redes',          label: t('nav.social') },
     { id: 'exportar',       label: t('nav.export') },
@@ -645,6 +649,12 @@ export default function SettingsPage() {
             </div>
           </form>
 
+          {/* ── Tema ── */}
+          <ThemeSection />
+
+          {/* ── Idioma ── */}
+          <LanguageSection />
+
           {/* ── Notificaciones ── */}
           <div id="notificaciones" className="settings-section">
             <h2 className="settings-section-title notif-title-row">
@@ -1011,6 +1021,105 @@ export default function SettingsPage() {
 
         </div>{/* end right content */}
       </div>{/* end two-column layout */}
+    </div>
+  );
+}
+
+// ─── Theme section ───────────────────────────────────────────────────────────
+
+const ff = "var(--font-barlow), 'Barlow', sans-serif";
+
+function ThemeSection() {
+  const [dark, setDark] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setDark(saved ? saved === 'dark' : prefersDark);
+  }, []);
+
+  function setTheme(isDark: boolean) {
+    setDark(isDark);
+    const theme = isDark ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }
+
+  return (
+    <div id="tema" className="settings-section">
+      <h2 className="settings-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Sun size={18} /> Tema
+      </h2>
+      <p style={{ fontFamily: ff, fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 16 }}>
+        Elige cómo quieres ver NeuroPost.
+      </p>
+      <div style={{ display: 'flex', gap: 0, maxWidth: 300 }}>
+        <button onClick={() => setTheme(false)} style={{
+          flex: 1, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          background: !dark ? '#111827' : 'var(--bg)', color: !dark ? '#ffffff' : 'var(--text-tertiary)',
+          border: `1px solid ${!dark ? '#111827' : 'var(--border)'}`, borderRight: 'none',
+          fontFamily: ff, fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+        }}>
+          <Sun size={15} /> Claro
+        </button>
+        <button onClick={() => setTheme(true)} style={{
+          flex: 1, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+          background: dark ? '#111827' : 'var(--bg)', color: dark ? '#ffffff' : 'var(--text-tertiary)',
+          border: `1px solid ${dark ? '#111827' : 'var(--border)'}`,
+          fontFamily: ff, fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s',
+        }}>
+          <Moon size={15} /> Oscuro
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Language section ────────────────────────────────────────────────────────
+
+function getStoredLocale(): Locale {
+  if (typeof document === 'undefined') return defaultLocale;
+  const match = document.cookie.match(/(?:^|;\s*)NEXT_LOCALE=([^;]+)/);
+  const raw = match?.[1];
+  return (locales as readonly string[]).includes(raw ?? '') ? (raw as Locale) : defaultLocale;
+}
+
+function LanguageSection() {
+  const router = useRouter();
+  const [currentLocale, setCurrentLocale] = useState<Locale>(defaultLocale);
+
+  useEffect(() => {
+    setCurrentLocale(getStoredLocale());
+  }, []);
+
+  function changeLocale(loc: Locale) {
+    document.cookie = `NEXT_LOCALE=${loc}; path=/; max-age=31536000; SameSite=Lax`;
+    setCurrentLocale(loc);
+    router.refresh();
+  }
+
+  return (
+    <div id="idioma" className="settings-section">
+      <h2 className="settings-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Globe size={18} /> Idioma
+      </h2>
+      <p style={{ fontFamily: ff, fontSize: 13, color: 'var(--text-tertiary)', marginBottom: 16 }}>
+        Selecciona el idioma de la interfaz.
+      </p>
+      <div style={{ display: 'flex', gap: 0, flexWrap: 'wrap' }}>
+        {locales.map((loc, i) => (
+          <button key={loc} onClick={() => changeLocale(loc)} style={{
+            padding: '12px 18px', fontFamily: ff, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            background: currentLocale === loc ? 'var(--accent)' : 'var(--bg)',
+            color: currentLocale === loc ? '#ffffff' : 'var(--text-tertiary)',
+            border: `1px solid ${currentLocale === loc ? 'var(--accent)' : 'var(--border)'}`,
+            borderRight: i < locales.length - 1 ? 'none' : undefined,
+            transition: 'all 0.15s',
+          }}>
+            {localeNames[loc]}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

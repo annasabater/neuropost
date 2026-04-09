@@ -1,12 +1,13 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { BarChart3, Calendar, Lightbulb, MessageSquare, Plus, Zap, ArrowRight, ChevronRight } from 'lucide-react';
+import { BarChart3, Calendar, Lightbulb, MessageSquare, Plus, Zap, ArrowRight, ChevronRight, Sparkles, Send, Paintbrush } from 'lucide-react';
 import { getServerBrand, createServerClient } from '@/lib/supabase';
 import { TrendsBanner } from '@/components/trends/TrendsBanner';
 import DashboardTour from '@/components/onboarding/DashboardTour';
 import IncidentBanner from '@/components/layout/IncidentBanner';
 import ChangelogModal from '@/components/layout/ChangelogModal';
+import { WeeklyProposals } from '@/components/dashboard/WeeklyProposals';
 
 import { getUpcomingDatesForBrand } from '@/agents/SeasonalAgent';
 import { PLAN_LIMITS } from '@/types';
@@ -23,7 +24,12 @@ export default async function DashboardPage() {
   const now = new Date();
   const t = await getTranslations('dashboard');
 
-  const [{ data: posts }, { data: publishedPosts }, { data: allDates }] = await Promise.all([
+  // Get start of current week (Monday)
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  weekStart.setHours(0, 0, 0, 0);
+
+  const [{ data: posts }, { data: publishedPosts }, { data: weeklyProposals }, { data: allDates }] = await Promise.all([
     supabase
       .from('posts')
       .select('id, caption, status, published_at, created_at, quality_score, image_url')
@@ -38,12 +44,22 @@ export default async function DashboardPage() {
       .not('published_at', 'is', null)
       .order('published_at', { ascending: false })
       .limit(6),
+    // Weekly auto-proposals: posts created this week with ai_proposal origin
+    supabase
+      .from('posts')
+      .select('id, caption, status, created_at, quality_score, image_url, format, ai_explanation')
+      .eq('brand_id', brand.id)
+      .in('status', ['generated', 'pending', 'approved', 'scheduled'])
+      .gte('created_at', weekStart.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(10),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any).from('seasonal_dates').select('*'),
   ]);
 
   const allPosts = posts ?? [];
   const recentPublishedPosts = publishedPosts ?? [];
+  const proposalPosts = weeklyProposals ?? [];
   const publishedThisMonth = allPosts.filter((p) => {
     if (!p.published_at) return false;
     const d = new Date(p.published_at);
@@ -51,12 +67,14 @@ export default async function DashboardPage() {
   }).length;
   const scheduled = allPosts.filter((p) => p.status === 'scheduled').length;
   const pending   = allPosts.filter((p) => p.status === 'pending' || p.status === 'generated').length;
-  const planLimit  = PLAN_LIMITS[brand.plan].postsPerMonth;
+
+  const limits = PLAN_LIMITS[brand.plan];
+  const planLimit = limits.postsPerMonth;
   const isUnlimited = planLimit === Infinity;
   const pct = isUnlimited ? 0 : Math.min(100, Math.round((publishedThisMonth / planLimit) * 100));
   const dbDates = getUpcomingDatesForBrand(allDates ?? [], brand.sector ?? 'otro', 30).slice(0, 5);
 
-  // Static upcoming dates for Catalunya — always shown as fallback
+  // Static upcoming dates for Catalunya
   const STATIC_DATES = [
     { name: 'Sant Jordi', date: '2026-04-23', idea: 'Contingut emocional amb roses i llibres. Packs especials.' },
     { name: 'Dia de la Mare', date: '2026-05-03', idea: 'Promociona regals i experiències. Crea urgència.' },
@@ -71,7 +89,6 @@ export default async function DashboardPage() {
     .map(d => ({ id: d.date, name: d.name, daysUntil: Math.ceil((new Date(d.date).getTime() - now.getTime()) / 86400000), idea: d.idea }))
     .slice(0, 4);
 
-  // Combine both: DB dates + static Catalunya dates, deduplicate by name, sort by daysUntil
   const allUpcoming = [...dbDates.map(d => ({ ...d, idea: undefined as string | undefined })), ...staticUpcoming];
   const seen = new Set<string>();
   const upcomingDates = allUpcoming.filter(d => { if (seen.has(d.name)) return false; seen.add(d.name); return true; }).sort((a, b) => a.daysUntil - b.daysUntil).slice(0, 4);
@@ -178,6 +195,165 @@ export default async function DashboardPage() {
           )}
         </div>
       )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+           3 MODES — Content Hub
+         ══════════════════════════════════════════════════════════════════════ */}
+      <h2 style={{
+        fontFamily: f, fontSize: 10, fontWeight: 600,
+        textTransform: 'uppercase', letterSpacing: '0.14em',
+        color: 'var(--accent)', marginBottom: 16,
+        paddingBottom: 8, borderBottom: '1px solid var(--border)',
+      }}>
+        {t('sections.contentHub')}
+      </h2>
+
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px',
+        background: 'var(--border)', border: '1px solid var(--border)',
+        marginBottom: 48,
+      }}>
+        {/* MODE 1: Auto — "Nosotros lo hacemos" */}
+        <div style={{
+          background: '#111827', padding: '28px 24px',
+          display: 'flex', flexDirection: 'column',
+        }}>
+          <div style={{
+            width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'var(--accent)', marginBottom: 16,
+          }}>
+            <Sparkles size={16} style={{ color: '#ffffff' }} />
+          </div>
+          <p style={{
+            fontFamily: fc, fontWeight: 900, fontSize: 'clamp(1.1rem, 2vw, 1.4rem)',
+            textTransform: 'uppercase', letterSpacing: '0.01em',
+            color: '#ffffff', lineHeight: 1.1, marginBottom: 8,
+          }}>
+            {t('modes.auto.title')}
+          </p>
+          <p style={{
+            fontFamily: f, fontSize: 12, color: 'rgba(255,255,255,0.5)',
+            lineHeight: 1.5, marginBottom: 16, flex: 1,
+          }}>
+            {t('modes.auto.description')}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{
+              fontFamily: f, fontSize: 10, fontWeight: 600,
+              textTransform: 'uppercase', letterSpacing: '0.1em',
+              color: 'rgba(255,255,255,0.4)',
+            }}>
+              {limits.autoProposalsPerWeek} posts/sem
+              {limits.videosPerWeek > 0 ? ` + ${limits.videosPerWeek} vid` : ''}
+            </span>
+            <Link href="#proposals" style={{
+              fontFamily: fc, fontSize: 11, fontWeight: 700,
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+              color: 'var(--accent)', textDecoration: 'none',
+              display: 'flex', alignItems: 'center', gap: 4,
+            }}>
+              Ver propuestas <ChevronRight size={12} />
+            </Link>
+          </div>
+        </div>
+
+        {/* MODE 2: Pedidos — "Pídenos lo que necesites" */}
+        <Link href="/posts/new?mode=request" style={{
+          background: 'var(--bg)', padding: '28px 24px',
+          display: 'flex', flexDirection: 'column',
+          textDecoration: 'none', color: 'inherit',
+          transition: 'background 0.15s',
+        }}>
+          <div style={{
+            width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '2px solid var(--accent)', marginBottom: 16,
+          }}>
+            <Send size={14} style={{ color: 'var(--accent)' }} />
+          </div>
+          <p style={{
+            fontFamily: fc, fontWeight: 900, fontSize: 'clamp(1.1rem, 2vw, 1.4rem)',
+            textTransform: 'uppercase', letterSpacing: '0.01em',
+            color: 'var(--text-primary)', lineHeight: 1.1, marginBottom: 8,
+          }}>
+            {t('modes.request.title')}
+          </p>
+          <p style={{
+            fontFamily: f, fontSize: 12, color: 'var(--text-tertiary)',
+            lineHeight: 1.5, marginBottom: 16, flex: 1,
+          }}>
+            {t('modes.request.description')}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{
+              fontFamily: f, fontSize: 10, fontWeight: 600,
+              textTransform: 'uppercase', letterSpacing: '0.1em',
+              color: 'var(--text-tertiary)',
+            }}>
+              {limits.requestsPerMonth === Infinity ? 'Ilimitado' : `${limits.requestsPerMonth} pedidos/mes`}
+            </span>
+            <span style={{
+              fontFamily: fc, fontSize: 11, fontWeight: 700,
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+              color: 'var(--accent)',
+              display: 'flex', alignItems: 'center', gap: 4,
+            }}>
+              Solicitar <ArrowRight size={12} />
+            </span>
+          </div>
+        </Link>
+
+        {/* MODE 3: Self-service — "Crea tú mismo" */}
+        <Link href="/posts/new?mode=self-service" style={{
+          background: 'var(--bg)', padding: '28px 24px',
+          display: 'flex', flexDirection: 'column',
+          textDecoration: 'none', color: 'inherit',
+          transition: 'background 0.15s',
+        }}>
+          <div style={{
+            width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '2px solid var(--text-tertiary)', marginBottom: 16,
+          }}>
+            <Paintbrush size={14} style={{ color: 'var(--text-secondary)' }} />
+          </div>
+          <p style={{
+            fontFamily: fc, fontWeight: 900, fontSize: 'clamp(1.1rem, 2vw, 1.4rem)',
+            textTransform: 'uppercase', letterSpacing: '0.01em',
+            color: 'var(--text-primary)', lineHeight: 1.1, marginBottom: 8,
+          }}>
+            {t('modes.selfService.title')}
+          </p>
+          <p style={{
+            fontFamily: f, fontSize: 12, color: 'var(--text-tertiary)',
+            lineHeight: 1.5, marginBottom: 16, flex: 1,
+          }}>
+            {t('modes.selfService.description')}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{
+              fontFamily: f, fontSize: 10, fontWeight: 600,
+              textTransform: 'uppercase', letterSpacing: '0.1em',
+              color: 'var(--text-tertiary)',
+            }}>
+              {limits.selfServiceActions === Infinity ? 'Ilimitado' : `${limits.selfServiceActions} acciones/mes`}
+            </span>
+            <span style={{
+              fontFamily: fc, fontSize: 11, fontWeight: 700,
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+              color: 'var(--accent)',
+              display: 'flex', alignItems: 'center', gap: 4,
+            }}>
+              Crear <ArrowRight size={12} />
+            </span>
+          </div>
+        </Link>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+           WEEKLY PROPOSALS (auto mode)
+         ══════════════════════════════════════════════════════════════════════ */}
+      <div id="proposals">
+        <WeeklyProposals proposals={proposalPosts} />
+      </div>
 
       {/* ── Upcoming dates — horizontal scroll ── */}
       {upcomingDates.length > 0 && (
@@ -318,12 +494,12 @@ export default async function DashboardPage() {
                   <img src={post.image_url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', flexShrink: 0 }} />
                 ) : (
                   <div style={{ width: 40, height: 40, background: 'var(--bg-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
-                    📸
+                    <Sparkles size={16} />
                   </div>
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {post.caption ? `${post.caption.slice(0, 80)}…` : '—'}
+                    {post.caption ? `${post.caption.slice(0, 80)}...` : '—'}
                   </p>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
                     <span className={`status-badge status-${post.status}`}>{post.status}</span>
@@ -332,7 +508,7 @@ export default async function DashboardPage() {
                         fontSize: 11, fontWeight: 500, fontFamily: f,
                         color: post.quality_score >= 8 ? 'var(--success)' : post.quality_score >= 6 ? 'var(--warning)' : 'var(--error)',
                       }}>
-                        ★ {post.quality_score}
+                        {post.quality_score}
                       </span>
                     )}
                   </div>

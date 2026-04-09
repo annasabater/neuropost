@@ -226,6 +226,7 @@
       "plan": "Plan"
     },
     "sections": {
+      "contentHub": "Your content",
       "pendingApproval": "{count} post pending approval|{count} posts pending approval",
       "pendingSubtitle": "Review and approve them so the AI publishes them on schedule",
       "pendingAction": "Review posts →",
@@ -233,6 +234,20 @@
       "quickActions": "Quick actions",
       "recentPosts": "Recent posts",
       "planUsage": "Plan usage this month"
+    },
+    "modes": {
+      "auto": {
+        "title": "Automatic",
+        "description": "Every week we generate content proposals tailored to your business, trends and season. Just approve."
+      },
+      "request": {
+        "title": "Request",
+        "description": "Ask for what you need: edits, promos, carousels. Upload your photos or use saved inspiration."
+      },
+      "selfService": {
+        "title": "Create yourself",
+        "description": "Use our editing tools, idea generation and inspiration library to create your own content."
+      }
     },
     "planLimit": {
       "nearLimit": "Almost at the limit — {remaining} posts remaining",

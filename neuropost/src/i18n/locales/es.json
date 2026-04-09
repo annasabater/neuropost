@@ -226,6 +226,7 @@
       "plan": "Plan"
     },
     "sections": {
+      "contentHub": "Tu contenido",
       "pendingApproval": "{count} post pendiente de aprobación|{count} posts pendientes de aprobación",
       "pendingSubtitle": "Revísalos y apruébalos para que se publiquen según el calendario",
       "pendingAction": "Revisar posts →",
@@ -233,6 +234,20 @@
       "quickActions": "Acciones rápidas",
       "recentPosts": "Posts recientes",
       "planUsage": "Uso del plan este mes"
+    },
+    "modes": {
+      "auto": {
+        "title": "Automático",
+        "description": "Cada semana generamos propuestas de contenido adaptadas a tu negocio, tendencias y temporada. Solo aprueba."
+      },
+      "request": {
+        "title": "Solicitar",
+        "description": "Pide lo que necesites: ediciones, promos, carruseles. Sube tus fotos o usa inspiración guardada."
+      },
+      "selfService": {
+        "title": "Crea tú mismo",
+        "description": "Usa nuestras herramientas de edición, generación de ideas e inspiración para crear tu contenido."
+      }
     },
     "planLimit": {
       "nearLimit": "Casi en el límite — {remaining} posts restantes",

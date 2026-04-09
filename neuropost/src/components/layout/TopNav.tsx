@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { Bell, Menu, Plus } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { PLAN_LIMITS } from '@/types';
-import { ThemeToggle } from './ThemeToggle';
-import { LanguageSelector } from '@/components/ui/LanguageSelector';
 
 export function TopNav() {
   const toggleSidebar       = useAppStore((s) => s.toggleSidebar);
@@ -67,9 +65,6 @@ export function TopNav() {
       )}
 
       <div className="topbar-actions">
-        <LanguageSelector />
-        <ThemeToggle />
-
         <Link href="/inbox?tab=notificaciones" className="topbar-icon-btn" aria-label="Notificaciones">
           <Bell size={18} />
           {unreadNotifications > 0 && (

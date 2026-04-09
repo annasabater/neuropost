@@ -6,8 +6,9 @@ import { useTranslations } from 'next-intl';
 import { ProgressLink } from '@/components/ui/ProgressLink';
 import {
   LayoutDashboard, Lightbulb, Calendar, MessageSquare, BarChart3,
-  Settings, LogOut, X, Image, Archive, MessageCircle,
+  Settings, LogOut, X, Image, Archive,
   Flame, Plus, Upload, ChevronDown, Link2, CreditCard, Palette,
+  Sparkles, Send, Paintbrush,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { createBrowserClient } from '@/lib/supabase';
@@ -87,19 +88,21 @@ export function Sidebar() {
         {/* Inicio */}
         <NavItem href="/dashboard" label={t('dashboard')} icon={LayoutDashboard} />
 
-        {/* Crear */}
-        <div className="dash-nav-group-label">Crear</div>
+        {/* Contenido — 3 modes */}
+        <div className="dash-nav-group-label">Contenido</div>
         <NavItem href="/posts" label={t('posts')} icon={Image} />
+        <NavItem href="/posts/new?mode=request" label="Solicitar" icon={Send} />
+        <NavItem href="/ideas" label="Ideas" icon={Lightbulb} />
         <NavItem href="/calendar" label={t('calendar')} icon={Calendar} />
-
-        {/* Rendimiento */}
-        <div className="dash-nav-group-label">Rendimiento</div>
-        <NavItem href="/analytics" label={t('analytics')} icon={BarChart3} />
 
         {/* Biblioteca */}
         <div className="dash-nav-group-label">Biblioteca</div>
         <NavItem href="/biblioteca" label="Contenido" icon={Upload} />
         <NavItem href="/inspiracion" label={t('inspiration')} icon={Flame} />
+
+        {/* Rendimiento */}
+        <div className="dash-nav-group-label">Rendimiento</div>
+        <NavItem href="/analytics" label={t('analytics')} icon={BarChart3} />
 
         {/* Otros */}
         <div className="dash-nav-group-label">Otros</div>
