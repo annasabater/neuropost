@@ -1,9 +1,29 @@
-'use client';
-
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { BLOG_POSTS } from '@/lib/blog-posts';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { LandingNav } from '@/components/layout/LandingNav';
+
+export const metadata: Metadata = {
+  title: 'Blog — Recursos para negocios locales | NeuroPost',
+  description: 'Guías, estrategias y tendencias para crecer en Instagram y Facebook sin complicaciones. Consejos prácticos para negocios locales.',
+  openGraph: {
+    title: 'Blog — Recursos para negocios locales | NeuroPost',
+    description: 'Guías, estrategias y tendencias para crecer en Instagram y Facebook. Consejos prácticos para negocios locales.',
+    url: 'https://neuropost.es/blog',
+    siteName: 'NeuroPost',
+    locale: 'es_ES',
+    type: 'website',
+    images: [{ url: 'https://neuropost.es/og', width: 1200, height: 630, alt: 'Blog de NeuroPost — Recursos para negocios locales' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Blog — Recursos para negocios locales | NeuroPost',
+    description: 'Guías y estrategias para crecer en Instagram y Facebook.',
+    images: ['https://neuropost.es/og'],
+  },
+  alternates: { canonical: 'https://neuropost.es/blog' },
+};
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";

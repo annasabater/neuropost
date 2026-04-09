@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Script from 'next/script';
 import { BLOG_POSTS } from '@/lib/blog-posts';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { LandingNav } from '@/components/layout/LandingNav';
@@ -86,7 +87,23 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title: `${post.title} — NeuroPost Blog`,
     description: post.excerpt,
-    openGraph: { title: post.title, description: post.excerpt, type: 'article' },
+    openGraph: {
+      title: post.title,
+      description: post.excerpt,
+      type: 'article',
+      url: `https://neuropost.es/blog/${slug}`,
+      siteName: 'NeuroPost',
+      locale: 'es_ES',
+      publishedTime: new Date(post.date).toISOString(),
+      authors: ['NeuroPost'],
+      images: [{ url: 'https://neuropost.es/og', width: 1200, height: 630, alt: post.title }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: post.excerpt,
+      images: ['https://neuropost.es/og'],
+    },
     alternates: { canonical: `https://neuropost.es/blog/${slug}` },
   };
 }
@@ -111,6 +128,22 @@ export default async function BlogArticlePage({ params }: { params: Promise<{ sl
 
   return (
     <>
+      <Script
+        id={`article-schema-${post.slug}`}
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify({
+          '@context': 'https://schema.org',
+          '@type': 'Article',
+          headline: post.title,
+          description: post.excerpt,
+          datePublished: new Date(post.date).toISOString(),
+          dateModified: new Date(post.date).toISOString(),
+          author: { '@type': 'Organization', name: 'NeuroPost', url: 'https://neuropost.es' },
+          publisher: { '@type': 'Organization', name: 'NeuroPost', url: 'https://neuropost.es', logo: { '@type': 'ImageObject', url: 'https://neuropost.es/icon.svg' } },
+          mainEntityOfPage: { '@type': 'WebPage', '@id': `https://neuropost.es/blog/${post.slug}` },
+          url: `https://neuropost.es/blog/${post.slug}`,
+        })}}
+      />
       <LandingNav />
       <ArticleReadingExperience
         title={post.title}

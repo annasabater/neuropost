@@ -259,8 +259,25 @@ export default function LandingPage() {
   const homeSavings = (monthlyPrice: number) =>
     Math.round((monthlyPrice - Math.round(monthlyPrice * 0.8)) * 12);
 
+  const faqSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: [
+      { '@type': 'Question', name: '¿Tengo que hacer algo o lo hacéis todo vosotros?', acceptedAnswer: { '@type': 'Answer', text: 'No. Nos encargamos de todo: desde la idea hasta la publicación. Puedes elegir si prefieres que nuestro equipo lo gestione o si quieres crear contenido tú mismo desde la plataforma.' } },
+      { '@type': 'Question', name: '¿Puedo generar contenido yo mismo?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. Puedes crear contenido directamente desde la plataforma utilizando nuestras herramientas. También puedes inspirarte en ideas y generar imágenes o vídeos a partir de ellas.' } },
+      { '@type': 'Question', name: '¿Puedo usar mis propias fotos o vídeos?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. Puedes subir tu contenido y nosotros lo utilizamos para crear publicaciones más profesionales y optimizadas.' } },
+      { '@type': 'Question', name: '¿Tengo que aprobar el contenido?', acceptedAnswer: { '@type': 'Answer', text: 'Tú decides. Antes de publicar, puedes revisar y aprobar el contenido. Si lo prefieres, también podemos gestionarlo automáticamente.' } },
+      { '@type': 'Question', name: '¿Cuánto tiempo tengo que dedicarle?', acceptedAnswer: { '@type': 'Answer', text: 'Muy poco o ninguno. Puedes delegarlo completamente en nuestro equipo o usar la plataforma cuando lo necesites.' } },
+      { '@type': 'Question', name: '¿Qué tipo de negocios pueden usar NeuroPost?', acceptedAnswer: { '@type': 'Answer', text: 'Trabajamos con negocios locales como restaurantes, gimnasios, centros de estética, inmobiliarias y más. Cualquier negocio que quiera mejorar su presencia en redes.' } },
+      { '@type': 'Question', name: '¿En qué redes sociales publicáis?', acceptedAnswer: { '@type': 'Answer', text: 'Actualmente nos centramos en Instagram y Facebook, donde los negocios locales obtienen mejores resultados.' } },
+      { '@type': 'Question', name: '¿Mis fotos y contenido son privados?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. Todo tu contenido es privado y solo tú tienes acceso. Cumplimos con GDPR.' } },
+      { '@type': 'Question', name: '¿Puedo cancelar cuando quiera?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. Puedes cancelar en cualquier momento sin permanencias. Sin trampas ni letra pequeña.' } },
+    ],
+  };
+
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       {/* ─── NAV ─── */}
       <nav style={{ boxShadow: navShadow ? '0 1px 0 #e5e7eb' : 'none', background: '#ffffff', borderBottom: '1px solid #e5e7eb' }}>
         <a href="#" className="nav-logo">NeuroPost</a>

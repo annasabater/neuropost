@@ -1,5 +1,21 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase';
+
+export const metadata: Metadata = {
+  title: 'Novedades — NeuroPost',
+  description: 'Todo lo que añadimos y mejoramos en NeuroPost. Nuevas funciones, mejoras y actualizaciones del producto.',
+  openGraph: {
+    title: 'Novedades — NeuroPost',
+    description: 'Nuevas funciones, mejoras y actualizaciones de NeuroPost.',
+    url: 'https://neuropost.es/novedades',
+    siteName: 'NeuroPost',
+    locale: 'es_ES',
+    type: 'website',
+    images: [{ url: 'https://neuropost.es/og', width: 1200, height: 630, alt: 'Novedades de NeuroPost' }],
+  },
+  alternates: { canonical: 'https://neuropost.es/novedades' },
+};
 import { LandingNav } from '@/components/layout/LandingNav';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import NovedadesClient from './NovedadesClient';

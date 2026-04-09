@@ -85,17 +85,34 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           id="structured-data"
           type="application/ld+json"
           strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify({
-            '@context': 'https://schema.org',
-            '@type': 'SoftwareApplication',
-            name: 'NeuroPost',
-            description: 'Gestión de redes sociales con IA para negocios locales',
-            url: 'https://neuropost.es',
-            applicationCategory: 'BusinessApplication',
-            operatingSystem: 'Web',
-            offers: { '@type': 'Offer', price: '29', priceCurrency: 'EUR' },
-            aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '200' },
-          })}}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify([
+            {
+              '@context': 'https://schema.org',
+              '@type': 'SoftwareApplication',
+              name: 'NeuroPost',
+              description: 'Gestión de redes sociales con IA para negocios locales',
+              url: 'https://neuropost.es',
+              applicationCategory: 'BusinessApplication',
+              operatingSystem: 'Web',
+              offers: { '@type': 'Offer', price: '29', priceCurrency: 'EUR' },
+              aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '200' },
+            },
+            {
+              '@context': 'https://schema.org',
+              '@type': 'Organization',
+              name: 'NeuroPost',
+              url: 'https://neuropost.es',
+              logo: 'https://neuropost.es/icon.svg',
+              sameAs: [
+                'https://www.instagram.com/neuropost.es',
+              ],
+              contactPoint: {
+                '@type': 'ContactPoint',
+                contactType: 'customer support',
+                availableLanguage: ['Spanish', 'Catalan', 'English'],
+              },
+            },
+          ])}}
         />
         {/* Runs before React hydrates — prevents dark/light flash on load */}
         <Script id="theme-init" strategy="beforeInteractive">{`
