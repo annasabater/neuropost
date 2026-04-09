@@ -41,7 +41,7 @@ const SECTORS = [
 
 const RESULTS = [
   { number: '+280%', label: 'Engagement medio', desc: 'en los primeros 3 meses' },
-  { number: '3h', label: 'Ahorro semanal', desc: 'de trabajo en redes sociales' },
+  { number: '+4h', label: 'Ahorro semanal', desc: 'de trabajo en redes sociales' },
   { number: '+200', label: 'Negocios activos', desc: 'ya confían en nosotros' },
 ];
 
@@ -224,13 +224,13 @@ export default function LandingPage() {
             Funciona para cualquier negocio local
           </h2>
         </div>
-        <div className="fade-in" style={{ display: 'flex', gap: 1, overflowX: 'auto', scrollbarWidth: 'none', scrollSnapType: 'x mandatory', paddingLeft: 'max(20px, calc((100vw - 1160px) / 2 + 20px))' }}>
+        <div className="container fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 1 }}>
           {SECTORS.map(({ label, img }) => (
-            <div key={label} style={{ flex: '0 0 280px', scrollSnapAlign: 'start', position: 'relative', overflow: 'hidden' }}>
+            <div key={label} style={{ position: 'relative', overflow: 'hidden' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img} alt={label} style={{ width: '100%', height: 320, objectFit: 'cover', display: 'block' }} />
+              <img src={img} alt={label} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 50%, rgba(0,0,0,0.75))' }} />
-              <p style={{ position: 'absolute', bottom: 20, left: 20, fontFamily: fc, fontSize: 20, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+              <p style={{ position: 'absolute', bottom: 16, left: 16, fontFamily: fc, fontSize: 16, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                 {label}
               </p>
             </div>
