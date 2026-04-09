@@ -4,6 +4,19 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
+function useIsMobile(breakpoint = 760) {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= breakpoint);
+    onResize();
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [breakpoint]);
+
+  return isMobile;
+}
+
 type Section = {
   id: string;
   title: string;
@@ -38,6 +51,33 @@ function renderTextWithHighlights(text: string): ReactNode[] {
     }
     return <span key={index}>{part}</span>;
   });
+}
+
+function formatKeyPoint(text: string): ReactNode {
+  const splitPhrase = text.match(/^(.*?consiguen, de media,)(.*)$/i);
+
+  if (!splitPhrase) {
+    return renderTextWithHighlights(text);
+  }
+
+  return (
+    <span>
+      {renderTextWithHighlights(splitPhrase[1])}
+      <br />
+      <span className="article-key-point-strong">{renderTextWithHighlights(splitPhrase[2])}</span>
+    </span>
+  );
+}
+
+function extractActionPoints(paragraphs: string[], keyIdea: string): string[] {
+  const keyIdeaNormalized = normalizeText(keyIdea);
+  const sentences = paragraphs
+    .flatMap((p) => p.split(/(?<=[.!?])\s+/))
+    .map((s) => s.trim())
+    .filter((s) => s.length >= 32 && s.length <= 180)
+    .filter((s) => normalizeText(s) !== keyIdeaNormalized);
+
+  return Array.from(new Set(sentences)).slice(0, 5);
 }
 
 function parseNumberedPoint(text: string): { number: string; body: string } | null {
@@ -79,6 +119,7 @@ export function ArticleReadingExperience({
   summaryPoints,
   sections,
 }: Props) {
+  const isMobile = useIsMobile();
   const [progress, setProgress] = useState(0);
   const [activeSection, setActiveSection] = useState(sections[0]?.id ?? '');
 
@@ -135,11 +176,11 @@ export function ArticleReadingExperience({
   }, [sections]);
 
   return (
-    <div className="blog-reading-shell">
-      <div className="container blog-reading-container">
+    <div className="blog-reading-shell" style={{ paddingTop: 132, paddingBottom: 72, background: '#ffffff', minHeight: '100vh' }}>
+      <div className="container blog-reading-container" style={{ maxWidth: 1150 }}>
         <Link href="/blog" className="blog-reading-back">← Blog</Link>
 
-        <header className="blog-reading-hero">
+        <header className="blog-reading-hero" style={{ marginBottom: 42 }}>
           <div className="blog-reading-meta-row">
             <span className="blog-reading-time-pill">{readTime} min</span>
             <span className="blog-reading-meta-text">{readTime} min de lectura · {dateLabel}</span>
@@ -147,18 +188,18 @@ export function ArticleReadingExperience({
           <h1 className="blog-reading-title">{title}</h1>
           <p className="blog-reading-excerpt">{excerpt}</p>
 
-          <div className="blog-quick-summary">
+          <div className="blog-quick-summary" style={{ background: 'linear-gradient(180deg, #f8fafc 0%, #f5f5f5 100%)', padding: '20px 22px', width: '100%' }}>
             <p className="blog-quick-summary-label">📌 En 30 segundos</p>
             <ul className="blog-quick-summary-list">
               {summaryPoints.map((point, idx) => (
-                <li key={idx}>{point}</li>
+                <li key={idx}>{renderTextWithHighlights(point)}</li>
               ))}
             </ul>
           </div>
         </header>
 
-        <div className="blog-reading-layout">
-          <article id="article-reading-root" className="blog-reading-article">
+        <div className="blog-reading-layout" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 290px', gap: 42, alignItems: 'start' }}>
+          <article id="article-reading-root" className="blog-reading-article" style={{ display: 'grid', gap: 44, maxWidth: 780, margin: '0 auto' }}>
             {sections.map((section, index) => {
               const keyIdeaNormalized = normalizeText(section.keyIdea);
               const visibleParagraphs = section.paragraphs.filter((paragraph, paragraphIndex) => {
@@ -172,15 +213,22 @@ export function ArticleReadingExperience({
                 return normalizeText(insight) !== keyIdeaNormalized;
               });
 
+              const actionPoints = extractActionPoints(visibleParagraphs, section.keyIdea);
+              const mergedPoints = Array.from(new Set([...visibleInsights, ...actionPoints])).slice(0, 5);
+              const apartes = mergedPoints.slice(0, 2);
+              const hashtags = Array.from(
+                new Set((visibleParagraphs.join(' ').match(/#[A-Za-z0-9_\u00C0-\u017F]+/g) ?? []).map((h) => h.trim())),
+              ).slice(0, 6);
+
               return (
                 <div key={section.id}>
-                  <section id={section.id} className="article-section-block">
+                  <section id={section.id} className="article-section-block" style={{ borderTop: '1px solid #eceff1', paddingTop: 34, background: '#ffffff', paddingBottom: 12 }}>
                     <div className="article-section-index">{String(index + 1).padStart(2, '0')}</div>
                     <h2 className="article-section-title">{section.title}</h2>
 
-                    <div className="article-highlight-box">
+                    <div className="article-highlight-box" style={{ borderLeft: '3px solid #0F766E', background: '#f8fafc', padding: '12px 14px', marginBottom: 20 }}>
                       <p className="article-highlight-label">💡 CLAVE</p>
-                      <p className="article-highlight-text">{section.keyIdea}</p>
+                      <p className="article-highlight-text">{renderTextWithHighlights(section.keyIdea)}</p>
                     </div>
 
                     <div className="article-paragraphs-wrap">
@@ -202,17 +250,41 @@ export function ArticleReadingExperience({
                       })}
                     </div>
 
-                    <ul className="article-insights-list">
-                      {visibleInsights.map((item, itemIdx) => (
-                        <li key={itemIdx}>✔ {item}</li>
-                      ))}
-                    </ul>
+                    <div style={{ background: '#f7f8fa', borderLeft: '3px solid #d1d5db', padding: '14px 16px', marginBottom: 16 }}>
+                      <p style={{ color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: 10, fontWeight: 900, marginBottom: 8 }}>Puntos clave</p>
+                      <ul className="article-insights-list" style={{ marginBottom: 0 }}>
+                        {mergedPoints.map((item, itemIdx) => (
+                          <li key={itemIdx}><span className="article-point-marker">✔</span> {formatKeyPoint(item)}</li>
+                        ))}
+                      </ul>
+                    </div>
 
-                    <p className="article-micro-callout">→ {section.microCallout}</p>
+                    {apartes.length > 0 && (
+                      <div className="article-apartes-wrap" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 14 }}>
+                        {apartes.map((aparte, aparteIdx) => (
+                          <div key={aparteIdx} className="article-aparte-card" style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderLeft: '3px solid #d1d5db', padding: '10px 12px' }}>
+                            <p className="article-aparte-label" style={{ color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 10, fontWeight: 900, marginBottom: 6 }}>Aparte</p>
+                            <p className="article-aparte-text" style={{ color: '#374151', fontSize: 13, lineHeight: 1.55, fontWeight: 600 }}>{formatKeyPoint(aparte)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {hashtags.length > 0 && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                        {hashtags.map((tag) => (
+                          <span key={tag} style={{ fontSize: 12, fontWeight: 700, color: '#374151', background: '#eef2f7', padding: '4px 8px' }}>
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <p className="article-micro-callout">→ {renderTextWithHighlights(section.microCallout)}</p>
                   </section>
 
                   {index === 1 && (
-                    <div className="article-mid-cta">
+                    <div className="article-mid-cta" style={{ marginTop: 8, background: '#111111', color: '#ffffff', padding: '28px 24px', textAlign: 'center' }}>
                       <p className="article-mid-cta-title">🚀 ¿Quieres que lo hagamos por ti?</p>
                       <p className="article-mid-cta-text">Nos encargamos de todo tu contenido.</p>
                       <Link href="/register" className="article-mid-cta-button">Probar gratis</Link>
@@ -220,7 +292,7 @@ export function ArticleReadingExperience({
                   )}
 
                   {index % 2 === 1 && index < sections.length - 1 && (
-                    <blockquote className="article-quote-break">
+                    <blockquote className="article-quote-break" style={{ marginTop: 8 }}>
                       “{section.microCallout}”
                     </blockquote>
                   )}
@@ -229,17 +301,16 @@ export function ArticleReadingExperience({
             })}
           </article>
 
-          <aside className="blog-reading-sidebar">
-            <div className="blog-progress-card">
+          <aside className="blog-reading-sidebar" style={{ position: 'sticky', top: 88, display: 'grid', gap: 12 }}>
+            <div className="blog-progress-card" style={{ border: '1px solid #e5e7eb', background: '#ffffff', padding: 16 }}>
               <p className="blog-progress-title">Progreso de lectura</p>
               <progress className="blog-progress-track" max={100} value={progressPct} />
               <div className="blog-progress-meta">
-                <span>{progressPct}% leído</span>
-                <span>{remainingMins} min restantes</span>
+                <span>{progressPct}% leído: {remainingMins} min restantes</span>
               </div>
             </div>
 
-            <div className="blog-toc-card">
+            <div className="blog-toc-card" style={{ border: '1px solid #e5e7eb', background: '#ffffff', padding: 16 }}>
               <p className="blog-toc-title">En este artículo</p>
               <ul className="blog-toc-list">
                 {sections.map((section, idx) => (
@@ -248,7 +319,7 @@ export function ArticleReadingExperience({
                       href={`#${section.id}`}
                       className={activeSection === section.id ? 'blog-toc-link is-active' : 'blog-toc-link'}
                     >
-                      <span>{String(idx + 1).padStart(2, '0')}</span>
+                      <span className="blog-toc-number">{String(idx + 1).padStart(2, '0')}.</span>
                       <span>{section.title}</span>
                     </a>
                   </li>

@@ -1148,7 +1148,8 @@ footer {
   color: #6b7280;
   font-size: 17px;
   line-height: 1.7;
-  max-width: 74ch;
+  max-width: 100%;
+  width: 100%;
   margin-bottom: 24px;
 }
 
@@ -1302,6 +1303,13 @@ footer {
   margin: 0 1px;
 }
 
+.article-key-highlight {
+  color: inherit;
+  font-weight: 700;
+  background: transparent;
+  padding: 0;
+}
+
 .article-insights-list {
   list-style: none;
   display: grid;
@@ -1312,7 +1320,49 @@ footer {
 .article-insights-list li {
   font-size: 14px;
   color: #111111;
-  line-height: 1.45;
+  line-height: 1.6;
+}
+
+.article-point-marker {
+  color: #0F766E;
+  font-weight: 900;
+}
+
+.article-key-point-strong {
+  display: block;
+  color: #111111;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.article-apartes-wrap {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.article-aparte-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-left: 3px solid #d1d5db;
+  padding: 10px 12px;
+}
+
+.article-aparte-label {
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 10px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.article-aparte-text {
+  color: #374151;
+  font-size: 13px;
+  line-height: 1.55;
+  font-weight: 600;
 }
 
 .article-micro-callout {
@@ -1418,9 +1468,7 @@ footer {
 }
 
 .blog-progress-meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
+  display: block;
   font-size: 12px;
   color: #374151;
 }
@@ -1434,12 +1482,17 @@ footer {
 .blog-toc-link {
   text-decoration: none;
   display: grid;
-  grid-template-columns: 26px 1fr;
-  gap: 8px;
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
   color: #6b7280;
   font-size: 12px;
   line-height: 1.35;
   transition: color 0.2s ease;
+}
+
+.blog-toc-number {
+  text-align: right;
+  white-space: nowrap;
 }
 
 .blog-toc-link:hover,
@@ -1483,6 +1536,10 @@ footer {
 
   .article-section-title {
     line-height: 0.96;
+  }
+
+  .article-apartes-wrap {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -1752,7 +1809,6 @@ footer {
 .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .connection-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; border-bottom: 1px solid var(--border); }
 .connection-item:last-child { border-bottom: none; }
-.connection-info {}
 .connection-name { font-family: var(--font-barlow), 'Barlow', sans-serif; font-weight: 700; font-size: 13px; color: var(--text-primary); }
 .connection-status { font-family: var(--font-barlow), 'Barlow', sans-serif; font-size: 12px; color: var(--text-tertiary); }
 .connection-status.connected { color: var(--success); }

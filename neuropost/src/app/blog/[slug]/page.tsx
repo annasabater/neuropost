@@ -27,9 +27,9 @@ function buildInsights(paragraphs: string[]): string[] {
   const sentences = paragraphs
     .flatMap((p) => p.split(/(?<=[.!?])\s+/))
     .map((s) => s.trim())
-    .filter((s) => s.length >= 28 && s.length <= 140);
+    .filter((s) => s.length >= 24 && s.length <= 180);
 
-  return Array.from(new Set(sentences)).slice(0, 3);
+  return Array.from(new Set(sentences)).slice(0, 5);
 }
 
 function extractSections(content: string): ArticleSection[] {
