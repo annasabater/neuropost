@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase';
+import { LandingNav } from '@/components/layout/LandingNav';
 import NovedadesClient from './NovedadesClient';
 
 async function getEntries() {
@@ -16,17 +17,66 @@ async function getEntries() {
 export default async function NovedadesPage() {
   const entries = await getEntries();
   return (
-    <div style={{ background: '#fff', minHeight: '100vh', fontFamily: "var(--font-barlow), 'Barlow', sans-serif" }}>
-      <div style={{ borderBottom: '1px solid #e5e7eb', padding: '20px 0' }}>
-        <div style={{ maxWidth: 740, margin: '0 auto', padding: '0 24px' }}>
-          <Link href="/" style={{ fontWeight: 800, fontSize: 20, color: '#111827', textDecoration: 'none', fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif", textTransform: 'uppercase', letterSpacing: '0.04em' }}>NeuroPost</Link>
+    <div style={{ background: '#fff', minHeight: '100vh' }}>
+      {/* Nav — same as /about */}
+      <LandingNav />
+
+      {/* Hero */}
+      <section style={{ padding: '140px 0 60px' }}>
+        <div className="container" style={{ maxWidth: 740 }}>
+          <h1 style={{ fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 4rem)', textTransform: 'uppercase', letterSpacing: '-0.01em', lineHeight: 0.95, color: '#111111', marginBottom: 12 }}>
+            Novedades
+          </h1>
+          <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 17, color: '#6b7280', lineHeight: 1.7 }}>
+            Todo lo que añadimos y mejoramos en NeuroPost
+          </p>
         </div>
-      </div>
-      <div style={{ maxWidth: 740, margin: '0 auto', padding: '48px 24px' }}>
-        <h1 style={{ fontSize: 32, fontWeight: 900, marginBottom: 8, fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif", textTransform: 'uppercase' }}>Novedades</h1>
-        <p style={{ color: '#6b7280', fontSize: 15, marginBottom: 40 }}>Todo lo que añadimos y mejoramos en NeuroPost</p>
-        <NovedadesClient entries={entries} />
-      </div>
+      </section>
+
+      {/* Content */}
+      <section style={{ paddingBottom: 80 }}>
+        <div className="container" style={{ maxWidth: 740 }}>
+          <NovedadesClient entries={entries} />
+        </div>
+      </section>
+
+      {/* Footer — same as landing */}
+      <footer>
+        <div className="container">
+          <div className="footer-grid">
+            <div className="footer-brand">
+              <Link href="/" className="nav-logo" style={{ color: '#f5f5f5' }}>NeuroPost</Link>
+              <p>El equipo que gestiona las redes de tu negocio local.</p>
+            </div>
+            <div>
+              <div className="footer-col-title">Producto</div>
+              <ul className="footer-links">
+                <li><Link href="/#funciones">Portfolio</Link></li>
+                <li><Link href="/#precios">Precios</Link></li>
+                <li><Link href="/novedades">Novedades</Link></li>
+              </ul>
+            </div>
+            <div>
+              <div className="footer-col-title">Empresa</div>
+              <ul className="footer-links">
+                <li><Link href="/about">Sobre nosotros</Link></li>
+                <li><Link href="/about#contacto">Contacto</Link></li>
+              </ul>
+            </div>
+            <div>
+              <div className="footer-col-title">Legal</div>
+              <ul className="footer-links">
+                <li><Link href="/legal/privacidad">Privacidad</Link></li>
+                <li><Link href="/legal/terminos">Términos</Link></li>
+                <li><Link href="/legal/cookies">Cookies</Link></li>
+              </ul>
+            </div>
+          </div>
+          <div className="footer-bottom">
+            <span>© 2025 NeuroPost</span>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

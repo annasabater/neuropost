@@ -52,13 +52,27 @@ const STEPS = [
   { n: '04', title: 'Tú apruebas, nosotros publicamos', desc: 'Revisa con un clic o déjanos publicar automáticamente según tu calendario.' },
 ];
 
-const FAQ_ITEMS = [
-  { q: '¿Necesito tener cuenta Business en Instagram?', a: 'Sí, necesitas una cuenta de Instagram Business o Creator (gratuita). El proceso tarda 2 minutos y te guiamos paso a paso.' },
-  { q: '¿Podéis publicar sin que yo lo apruebe?', a: 'Sí, si activas el modo automático publicamos sin aprobación. También puedes elegir revisar cada post antes. Cambia entre modos cuando quieras.' },
-  { q: '¿Cuántos posts incluye cada plan?', a: 'El plan Starter incluye 12 publicaciones al mes. Pro tiene publicaciones ilimitadas. Cada publicación incluye: edición de foto, caption, hashtags y programación.' },
-  { q: '¿Puedo usarlo para TikTok?', a: 'Por ahora nos centramos en Instagram y Facebook, donde los negocios locales tienen más retorno. TikTok está en el roadmap para 2025.' },
-  { q: '¿Mis fotos son privadas?', a: 'Tus fotos y datos son 100% privados. Cumplimos con GDPR y puedes solicitar la eliminación total en cualquier momento.' },
-  { q: '¿Qué pasa si cancelo?', a: 'Mantienes acceso hasta el final del período pagado. Puedes exportar todo tu historial. Sin trampas ni letra pequeña.' },
+type FaqCategory = { category: string; items: { q: string; a: string; highlight?: boolean }[] };
+const FAQ_DATA: FaqCategory[] = [
+  { category: 'Uso del producto', items: [
+    { q: '¿Tengo que crear el contenido yo?', a: 'No. Nos encargamos de todo: desde la idea hasta la publicación. Puedes elegir si prefieres que nuestro equipo lo gestione o si quieres crear contenido tú mismo desde la plataforma.', highlight: true },
+    { q: '¿Puedo generar contenido yo mismo?', a: 'Sí. Puedes crear contenido directamente desde la plataforma utilizando nuestras herramientas. También puedes inspirarte en ideas y generar imágenes o vídeos a partir de ellas.' },
+    { q: '¿Puedo usar mis propias fotos o vídeos?', a: 'Sí. Puedes subir tu contenido y nosotros lo utilizamos para crear publicaciones más profesionales y optimizadas.' },
+  ]},
+  { category: 'Contenido y gestión', items: [
+    { q: '¿Tengo que aprobar el contenido?', a: 'Tú decides. Antes de publicar, puedes revisar y aprobar el contenido. Si lo prefieres, también podemos gestionarlo automáticamente.' },
+    { q: '¿Cuánto tiempo tengo que dedicarle?', a: 'Muy poco o ninguno. Puedes delegarlo completamente en nuestro equipo o usar la plataforma cuando lo necesites.' },
+    { q: '¿Qué pasa si quiero cambios?', a: 'Puedes pedir modificaciones en cualquier momento. El objetivo es que el contenido encaje perfectamente con tu negocio.' },
+  ]},
+  { category: 'Plataforma', items: [
+    { q: '¿Qué tipo de negocios pueden usar NeuroPost?', a: 'Trabajamos con negocios locales como restaurantes, gimnasios, centros de estética, inmobiliarias y más. Cualquier negocio que quiera mejorar su presencia en redes.' },
+    { q: '¿En qué redes sociales publicáis?', a: 'Actualmente nos centramos en Instagram y Facebook, donde los negocios locales obtienen mejores resultados. Estamos trabajando para ampliar a otras plataformas.' },
+    { q: '¿Se puede generar contenido con IA?', a: 'Sí. Puedes generar contenido tú mismo desde la plataforma o solicitarlo a nuestro equipo para que lo prepare por ti. Nos adaptamos a cómo prefieras trabajar.' },
+  ]},
+  { category: 'Planes y condiciones', items: [
+    { q: '¿Mis fotos y contenido son privados?', a: 'Sí. Todo tu contenido es privado y solo tú tienes acceso. Cumplimos con GDPR.' },
+    { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Puedes cancelar en cualquier momento sin permanencias. Sin trampas ni letra pequeña.' },
+  ]},
 ];
 
 const TESTIMONIALS = [
@@ -108,10 +122,28 @@ export default function LandingPage() {
       <nav style={{ boxShadow: navShadow ? '0 1px 0 #e5e7eb' : 'none', background: '#ffffff', borderBottom: '1px solid #e5e7eb' }}>
         <a href="#" className="nav-logo">NeuroPost</a>
         <ul className="nav-links">
+          <li style={{ position: 'relative' }} onMouseEnter={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'block'; }} onMouseLeave={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'none'; }}>
+            <a href="#funciones" style={{ cursor: 'pointer' }}>Producto</a>
+            <div data-drop style={{ display: 'none', position: 'absolute', top: '100%', left: 0, background: '#ffffff', border: '1px solid #e5e7eb', minWidth: 180, zIndex: 100, padding: '8px 0' }}>
+              <a href="#funciones" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Portfolio</a>
+              <a href="#sectores" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Sectores</a>
+              <a href="#como-funciona" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Cómo funciona</a>
+            </div>
+          </li>
           <li><a href="#resultados">Resultados</a></li>
-          <li><a href="#como-funciona">Cómo funciona</a></li>
           <li><a href="#precios">Precios</a></li>
-          <li><a href="#faq">FAQ</a></li>
+          <li style={{ position: 'relative' }} onMouseEnter={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'block'; }} onMouseLeave={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'none'; }}>
+            <a href="#testimonios" style={{ cursor: 'pointer' }}>Empresa</a>
+            <div data-drop style={{ display: 'none', position: 'absolute', top: '100%', left: 0, background: '#ffffff', border: '1px solid #e5e7eb', minWidth: 180, zIndex: 100, padding: '8px 0' }}>
+              <Link href="/about" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Sobre nosotros</Link>
+              <Link href="/about#valores" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Valores</Link>
+              <Link href="/about#equipo" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Equipo</Link>
+              <Link href="/about#contacto" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Contacto</Link>
+              <a href="#testimonios" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Clientes</a>
+              <a href="#faq" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>FAQ</a>
+              <Link href="/novedades" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Novedades</Link>
+            </div>
+          </li>
           <li><Link href="/login" className="nav-login">Entrar</Link></li>
           <li><Link href="/register" className="nav-cta">Empezar gratis</Link></li>
         </ul>
@@ -120,11 +152,11 @@ export default function LandingPage() {
       {/* ─── HERO ─── */}
       <section style={{ padding: '140px 0 80px', background: '#ffffff' }}>
         <div className="container" style={{ textAlign: 'center', maxWidth: 800 }}>
-          <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#9ca3af', marginBottom: 20 }}>
+          <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 20 }}>
             Tu equipo de redes sociales
           </div>
           <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.8rem, 6vw, 4.5rem)', textTransform: 'uppercase', letterSpacing: '-0.01em', lineHeight: 0.95, color: '#111111', marginBottom: 24 }}>
-            Nos encargamos de tus redes para que tú te encargues de tu negocio
+            Nos encargamos de <span style={{ color: '#0F766E' }}>tus redes</span> para que tú te encargues de tu negocio
           </h1>
           <p style={{ fontFamily: f, fontSize: 17, color: '#6b7280', lineHeight: 1.7, maxWidth: 560, margin: '0 auto 32px' }}>
             Creamos contenido que hace que la gente te vea, te recuerde y termine entrando por la puerta.
@@ -133,8 +165,8 @@ export default function LandingPage() {
             <input ref={heroEmailRef} type="email" placeholder="tu@email.com" onKeyDown={(e) => e.key === 'Enter' && goToRegister(heroEmailRef)}
               style={{ flex: 1, padding: '14px 18px', border: '1px solid #e5e7eb', borderRight: 'none', fontFamily: f, fontSize: 15, outline: 'none', color: '#111111' }} />
             <button onClick={() => goToRegister(heroEmailRef)}
-              style={{ padding: '14px 28px', background: '#111111', color: '#ffffff', border: 'none', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-              Empezar gratis
+              style={{ padding: '14px 28px', background: '#0F766E', color: '#ffffff', border: 'none', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              Empezar gratis →
             </button>
           </div>
           <p style={{ fontFamily: f, fontSize: 12, color: '#9ca3af' }}>5 días gratis · Cancela cuando quieras</p>
@@ -174,7 +206,7 @@ export default function LandingPage() {
         <div className="container">
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 40, gap: 24, flexWrap: 'wrap' }}>
             <div>
-              <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#6b7280', marginBottom: 12 }}>Resultados reales</div>
+              <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>Resultados reales</div>
               <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#ffffff', lineHeight: 0.95 }}>
                 Porque lo que no se ve,<br />no se vende
               </h2>
@@ -196,7 +228,7 @@ export default function LandingPage() {
       <section id="funciones" style={{ padding: '80px 0' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
-            <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#9ca3af', marginBottom: 12 }}>Portfolio</div>
+            <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>Portfolio</div>
             <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
               Lo que publicamos por ti
             </h2>
@@ -218,7 +250,7 @@ export default function LandingPage() {
       </section>
 
       {/* ─── SECTORES — scroll horitzontal ─── */}
-      <section style={{ padding: '80px 0', background: '#f5f5f5' }}>
+      <section id="sectores" style={{ padding: '80px 0', background: '#f5f5f5' }}>
         <div className="container" style={{ marginBottom: 40 }}>
           <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
             Funciona para cualquier negocio local
@@ -241,7 +273,7 @@ export default function LandingPage() {
       {/* ─── CÓMO FUNCIONA — scroll horitzontal ─── */}
       <section id="como-funciona" style={{ padding: '80px 0' }}>
         <div className="container" style={{ marginBottom: 40 }}>
-          <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#9ca3af', marginBottom: 12 }}>En 4 pasos</div>
+          <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>En 4 pasos</div>
           <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
             De cero a publicar<br />en menos de 10 minutos
           </h2>
@@ -260,7 +292,7 @@ export default function LandingPage() {
       {/* ─── PRICING — scroll horitzontal ─── */}
       <section className="pricing" id="precios" style={{ padding: '80px 0', background: '#f5f5f5' }}>
         <div className="container" style={{ marginBottom: 40 }}>
-          <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#9ca3af', marginBottom: 12 }}>Precios claros</div>
+          <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>Precios claros</div>
           <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
             Sin sorpresas. Cancela cuando quieras.
           </h2>
@@ -302,9 +334,9 @@ export default function LandingPage() {
       </section>
 
       {/* ─── TESTIMONIALS — scroll horitzontal ─── */}
-      <section style={{ padding: '80px 0' }}>
+      <section id="testimonios" style={{ padding: '80px 0' }}>
         <div className="container" style={{ marginBottom: 40 }}>
-          <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#9ca3af', marginBottom: 12 }}>Casos reales</div>
+          <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>Casos reales</div>
           <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
             Lo que dicen nuestros clientes
           </h2>
@@ -323,30 +355,56 @@ export default function LandingPage() {
       </section>
 
       {/* ─── FAQ ─── */}
-      <section className="faq" id="faq" style={{ padding: '80px 0', background: '#f5f5f5' }}>
+      <section id="faq" style={{ padding: '80px 0', background: '#f5f5f5' }}>
         <div className="container">
-          <div className="faq-grid">
-            <div className="faq-sidebar">
+          {/* Header */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 48, marginBottom: 48 }}>
+            <div>
               <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#9ca3af', marginBottom: 12 }}>FAQ</div>
               <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2.5rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
                 Preguntas frecuentes
               </h2>
               <p style={{ fontFamily: f, color: '#6b7280', fontSize: 14, lineHeight: 1.7, marginTop: 12 }}>
-                ¿Más dudas? <a href="mailto:hola@neuropost.es" style={{ color: '#0F766E', textDecoration: 'none' }}>hola@neuropost.es</a>
+                Resolvemos lo que normalmente preguntan antes de empezar
+              </p>
+              <p style={{ fontFamily: f, fontSize: 13, marginTop: 16 }}>
+                <a href="mailto:hola@neuropost.es" style={{ color: '#0F766E', textDecoration: 'none', fontWeight: 600 }}>¿Más dudas? hola@neuropost.es →</a>
               </p>
             </div>
-            <div className="faq-list">
-              {FAQ_ITEMS.map(({ q, a }, i) => (
-                <div key={i} className={`faq-item${openFaq === i ? ' open' : ''}`}>
-                  <button className="faq-question" onClick={() => setOpenFaq(openFaq === i ? -1 : i)}>
-                    {q}
-                    <span className="faq-icon">+</span>
-                  </button>
-                  <div className="faq-answer">{a}</div>
-                </div>
-              ))}
-            </div>
+            <div />
           </div>
+
+          {/* FAQ by categories */}
+          {FAQ_DATA.map((cat) => {
+            const startIdx = FAQ_DATA.slice(0, FAQ_DATA.indexOf(cat)).reduce((acc, c) => acc + c.items.length, 0);
+            return (
+              <div key={cat.category} style={{ marginBottom: 32 }}>
+                <div style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#9ca3af', marginBottom: 12, paddingBottom: 8, borderBottom: '1px solid #e5e7eb' }}>
+                  {cat.category}
+                </div>
+                {cat.items.map((item, j) => {
+                  const idx = startIdx + j;
+                  const isOpen = openFaq === idx;
+                  return (
+                    <div key={idx} style={{ borderBottom: '1px solid #e5e7eb', background: item.highlight && !isOpen ? '#f0fdf4' : 'transparent' }}>
+                      <button onClick={() => setOpenFaq(isOpen ? -1 : idx)} style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%',
+                        padding: '14px 0', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
+                      }}>
+                        <span style={{ fontFamily: f, fontSize: 15, fontWeight: 600, color: isOpen ? '#0F766E' : '#111827' }}>{item.q}</span>
+                        <span style={{ fontFamily: f, fontSize: 18, color: '#9ca3af', transform: isOpen ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0, marginLeft: 16 }}>+</span>
+                      </button>
+                      {isOpen && (
+                        <div style={{ paddingBottom: 14 }}>
+                          <p style={{ fontFamily: f, fontSize: 14, color: '#6b7280', lineHeight: 1.7, margin: 0, maxWidth: 600 }}>{item.a}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -354,7 +412,7 @@ export default function LandingPage() {
       <section style={{ padding: '80px 0', background: '#111111' }}>
         <div className="container" style={{ textAlign: 'center' }}>
           <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', color: '#ffffff', lineHeight: 0.95, marginBottom: 12 }}>
-            Tu competencia ya tiene<br />a alguien que lleva sus redes
+            Tu competencia ya tiene<br />a alguien que <span style={{ color: '#0F766E' }}>lleva sus redes</span>
           </h2>
           <p style={{ fontFamily: f, fontSize: 15, color: '#9ca3af', marginBottom: 32 }}>Empieza hoy. 5 días de prueba gratuita.</p>
           <div style={{ display: 'flex', gap: 0, justifyContent: 'center', maxWidth: 420, margin: '0 auto 16px' }}>

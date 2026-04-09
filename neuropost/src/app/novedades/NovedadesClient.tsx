@@ -34,7 +34,7 @@ export default function NovedadesClient({ entries }: { entries: Entry[] }) {
     <>
       {/* Filters — underline tabs */}
       <div style={{ display: 'flex', gap: 24, marginBottom: 40, borderBottom: '1px solid #e5e7eb' }}>
-        {[{ v: 'all', l: 'Todos' }, { v: 'new', l: 'Nuevo' }, { v: 'improved', l: 'Mejorado' }, { v: 'fixed', l: 'Corregido' }].map(({ v, l }) => (
+        {[{ v: 'all', l: 'Todos' }, { v: 'new', l: 'Nuevo' }].map(({ v, l }) => (
           <button key={v} onClick={() => setFilter(v)} style={{
             background: 'none', border: 'none', cursor: 'pointer', paddingBottom: 12,
             fontFamily: f, fontSize: 13, fontWeight: 500,

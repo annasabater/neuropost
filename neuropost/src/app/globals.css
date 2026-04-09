@@ -185,15 +185,15 @@ nav {
 .nav-links a:hover { color: var(--ink); }
 
 .nav-cta {
-  background: var(--ink) !important;
-  color: var(--cream) !important;
+  background: #0F766E !important;
+  color: #ffffff !important;
   padding: 8px 20px !important;
   border-radius: 0 !important;
   font-weight: 700 !important;
   transition: background 0.2s !important;
 }
 
-.nav-cta:hover { background: var(--orange) !important; }
+.nav-cta:hover { background: #0D5E58 !important; }
 
 .nav-login {
   color: var(--muted) !important;
