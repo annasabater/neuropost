@@ -4,7 +4,7 @@ import Link from 'next/link';
 
 const SUGGESTED = [
   { label: 'Funciones', href: '/#funciones', desc: 'Todo lo que NeuroPost puede hacer por tu negocio.' },
-  { label: 'Precios',   href: '/#precios',   desc: 'Planes claros sin letra pequeña.' },
+  { label: 'Precios',   href: '/pricing',   desc: 'Planes claros sin letra pequeña.' },
   { label: 'Nosotros',  href: '/about',      desc: 'Quiénes somos y por qué construimos NeuroPost.' },
 ];
 

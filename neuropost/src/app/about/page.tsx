@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LandingNav } from '@/components/layout/LandingNav';
+import { SiteFooter } from '@/components/layout/SiteFooter';
 
 // ─── Counter hook ─────────────────────────────────────────────────────────────
 
@@ -510,56 +511,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ─── FOOTER ─── */}
-      <footer>
-        <div className="container">
-          <div className="footer-grid">
-            <div className="footer-brand">
-              <Link href="/">
-                <span className="logo-dot" />
-                NeuroPost
-              </Link>
-              <p>IA para que los negocios locales gestionen sus redes sociales sin esfuerzo. Hecho con ❤️ en España.</p>
-              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <a href="mailto:hola@neuropost.es" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', textDecoration: 'none', fontFamily: "'Cabinet Grotesk',sans-serif" }}>📧 hola@neuropost.es</a>
-                <a href="tel:+34900000000" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', textDecoration: 'none', fontFamily: "'Cabinet Grotesk',sans-serif" }}>📞 +34 900 000 000</a>
-              </div>
-            </div>
-            <div>
-              <div className="footer-col-title">Producto</div>
-              <ul className="footer-links">
-                <li><Link href="/#funciones">Funciones</Link></li>
-                <li><Link href="/#como-funciona">Cómo funciona</Link></li>
-                <li><Link href="/#precios">Precios</Link></li>
-                <li><a href="#">Changelog</a></li>
-              </ul>
-            </div>
-            <div>
-              <div className="footer-col-title">Empresa</div>
-              <ul className="footer-links">
-                <li><Link href="/about">Sobre nosotros</Link></li>
-                <li><a href="#">Blog</a></li>
-                <li><a href="#">Afiliados</a></li>
-                <li><Link href="/about#contacto">Contacto</Link></li>
-                <li><a href="mailto:jobs@neuropost.es">Trabaja con nosotros</a></li>
-              </ul>
-            </div>
-            <div>
-              <div className="footer-col-title">Legal</div>
-              <ul className="footer-links">
-                <li><a href="#">Privacidad</a></li>
-                <li><a href="#">Términos</a></li>
-                <li><a href="#">Cookies</a></li>
-                <li><a href="#">GDPR</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <span>© 2025 NeuroPost · Todos los derechos reservados</span>
-            <span>Hecho en Barcelona 🇪🇸</span>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
 
       <style jsx>{`
         .contact-social-links {

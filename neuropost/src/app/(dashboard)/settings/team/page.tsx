@@ -90,7 +90,7 @@ export default function TeamPage() {
           <p style={{ color: 'var(--muted)', marginBottom: 20 }}>
             La gestión de equipo está disponible en los planes Pro y Agency.
           </p>
-          <Link href="/settings/plan" className="btn-primary">Ver planes</Link>
+          <Link href="/pricing#pricing-top" className="btn-primary">Ver planes</Link>
         </div>
       </div>
     );

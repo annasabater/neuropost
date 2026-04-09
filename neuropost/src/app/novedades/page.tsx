@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { createAdminClient } from '@/lib/supabase';
 import { LandingNav } from '@/components/layout/LandingNav';
+import { SiteFooter } from '@/components/layout/SiteFooter';
 import NovedadesClient from './NovedadesClient';
 
 async function getEntries() {
@@ -40,43 +41,7 @@ export default async function NovedadesPage() {
         </div>
       </section>
 
-      {/* Footer — same as landing */}
-      <footer>
-        <div className="container">
-          <div className="footer-grid">
-            <div className="footer-brand">
-              <Link href="/" className="nav-logo" style={{ color: '#f5f5f5' }}>NeuroPost</Link>
-              <p>El equipo que gestiona las redes de tu negocio local.</p>
-            </div>
-            <div>
-              <div className="footer-col-title">Producto</div>
-              <ul className="footer-links">
-                <li><Link href="/#funciones">Portfolio</Link></li>
-                <li><Link href="/#precios">Precios</Link></li>
-                <li><Link href="/novedades">Novedades</Link></li>
-              </ul>
-            </div>
-            <div>
-              <div className="footer-col-title">Empresa</div>
-              <ul className="footer-links">
-                <li><Link href="/about">Sobre nosotros</Link></li>
-                <li><Link href="/about#contacto">Contacto</Link></li>
-              </ul>
-            </div>
-            <div>
-              <div className="footer-col-title">Legal</div>
-              <ul className="footer-links">
-                <li><Link href="/legal/privacidad">Privacidad</Link></li>
-                <li><Link href="/legal/terminos">Términos</Link></li>
-                <li><Link href="/legal/cookies">Cookies</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <span>© 2025 NeuroPost</span>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

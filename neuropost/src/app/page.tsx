@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
+import { SiteFooter } from '@/components/layout/SiteFooter';
 
 // ─── Unsplash helper ─────────────────────────────────────────────────────────
 const UNS = (id: string, w = 600) =>
@@ -53,6 +54,44 @@ const STEPS = [
   { n: '04', title: 'Tú apruebas, nosotros publicamos', desc: 'Revisa con un clic o déjanos publicar automáticamente según tu calendario.' },
 ];
 
+const DEMO_VIDEOS = [
+  {
+    title: 'Vista general del dashboard',
+    desc: 'Panel principal, calendario y estado de publicaciones en un vistazo.',
+    src: 'https://cdn.coverr.co/videos/coverr-working-on-a-laptop-in-an-office-1576/1080p.mp4',
+    poster: UNS('1516321318423-f06f85e504b3'),
+  },
+  {
+    title: 'Flujo de creación de posts',
+    desc: 'Cómo preparar, revisar y dejar programado contenido en minutos.',
+    src: 'https://cdn.coverr.co/videos/coverr-typing-on-a-laptop-1575/1080p.mp4',
+    poster: UNS('1483058712412-4245e9b90334'),
+  },
+];
+
+const DEMO_PHOTOS = [
+  {
+    title: 'Calendario editorial',
+    desc: 'Planifica toda la semana con vista clara por fecha y estado.',
+    img: UNS('1461749280684-dccba630e2f6'),
+  },
+  {
+    title: 'Bandeja de contenido',
+    desc: 'Controla borradores, aprobaciones y publicaciones programadas.',
+    img: UNS('1460925895917-afdab827c52f'),
+  },
+  {
+    title: 'Edición visual',
+    desc: 'Ajusta imágenes y copies desde un único panel de trabajo.',
+    img: UNS('1467232004584-a241de8bcf5d'),
+  },
+  {
+    title: 'Métricas y resultados',
+    desc: 'Sigue alcance, engagement y crecimiento por publicación.',
+    img: UNS('1488229297570-58520851e868'),
+  },
+];
+
 type FaqCategory = { category: string; items: { q: string; a: string; highlight?: boolean }[] };
 const FEATURED_FAQ = {
   q: '¿Tengo que crear el contenido yo?',
@@ -95,6 +134,8 @@ const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 export default function LandingPage() {
   const router = useRouter();
   const [navShadow, setNavShadow] = useState(false);
+  const [demoMode, setDemoMode] = useState<'videos' | 'fotos'>('videos');
+  const [homeBilling, setHomeBilling] = useState<'monthly' | 'annual'>('annual');
   const [activeFaqCategory, setActiveFaqCategory] = useState(0);
   const [activeFaqQuestion, setActiveFaqQuestion] = useState<number | null>(0);
   const heroEmailRef = useRef<HTMLInputElement>(null);
@@ -121,6 +162,99 @@ export default function LandingPage() {
     router.push(`/register?email=${encodeURIComponent(email)}`);
   }, [router]);
 
+  const navDropdownPanelStyle: React.CSSProperties = {
+    display: 'none',
+    position: 'absolute',
+    top: '100%',
+    left: -10,
+    background: 'rgba(255,255,255,0.98)',
+    border: '1px solid #e5e7eb',
+    minWidth: 230,
+    zIndex: 100,
+    padding: '10px',
+    boxShadow: '0 18px 34px rgba(17,24,39,0.12)',
+    backdropFilter: 'blur(6px)',
+  };
+
+  const navDropdownItemStyle: React.CSSProperties = {
+    display: 'block',
+    padding: '9px 10px',
+    fontSize: 13,
+    fontWeight: 600,
+    letterSpacing: '0.02em',
+    color: '#374151',
+    textDecoration: 'none',
+    textTransform: 'none',
+    borderBottom: '1px solid #f3f4f6',
+  };
+
+  const homePlans = [
+    {
+      name: 'Starter',
+      monthlyPrice: 29,
+      desc: 'Para empezar con presencia constante en redes',
+      features: [
+        '1 cuenta (Instagram o Facebook)',
+        '2 posts de foto por semana',
+        'Sin posts de vídeo',
+        'Edición gestionada por nuestro equipo (base)',
+        'Publicación manual (sin automatización)',
+      ],
+    },
+    {
+      name: 'Pro',
+      monthlyPrice: 69,
+      desc: 'Para crecer con foto, vídeo y automatización',
+      featured: true,
+      badge: '⚡ Más popular',
+      features: [
+        'Instagram + Facebook conectados',
+        '3 posts de foto + 2 de vídeo por semana',
+        'Edición gestionada por nuestro equipo (prioritaria)',
+        'Solicitudes con IA incluidas',
+        'Publicación automática programada',
+        'Analytics avanzado',
+        'Brand Kit completo',
+      ],
+    },
+    {
+      name: 'Total',
+      monthlyPrice: 129,
+      desc: 'Para escalar volumen con soporte y operación avanzada',
+      badge: '🚀 Completo',
+      features: [
+        'Instagram + Facebook conectados',
+        '7 posts de foto + 7 de vídeo por semana',
+        'Edición gestionada por nuestro equipo (prioritaria)',
+        'Solicitudes con IA incluidas',
+        'Publicación automática programada',
+        'Analytics avanzado',
+        'Brand Kit completo',
+        'Soporte prioritario 24 h',
+      ],
+    },
+    {
+      name: 'Agencia',
+      monthlyPrice: 199,
+      desc: 'Para agencias y gestión de múltiples marcas',
+      features: [
+        'Volumen de foto y vídeo a medida por marca',
+        'Hasta 20 plataformas conectadas',
+        'Panel de gestión unificado',
+        'Edición gestionada por nuestro equipo (por marca)',
+        'Solicitudes con IA incluidas',
+        'Gestión multicliente',
+        'Soporte prioritario 24 h',
+      ],
+    },
+  ];
+
+  const homeDisplayPrice = (monthlyPrice: number) =>
+    homeBilling === 'annual' ? Math.round(monthlyPrice * 0.8) : monthlyPrice;
+
+  const homeSavings = (monthlyPrice: number) =>
+    Math.round((monthlyPrice - Math.round(monthlyPrice * 0.8)) * 12);
+
   return (
     <>
       {/* ─── NAV ─── */}
@@ -129,24 +263,30 @@ export default function LandingPage() {
         <ul className="nav-links">
           <li style={{ position: 'relative' }} onMouseEnter={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'block'; }} onMouseLeave={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'none'; }}>
             <a href="#funciones" style={{ cursor: 'pointer' }}>Producto</a>
-            <div data-drop style={{ display: 'none', position: 'absolute', top: '100%', left: 0, background: '#ffffff', border: '1px solid #e5e7eb', minWidth: 180, zIndex: 100, padding: '8px 0' }}>
-              <a href="#funciones" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Portfolio</a>
-              <a href="#sectores" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Sectores</a>
-              <a href="#como-funciona" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Cómo funciona</a>
+            <div data-drop style={navDropdownPanelStyle}>
+              <a href="#funciones" style={navDropdownItemStyle}>Portfolio</a>
+              <a href="#sectores" style={navDropdownItemStyle}>Sectores</a>
+              <a href="#como-funciona" style={navDropdownItemStyle}>Cómo funciona</a>
+              <a href="#demo" style={{ ...navDropdownItemStyle, borderBottom: 'none' }}>Demo app</a>
             </div>
           </li>
-          <li><a href="#resultados">Resultados</a></li>
-          <li><a href="#precios">Precios</a></li>
+          <li style={{ position: 'relative' }} onMouseEnter={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'block'; }} onMouseLeave={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'none'; }}>
+            <a href="#resultados" style={{ cursor: 'pointer' }}>Impacto</a>
+            <div data-drop style={navDropdownPanelStyle}>
+              <a href="#resultados" style={navDropdownItemStyle}>Resultados</a>
+              <a href="#testimonios" style={navDropdownItemStyle}>Clientes</a>
+              <a href="#faq" style={{ ...navDropdownItemStyle, borderBottom: 'none' }}>FAQ</a>
+            </div>
+          </li>
+          <li><a href="/pricing">Precios</a></li>
           <li style={{ position: 'relative' }} onMouseEnter={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'block'; }} onMouseLeave={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'none'; }}>
             <a href="#testimonios" style={{ cursor: 'pointer' }}>Empresa</a>
-            <div data-drop style={{ display: 'none', position: 'absolute', top: '100%', left: 0, background: '#ffffff', border: '1px solid #e5e7eb', minWidth: 180, zIndex: 100, padding: '8px 0' }}>
-              <Link href="/about" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Sobre nosotros</Link>
-              <Link href="/about#valores" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Valores</Link>
-              <Link href="/about#equipo" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Equipo</Link>
-              <Link href="/about#contacto" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Contacto</Link>
-              <a href="#testimonios" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Clientes</a>
-              <a href="#faq" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>FAQ</a>
-              <Link href="/novedades" style={{ display: 'block', padding: '8px 16px', fontSize: 13, color: '#374151', textDecoration: 'none' }}>Novedades</Link>
+            <div data-drop style={navDropdownPanelStyle}>
+              <Link href="/about" style={navDropdownItemStyle}>Sobre nosotros</Link>
+              <Link href="/about#valores" style={navDropdownItemStyle}>Valores</Link>
+              <Link href="/about#equipo" style={navDropdownItemStyle}>Equipo</Link>
+              <Link href="/about#contacto" style={navDropdownItemStyle}>Contacto</Link>
+              <Link href="/novedades" style={{ ...navDropdownItemStyle, borderBottom: 'none' }}>Novedades</Link>
             </div>
           </li>
           <li><LanguageSelector /></li>
@@ -196,7 +336,6 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
-        <style>{`@keyframes scroll-landing { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }`}</style>
       </section>
 
       {/* ─── LOGOS ─── */}
@@ -284,9 +423,9 @@ export default function LandingPage() {
             De cero a publicar<br />en menos de 10 minutos
           </h2>
         </div>
-        <div className="fade-in" style={{ display: 'flex', gap: 1, overflowX: 'auto', scrollbarWidth: 'none', scrollSnapType: 'x mandatory', paddingLeft: 'max(20px, calc((100vw - 1160px) / 2 + 20px))' }}>
+        <div className="fade-in steps-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 1 }}>
           {STEPS.map(({ n, title, desc }) => (
-            <div key={n} style={{ flex: '0 0 300px', scrollSnapAlign: 'start', background: '#ffffff', border: '1px solid #e5e7eb', borderRight: 'none', padding: '32px 28px' }}>
+            <div key={n} style={{ background: '#ffffff', border: '1px solid #e5e7eb', padding: '32px 28px' }}>
               <p style={{ fontFamily: fc, fontWeight: 900, fontSize: '3rem', color: '#e5e7eb', lineHeight: 1, marginBottom: 16 }}>{n}</p>
               <p style={{ fontFamily: fc, fontWeight: 700, fontSize: 16, textTransform: 'uppercase', color: '#111111', marginBottom: 8 }}>{title}</p>
               <p style={{ fontFamily: f, fontSize: 13, color: '#6b7280', lineHeight: 1.6 }}>{desc}</p>
@@ -295,46 +434,187 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ─── DEMO DEL PRODUCTO ─── */}
+      <section id="demo" style={{ padding: '80px 0', background: '#111111' }}>
+        <div className="container">
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(260px, 34%) minmax(0, 66%)', gap: 32, alignItems: 'start' }} className="fade-in demo-grid">
+            <div>
+              <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#14b8a6', marginBottom: 12 }}>
+                Tour del producto
+              </div>
+              <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#ffffff', lineHeight: 0.95, marginBottom: 14 }}>
+                Mira la app
+                <br />
+                por dentro
+              </h2>
+              <p style={{ fontFamily: f, fontSize: 15, color: '#9ca3af', lineHeight: 1.7, marginBottom: 20 }}>
+                Visualiza cómo se usa NeuroPost con demos reales en vídeo y capturas de cada flujo.
+              </p>
+
+              <div style={{ display: 'inline-flex', border: '1px solid #374151', marginBottom: 16 }}>
+                <button
+                  onClick={() => setDemoMode('videos')}
+                  style={{
+                    padding: '9px 16px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: f,
+                    fontSize: 12,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    fontWeight: 700,
+                    background: demoMode === 'videos' ? '#14b8a6' : 'transparent',
+                    color: demoMode === 'videos' ? '#052e2b' : '#d1d5db',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  Videos
+                </button>
+                <button
+                  onClick={() => setDemoMode('fotos')}
+                  style={{
+                    padding: '9px 16px',
+                    border: 'none',
+                    borderLeft: '1px solid #374151',
+                    cursor: 'pointer',
+                    fontFamily: f,
+                    fontSize: 12,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    fontWeight: 700,
+                    background: demoMode === 'fotos' ? '#14b8a6' : 'transparent',
+                    color: demoMode === 'fotos' ? '#052e2b' : '#d1d5db',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  Fotos
+                </button>
+              </div>
+
+              <p style={{ fontFamily: f, fontSize: 12, color: '#6b7280', lineHeight: 1.6 }}>
+                Consejo: empieza por videos para ver el flujo completo y luego revisa las capturas en detalle.
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+              {demoMode === 'videos' && DEMO_VIDEOS.map((item) => (
+                <article key={item.title} style={{ background: '#161616', border: '1px solid #2a2a2a' }}>
+                  <video controls preload="metadata" poster={item.poster} style={{ width: '100%', aspectRatio: '16 / 10', objectFit: 'cover', display: 'block', background: '#0a0a0a' }}>
+                    <source src={item.src} type="video/mp4" />
+                  </video>
+                  <div style={{ padding: '14px 14px 16px' }}>
+                    <p style={{ fontFamily: fc, fontWeight: 700, textTransform: 'uppercase', color: '#ffffff', fontSize: 17, marginBottom: 6 }}>{item.title}</p>
+                    <p style={{ fontFamily: f, color: '#9ca3af', fontSize: 13, lineHeight: 1.6 }}>{item.desc}</p>
+                  </div>
+                </article>
+              ))}
+
+              {demoMode === 'fotos' && DEMO_PHOTOS.map((item) => (
+                <article key={item.title} style={{ background: '#161616', border: '1px solid #2a2a2a' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={item.img} alt={item.title} style={{ width: '100%', aspectRatio: '16 / 10', objectFit: 'cover', display: 'block' }} />
+                  <div style={{ padding: '14px 14px 16px' }}>
+                    <p style={{ fontFamily: fc, fontWeight: 700, textTransform: 'uppercase', color: '#ffffff', fontSize: 17, marginBottom: 6 }}>{item.title}</p>
+                    <p style={{ fontFamily: f, color: '#9ca3af', fontSize: 13, lineHeight: 1.6 }}>{item.desc}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ─── PRICING — scroll horitzontal ─── */}
       <section className="pricing" id="precios" style={{ padding: '80px 0', background: '#f5f5f5' }}>
-        <div className="container" style={{ marginBottom: 40 }}>
+        <div className="container" style={{ marginBottom: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>Precios claros</div>
           <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
             Sin sorpresas. Cancela cuando quieras.
           </h2>
           <p style={{ fontFamily: f, fontSize: 15, color: '#6b7280', marginTop: 12 }}>5 días de prueba gratuita en todos los planes.</p>
-        </div>
-        <div style={{ display: 'flex', gap: 1, overflowX: 'auto', scrollbarWidth: 'none', scrollSnapType: 'x mandatory', paddingLeft: 'max(20px, calc((100vw - 1160px) / 2 + 20px))', paddingBottom: 4 }}>
-          {[
-            { name: 'Starter', price: '29', desc: 'Para negocios que empiezan en redes', features: ['1 cuenta (Instagram o Facebook)', '12 publicaciones al mes', 'Edición de fotos', 'Captions y hashtags', 'Calendario de contenido', 'Aprobación manual'] },
-            { name: 'Pro', price: '69', desc: 'Para negocios activos que quieren crecer', featured: true, features: ['Instagram + Facebook', 'Publicaciones ilimitadas', 'Edición avanzada', 'Publicación automática', 'Bandeja de comentarios', 'Informe mensual', 'Ideas de contenido', 'Brand Kit completo'] },
-            { name: 'Agencia', price: '199', desc: 'Para agencias y negocios con varias sedes', features: ['Hasta 10 marcas', 'Panel de gestión unificado', 'Todo lo de Pro por marca', 'Roles y permisos', 'Informes por cliente', 'Soporte prioritario'] },
-          ].map(({ name, price, desc, featured, features }) => (
-            <div key={name} style={{ flex: '0 0 340px', scrollSnapAlign: 'start', background: featured ? '#111111' : '#ffffff', border: featured ? 'none' : '1px solid #e5e7eb', padding: '40px 32px', display: 'flex', flexDirection: 'column' }}>
-              {featured && <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#0F766E', background: '#f0fdf4', padding: '3px 10px', alignSelf: 'flex-start', marginBottom: 16 }}>Más popular</span>}
-              <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: featured ? '#ffffff' : '#111111', marginBottom: 4 }}>{name}</p>
-              <p style={{ fontFamily: fc, fontWeight: 900, fontSize: '3rem', color: featured ? '#ffffff' : '#111111', lineHeight: 1, marginBottom: 4 }}>
-                <span style={{ fontSize: 18, verticalAlign: 'top' }}>€</span>{price}<span style={{ fontSize: 14, fontWeight: 400, color: '#9ca3af' }}>/mes</span>
-              </p>
-              <p style={{ fontFamily: f, fontSize: 13, color: featured ? '#9ca3af' : '#6b7280', marginBottom: 24 }}>{desc}</p>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-                {features.map((feat) => (
-                  <li key={feat} style={{ fontFamily: f, fontSize: 13, color: featured ? '#d1d5db' : '#374151', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ color: '#0F766E', fontSize: 12 }}>✓</span> {feat}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/register" style={{
-                display: 'block', textAlign: 'center', padding: '14px 24px', textDecoration: 'none',
-                background: featured ? '#ffffff' : '#111111', color: featured ? '#111111' : '#ffffff',
-                fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
-              }}>
-                Empezar gratis →
-              </Link>
-            </div>
-          ))}
+          <div style={{ display: 'inline-flex', background: '#ffffff', border: '1px solid var(--border)', borderRadius: '0', padding: '4px', gap: '4px', marginTop: 24 }}>
+            {(['monthly', 'annual'] as const).map((cycle) => (
+              <button
+                key={cycle}
+                onClick={() => setHomeBilling(cycle)}
+                style={{
+                  padding: '9px 22px',
+                  borderRadius: '0',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontFamily: f,
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  transition: 'all 0.2s',
+                  background: homeBilling === cycle ? 'var(--orange)' : 'transparent',
+                  color: homeBilling === cycle ? '#ffffff' : 'var(--muted)',
+                }}
+              >
+                {cycle === 'monthly' ? 'Mensual' : 'Anual'}
+                {cycle === 'annual' && (
+                  <span
+                    style={{
+                      marginLeft: '6px',
+                      background: homeBilling === 'annual' ? 'rgba(255,255,255,0.2)' : 'var(--orange-light)',
+                      color: homeBilling === 'annual' ? '#ffffff' : 'var(--orange)',
+                      borderRadius: '0',
+                      padding: '2px 8px',
+                      fontSize: '0.72rem',
+                      fontWeight: 800,
+                    }}
+                  >
+                    −20%
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="container">
+          <div style={{ overflowX: 'auto', overflowY: 'visible', paddingTop: 10, paddingBottom: 4 }}>
+            <div className="pricing-home-grid" style={{ minWidth: 1040, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, alignItems: 'stretch' }}>
+            {homePlans.map(({ name, monthlyPrice, desc, featured, badge, features }) => (
+              <div key={name} className="pricing-home-card" style={{ background: featured ? '#111111' : '#ffffff', border: featured ? 'none' : '1px solid #e5e7eb', padding: '40px 24px', display: 'flex', flexDirection: 'column' }}>
+                {(badge || featured) && (
+                  <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#0F766E', background: '#f0fdf4', padding: '3px 10px', alignSelf: 'flex-start', marginBottom: 16 }}>
+                    {badge ?? 'Más popular'}
+                  </span>
+                )}
+                <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: featured ? '#ffffff' : '#111111', marginBottom: 4 }}>{name}</p>
+                <p style={{ fontFamily: fc, fontWeight: 900, fontSize: '3rem', color: featured ? '#ffffff' : '#111111', lineHeight: 1, marginBottom: 4 }}>
+                  <span style={{ fontSize: 18, verticalAlign: 'top' }}>€</span>{homeDisplayPrice(monthlyPrice)}<span style={{ fontSize: 14, fontWeight: 400, color: '#9ca3af' }}>/mes</span>
+                </p>
+                {homeBilling === 'annual' && (
+                  <p style={{ fontFamily: f, fontSize: 12, fontWeight: 700, color: featured ? '#d1d5db' : '#0F766E', marginBottom: 10 }}>
+                    {`Ahorras €${homeSavings(monthlyPrice)}/año`}
+                  </p>
+                )}
+                <p style={{ fontFamily: f, fontSize: 13, color: featured ? '#9ca3af' : '#6b7280', marginBottom: 24 }}>{desc}</p>
+                <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
+                  {features.map((feat) => (
+                    <li key={feat} style={{ fontFamily: f, fontSize: 13, color: featured ? '#d1d5db' : '#374151', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ color: '#0F766E', fontSize: 12 }}>✓</span> {feat}
+                    </li>
+                  ))}
+                </ul>
+                <Link href="/register" style={{
+                  display: 'block', textAlign: 'center', padding: '14px 24px', textDecoration: 'none',
+                  background: featured ? '#ffffff' : '#111111', color: featured ? '#111111' : '#ffffff',
+                  fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+                }}>
+                  Empezar gratis →
+                </Link>
+              </div>
+            ))}
+            </div>
+          </div>
+        </div>
+        <div className="container">
+          <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+            <Link href="/pricing" style={{ fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#111111', textDecoration: 'none', border: '1px solid #d1d5db', padding: '10px 16px', background: '#ffffff' }}>
+              Ver más detalles de planes →
+            </Link>
+          </div>
           <p style={{ fontFamily: f, textAlign: 'center', fontSize: 12, color: '#9ca3af', marginTop: 16 }}>Pago seguro con Stripe · Cancela en cualquier momento · Sin permanencia</p>
         </div>
       </section>
@@ -553,17 +833,6 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-                <style>{`
-                  .faq-cat-item:hover {
-                    color: #0F766E !important;
-                  }
-                  @media (max-width: 920px) {
-                    .faq-knowledge-grid {
-                      grid-template-columns: 1fr !important;
-                      gap: 24px !important;
-                    }
-                  }
-                `}</style>
               </>
             );
           })()}
@@ -589,49 +858,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ─── FOOTER ─── */}
-      <footer>
-        <div className="container">
-          <div className="footer-grid">
-            <div className="footer-brand">
-              <a href="#" className="nav-logo" style={{ color: '#f5f5f5' }}>NeuroPost</a>
-              <p>El equipo que gestiona las redes de tu negocio local. Hecho con cariño en España.</p>
-              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <a href="mailto:hola@neuropost.es" style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, textDecoration: 'none', fontFamily: f }}>hola@neuropost.es</a>
-              </div>
-            </div>
-            <div>
-              <div className="footer-col-title">Producto</div>
-              <ul className="footer-links">
-                <li><a href="#resultados">Resultados</a></li>
-                <li><a href="#como-funciona">Cómo funciona</a></li>
-                <li><a href="#precios">Precios</a></li>
-                <li><Link href="/novedades">Novedades</Link></li>
-              </ul>
-            </div>
-            <div>
-              <div className="footer-col-title">Empresa</div>
-              <ul className="footer-links">
-                <li><Link href="/about">Sobre nosotros</Link></li>
-                <li><Link href="/about#contacto">Contacto</Link></li>
-              </ul>
-            </div>
-            <div>
-              <div className="footer-col-title">Legal</div>
-              <ul className="footer-links">
-                <li><Link href="/legal/privacidad">Privacidad</Link></li>
-                <li><Link href="/legal/terminos">Términos</Link></li>
-                <li><Link href="/legal/cookies">Cookies</Link></li>
-                <li><Link href="/legal/aviso-legal">Aviso legal</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="footer-bottom">
-            <span>© 2025 NeuroPost · Todos los derechos reservados</span>
-            <span>Hecho en Barcelona 🇪🇸</span>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
     </>
   );
 }

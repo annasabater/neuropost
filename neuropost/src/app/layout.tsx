@@ -79,8 +79,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&display=swap"
           rel="stylesheet"
         />
-        <script
+      </head>
+      <body>
+        <Script
+          id="structured-data"
           type="application/ld+json"
+          strategy="beforeInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'SoftwareApplication',
@@ -93,8 +97,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '200' },
           })}}
         />
-      </head>
-      <body>
         {/* Runs before React hydrates — prevents dark/light flash on load */}
         <Script id="theme-init" strategy="beforeInteractive">{`
           (function(){try{var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})()`}

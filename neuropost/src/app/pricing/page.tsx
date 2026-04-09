@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
+import { LandingNav } from '@/components/layout/LandingNav';
+import { SiteFooter } from '@/components/layout/SiteFooter';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -16,11 +18,6 @@ interface Plan {
   badge?: string;
 }
 
-interface FaqItem {
-  q: string;
-  a: string;
-}
-
 interface ComparisonRow {
   feature: string;
   starter: string;
@@ -29,118 +26,86 @@ interface ComparisonRow {
   agencia: string;
 }
 
+const f = "var(--font-barlow), 'Barlow', sans-serif";
+const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
+
 // ─── Data ────────────────────────────────────────────────────────────────────
 
 const PLANS: Plan[] = [
   {
     name: 'Starter',
     monthlyPrice: 29,
-    desc: 'Para negocios que empiezan en redes',
+    desc: 'Para empezar con presencia constante en redes',
     featured: false,
     features: [
       '1 cuenta (Instagram o Facebook)',
-      '12 publicaciones al mes',
-      'Edición básica de fotos con IA',
-      'Captions y hashtags automáticos',
-      'Calendario de contenido',
-      'Aprobación manual',
-      'Soporte por email',
+      '2 posts de foto por semana',
+      'Sin posts de vídeo',
+      'Edición gestionada por nuestro equipo (base)',
+      'Publicación manual (sin automatización)',
     ],
   },
   {
     name: 'Pro',
     monthlyPrice: 69,
-    desc: 'Para negocios activos que quieren crecer',
+    desc: 'Para crecer con foto, vídeo y automatización',
     featured: true,
     badge: '⚡ Más popular',
     features: [
       'Instagram + Facebook conectados',
-      'Publicaciones ilimitadas',
-      'Edición IA avanzada (colores, fondo)',
+      '3 posts de foto + 2 de vídeo por semana',
+      'Edición gestionada por nuestro equipo (prioritaria)',
+      'Solicitudes con IA incluidas',
       'Publicación automática programada',
-      'Bandeja de comentarios unificada',
-      'Informe mensual en PDF',
-      'Ideas de contenido por temporada',
-      'Brand Kit completo',
       'Analytics avanzado',
-      'Soporte prioritario',
+      'Brand Kit completo',
     ],
   },
   {
     name: 'Total',
     monthlyPrice: 129,
-    desc: 'Para negocios que quieren máxima presencia y analítica avanzada',
+    desc: 'Para escalar volumen con soporte y operación avanzada',
     featured: false,
     badge: '🚀 Completo',
     features: [
       'Instagram + Facebook conectados',
-      '7 posts + 7 historias por semana',
-      'Edición IA avanzada con estilos visuales',
+      '7 posts de foto + 7 de vídeo por semana',
+      'Edición gestionada por nuestro equipo (prioritaria)',
+      'Solicitudes con IA incluidas',
       'Publicación automática programada',
-      'Agente de análisis de competencia',
-      'Detección de tendencias del sector',
-      'Bandeja de comentarios unificada',
-      'Informe mensual en PDF',
-      'Brand Kit completo',
       'Analytics avanzado',
-      'Soporte prioritario',
+      'Brand Kit completo',
+      'Soporte prioritario 24 h',
     ],
   },
   {
     name: 'Agencia',
     monthlyPrice: 199,
-    desc: 'Para agencias y negocios con varias sedes',
+    desc: 'Para agencias y gestión de múltiples marcas',
     featured: false,
     features: [
-      'Hasta 10 marcas / locales',
+      'Volumen de foto y vídeo a medida por marca',
+      'Hasta 20 plataformas conectadas',
       'Panel de gestión unificado',
-      'Todo lo del plan Pro por cada marca',
-      'Roles: admin, editor, aprobador',
-      'Informes por cliente exportables',
-      'API access (próximamente)',
-      'Onboarding personalizado',
+      'Edición gestionada por nuestro equipo (por marca)',
+      'Solicitudes con IA incluidas',
+      'Gestión multicliente',
       'Soporte prioritario 24 h',
     ],
   },
 ];
 
 const COMPARISON_ROWS: ComparisonRow[] = [
-  { feature: 'Posts por semana',       starter: '2',    pro: '5',           total: '7',             agencia: '7 × marca' },
-  { feature: 'Historias por semana',   starter: '—',    pro: '3',           total: '7',             agencia: '7 × marca' },
+  { feature: 'Posts de foto por semana', starter: '2', pro: '3', total: '7', agencia: 'A medida × marca' },
+  { feature: 'Posts de vídeo por semana', starter: '—', pro: '2', total: '7', agencia: 'A medida × marca' },
   { feature: 'Plataformas',            starter: '1',    pro: '2 (IG + FB)', total: '2 (IG + FB)',   agencia: 'Hasta 20' },
-  { feature: 'IA para edición de fotos', starter: 'Básica', pro: 'Avanzada', total: 'Avanzada',    agencia: 'Avanzada' },
-  { feature: 'Estilos visuales IA',    starter: '—',    pro: '✓',           total: '✓',             agencia: '✓' },
   { feature: 'Publicación automática', starter: '—',    pro: '✓',           total: '✓',             agencia: '✓' },
-  { feature: 'Análisis de competencia',starter: '—',    pro: '—',           total: '✓',             agencia: '✓' },
-  { feature: 'Detección de tendencias',starter: '—',    pro: '—',           total: '✓',             agencia: '✓' },
-  { feature: 'Bandeja de comentarios', starter: '—',    pro: '✓',           total: '✓',             agencia: '✓' },
+  { feature: 'Edición gestionada por nuestro equipo', starter: 'Sí (base)', pro: 'Sí (prioritaria)', total: 'Sí (prioritaria)', agencia: 'Sí (por marca)' },
+  { feature: 'Solicitudes con IA (a demanda)', starter: '—', pro: 'Incluida', total: 'Incluida', agencia: 'Incluida' },
   { feature: 'Analytics avanzado',     starter: '—',    pro: '✓',           total: '✓',             agencia: '✓' },
   { feature: 'Brand Kit',              starter: '—',    pro: '✓',           total: '✓',             agencia: '✓' },
   { feature: 'Gestión multicliente',   starter: '—',    pro: '—',           total: '—',             agencia: '✓' },
-  { feature: 'Soporte',                starter: 'Email', pro: 'Prioritario', total: 'Prioritario',  agencia: 'Prioritario 24 h' },
-];
-
-const FAQ_ITEMS: FaqItem[] = [
-  {
-    q: '¿Puedo cambiar de plan en cualquier momento?',
-    a: 'Sí, el cambio es inmediato. Si subes de plan, el cargo proporcional al tiempo restante se aplica al momento. Si bajas, el cambio se efectúa al inicio del siguiente período.',
-  },
-  {
-    q: '¿Qué pasa si cancelo a mitad de mes?',
-    a: 'Mantienes el acceso completo hasta el final del período pagado. No se realizan reembolsos parciales, pero puedes exportar todo tu contenido, métricas y brand kit antes de irte.',
-  },
-  {
-    q: '¿Hay descuentos para ONGs o educación?',
-    a: 'Sí, tenemos tarifas especiales para entidades sin ánimo de lucro y centros educativos. Escríbenos a hola@neuropost.es con tu documentación y te preparamos una oferta personalizada.',
-  },
-  {
-    q: '¿Puedo pagar con transferencia bancaria?',
-    a: 'La transferencia bancaria está disponible únicamente para el plan Agencia con facturación anual. Contáctanos en hola@neuropost.es para gestionar el proceso.',
-  },
-  {
-    q: '¿Qué incluye exactamente el período de prueba?',
-    a: 'Acceso completo al plan Pro durante 14 días, sin tarjeta de crédito. Puedes conectar tus redes, generar posts, activar la publicación automática y probar todas las funciones sin límite.',
-  },
+  { feature: 'Soporte',                starter: 'Email', pro: 'Prioritario', total: 'Prioritario 24 h',  agencia: 'Prioritario 24 h' },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -156,85 +121,11 @@ function annualSavings(monthly: number): number {
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
 function NavBar() {
-  const [navShadow, setNavShadow] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setNavShadow(window.scrollY > 20);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  return (
-    <nav style={{ boxShadow: navShadow ? '0 4px 20px rgba(0,0,0,0.06)' : 'none' }}>
-      <Link href="/" className="nav-logo">
-        <span className="logo-dot" />
-        NeuroPost
-      </Link>
-      <ul className="nav-links">
-        <li><Link href="/#funciones">Funciones</Link></li>
-        <li><Link href="/#como-funciona">Cómo funciona</Link></li>
-        <li><Link href="/pricing" style={{ color: 'var(--orange)', fontWeight: 700 }}>Precios</Link></li>
-        <li><Link href="/#faq">FAQ</Link></li>
-        <li><Link href="/about">Nosotros</Link></li>
-        <li><Link href="/login" className="nav-login">Iniciar sesión</Link></li>
-        <li><Link href="/register" className="nav-cta">Empezar gratis</Link></li>
-      </ul>
-    </nav>
-  );
+  return <LandingNav />;
 }
 
 function FooterSection() {
-  return (
-    <footer>
-      <div className="container">
-        <div className="footer-grid">
-          <div className="footer-brand">
-            <Link href="/" className="nav-logo" style={{ color: 'var(--cream)' }}>
-              <span className="logo-dot" />
-              NeuroPost
-            </Link>
-            <p>IA para que los negocios locales gestionen sus redes sociales sin esfuerzo. Hecho con ❤️ en España.</p>
-            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <a href="mailto:hola@neuropost.es" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', textDecoration: 'none', fontFamily: "'Cabinet Grotesk',sans-serif" }}>📧 hola@neuropost.es</a>
-              <a href="tel:+34900000000" style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', textDecoration: 'none', fontFamily: "'Cabinet Grotesk',sans-serif" }}>📞 +34 900 000 000</a>
-            </div>
-          </div>
-          <div>
-            <div className="footer-col-title">Producto</div>
-            <ul className="footer-links">
-              <li><Link href="/#funciones">Funciones</Link></li>
-              <li><Link href="/#como-funciona">Cómo funciona</Link></li>
-              <li><Link href="/pricing">Precios</Link></li>
-              <li><a href="#">Changelog</a></li>
-            </ul>
-          </div>
-          <div>
-            <div className="footer-col-title">Empresa</div>
-            <ul className="footer-links">
-              <li><Link href="/about">Sobre nosotros</Link></li>
-              <li><a href="#">Blog</a></li>
-              <li><a href="#">Afiliados</a></li>
-              <li><Link href="/about#contacto">Contacto</Link></li>
-              <li><a href="mailto:jobs@neuropost.es">Trabaja con nosotros</a></li>
-            </ul>
-          </div>
-          <div>
-            <div className="footer-col-title">Legal</div>
-            <ul className="footer-links">
-              <li><Link href="/legal/privacidad">Privacidad</Link></li>
-              <li><Link href="/legal/terminos">Términos</Link></li>
-              <li><Link href="/legal/cookies">Cookies</Link></li>
-              <li><Link href="/legal/aviso-legal">Aviso legal</Link></li>
-            </ul>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <span>© 2025 NeuroPost · Todos los derechos reservados</span>
-          <span>Hecho en Barcelona 🇪🇸</span>
-        </div>
-      </div>
-    </footer>
-  );
+  return <SiteFooter />;
 }
 
 // ─── ROI Calculator ───────────────────────────────────────────────────────────
@@ -273,7 +164,7 @@ function RoiCalculator() {
             margin: '0 auto',
             background: 'white',
             border: '1.5px solid var(--border)',
-            borderRadius: '20px',
+            borderRadius: '0',
             padding: '48px',
           }}
         >
@@ -289,7 +180,7 @@ function RoiCalculator() {
             >
               <label
                 style={{
-                  fontFamily: "'Cabinet Grotesk', sans-serif",
+                  fontFamily: f,
                   fontWeight: 700,
                   fontSize: '0.95rem',
                   color: 'var(--ink)',
@@ -299,7 +190,7 @@ function RoiCalculator() {
               </label>
               <span
                 style={{
-                  fontFamily: "'Cabinet Grotesk', sans-serif",
+                  fontFamily: fc,
                   fontWeight: 900,
                   fontSize: '1.4rem',
                   color: 'var(--orange)',
@@ -320,7 +211,7 @@ function RoiCalculator() {
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                fontFamily: "'Cabinet Grotesk', sans-serif",
+                fontFamily: f,
                 fontSize: '0.78rem',
                 color: 'var(--muted)',
                 marginTop: '6px',
@@ -343,7 +234,7 @@ function RoiCalculator() {
             >
               <label
                 style={{
-                  fontFamily: "'Cabinet Grotesk', sans-serif",
+                  fontFamily: f,
                   fontWeight: 700,
                   fontSize: '0.95rem',
                   color: 'var(--ink)',
@@ -353,7 +244,7 @@ function RoiCalculator() {
               </label>
               <span
                 style={{
-                  fontFamily: "'Cabinet Grotesk', sans-serif",
+                  fontFamily: fc,
                   fontWeight: 900,
                   fontSize: '1.4rem',
                   color: 'var(--orange)',
@@ -375,7 +266,7 @@ function RoiCalculator() {
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                fontFamily: "'Cabinet Grotesk', sans-serif",
+                fontFamily: f,
                 fontSize: '0.78rem',
                 color: 'var(--muted)',
                 marginTop: '6px',
@@ -401,7 +292,7 @@ function RoiCalculator() {
             <div>
               <div
                 style={{
-                  fontFamily: "'Cabinet Grotesk', sans-serif",
+                  fontFamily: f,
                   fontSize: '0.78rem',
                   fontWeight: 700,
                   textTransform: 'uppercase',
@@ -414,7 +305,7 @@ function RoiCalculator() {
               </div>
               <div
                 style={{
-                  fontFamily: "'Cabinet Grotesk', sans-serif",
+                  fontFamily: fc,
                   fontSize: '1.8rem',
                   fontWeight: 900,
                   color: 'var(--ink)',
@@ -425,7 +316,7 @@ function RoiCalculator() {
               </div>
               <div
                 style={{
-                  fontFamily: "'Cabinet Grotesk', sans-serif",
+                  fontFamily: f,
                   fontSize: '0.8rem',
                   color: 'var(--muted)',
                   marginTop: '4px',
@@ -438,7 +329,7 @@ function RoiCalculator() {
             <div>
               <div
                 style={{
-                  fontFamily: "'Cabinet Grotesk', sans-serif",
+                  fontFamily: f,
                   fontSize: '0.78rem',
                   fontWeight: 700,
                   textTransform: 'uppercase',
@@ -451,7 +342,7 @@ function RoiCalculator() {
               </div>
               <div
                 style={{
-                  fontFamily: "'Cabinet Grotesk', sans-serif",
+                  fontFamily: fc,
                   fontSize: '1.8rem',
                   fontWeight: 900,
                   color: 'var(--ink)',
@@ -462,7 +353,7 @@ function RoiCalculator() {
               </div>
               <div
                 style={{
-                  fontFamily: "'Cabinet Grotesk', sans-serif",
+                  fontFamily: f,
                   fontSize: '0.8rem',
                   color: 'var(--muted)',
                   marginTop: '4px',
@@ -477,7 +368,7 @@ function RoiCalculator() {
               style={{
                 gridColumn: 'span 2',
                 background: 'var(--ink)',
-                borderRadius: '12px',
+                borderRadius: '0',
                 padding: '20px 24px',
                 display: 'flex',
                 alignItems: 'center',
@@ -488,7 +379,7 @@ function RoiCalculator() {
               <div>
                 <div
                   style={{
-                    fontFamily: "'Cabinet Grotesk', sans-serif",
+                    fontFamily: f,
                     fontSize: '0.78rem',
                     fontWeight: 700,
                     textTransform: 'uppercase',
@@ -501,10 +392,10 @@ function RoiCalculator() {
                 </div>
                 <div
                   style={{
-                    fontFamily: "'Cabinet Grotesk', sans-serif",
+                    fontFamily: fc,
                     fontSize: '2.2rem',
                     fontWeight: 900,
-                    color: '#ff5c1a',
+                    color: 'var(--accent-glow)',
                     letterSpacing: '-0.04em',
                     lineHeight: 1,
                   }}
@@ -515,12 +406,12 @@ function RoiCalculator() {
               <div
                 style={{
                   textAlign: 'right',
-                  fontFamily: "'Cabinet Grotesk', sans-serif",
+                  fontFamily: f,
                   fontSize: '0.9rem',
                   color: 'rgba(250,248,243,0.6)',
                 }}
               >
-                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: '#ff5c1a', letterSpacing: '-0.02em' }}>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: 'var(--accent-glow)', letterSpacing: '-0.02em' }}>
                   {savedDays.toFixed(1)} días
                 </div>
                 <div>de trabajo al mes</div>
@@ -536,11 +427,208 @@ function RoiCalculator() {
   );
 }
 
+function PlanRecommender({ billing }: { billing: BillingCycle }) {
+  const [photosPerWeek, setPhotosPerWeek] = useState(8);
+  const [videosPerWeek, setVideosPerWeek] = useState(2);
+  const [engagementGoal, setEngagementGoal] = useState(6);
+  const [multiCompany, setMultiCompany] = useState(false);
+  const [companiesCount, setCompaniesCount] = useState(2);
+
+  const planRules = {
+    starter: { photos: 2, videos: 0 },
+    pro: { photos: 3, videos: 2 },
+    total: { photos: 7, videos: 7 },
+  } as const;
+
+  let recommended: Plan = PLANS[0];
+  if (multiCompany) {
+    recommended = PLANS[3];
+  } else if (photosPerWeek <= planRules.starter.photos && videosPerWeek <= planRules.starter.videos) {
+    recommended = PLANS[0];
+  } else if (photosPerWeek <= planRules.pro.photos && videosPerWeek <= planRules.pro.videos) {
+    recommended = PLANS[1];
+  } else if (photosPerWeek <= planRules.total.photos && videosPerWeek <= planRules.total.videos) {
+    recommended = PLANS[2];
+  } else {
+    recommended = PLANS[3];
+  }
+
+  const workloadScore = photosPerWeek + videosPerWeek;
+  const ambitionScore = workloadScore + engagementGoal;
+
+  const price = billing === 'annual' ? annualPrice(recommended.monthlyPrice) : recommended.monthlyPrice;
+  const savings = annualSavings(recommended.monthlyPrice);
+
+  return (
+    <section
+      style={{
+        padding: '70px 0 48px',
+        background: '#ffffff',
+        borderBottom: '1px solid var(--border)',
+      }}
+    >
+      <div className="container" style={{ maxWidth: 980 }}>
+        <div style={{ textAlign: 'center', marginBottom: 34 }}>
+          <div className="section-eyebrow">Recomendador inteligente</div>
+          <h2 style={{ marginBottom: 10 }}>¿Qué plan te encaja mejor?</h2>
+          <p className="section-sub" style={{ margin: '0 auto', maxWidth: 620, textAlign: 'center' }}>
+            Mueve los controles según tu ritmo de contenido y objetivo de engagement. Te sugerimos un plan en tiempo real.
+          </p>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1fr) 320px',
+            gap: 18,
+            alignItems: 'start',
+          }}
+          className="pricing-recommender-grid"
+        >
+          <div style={{ background: '#f8fafc', border: '1px solid var(--border)', padding: 24 }}>
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <label style={{ fontFamily: f, fontSize: '0.9rem', fontWeight: 700, color: 'var(--ink)' }}>
+                  Fotos por semana
+                </label>
+                <span style={{ fontFamily: fc, fontSize: '1.2rem', fontWeight: 900, color: 'var(--orange)' }}>{photosPerWeek}</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={30}
+                step={1}
+                value={photosPerWeek}
+                onChange={(e) => setPhotosPerWeek(Number(e.target.value))}
+                style={{ width: '100%', accentColor: 'var(--orange)', cursor: 'pointer' }}
+              />
+            </div>
+
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <label style={{ fontFamily: f, fontSize: '0.9rem', fontWeight: 700, color: 'var(--ink)' }}>
+                  Vídeos por semana
+                </label>
+                <span style={{ fontFamily: fc, fontSize: '1.2rem', fontWeight: 900, color: 'var(--orange)' }}>{videosPerWeek}</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={14}
+                step={1}
+                value={videosPerWeek}
+                onChange={(e) => setVideosPerWeek(Number(e.target.value))}
+                style={{ width: '100%', accentColor: 'var(--orange)', cursor: 'pointer' }}
+              />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                <label style={{ fontFamily: f, fontSize: '0.9rem', fontWeight: 700, color: 'var(--ink)' }}>
+                  Objetivo de engagement
+                </label>
+                <span style={{ fontFamily: fc, fontSize: '1.2rem', fontWeight: 900, color: 'var(--orange)' }}>{engagementGoal}/10</span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={10}
+                step={1}
+                value={engagementGoal}
+                onChange={(e) => setEngagementGoal(Number(e.target.value))}
+                style={{ width: '100%', accentColor: 'var(--orange)', cursor: 'pointer' }}
+              />
+            </div>
+
+            <div style={{ marginTop: 24 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                <label style={{ fontFamily: f, fontSize: '0.9rem', fontWeight: 700, color: 'var(--ink)' }}>
+                  ¿Gestionas más de una empresa?
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setMultiCompany((v) => !v)}
+                  style={{
+                    border: '1px solid var(--border)',
+                    background: multiCompany ? 'var(--orange)' : '#ffffff',
+                    color: multiCompany ? '#ffffff' : 'var(--muted)',
+                    fontFamily: f,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    padding: '6px 10px',
+                    cursor: 'pointer',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                  }}
+                >
+                  {multiCompany ? 'Sí' : 'No'}
+                </button>
+              </div>
+
+              {multiCompany && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <label style={{ fontFamily: f, fontSize: '0.86rem', fontWeight: 600, color: 'var(--muted)' }}>
+                      Número de empresas
+                    </label>
+                    <span style={{ fontFamily: fc, fontSize: '1.1rem', fontWeight: 900, color: 'var(--orange)' }}>{companiesCount}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={2}
+                    max={10}
+                    step={1}
+                    value={companiesCount}
+                    onChange={(e) => setCompaniesCount(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: 'var(--orange)', cursor: 'pointer' }}
+                  />
+                </>
+              )}
+            </div>
+          </div>
+
+          <aside style={{ background: '#111111', color: '#ffffff', padding: 22, border: '1px solid #111111' }}>
+            <p style={{ fontFamily: f, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af', marginBottom: 6 }}>
+              Plan recomendado
+            </p>
+            <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 34, textTransform: 'uppercase', lineHeight: 0.95, marginBottom: 8 }}>
+              {recommended.name}
+            </p>
+            <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 32, lineHeight: 1, marginBottom: 8 }}>
+              <span style={{ fontSize: 16, verticalAlign: 'top' }}>€</span>{price}
+              <span style={{ fontFamily: f, fontSize: 12, fontWeight: 500, color: '#9ca3af' }}>/mes</span>
+            </p>
+            {billing === 'annual' && (
+              <p style={{ fontFamily: f, fontSize: 12, fontWeight: 700, color: '#34d399', marginBottom: 12 }}>
+                Ahorras €{savings}/año
+              </p>
+            )}
+
+            <p style={{ fontFamily: f, color: '#d1d5db', fontSize: 13, lineHeight: 1.6, marginBottom: 14 }}>
+              {recommended.desc}
+            </p>
+
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8, marginBottom: 16 }}>
+              <li style={{ fontFamily: f, fontSize: 12, color: '#d1d5db' }}>✔ Carga estimada: {photosPerWeek + videosPerWeek} piezas/semana</li>
+              <li style={{ fontFamily: f, fontSize: 12, color: '#d1d5db' }}>✔ Intensidad de crecimiento: {engagementGoal}/10</li>
+              <li style={{ fontFamily: f, fontSize: 12, color: '#d1d5db' }}>✔ Score total: {Math.round(ambitionScore)}</li>
+              {multiCompany && <li style={{ fontFamily: f, fontSize: 12, color: '#d1d5db' }}>✔ Empresas: {companiesCount}</li>}
+            </ul>
+
+            <a href="#pricing-plans" style={{ display: 'inline-block', width: '100%', textAlign: 'center', background: '#ffffff', color: '#111111', textDecoration: 'none', fontFamily: fc, fontWeight: 700, fontSize: 12, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '10px 14px' }}>
+              Ver plan abajo
+            </a>
+          </aside>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function PricingPage() {
-  const [billing, setBilling] = useState<BillingCycle>('monthly');
-  const [openFaq, setOpenFaq] = useState<number>(-1);
+  const [billing, setBilling] = useState<BillingCycle>('annual');
 
   const isAnnual = billing === 'annual';
 
@@ -555,9 +643,10 @@ export default function PricingPage() {
 
       {/* ─── HERO ─── */}
       <section
+        id="pricing-top"
         style={{
-          background: 'var(--ink)',
-          color: 'var(--cream)',
+          background: 'var(--cream)',
+          color: 'var(--ink)',
           padding: '140px 0 80px',
           textAlign: 'center',
           position: 'relative',
@@ -570,16 +659,16 @@ export default function PricingPage() {
             position: 'absolute',
             inset: 0,
             background:
-              'radial-gradient(ellipse 50% 60% at 50% 100%, rgba(255,92,26,0.12) 0%, transparent 70%)',
+              'radial-gradient(ellipse 50% 60% at 50% 100%, rgba(15,118,110,0.10) 0%, transparent 70%)',
           }}
         />
         <div className="container" style={{ position: 'relative' }}>
-          <div className="section-eyebrow" style={{ color: 'rgba(255,92,26,0.8)', display: 'inline-block' }}>
+          <div className="section-eyebrow" style={{ color: 'var(--accent)', display: 'inline-block' }}>
             Sin sorpresas
           </div>
           <h2
             style={{
-              color: 'var(--cream)',
+              color: 'var(--ink)',
               fontSize: 'clamp(2.2rem, 5vw, 3.6rem)',
               marginBottom: '16px',
               marginTop: '12px',
@@ -589,7 +678,7 @@ export default function PricingPage() {
           </h2>
           <p
             style={{
-              color: 'rgba(250,248,243,0.55)',
+              color: 'var(--muted)',
               fontSize: '1.05rem',
               lineHeight: 1.7,
               maxWidth: '480px',
@@ -599,113 +688,120 @@ export default function PricingPage() {
             14 días gratis en todos los planes. Sin tarjeta de crédito. Sin permanencia.
           </p>
 
-          {/* Billing toggle */}
-          <div
-            style={{
-              display: 'inline-flex',
-              background: 'rgba(250,248,243,0.08)',
-              border: '1px solid rgba(250,248,243,0.12)',
-              borderRadius: '40px',
-              padding: '4px',
-              gap: '4px',
-            }}
-          >
-            {(['monthly', 'annual'] as const).map((cycle) => (
-              <button
-                key={cycle}
-                onClick={() => setBilling(cycle)}
-                style={{
-                  padding: '9px 22px',
-                  borderRadius: '36px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontFamily: "'Cabinet Grotesk', sans-serif",
-                  fontWeight: 700,
-                  fontSize: '0.88rem',
-                  transition: 'all 0.2s',
-                  background: billing === cycle ? 'var(--orange)' : 'transparent',
-                  color: billing === cycle ? 'white' : 'rgba(250,248,243,0.5)',
-                }}
-              >
-                {cycle === 'monthly' ? 'Mensual' : 'Anual'}
-                {cycle === 'annual' && (
-                  <span
-                    style={{
-                      marginLeft: '6px',
-                      background: billing === 'annual' ? 'rgba(255,255,255,0.2)' : 'rgba(255,92,26,0.25)',
-                      color: billing === 'annual' ? 'white' : 'var(--orange)',
-                      borderRadius: '20px',
-                      padding: '2px 8px',
-                      fontSize: '0.72rem',
-                      fontWeight: 800,
-                    }}
-                  >
-                    −20%
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
         </div>
       </section>
 
+      <PlanRecommender billing={billing} />
+
       {/* ─── PRICING GRID ─── */}
       <section
+        id="pricing-plans"
         style={{
-          background: 'var(--warm)',
+          background: '#ffffff',
           padding: '80px 0 100px',
           borderBottom: '1px solid var(--border)',
         }}
       >
         <div className="container">
-          <div className="pricing-grid">
-            {PLANS.map((plan) => {
-              const price = displayPrice(plan);
-              const savings = annualSavings(plan.monthlyPrice);
-
-              return (
-                <div key={plan.name} className={`plan${plan.featured ? ' featured' : ''}`}>
-                  {plan.badge && <div className="plan-badge">{plan.badge}</div>}
-                  <div className="plan-name">{plan.name}</div>
-                  <div className="plan-price">
-                    <sup>€</sup>
-                    {price}
-                    <span>/mes</span>
-                  </div>
-
-                  {/* Annual savings badge */}
-                  {isAnnual && (
-                    <div
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 52 }}>
+            <div
+              style={{
+                display: 'inline-flex',
+                background: '#ffffff',
+                border: '1px solid var(--border)',
+                borderRadius: '0',
+                padding: '4px',
+                gap: '4px',
+              }}
+            >
+              {(['monthly', 'annual'] as const).map((cycle) => (
+                <button
+                  key={cycle}
+                  onClick={() => setBilling(cycle)}
+                  style={{
+                    padding: '9px 22px',
+                    borderRadius: '0',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: f,
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    transition: 'all 0.2s',
+                    background: billing === cycle ? 'var(--orange)' : 'transparent',
+                    color: billing === cycle ? '#ffffff' : 'var(--muted)',
+                  }}
+                >
+                  {cycle === 'monthly' ? 'Mensual' : 'Anual'}
+                  {cycle === 'annual' && (
+                    <span
                       style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        background: plan.featured ? 'rgba(255,92,26,0.2)' : 'var(--orange-light)',
-                        color: plan.featured ? '#ffb899' : 'var(--orange)',
-                        fontFamily: "'Cabinet Grotesk', sans-serif",
-                        fontSize: '0.78rem',
+                        marginLeft: '6px',
+                        background: billing === 'annual' ? 'rgba(255,255,255,0.2)' : 'var(--orange-light)',
+                        color: billing === 'annual' ? 'white' : 'var(--orange)',
+                        borderRadius: '0',
+                        padding: '2px 8px',
+                        fontSize: '0.72rem',
                         fontWeight: 800,
-                        padding: '4px 12px',
-                        borderRadius: '20px',
-                        marginBottom: '8px',
                       }}
                     >
-                      Ahorras €{savings}/año
-                    </div>
+                      −20%
+                    </span>
                   )}
+                </button>
+              ))}
+            </div>
+          </div>
 
-                  <div className="plan-desc">{plan.desc}</div>
-                  <ul className="plan-features">
-                    {plan.features.map((f) => (
-                      <li key={f}>{f}</li>
-                    ))}
-                  </ul>
-                  <Link href="/register" className="plan-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
-                    Empezar gratis →
-                  </Link>
-                </div>
-              );
-            })}
+          <div style={{ overflowX: 'auto', overflowY: 'visible', paddingTop: 10, paddingBottom: 4 }}>
+            <div className="pricing-grid" style={{ minWidth: 1040, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, alignItems: 'stretch' }}>
+              {PLANS.map((plan) => {
+                const price = displayPrice(plan);
+                const savings = annualSavings(plan.monthlyPrice);
+
+                return (
+                  <div key={plan.name} className={`plan${plan.featured ? ' featured' : ''}`}>
+                    {plan.badge && <div className="plan-badge">{plan.badge}</div>}
+                    <div className="plan-name">{plan.name}</div>
+                    <div className="plan-price">
+                      <sup>€</sup>
+                      {price}
+                      <span>/mes</span>
+                    </div>
+
+                    {/* Annual savings badge */}
+                    {isAnnual && (
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          background: plan.featured ? 'rgba(255,92,26,0.2)' : 'var(--orange-light)',
+                          color: plan.featured ? '#ffb899' : 'var(--orange)',
+                          fontFamily: f,
+                          fontSize: '0.78rem',
+                          fontWeight: 800,
+                          padding: '4px 12px',
+                          borderRadius: '0',
+                          marginBottom: '8px',
+                        }}
+                      >
+                        Ahorras €{savings}/año
+                      </div>
+                    )}
+
+                    <div className="plan-desc">{plan.desc}</div>
+                    <ul className="plan-features">
+                      {plan.features.map((f) => (
+                        <li key={f}>{f}</li>
+                      ))}
+                    </ul>
+                    <Link href="/register" className="plan-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
+                      Empezar gratis →
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="pricing-note">
@@ -715,7 +811,7 @@ export default function PricingPage() {
       </section>
 
       {/* ─── COMPARISON TABLE ─── */}
-      <section style={{ padding: '100px 0', background: 'var(--cream)' }}>
+      <section style={{ padding: '100px 0', background: '#ffffff' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '56px' }}>
             <div className="section-eyebrow">Comparativa</div>
@@ -729,7 +825,7 @@ export default function PricingPage() {
                 maxWidth: '820px',
                 margin: '0 auto',
                 borderCollapse: 'collapse',
-                fontFamily: "'Cabinet Grotesk', sans-serif",
+                fontFamily: f,
               }}
             >
               <thead>
@@ -759,7 +855,7 @@ export default function PricingPage() {
                         color: col === 'Pro' ? 'var(--orange)' : 'var(--ink)',
                         borderBottom: '2px solid var(--border)',
                         background: col === 'Pro' ? 'rgba(255,92,26,0.04)' : 'transparent',
-                        borderRadius: col === 'Pro' ? '8px 8px 0 0' : undefined,
+                        borderRadius: undefined,
                       }}
                     >
                       {col}
@@ -816,56 +912,11 @@ export default function PricingPage() {
       {/* ─── ROI CALCULATOR ─── */}
       <RoiCalculator />
 
-      {/* ─── FAQ ─── */}
-      <section
-        style={{
-          padding: '100px 0',
-          background: 'var(--cream)',
-          borderTop: '1px solid var(--border)',
-        }}
-      >
-        <div className="container">
-          <div className="faq-grid">
-            <div className="faq-sidebar">
-              <div className="section-eyebrow">FAQ</div>
-              <h2>Preguntas sobre precios</h2>
-              <p
-                style={{
-                  color: 'var(--muted)',
-                  fontSize: '0.92rem',
-                  lineHeight: '1.7',
-                  marginTop: '12px',
-                }}
-              >
-                ¿Más dudas? Escríbenos a{' '}
-                <a href="mailto:hola@neuropost.es" style={{ color: 'var(--orange)' }}>
-                  hola@neuropost.es
-                </a>
-              </p>
-            </div>
-            <div className="faq-list">
-              {FAQ_ITEMS.map(({ q, a }, i) => (
-                <div key={i} className={`faq-item${openFaq === i ? ' open' : ''}`}>
-                  <button
-                    className="faq-question"
-                    onClick={() => setOpenFaq(openFaq === i ? -1 : i)}
-                  >
-                    {q}
-                    <span className="faq-icon">+</span>
-                  </button>
-                  <div className="faq-answer">{a}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ─── TRUST SECTION ─── */}
       <section
         style={{
           padding: '60px 0',
-          background: 'var(--warm)',
+          background: '#ffffff',
           borderTop: '1px solid var(--border)',
           borderBottom: '1px solid var(--border)',
         }}
@@ -894,14 +945,14 @@ export default function PricingPage() {
                 <div
                   key={brand}
                   style={{
-                    fontFamily: "'Cabinet Grotesk', sans-serif",
+                    fontFamily: f,
                     fontWeight: 800,
                     fontSize: '1rem',
                     color: 'var(--muted)',
                     letterSpacing: '-0.01em',
                     padding: '8px 20px',
                     border: '1.5px solid var(--border)',
-                    borderRadius: '8px',
+                    borderRadius: '0',
                     background: 'white',
                   }}
                 >
@@ -913,7 +964,7 @@ export default function PricingPage() {
             {/* PCI badge */}
             <div
               style={{
-                fontFamily: "'Cabinet Grotesk', sans-serif",
+                fontFamily: f,
                 fontSize: '0.85rem',
                 color: 'var(--muted)',
                 display: 'flex',
@@ -925,49 +976,6 @@ export default function PricingPage() {
               Pago procesado por Stripe · Certificado PCI DSS
             </div>
 
-            {/* Money-back guarantee */}
-            <div
-              style={{
-                background: 'white',
-                border: '1.5px solid var(--border)',
-                borderRadius: '14px',
-                padding: '20px 32px',
-                maxWidth: '480px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '16px',
-              }}
-            >
-              <div
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  background: 'var(--green-light)',
-                  color: 'var(--green)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '18px',
-                  fontWeight: 900,
-                  flexShrink: 0,
-                }}
-              >
-                ✓
-              </div>
-              <p
-                style={{
-                  fontFamily: "'Cabinet Grotesk', sans-serif",
-                  fontSize: '0.9rem',
-                  color: 'var(--ink)',
-                  lineHeight: 1.6,
-                  margin: 0,
-                  textAlign: 'left',
-                }}
-              >
-                <strong>Garantía 14 días.</strong> Si no ves valor, te devolvemos el dinero. Sin preguntas.
-              </p>
-            </div>
           </div>
         </div>
       </section>
@@ -986,8 +994,8 @@ export default function PricingPage() {
                 padding: '14px 32px',
                 background: 'var(--orange)',
                 color: 'white',
-                borderRadius: '40px',
-                fontFamily: "'Cabinet Grotesk', sans-serif",
+                borderRadius: '0',
+                fontFamily: f,
                 fontWeight: 800,
                 fontSize: '1rem',
                 textDecoration: 'none',
@@ -998,14 +1006,14 @@ export default function PricingPage() {
               Crear cuenta gratis →
             </Link>
             <Link
-              href="/pricing"
+              href="/pricing#pricing-top"
               style={{
                 padding: '14px 32px',
                 background: 'transparent',
                 color: 'rgba(250,248,243,0.6)',
                 border: '1.5px solid rgba(250,248,243,0.15)',
-                borderRadius: '40px',
-                fontFamily: "'Cabinet Grotesk', sans-serif",
+                borderRadius: '0',
+                fontFamily: f,
                 fontWeight: 700,
                 fontSize: '1rem',
                 textDecoration: 'none',

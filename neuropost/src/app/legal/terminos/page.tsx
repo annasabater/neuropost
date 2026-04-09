@@ -141,7 +141,7 @@ export default function TerminosPage() {
           <p style={s.paragraph}>
             NeuroPost ofrece distintos planes de suscripción con diferentes funcionalidades y límites de uso. Los precios
             actualizados y las características de cada plan están disponibles en la{' '}
-            <Link href="/#precios" style={{ color: 'var(--orange)' }}>página de precios</Link>.
+            <Link href="/pricing" style={{ color: 'var(--orange)' }}>página de precios</Link>.
           </p>
           <p style={s.paragraph}>
             Los precios se indican en euros (€) e incluyen el IVA aplicable. NeuroPost se reserva el derecho de modificar sus
