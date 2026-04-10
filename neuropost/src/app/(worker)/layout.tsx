@@ -100,19 +100,26 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: W.bg, color: W.text, fontFamily: "'Inter', sans-serif" }}>
-      {/* Sidebar */}
-      <aside style={{
-        width: 230, flexShrink: 0, background: W.card,
-        borderRight: `1px solid ${W.border}`,
-        display: 'flex', flexDirection: 'column',
-        position: 'sticky', top: 0, height: '100vh', overflowY: 'auto',
-      }}>
-        {/* Logo */}
-        <div style={{ padding: '20px 20px 12px', borderBottom: `1px solid ${W.border}` }}>
-          <div style={{ fontWeight: 800, fontSize: 18, color: W.blue, letterSpacing: -0.5 }}>NeuroPost</div>
-          <div style={{ fontSize: 10, color: W.muted, marginTop: 2 }}>Equipo Interno</div>
-        </div>
+    <div className={`dash-root worker-root${sidebarOpen ? ' sidebar-open' : ''}`}>
+      <WorkerSidebar
+        pathname={pathname}
+        worker={worker}
+        queueBadge={queueBadge}
+        msgBadge={msgBadge}
+        onClose={() => setSidebarOpen(false)}
+        onLogout={handleLogout}
+      />
+
+      <div className="dash-content">
+        <WorkerTopNav
+          pathname={pathname}
+          worker={worker}
+          queueBadge={queueBadge}
+          msgBadge={msgBadge}
+          onToggleSidebar={() => setSidebarOpen((value) => !value)}
+        />
+        <main className="dash-main">{children}</main>
+      </div>
 
       <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />
     </div>
