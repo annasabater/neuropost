@@ -127,7 +127,7 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
       }}>
         {/* Logo */}
         <div style={{ padding: '20px 20px 12px', borderBottom: `1px solid ${W.border}` }}>
-          <div style={{ fontWeight: 800, fontSize: 18, color: W.blue, letterSpacing: -0.5 }}>NeuroPost</div>
+          <Link href="/" style={{ fontWeight: 800, fontSize: 18, color: W.blue, letterSpacing: -0.5, textDecoration: 'none' }}>NeuroPost</Link>
           <div style={{ fontSize: 10, color: W.muted, marginTop: 2 }}>Equipo Interno</div>
         </div>
 
