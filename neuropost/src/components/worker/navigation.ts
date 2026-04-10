@@ -8,6 +8,7 @@ import {
   Inbox,
   Settings,
   Users,
+  Zap,
 } from 'lucide-react';
 import type { WorkerRole } from '@/types';
 
@@ -26,6 +27,12 @@ export interface WorkerNavGroup {
 }
 
 const BASE_GROUPS: WorkerNavGroup[] = [
+  {
+    label: 'Centro de control',
+    items: [
+      { href: '/worker/central', icon: Zap, label: 'Centro de control' },
+    ],
+  },
   {
     label: 'Operaciones',
     items: [
