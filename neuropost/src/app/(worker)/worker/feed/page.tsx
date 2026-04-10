@@ -4,7 +4,20 @@ import { useEffect, useState, useRef } from 'react';
 import { Radio, Pause, Play, AlertCircle, CheckCircle, Info, AlertTriangle, X } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase';
 
-const W = { bg: '#0a0a14', card: '#111827', border: '#1e2533', blue: '#3b82f6', text: '#e5e7eb', muted: '#6b7280' };
+const C = {
+  bg: '#ffffff',
+  bg1: '#f5f5f5',
+  bg2: '#fafafa',
+  card: '#ffffff',
+  border: '#E5E7EB',
+  text: '#111111',
+  muted: '#6B7280',
+  accent: '#0F766E',
+  accent2: '#3B82F6',
+  red: '#EF4444',
+  orange: '#F59E0B',
+  green: '#14B8A6',
+};
 
 interface FeedEvent {
   id: string;
@@ -79,21 +92,21 @@ export default function FeedPage() {
   const agents = Array.from(new Set(events.map((e) => e.agent)));
 
   return (
-    <div style={{ padding: 28, color: W.text }}>
+    <div style={{ padding: 28, color: C.text }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Radio size={22} style={{ color: W.blue }} /> Feed de agentes
+            <Radio size={22} style={{ color: C.accent2 }} /> Feed de agentes
           </h1>
-          <p style={{ color: W.muted, fontSize: 13, margin: '4px 0 0' }}>
+          <p style={{ color: C.muted, fontSize: 13, margin: '4px 0 0' }}>
             Actividad en tiempo real de todos los agentes IA
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={() => setPaused(!paused)} style={{
-            padding: '8px 16px', background: paused ? W.blue : W.card, color: paused ? '#fff' : W.text,
-            border: `1px solid ${W.border}`, borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600,
+            padding: '8px 16px', background: paused ? C.accent2 : C.card, color: paused ? '#fff' : C.text,
+            border: `1px solid ${C.border}`, borderRadius: 0, cursor: 'pointer', fontSize: 12, fontWeight: 600,
             display: 'flex', alignItems: 'center', gap: 6,
           }}>
             {paused ? <Play size={13} /> : <Pause size={13} />} {paused ? 'Reanudar' : 'Pausar'}
@@ -107,7 +120,7 @@ export default function FeedPage() {
         <button onClick={() => setFilter('attention')} style={chipStyle(filter === 'attention')}>
           Requiere atención ({events.filter((e) => e.requires_attention).length})
         </button>
-        <div style={{ width: 1, background: W.border, margin: '0 4px' }} />
+        <div style={{ width: 1, background: C.border, margin: '0 4px' }} />
         <button onClick={() => setSelectedAgent('all')} style={chipStyle(selectedAgent === 'all')}>Todos los agentes</button>
         {agents.map((a) => (
           <button key={a} onClick={() => setSelectedAgent(a)} style={chipStyle(selectedAgent === a)}>{a}</button>
@@ -118,7 +131,7 @@ export default function FeedPage() {
       <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr', gap: 16 }}>
         <div ref={feedRef} style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 'calc(100vh - 220px)', overflowY: 'auto' }}>
           {filtered.length === 0 && (
-            <div style={{ padding: 48, textAlign: 'center', color: W.muted, fontSize: 13 }}>
+            <div style={{ padding: 48, textAlign: 'center', color: C.muted, fontSize: 13 }}>
               No hay eventos
             </div>
           )}
@@ -127,10 +140,10 @@ export default function FeedPage() {
             const color = SEVERITY_COLORS[e.severity];
             return (
               <div key={e.id} onClick={() => setSelected(e)} style={{
-                background: W.card, border: `1px solid ${W.border}`, borderLeft: `3px solid ${color}`,
-                borderRadius: 6, padding: '12px 16px', cursor: 'pointer',
+                background: C.card, border: `1px solid ${C.border}`, borderLeft: `3px solid ${color}`,
+                borderRadius: 0, padding: '12px 16px', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', gap: 12,
-                outline: selected?.id === e.id ? `2px solid ${W.blue}` : 'none',
+                outline: selected?.id === e.id ? `2px solid ${C.accent2}` : 'none',
               }}>
                 <Icon size={16} style={{ color, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -138,23 +151,23 @@ export default function FeedPage() {
                     {e.title}
                   </p>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2 }}>
-                    <span style={{ fontSize: 10, color: W.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                       {e.agent}
                     </span>
                     {e.brand_name && (
-                      <span style={{ fontSize: 10, color: W.blue }}>{e.brand_name}</span>
+                      <span style={{ fontSize: 10, color: C.accent2 }}>{e.brand_name}</span>
                     )}
-                    <span style={{ fontSize: 10, color: W.muted, marginLeft: 'auto' }}>
+                    <span style={{ fontSize: 10, color: C.muted, marginLeft: 'auto' }}>
                       {timeAgo(e.created_at)}
                     </span>
                   </div>
                 </div>
                 {e.thumbnail_url && (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={e.thumbnail_url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} />
+                  <img src={e.thumbnail_url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 0 }} />
                 )}
                 {e.requires_attention && (
-                  <span style={{ background: '#ef4444', color: '#fff', fontSize: 9, padding: '2px 6px', borderRadius: 10, fontWeight: 700 }}>
+                  <span style={{ background: C.red, color: '#fff', fontSize: 9, padding: '2px 6px', borderRadius: 0, fontWeight: 700 }}>
                     !
                   </span>
                 )}
@@ -165,36 +178,36 @@ export default function FeedPage() {
 
         {/* Detail panel */}
         {selected && (
-          <div style={{ background: W.card, border: `1px solid ${W.border}`, borderRadius: 8, padding: 20, height: 'fit-content', position: 'sticky', top: 20 }}>
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, padding: 20, height: 'fit-content', position: 'sticky', top: 20 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
               <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Detalle</h3>
-              <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: W.muted, cursor: 'pointer' }}>
+              <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer' }}>
                 <X size={16} />
               </button>
             </div>
             <div style={{ marginBottom: 12 }}>
-              <span style={{ fontSize: 10, color: W.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Agente</span>
+              <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Agente</span>
               <p style={{ fontSize: 13, fontWeight: 600, margin: '2px 0 0' }}>{selected.agent}</p>
             </div>
             <div style={{ marginBottom: 12 }}>
-              <span style={{ fontSize: 10, color: W.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Evento</span>
+              <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Evento</span>
               <p style={{ fontSize: 13, margin: '2px 0 0' }}>{selected.title}</p>
             </div>
             {selected.brand_name && (
               <div style={{ marginBottom: 12 }}>
-                <span style={{ fontSize: 10, color: W.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Brand</span>
-                <p style={{ fontSize: 13, margin: '2px 0 0', color: W.blue }}>{selected.brand_name}</p>
+                <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Brand</span>
+                <p style={{ fontSize: 13, margin: '2px 0 0', color: C.accent2 }}>{selected.brand_name}</p>
               </div>
             )}
             <div style={{ marginBottom: 12 }}>
-              <span style={{ fontSize: 10, color: W.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Detalles</span>
-              <pre style={{ fontSize: 11, background: W.bg, padding: 10, borderRadius: 4, marginTop: 4, overflow: 'auto', maxHeight: 240 }}>
+              <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Detalles</span>
+              <pre style={{ fontSize: 11, background: C.bg1, padding: 10, borderRadius: 0, marginTop: 4, overflow: 'auto', maxHeight: 240 }}>
                 {JSON.stringify(selected.details, null, 2)}
               </pre>
             </div>
             <div>
-              <span style={{ fontSize: 10, color: W.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Hora</span>
-              <p style={{ fontSize: 12, margin: '2px 0 0', color: W.muted }}>
+              <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Hora</span>
+              <p style={{ fontSize: 12, margin: '2px 0 0', color: C.muted }}>
                 {new Date(selected.created_at).toLocaleString('es-ES')}
               </p>
             </div>
@@ -207,8 +220,8 @@ export default function FeedPage() {
 
 function chipStyle(active: boolean): React.CSSProperties {
   return {
-    padding: '6px 12px', background: active ? W.blue : W.card, color: active ? '#fff' : W.text,
-    border: `1px solid ${active ? W.blue : W.border}`, borderRadius: 6,
+    padding: '6px 12px', background: active ? C.accent2 : C.card, color: active ? '#fff' : C.text,
+    border: `1px solid ${active ? C.accent2 : C.border}`, borderRadius: 0,
     cursor: 'pointer', fontSize: 11, fontWeight: 600, transition: 'all 0.15s',
   };
 }
