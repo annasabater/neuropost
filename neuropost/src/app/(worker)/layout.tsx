@@ -14,7 +14,6 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
   const [worker, setWorker]   = useState<Worker | null>(null);
   const [checking, setChecking] = useState(true);
   const [queueBadge, setQueueBadge] = useState(0);
-  const [msgBadge, setMsgBadge]     = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -31,17 +30,6 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
         if (!cancelled) setQueueBadge(data.queue?.length ?? 0);
       } catch {
         if (!cancelled) setQueueBadge(0);
-      }
-    };
-    const refreshMsgBadge = async () => {
-      try {
-        const response = await fetch('/api/worker/mensajes');
-        const data = await response.json();
-        if (!cancelled) {
-          setMsgBadge((data.messages ?? []).filter((message: { read: boolean }) => !message.read).length);
-        }
-      } catch {
-        if (!cancelled) setMsgBadge(0);
       }
     };
 
@@ -71,7 +59,7 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
 
         setWorker(json.worker);
         setChecking(false);
-        await Promise.all([refreshQueueBadge(), refreshMsgBadge()]);
+        await refreshQueueBadge();
       } catch {
         router.replace('/dashboard');
       }
@@ -105,7 +93,7 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
         pathname={pathname}
         worker={worker}
         queueBadge={queueBadge}
-        msgBadge={msgBadge}
+        msgBadge={0}
         onClose={() => setSidebarOpen(false)}
         onLogout={handleLogout}
       />
@@ -115,7 +103,7 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
           pathname={pathname}
           worker={worker}
           queueBadge={queueBadge}
-          msgBadge={msgBadge}
+          msgBadge={0}
           onToggleSidebar={() => setSidebarOpen((value) => !value)}
         />
         <main className="dash-main">{children}</main>

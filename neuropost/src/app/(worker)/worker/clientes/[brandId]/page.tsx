@@ -1,8 +1,9 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { X, Edit2, Save } from 'lucide-react';
+import { X, Edit2, Save, Send, MessageCircle, LifeBuoy, BookOpen, Sparkles, Plus, Flag } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const C = {
@@ -46,8 +47,54 @@ type Post = Record<string, unknown> & {
 type Agent = { id: string; name: string };
 type Note = { id: string; note: string; is_pinned: boolean; created_at: string; workers?: { full_name: string } };
 type Activity = { id: string; action: string; details: Record<string, unknown> | null; created_at: string };
+type ChatMsg = {
+  id: string;
+  brand_id: string;
+  sender_type: 'client' | 'worker';
+  message: string;
+  created_at: string;
+  read_at: string | null;
+};
+type SupportTicket = {
+  id: string;
+  subject: string;
+  description: string | null;
+  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  priority: 'low' | 'normal' | 'high' | 'urgent';
+  created_at: string;
+  resolved_at: string | null;
+};
+type ClientRequest = {
+  id: string;
+  kind: 'special' | 'recreation';
+  title: string | null;
+  description: string | null;
+  type: string | null;
+  status: string;
+  deadline_at: string | null;
+  created_at: string;
+  completed_at: string | null;
+  worker_response: string | null;
+};
 
-const TABS = ['Resumen', 'Contenido', 'Actividad', 'Notas'];
+const REQUEST_TYPES = [
+  { key: 'campaign', label: 'Campaña' },
+  { key: 'seasonal', label: 'Temporal' },
+  { key: 'custom', label: 'Personalizada' },
+  { key: 'urgent', label: 'Urgente' },
+  { key: 'consultation', label: 'Consulta' },
+  { key: 'other', label: 'Otra' },
+] as const;
+
+const REQUEST_STATUS: Record<string, { label: string; color: string }> = {
+  pending:     { label: 'Pendiente',   color: '#f59e0b' },
+  accepted:    { label: 'Aceptada',    color: '#0d9488' },
+  in_progress: { label: 'En proceso',  color: '#3b82f6' },
+  completed:   { label: 'Completada',  color: '#10b981' },
+  rejected:    { label: 'Rechazada',   color: '#6b7280' },
+};
+
+const TABS = ['Resumen', 'Contenido', 'Comunicaciones', 'Actividad', 'Notas'];
 const CONTENT_STATES = [
   { id: 'preparing', label: 'En preparación', icon: '📋' },
   { id: 'pending', label: 'En pendiente', icon: '⏳' },
@@ -272,12 +319,28 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
   const [selectedPhoto, setSelectedPhoto] = useState<Post | null>(null);
 
+  // Comunicaciones
+  const [chat, setChat] = useState<ChatMsg[]>([]);
+  const [chatText, setChatText] = useState('');
+  const [sendingChat, setSendingChat] = useState(false);
+  const [tickets, setTickets] = useState<SupportTicket[]>([]);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Solicitudes del cliente
+  const [requests, setRequests] = useState<ClientRequest[]>([]);
+  const [newRequestOpen, setNewRequestOpen] = useState(false);
+  const [newRequest, setNewRequest] = useState({ title: '', description: '', type: 'custom' as string, deadline_at: '' });
+  const [creatingRequest, setCreatingRequest] = useState(false);
+
   useEffect(() => {
     async function load() {
       try {
-        const [brandRes, agentsRes] = await Promise.all([
+        const [brandRes, agentsRes, chatRes, ticketsRes, requestsRes] = await Promise.all([
           fetch(`/api/worker/clientes/${brandId}`),
           fetch('/api/worker/agents'),
+          fetch(`/api/chat/worker?brandId=${brandId}`),
+          fetch(`/api/worker/soporte?brandId=${brandId}`),
+          fetch(`/api/worker/clientes/${brandId}/solicitudes`),
         ]);
 
         const brandData = await brandRes.json();
@@ -291,6 +354,15 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
         const agentsData = await agentsRes.json();
         setAgents(agentsData.agents ?? []);
 
+        const chatData = await chatRes.json().catch(() => ({ messages: [] }));
+        setChat(chatData.messages ?? []);
+
+        const ticketsData = await ticketsRes.json().catch(() => ({ tickets: [] }));
+        setTickets(ticketsData.tickets ?? []);
+
+        const requestsData = await requestsRes.json().catch(() => ({ requests: [] }));
+        setRequests(requestsData.requests ?? []);
+
         setLoading(false);
       } catch (err) {
         console.error(err);
@@ -300,6 +372,65 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
 
     load();
   }, [brandId, router]);
+
+  // Scroll al último mensaje cuando cambia el chat o se abre la tab
+  useEffect(() => {
+    if (tab === 2 && chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [chat, tab]);
+
+  async function sendChatMessage() {
+    const text = chatText.trim();
+    if (!text || sendingChat) return;
+    setSendingChat(true);
+    try {
+      const res = await fetch('/api/chat/worker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brand_id: brandId, message: text }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Error');
+      setChat((prev) => [...prev, data.message]);
+      setChatText('');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al enviar');
+    } finally {
+      setSendingChat(false);
+    }
+  }
+
+  async function createRequest() {
+    if (!newRequest.title.trim() || creatingRequest) return;
+    setCreatingRequest(true);
+    try {
+      const res = await fetch(`/api/worker/clientes/${brandId}/solicitudes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newRequest.title.trim(),
+          description: newRequest.description.trim() || null,
+          type: newRequest.type,
+          deadline_at: newRequest.deadline_at || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Error');
+
+      // Recarga lista desde servidor para unificar special + recreation
+      const refreshed = await fetch(`/api/worker/clientes/${brandId}/solicitudes`).then((r) => r.json()).catch(() => ({ requests: [] }));
+      setRequests(refreshed.requests ?? []);
+
+      toast.success('Solicitud creada');
+      setNewRequest({ title: '', description: '', type: 'custom', deadline_at: '' });
+      setNewRequestOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al crear solicitud');
+    } finally {
+      setCreatingRequest(false);
+    }
+  }
 
   async function updatePromoCode(code: string) {
     try {
@@ -429,7 +560,7 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
             </p>
 
             {/* CONTACTO */}
-            <div style={{ display: 'flex', gap: 16, fontSize: 13 }}>
+            <div style={{ display: 'flex', gap: 16, fontSize: 13, flexWrap: 'wrap' }}>
               {brand.email && (
                 <div style={{ color: C.muted }}>
                   Email: <span style={{ color: C.text, fontWeight: 600 }}>{brand.email}</span>
@@ -441,6 +572,32 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Accesos rápidos */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Link
+              href={`/worker/clientes/${brandId}/biblioteca`}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 14px', background: C.bg1, border: `1px solid ${C.border}`,
+                color: C.text, textDecoration: 'none', fontSize: 12, fontWeight: 700,
+                fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em',
+              }}
+            >
+              <BookOpen size={14} color={C.accent} /> Biblioteca
+            </Link>
+            <Link
+              href={`/worker/clientes/${brandId}/inspiracion`}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 14px', background: C.bg1, border: `1px solid ${C.border}`,
+                color: C.text, textDecoration: 'none', fontSize: 12, fontWeight: 700,
+                fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em',
+              }}
+            >
+              <Sparkles size={14} color={C.accent} /> Inspiración
+            </Link>
           </div>
         </div>
       </div>
@@ -562,6 +719,100 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
       {/* TAB 1: CONTENIDO */}
       {tab === 1 && (
         <div>
+          {/* ── SOLICITUDES DEL CLIENTE ──────────────────────────────── */}
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, marginBottom: 28 }}>
+            <div style={{ padding: '16px 22px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Flag size={16} color={C.accent} />
+                <h3 style={{ fontSize: 13, fontWeight: 800, color: C.text, margin: 0, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Solicitudes del cliente
+                </h3>
+                {(() => {
+                  const pending = requests.filter((r) => r.status === 'pending' || r.status === 'in_progress' || r.status === 'accepted').length;
+                  return pending > 0 ? (
+                    <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 7px', background: C.accent, color: '#fff', fontFamily: fc }}>
+                      {pending} activas
+                    </span>
+                  ) : null;
+                })()}
+              </div>
+              <button
+                onClick={() => setNewRequestOpen(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '8px 16px', background: C.accent, color: '#fff', border: 'none',
+                  fontFamily: fc, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em',
+                  cursor: 'pointer',
+                }}
+              >
+                <Plus size={13} /> Nueva solicitud
+              </button>
+            </div>
+
+            {requests.length === 0 ? (
+              <div style={{ padding: '24px 22px', fontSize: 13, color: C.muted, textAlign: 'center' }}>
+                Sin solicitudes de este cliente. Crea una en su nombre con el botón de arriba.
+              </div>
+            ) : (
+              <div>
+                {requests.slice(0, 6).map((r, i) => {
+                  const st = REQUEST_STATUS[r.status] ?? { label: r.status, color: C.muted };
+                  const isClosed = r.status === 'completed' || r.status === 'rejected';
+                  return (
+                    <div
+                      key={r.id}
+                      style={{
+                        padding: '14px 22px',
+                        borderBottom: i < Math.min(requests.length, 6) - 1 ? `1px solid ${C.border}` : 'none',
+                        opacity: isClosed ? 0.6 : 1,
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 4 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                            <span style={{
+                              fontSize: 9, fontWeight: 800, padding: '2px 6px',
+                              background: r.kind === 'recreation' ? '#ede9fe' : C.bg1,
+                              color: r.kind === 'recreation' ? '#7c3aed' : C.muted,
+                              fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em',
+                              border: `1px solid ${r.kind === 'recreation' ? '#ddd6fe' : C.border}`,
+                            }}>
+                              {r.kind === 'recreation' ? 'Recreación' : r.type ?? 'Solicitud'}
+                            </span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {r.title ?? '—'}
+                            </span>
+                          </div>
+                          {r.description && (
+                            <div style={{ fontSize: 12, color: C.muted, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                              {r.description}
+                            </div>
+                          )}
+                        </div>
+                        <span style={{
+                          fontSize: 10, fontWeight: 800, padding: '3px 8px', flexShrink: 0,
+                          color: st.color, background: `${st.color}15`, border: `1px solid ${st.color}44`,
+                          fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em',
+                        }}>
+                          {st.label}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>
+                        {timeAgo(r.created_at)}
+                        {r.deadline_at && ` · Entrega ${new Date(r.deadline_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}`}
+                      </div>
+                    </div>
+                  );
+                })}
+                {requests.length > 6 && (
+                  <div style={{ padding: '10px 22px', fontSize: 11, color: C.muted, textAlign: 'center', background: C.bg1 }}>
+                    + {requests.length - 6} solicitudes más
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* SUB-TABS POR ESTADO */}
           <div style={{ display: 'flex', gap: 8, marginBottom: 24, borderBottom: `1px solid ${C.border}`, paddingBottom: 0 }}>
             {CONTENT_STATES.map((state, i) => (
@@ -629,8 +880,151 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
         </div>
       )}
 
-      {/* TAB 2: ACTIVIDAD */}
+      {/* TAB 2: COMUNICACIONES */}
       {tab === 2 && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 24 }}>
+          {/* Chat con cliente */}
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, display: 'flex', flexDirection: 'column', height: 560 }}>
+            <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <MessageCircle size={16} color={C.accent} />
+              <h3 style={{ fontSize: 13, fontWeight: 800, color: C.text, margin: 0, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Chat con cliente
+              </h3>
+              <span style={{ fontSize: 11, color: C.muted, marginLeft: 'auto' }}>{chat.length} mensajes</span>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 10, background: C.bg1 }}>
+              {chat.length === 0 ? (
+                <div style={{ margin: 'auto', color: C.muted, fontSize: 13, textAlign: 'center' }}>
+                  Todavía no hay mensajes con este cliente.
+                  <br />
+                  Escribe uno abajo para empezar.
+                </div>
+              ) : chat.map((m) => {
+                const isClient = m.sender_type === 'client';
+                return (
+                  <div key={m.id} style={{ display: 'flex', justifyContent: isClient ? 'flex-end' : 'flex-start' }}>
+                    <div
+                      style={{
+                        maxWidth: '78%',
+                        padding: '10px 14px',
+                        background: isClient ? '#d1fae5' : '#e5e7eb',
+                        color: C.text,
+                        fontSize: 13,
+                        lineHeight: 1.5,
+                        border: `1px solid ${isClient ? '#a7f3d0' : '#d1d5db'}`,
+                      }}
+                    >
+                      <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, marginBottom: 4, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        {isClient ? (brand.name ?? 'Cliente') : 'Tú'}
+                      </div>
+                      <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.message}</div>
+                      <div style={{ fontSize: 10, color: C.muted, marginTop: 4, textAlign: 'right' }}>
+                        {new Date(m.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={chatEndRef} />
+            </div>
+
+            <div style={{ padding: 14, borderTop: `1px solid ${C.border}`, display: 'flex', gap: 8 }}>
+              <textarea
+                value={chatText}
+                onChange={(e) => setChatText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendChatMessage();
+                  }
+                }}
+                placeholder="Escribe una respuesta…"
+                rows={2}
+                style={{
+                  flex: 1,
+                  padding: '10px 12px',
+                  background: C.bg1,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 0,
+                  color: C.text,
+                  fontSize: 13,
+                  resize: 'none',
+                  outline: 'none',
+                  fontFamily: f,
+                }}
+              />
+              <button
+                onClick={sendChatMessage}
+                disabled={!chatText.trim() || sendingChat}
+                style={{
+                  padding: '10px 18px',
+                  background: C.accent,
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 0,
+                  fontWeight: 800,
+                  fontSize: 12,
+                  fontFamily: fc,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  cursor: !chatText.trim() || sendingChat ? 'not-allowed' : 'pointer',
+                  opacity: !chatText.trim() || sendingChat ? 0.5 : 1,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
+              >
+                <Send size={13} /> {sendingChat ? 'Enviando…' : 'Enviar'}
+              </button>
+            </div>
+          </div>
+
+          {/* Tickets de soporte */}
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, display: 'flex', flexDirection: 'column', height: 560 }}>
+            <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <LifeBuoy size={16} color={C.accent} />
+              <h3 style={{ fontSize: 13, fontWeight: 800, color: C.text, margin: 0, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Tickets de soporte
+              </h3>
+              <span style={{ fontSize: 11, color: C.muted, marginLeft: 'auto' }}>{tickets.length}</span>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto' }}>
+              {tickets.length === 0 ? (
+                <div style={{ padding: 24, color: C.muted, fontSize: 13, textAlign: 'center' }}>
+                  Sin tickets de este cliente.
+                </div>
+              ) : tickets.map((t) => {
+                const isActive = t.status === 'open' || t.status === 'in_progress';
+                const statusColor = isActive ? C.accent : C.muted;
+                const statusLabel =
+                  t.status === 'open' ? 'Abierto' :
+                  t.status === 'in_progress' ? 'En proceso' :
+                  t.status === 'resolved' ? 'Resuelto' : 'Cerrado';
+                return (
+                  <Link key={t.id} href={`/worker/inbox?tab=soporte&ticketId=${t.id}`} style={{ textDecoration: 'none' }}>
+                    <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, cursor: 'pointer', opacity: isActive ? 1 : 0.6 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: C.text, flex: 1 }}>{t.subject}</span>
+                        <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 6px', background: `${statusColor}22`, color: statusColor, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em', border: `1px solid ${statusColor}44` }}>
+                          {statusLabel}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11, color: C.muted }}>
+                        {t.priority === 'urgent' && '⚠️ '}{timeAgo(t.created_at)}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: ACTIVIDAD */}
+      {tab === 3 && (
         <div style={{ background: C.card, border: `1px solid ${C.border}`, padding: 24, borderRadius: 0 }}>
           {activity.length === 0 ? (
             <p style={{ color: C.muted, fontSize: 13, margin: 0, fontFamily: f }}>Sin actividad registrada.</p>
@@ -651,8 +1045,8 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
         </div>
       )}
 
-      {/* TAB 3: NOTAS */}
-      {tab === 3 && (
+      {/* TAB 4: NOTAS */}
+      {tab === 4 && (
         <div>
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, padding: 24, marginBottom: 24 }}>
             <h3 style={{ fontSize: 12, fontWeight: 700, color: C.muted, margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: 0.5, fontFamily: fc }}>
@@ -740,6 +1134,134 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
         agents={agents}
         onSave={(agentId) => updatePhotoAgent(selectedPhoto!.id, agentId)}
       />
+
+      {/* MODAL NUEVA SOLICITUD */}
+      {newRequestOpen && (
+        <div
+          onClick={() => !creatingRequest && setNewRequestOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20,
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ background: C.bg, border: `1px solid ${C.border}`, width: 520, maxWidth: '92vw', padding: 32 }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+              <div style={{ width: 40, height: 40, background: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Flag size={18} color="#fff" />
+              </div>
+              <h2 style={{ fontFamily: fc, fontSize: 22, fontWeight: 900, margin: 0, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                Nueva solicitud
+              </h2>
+            </div>
+            <p style={{ fontSize: 13, color: C.muted, margin: '0 0 22px', lineHeight: 1.5 }}>
+              Crea una solicitud en nombre de <strong style={{ color: C.text }}>{brand.name}</strong>. Se registra como aceptada y asignada a ti.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 800, color: C.muted, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                  Título
+                </label>
+                <input
+                  type="text"
+                  value={newRequest.title}
+                  onChange={(e) => setNewRequest((s) => ({ ...s, title: e.target.value }))}
+                  placeholder="Ej: Campaña Black Friday"
+                  style={{
+                    width: '100%', padding: '11px 14px', background: C.bg, border: `1px solid ${C.border}`,
+                    borderRadius: 0, color: C.text, fontSize: 14, fontFamily: f, outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 800, color: C.muted, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                  Tipo
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                  {REQUEST_TYPES.map((opt) => (
+                    <button
+                      key={opt.key}
+                      onClick={() => setNewRequest((s) => ({ ...s, type: opt.key }))}
+                      style={{
+                        padding: '10px 8px',
+                        background: newRequest.type === opt.key ? C.accent : C.bg,
+                        color: newRequest.type === opt.key ? '#fff' : C.muted,
+                        border: `1px solid ${newRequest.type === opt.key ? C.accent : C.border}`,
+                        fontFamily: fc, fontSize: 11, fontWeight: 800,
+                        textTransform: 'uppercase', letterSpacing: '0.04em', cursor: 'pointer',
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 800, color: C.muted, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                  Descripción <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span>
+                </label>
+                <textarea
+                  value={newRequest.description}
+                  onChange={(e) => setNewRequest((s) => ({ ...s, description: e.target.value }))}
+                  rows={4}
+                  placeholder="Detalles, referencias, tono, público objetivo…"
+                  style={{
+                    width: '100%', padding: '11px 14px', background: C.bg, border: `1px solid ${C.border}`,
+                    borderRadius: 0, color: C.text, fontSize: 14, fontFamily: f, outline: 'none', boxSizing: 'border-box',
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 11, fontWeight: 800, color: C.muted, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+                  Fecha de entrega <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(opcional)</span>
+                </label>
+                <input
+                  type="date"
+                  value={newRequest.deadline_at}
+                  onChange={(e) => setNewRequest((s) => ({ ...s, deadline_at: e.target.value }))}
+                  style={{
+                    width: '100%', padding: '11px 14px', background: C.bg, border: `1px solid ${C.border}`,
+                    borderRadius: 0, color: C.text, fontSize: 14, fontFamily: f, outline: 'none', boxSizing: 'border-box',
+                  }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 22 }}>
+              <button
+                onClick={() => setNewRequestOpen(false)}
+                disabled={creatingRequest}
+                style={{
+                  padding: '12px 22px', background: 'transparent', color: C.muted,
+                  border: `1px solid ${C.border}`, cursor: 'pointer',
+                  fontFamily: fc, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 12,
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={createRequest}
+                disabled={!newRequest.title.trim() || creatingRequest}
+                style={{
+                  padding: '12px 26px', background: C.accent, color: '#fff', border: 'none',
+                  cursor: !newRequest.title.trim() || creatingRequest ? 'not-allowed' : 'pointer',
+                  opacity: !newRequest.title.trim() || creatingRequest ? 0.5 : 1,
+                  fontFamily: fc, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 12,
+                }}
+              >
+                {creatingRequest ? 'Creando…' : 'Crear solicitud'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,8 +1,8 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
-import { Send, AlertTriangle, Mail, Bell } from 'lucide-react';
+import { useEffect, useState, useRef, useMemo } from 'react';
+import { Send, AlertTriangle, MessageCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
@@ -22,16 +22,23 @@ const C = {
   green: '#0F766E',
 };
 
-type Tab = 'mensajes' | 'soporte' | 'notificaciones';
+type Tab = 'cliente' | 'soporte';
 type IconProps = { size?: number; style?: React.CSSProperties };
 
 const TABS: { key: Tab; title: string; desc: string; icon: React.ComponentType<IconProps> }[] = [
-  { key: 'mensajes', title: 'Mensajes', desc: 'Comunicación del equipo', icon: Mail },
+  { key: 'cliente', title: 'Clientes', desc: 'Chat con clientes', icon: MessageCircle },
   { key: 'soporte', title: 'Soporte', desc: 'Tickets y consultas', icon: AlertTriangle },
-  { key: 'notificaciones', title: 'Notificaciones', desc: 'Actividad del sistema', icon: Bell },
 ];
 
-type Msg = { id: string; message: string; created_at: string; from_worker_id: string; workers?: { full_name: string } };
+type ChatMsg = {
+  id: string;
+  brand_id: string;
+  sender_type: 'client' | 'worker';
+  message: string;
+  created_at: string;
+  read_at: string | null;
+  brands?: { name: string } | null;
+};
 type Ticket = {
   id: string;
   subject: string;
@@ -68,75 +75,286 @@ const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TAB 1: MENSAJES
+// TAB 1: CLIENTES (chat cliente ↔ worker)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-function MensajesTab() {
-  const [messages, setMessages] = useState<Msg[]>([]);
+type Conversation = {
+  brandId: string;
+  brandName: string;
+  lastMessage: string;
+  lastAt: string;
+  answered: boolean; // último mensaje es del worker → contestado
+  clientCount: number; // nº de mensajes del cliente
+};
+
+function ClienteTab() {
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<string | null>(null);
   const [text, setText] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [filter, setFilter] = useState<'all' | 'unanswered' | 'answered'>('all');
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  function fetchMessages() {
-    fetch('/api/worker/mensajes').then((r) => r.json()).then((d) => {
-      setMessages((d.messages ?? []).reverse());
-      setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-    });
+  async function fetchAll() {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/chat/worker');
+      const data = await res.json();
+      setMessages(data.messages ?? []);
+    } catch {
+      toast.error('Error cargando mensajes');
+    } finally {
+      setLoading(false);
+    }
   }
 
-  useEffect(() => { fetchMessages(); }, []);
+  useEffect(() => { fetchAll(); }, []);
+
+  // Agrupa por brand y calcula si está contestado
+  const conversations = useMemo<Conversation[]>(() => {
+    const byBrand = new Map<string, ChatMsg[]>();
+    for (const m of messages) {
+      if (!byBrand.has(m.brand_id)) byBrand.set(m.brand_id, []);
+      byBrand.get(m.brand_id)!.push(m);
+    }
+    const list: Conversation[] = [];
+    for (const [brandId, msgs] of byBrand.entries()) {
+      const sorted = [...msgs].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+      const last = sorted[sorted.length - 1];
+      list.push({
+        brandId,
+        brandName: last.brands?.name ?? 'Cliente',
+        lastMessage: last.message,
+        lastAt: last.created_at,
+        answered: last.sender_type === 'worker',
+        clientCount: sorted.filter((m) => m.sender_type === 'client').length,
+      });
+    }
+    return list.sort((a, b) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
+  }, [messages]);
+
+  const filtered = conversations.filter((c) => {
+    if (filter === 'unanswered') return !c.answered;
+    if (filter === 'answered') return c.answered;
+    return true;
+  });
+
+  const selectedMessages = useMemo(
+    () => messages
+      .filter((m) => m.brand_id === selected)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+    [messages, selected],
+  );
+
+  const selectedConv = conversations.find((c) => c.brandId === selected);
+
+  useEffect(() => {
+    if (selected) setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+  }, [selected, selectedMessages.length]);
 
   async function send() {
-    if (!text.trim() || loading) return;
-    setLoading(true);
-    const res = await fetch('/api/worker/mensajes', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text }),
-    });
-    if (res.ok) { setText(''); fetchMessages(); }
-    else toast.error('Error al enviar');
-    setLoading(false);
+    if (!text.trim() || sending || !selected) return;
+    setSending(true);
+    try {
+      const res = await fetch('/api/chat/worker', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brand_id: selected, message: text.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Error');
+      setMessages((prev) => [...prev, data.message]);
+      setText('');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al enviar');
+    } finally {
+      setSending(false);
+    }
   }
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: '24px 32px' }}>
-      <h1 style={{ fontSize: 20, fontWeight: 800, color: C.text, marginBottom: 4 }}>Mensajes</h1>
-      <p style={{ color: C.muted, fontSize: 13, marginBottom: 20 }}>Comunicación interna del equipo</p>
+  const unansweredCount = conversations.filter((c) => !c.answered).length;
 
-      <div style={{ flex: 1, overflowY: 'auto', background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, padding: '16px 20px', marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {messages.length === 0 ? (
-          <p style={{ color: C.muted, fontSize: 13, textAlign: 'center', margin: 'auto' }}>Sin mensajes todavía. ¡Sé el primero! 👋</p>
-        ) : messages.map((msg) => (
-          <div key={msg.id} style={{ display: 'flex', gap: 10 }}>
-            <div style={{ width: 30, height: 30, borderRadius: '50%', background: C.accent2, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-              {(msg.workers?.full_name ?? 'W').charAt(0)}
-            </div>
-            <div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', marginBottom: 4 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{msg.workers?.full_name ?? 'Worker'}</span>
-                <span style={{ fontSize: 10, color: C.muted }}>{timeAgo(msg.created_at)}</span>
-              </div>
-              <div style={{ fontSize: 13, color: C.text, background: C.bg1, borderRadius: 0, padding: '8px 12px', display: 'inline-block', maxWidth: 480 }}>
-                {msg.message}
-              </div>
-            </div>
+  return (
+    <div style={{ display: 'flex', height: '100%', padding: '24px 32px', gap: 20 }}>
+      {/* Lista de conversaciones */}
+      <div style={{ width: 340, display: 'flex', flexDirection: 'column', background: C.card, border: `1px solid ${C.border}` }}>
+        <div style={{ padding: '14px 18px', borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+            <h3 style={{ fontSize: 13, fontWeight: 800, color: C.text, margin: 0, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Conversaciones
+            </h3>
+            {unansweredCount > 0 && (
+              <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', background: C.accent, color: '#fff', fontFamily: fc }}>
+                {unansweredCount} pendientes
+              </span>
+            )}
           </div>
-        ))}
-        <div ref={bottomRef} />
+          <div style={{ display: 'flex', gap: 4 }}>
+            {([['all', 'Todas'], ['unanswered', 'Pendientes'], ['answered', 'Contestadas']] as const).map(([k, label]) => (
+              <button
+                key={k}
+                onClick={() => setFilter(k)}
+                style={{
+                  flex: 1, padding: '6px 4px', fontSize: 10, fontWeight: 800,
+                  fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.04em',
+                  background: filter === k ? C.accent : 'transparent',
+                  color: filter === k ? '#fff' : C.muted,
+                  border: `1px solid ${filter === k ? C.accent : C.border}`,
+                  cursor: 'pointer',
+                }}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          {loading ? (
+            <div style={{ padding: 24, color: C.muted, fontSize: 13 }}>Cargando…</div>
+          ) : filtered.length === 0 ? (
+            <div style={{ padding: 24, color: C.muted, fontSize: 13, textAlign: 'center' }}>
+              Sin conversaciones{filter !== 'all' ? ` ${filter === 'unanswered' ? 'pendientes' : 'contestadas'}` : ''}.
+            </div>
+          ) : filtered.map((c) => {
+            const isActive = selected === c.brandId;
+            // Contestado → fondo gris, opacidad reducida. Pendiente → destacado.
+            const bg = isActive ? C.bg2 : c.answered ? C.bg1 : C.card;
+            return (
+              <button
+                key={c.brandId}
+                onClick={() => setSelected(c.brandId)}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '14px 18px',
+                  // Longhand para los 4 lados: evita conflicto shorthand/longhand en rerender
+                  borderTopWidth: 0,
+                  borderTopStyle: 'none',
+                  borderTopColor: 'transparent',
+                  borderRightWidth: 0,
+                  borderRightStyle: 'none',
+                  borderRightColor: 'transparent',
+                  borderBottomWidth: 1,
+                  borderBottomStyle: 'solid',
+                  borderBottomColor: C.border,
+                  borderLeftWidth: 3,
+                  borderLeftStyle: 'solid',
+                  borderLeftColor: isActive ? C.accent : 'transparent',
+                  background: bg,
+                  cursor: 'pointer',
+                  opacity: c.answered && !isActive ? 0.65 : 1,
+                  display: 'block',
+                  fontFamily: f,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 190 }}>
+                    {c.brandName}
+                  </span>
+                  <span style={{ fontSize: 10, color: C.muted, flexShrink: 0 }}>{timeAgo(c.lastAt)}</span>
+                </div>
+                <div style={{ fontSize: 12, color: c.answered ? C.muted : C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {c.answered && <span style={{ fontSize: 10, color: C.muted, marginRight: 6 }}>✓</span>}
+                  {c.lastMessage}
+                </div>
+                {!c.answered && (
+                  <div style={{ marginTop: 6, fontSize: 9, fontWeight: 800, color: C.accent, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    ● Pendiente de respuesta
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 10 }}>
-        <input
-          type="text"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
-          placeholder="Escribe un mensaje..."
-          style={{ flex: 1, padding: '10px 14px', borderRadius: 0, background: C.card, border: `1px solid ${C.border}`, color: C.text, fontSize: 13, outline: 'none' }}
-        />
-        <button onClick={send} disabled={loading || !text.trim()} style={{ padding: '10px 20px', borderRadius: 0, background: C.accent2, color: '#fff', border: 'none', fontWeight: 700, cursor: 'pointer', opacity: loading || !text.trim() ? 0.5 : 1 }}>
-          Enviar
-        </button>
+      {/* Panel de chat */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: C.card, border: `1px solid ${C.border}` }}>
+        {!selected || !selectedConv ? (
+          <div style={{ margin: 'auto', color: C.muted, fontSize: 14, textAlign: 'center' }}>
+            <MessageCircle size={48} style={{ color: C.muted, marginBottom: 12 }} />
+            <div>Selecciona una conversación</div>
+          </div>
+        ) : (
+          <>
+            <div style={{ padding: '14px 22px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 38, height: 38, background: C.accent, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontFamily: fc }}>
+                {selectedConv.brandName.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: C.text }}>{selectedConv.brandName}</div>
+                <div style={{ fontSize: 11, color: C.muted }}>{selectedMessages.length} mensajes</div>
+              </div>
+              <a
+                href={`/worker/clientes/${selected}?tab=2`}
+                style={{ fontSize: 11, fontWeight: 800, color: C.accent, textDecoration: 'none', fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em' }}
+              >
+                Ver cliente →
+              </a>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 10, background: C.bg1 }}>
+              {selectedMessages.map((m) => {
+                const isClient = m.sender_type === 'client';
+                return (
+                  <div key={m.id} style={{ display: 'flex', justifyContent: isClient ? 'flex-end' : 'flex-start' }}>
+                    <div
+                      style={{
+                        maxWidth: '76%',
+                        padding: '10px 14px',
+                        background: isClient ? '#d1fae5' : '#e5e7eb',
+                        color: C.text,
+                        fontSize: 13,
+                        lineHeight: 1.5,
+                        border: `1px solid ${isClient ? '#a7f3d0' : '#d1d5db'}`,
+                      }}
+                    >
+                      <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, marginBottom: 4, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        {isClient ? selectedConv.brandName : 'Tú'}
+                      </div>
+                      <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.message}</div>
+                      <div style={{ fontSize: 10, color: C.muted, marginTop: 4, textAlign: 'right' }}>
+                        {new Date(m.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={bottomRef} />
+            </div>
+
+            <div style={{ padding: 14, borderTop: `1px solid ${C.border}`, display: 'flex', gap: 8 }}>
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+                }}
+                placeholder="Escribe una respuesta…"
+                rows={2}
+                style={{
+                  flex: 1, padding: '10px 12px', background: C.bg1, border: `1px solid ${C.border}`,
+                  borderRadius: 0, color: C.text, fontSize: 13, resize: 'none', outline: 'none', fontFamily: f,
+                }}
+              />
+              <button
+                onClick={send}
+                disabled={!text.trim() || sending}
+                style={{
+                  padding: '10px 18px', background: C.accent, color: '#fff', border: 'none', borderRadius: 0,
+                  fontWeight: 800, fontSize: 12, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em',
+                  cursor: !text.trim() || sending ? 'not-allowed' : 'pointer',
+                  opacity: !text.trim() || sending ? 0.5 : 1,
+                  display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                <Send size={13} /> {sending ? '…' : 'Enviar'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -310,14 +528,31 @@ function SoporteTab() {
             const st = STATUS_CONFIG[ticket.status] ?? STATUS_CONFIG.open;
             const hoursOld = (Date.now() - new Date(ticket.created_at).getTime()) / 3600000;
             const isOverdue = hoursOld > 4 && ticket.status === 'open';
+            // Tramitado: ya no está abierto → fondo gris y opacidad reducida
+            const isHandled = ticket.status !== 'open';
             return (
-              <div key={ticket.id} onClick={() => openTicket(ticket)} style={{ padding: '16px 24px', borderBottom: i < tickets.length - 1 ? `1px solid ${C.border}` : 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,0,0,0.02)')}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}>
+              <div
+                key={ticket.id}
+                onClick={() => openTicket(ticket)}
+                style={{
+                  padding: '16px 24px',
+                  borderBottom: i < tickets.length - 1 ? `1px solid ${C.border}` : 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  gap: 16,
+                  background: isHandled ? C.bg1 : 'transparent',
+                  opacity: isHandled ? 0.7 : 1,
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = isHandled ? '#e9ebef' : 'rgba(0,0,0,0.02)')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = isHandled ? C.bg1 : 'transparent')}
+              >
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    {ticket.priority === 'urgent' && <AlertTriangle size={14} color={C.red} />}
-                    <span style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{ticket.subject}</span>
+                    {ticket.priority === 'urgent' && !isHandled && <AlertTriangle size={14} color={C.red} />}
+                    {isHandled && <span style={{ fontSize: 11, color: C.muted }}>✓</span>}
+                    <span style={{ fontWeight: 600, fontSize: 14, color: isHandled ? C.muted : C.text }}>{ticket.subject}</span>
                   </div>
                   <div style={{ fontSize: 12, color: C.muted }}>{ticket.brands?.name ?? '—'} · {hoursAgo(ticket.created_at)}</div>
                 </div>
@@ -335,49 +570,15 @@ function SoporteTab() {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// TAB 3: NOTIFICACIONES
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-function NotificacionesTab() {
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    setLoading(false);
-    setNotifications([]);
-  }, []);
-
-  return (
-    <div style={{ padding: '28px 36px', maxWidth: 800, color: C.text, flex: 1, overflow: 'auto' }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>Notificaciones</h1>
-        <p style={{ color: C.muted, fontSize: 14 }}>Tu panel de notificaciones del sistema</p>
-      </div>
-
-      {loading ? (
-        <p style={{ color: C.muted }}>Cargando notificaciones...</p>
-      ) : notifications.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', background: C.card, border: `1px solid ${C.border}`, borderRadius: 0 }}>
-          <Bell size={48} style={{ color: C.muted, margin: '0 auto 16px' }} />
-          <p style={{ fontSize: 14, color: C.muted }}>Sin notificaciones por ahora</p>
-        </div>
-      ) : (
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, overflow: 'hidden' }}>
-          {/* Notificaciones irían aquí */}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MAIN PAGE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 export default function InboxPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tab = (searchParams.get('tab') as Tab) || 'mensajes';
+  const rawTab = searchParams.get('tab');
+  // Legacy redirects: mensajes/notificaciones → cliente
+  const tab: Tab = rawTab === 'soporte' ? 'soporte' : 'cliente';
 
   function setTab(t: Tab) { router.push(`/worker/inbox?tab=${t}`); }
 
@@ -392,7 +593,7 @@ export default function InboxPage() {
       </div>
 
       {/* Tab selector — Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: C.border, border: `1px solid ${C.border}`, margin: '40px', marginBottom: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1px', background: C.border, border: `1px solid ${C.border}`, margin: '40px', marginBottom: 0 }}>
         {TABS.map((s) => {
           const active = tab === s.key;
           const Icon = s.icon;
@@ -429,9 +630,8 @@ export default function InboxPage() {
 
       {/* Tab content */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-        {tab === 'mensajes' && <MensajesTab />}
+        {tab === 'cliente' && <ClienteTab />}
         {tab === 'soporte' && <SoporteTab />}
-        {tab === 'notificaciones' && <NotificacionesTab />}
       </div>
     </div>
   );

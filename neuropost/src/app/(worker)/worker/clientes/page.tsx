@@ -25,7 +25,8 @@ const C = {
 
 type Client = {
   id: string; name: string; sector: string | null; plan: string;
-  ig_username: string | null; pending_in_queue: number; created_at: string;
+  ig_username: string | null; email: string | null;
+  pending_in_queue: number; created_at: string;
 };
 
 type Event = { id: string; action: string; created_at: string; details: Record<string, unknown> | null; brands?: { name: string; sector: string } };
@@ -65,7 +66,11 @@ function ListaTab() {
   }, []);
 
   const filtered = clients.filter((c) => {
-    const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.ig_username?.toLowerCase().includes(search.toLowerCase());
+    const q = search.toLowerCase();
+    const matchSearch = !search
+      || c.name.toLowerCase().includes(q)
+      || c.ig_username?.toLowerCase().includes(q)
+      || c.email?.toLowerCase().includes(q);
     const matchPlan = !planFilter || c.plan === planFilter;
     return matchSearch && matchPlan;
   });
@@ -110,13 +115,18 @@ function ListaTab() {
                 cursor: 'pointer', transition: 'border-color 0.2s',
               }} onMouseEnter={(e) => (e.currentTarget.style.borderColor = C.accent2)}
                 onMouseLeave={(e) => (e.currentTarget.style.borderColor = C.border)}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: C.text }}>{client.name}</div>
-                    {client.ig_username && <div style={{ fontSize: 12, color: C.muted }}>@{client.ig_username}</div>}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10, gap: 10 }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {client.name}
+                    </div>
+                    {client.ig_username && (
+                      <div style={{ fontSize: 12, color: C.muted }}>@{client.ig_username}</div>
+                    )}
                   </div>
                   <span style={{
-                    fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 0, textTransform: 'uppercase',
+                    fontSize: 10, fontWeight: 800, padding: '3px 8px', borderRadius: 0, textTransform: 'uppercase',
+                    letterSpacing: '0.05em', fontFamily: fc, flexShrink: 0,
                     background: `${PLAN_COLOR[client.plan] ?? '#6b7280'}22`,
                     color: PLAN_COLOR[client.plan] ?? '#6b7280',
                     border: `1px solid ${PLAN_COLOR[client.plan] ?? '#6b7280'}44`,
@@ -124,9 +134,21 @@ function ListaTab() {
                     {client.plan}
                   </span>
                 </div>
-                <div style={{ fontSize: 12, color: C.muted, marginBottom: 8 }}>
-                  {client.sector?.replace(/_/g, ' ') ?? 'Sin sector'}
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 10 }}>
+                  <div style={{ fontSize: 12, color: C.text, fontWeight: 600, textTransform: 'capitalize' }}>
+                    {client.sector?.replace(/_/g, ' ') ?? 'Sin sector'}
+                  </div>
+                  {client.email && (
+                    <div style={{ fontSize: 11, color: C.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {client.email}
+                    </div>
+                  )}
+                  <div style={{ fontSize: 10, color: C.muted, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Cliente desde {new Date(client.created_at).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })}
+                  </div>
                 </div>
+
                 {client.pending_in_queue > 0 && (
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.1)', color: C.red, fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 0 }}>
                     ⏳ {client.pending_in_queue} pendiente{client.pending_in_queue > 1 ? 's' : ''}
