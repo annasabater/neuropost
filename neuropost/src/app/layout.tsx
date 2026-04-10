@@ -82,37 +82,38 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body>
         <Script
-          id="structured-data"
+          id="schema-app"
           type="application/ld+json"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify([
-            {
-              '@context': 'https://schema.org',
-              '@type': 'SoftwareApplication',
-              name: 'NeuroPost',
-              description: 'Gestión de redes sociales con IA para negocios locales',
-              url: 'https://neuropost.es',
-              applicationCategory: 'BusinessApplication',
-              operatingSystem: 'Web',
-              offers: { '@type': 'Offer', price: '29', priceCurrency: 'EUR' },
-              aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '200' },
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'SoftwareApplication',
+            name: 'NeuroPost',
+            description: 'Gestión de redes sociales con IA para negocios locales',
+            url: 'https://neuropost.es',
+            applicationCategory: 'BusinessApplication',
+            operatingSystem: 'Web',
+            offers: { '@type': 'Offer', price: '29', priceCurrency: 'EUR' },
+            aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '200' },
+          })}}
+        />
+        <Script
+          id="schema-org"
+          type="application/ld+json"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: 'NeuroPost',
+            url: 'https://neuropost.es',
+            logo: 'https://neuropost.es/icon.svg',
+            sameAs: ['https://www.instagram.com/neuropost.es'],
+            contactPoint: {
+              '@type': 'ContactPoint',
+              contactType: 'customer support',
+              availableLanguage: ['Spanish', 'Catalan', 'English'],
             },
-            {
-              '@context': 'https://schema.org',
-              '@type': 'Organization',
-              name: 'NeuroPost',
-              url: 'https://neuropost.es',
-              logo: 'https://neuropost.es/icon.svg',
-              sameAs: [
-                'https://www.instagram.com/neuropost.es',
-              ],
-              contactPoint: {
-                '@type': 'ContactPoint',
-                contactType: 'customer support',
-                availableLanguage: ['Spanish', 'Catalan', 'English'],
-              },
-            },
-          ])}}
+          })}}
         />
         {/* Runs before React hydrates — prevents dark/light flash on load */}
         <Script id="theme-init" strategy="beforeInteractive">{`
