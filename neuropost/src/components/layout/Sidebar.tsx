@@ -88,10 +88,9 @@ export function Sidebar() {
         {/* Inicio */}
         <NavItem href="/dashboard" label={t('dashboard')} icon={LayoutDashboard} />
 
-        {/* Contenido — 3 modes */}
+        {/* Contenido */}
         <div className="dash-nav-group-label">Contenido</div>
         <NavItem href="/posts" label={t('posts')} icon={Image} />
-        <NavItem href="/posts/new?mode=request" label="Solicitar" icon={Send} />
         <NavItem href="/ideas" label="Ideas" icon={Lightbulb} />
         <NavItem href="/calendar" label={t('calendar')} icon={Calendar} />
 

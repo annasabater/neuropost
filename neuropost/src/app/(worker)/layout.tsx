@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, ClipboardList, MessageSquare, Users, Activity,
-  BarChart3, Clock, Settings, LogOut, Bell, ChevronRight, Tag, LifeBuoy,
+  BarChart3, Clock, Settings, LogOut, ChevronRight, Tag, LifeBuoy,
+  Radio, CheckSquare, Ticket, Bot, TrendingUp,
 } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase';
 import type { Worker } from '@/types';
@@ -23,24 +24,32 @@ const NAV_GROUPS = [
   {
     label: 'PRINCIPAL',
     items: [
-      { href: '/worker/dashboard',     icon: LayoutDashboard, label: 'Panel principal' },
-      { href: '/worker/cola',          icon: ClipboardList,   label: 'Cola de validación', badge: 'queue' },
-      { href: '/worker/mensajes',      icon: MessageSquare,   label: 'Mensajes del equipo', badge: 'msg' },
-      { href: '/worker/soporte',        icon: LifeBuoy,        label: 'Soporte' },
+      { href: '/worker/dashboard',  icon: LayoutDashboard, label: 'Panel principal' },
+      { href: '/worker/feed',       icon: Radio,           label: 'Feed de agentes' },
+      { href: '/worker/validation', icon: CheckSquare,     label: 'Validación' },
+      { href: '/worker/cola',       icon: ClipboardList,   label: 'Cola de trabajo', badge: 'queue' },
+    ],
+  },
+  {
+    label: 'COMUNICACIÓN',
+    items: [
+      { href: '/worker/mensajes', icon: MessageSquare, label: 'Mensajes', badge: 'msg' },
+      { href: '/worker/tickets',  icon: Ticket,        label: 'Tickets' },
+      { href: '/worker/soporte',  icon: LifeBuoy,      label: 'Soporte' },
     ],
   },
   {
     label: 'CLIENTES',
     items: [
-      { href: '/worker/clientes',      icon: Users,     label: 'Todos los clientes' },
-      { href: '/worker/actividad',     icon: Activity,  label: 'Actividad reciente' },
+      { href: '/worker/clientes',  icon: Users,    label: 'Todos los clientes' },
+      { href: '/worker/actividad', icon: Activity, label: 'Actividad reciente' },
     ],
   },
   {
     label: 'MÉTRICAS',
     items: [
-      { href: '/worker/metricas',      icon: BarChart3, label: 'Métricas del equipo' },
-      { href: '/worker/mi-rendimiento', icon: Clock,    label: 'Mi rendimiento' },
+      { href: '/worker/metricas',       icon: BarChart3, label: 'Métricas del equipo' },
+      { href: '/worker/mi-rendimiento', icon: Clock,     label: 'Mi rendimiento' },
     ],
   },
 ];
@@ -48,8 +57,11 @@ const NAV_GROUPS = [
 const ADMIN_NAV = {
   label: 'ADMINISTRACIÓN',
   items: [
-    { href: '/worker/admin/trabajadores', icon: Settings, label: 'Gestión de trabajadores' },
-    { href: '/cupones',                    icon: Tag,      label: 'Gestión de cupones' },
+    { href: '/worker/agents',             icon: Bot,        label: 'Monitor de agentes' },
+    { href: '/worker/business',           icon: TrendingUp, label: 'Métricas de negocio' },
+    { href: '/worker/admin/trabajadores', icon: Settings,   label: 'Gestión de trabajadores' },
+    { href: '/worker/settings',           icon: Settings,   label: 'Configuración' },
+    { href: '/cupones',                    icon: Tag,       label: 'Gestión de cupones' },
   ],
 };
 
