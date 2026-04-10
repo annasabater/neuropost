@@ -5,7 +5,20 @@ import { Bot, Play, Pause, RefreshCw, Edit2, Save, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createBrowserClient } from '@/lib/supabase';
 
-const W = { bg: '#0a0a14', card: '#111827', border: '#1e2533', blue: '#3b82f6', text: '#e5e7eb', muted: '#6b7280' };
+const C = {
+  bg: '#ffffff',
+  bg1: '#f5f5f5',
+  bg2: '#fafafa',
+  card: '#ffffff',
+  border: '#E5E7EB',
+  text: '#111111',
+  muted: '#6B7280',
+  accent: '#0F766E',
+  accent2: '#3B82F6',
+  red: '#EF4444',
+  orange: '#F59E0B',
+  green: '#14B8A6',
+};
 
 interface AgentConfig {
   id: string;
@@ -97,15 +110,15 @@ export default function AgentsMonitorPage() {
     toast.success('Prompt actualizado');
   }
 
-  if (loading) return <div style={{ padding: 40, color: W.muted }}>Cargando agentes...</div>;
+  if (loading) return <div style={{ padding: 40, color: C.muted }}>Cargando agentes...</div>;
 
   return (
-    <div style={{ padding: 28, color: W.text }}>
+    <div style={{ padding: 28, color: C.text }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Bot size={22} style={{ color: W.blue }} /> Monitor de agentes
+          <Bot size={22} style={{ color: C.accent2 }} /> Monitor de agentes
         </h1>
-        <p style={{ color: W.muted, fontSize: 13, margin: '4px 0 0' }}>
+        <p style={{ color: C.muted, fontSize: 13, margin: '4px 0 0' }}>
           Estado, configuración y logs de los agentes IA
         </p>
       </div>
@@ -115,18 +128,18 @@ export default function AgentsMonitorPage() {
           const s = stats[cfg.agent] ?? { runs: 0, errors: 0, lastRun: null };
           const errorRate = s.runs > 0 ? ((s.errors / s.runs) * 100).toFixed(1) : '0.0';
           return (
-            <div key={cfg.id} style={{ background: W.card, border: `1px solid ${W.border}`, borderRadius: 8 }}>
-              <div style={{ padding: 20, borderBottom: `1px solid ${W.border}` }}>
+            <div key={cfg.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0 }}>
+              <div style={{ padding: 20, borderBottom: `1px solid ${C.border}` }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{
                       width: 10, height: 10, borderRadius: '50%',
-                      background: cfg.is_active ? '#10b981' : W.muted,
+                      background: cfg.is_active ? '#10b981' : C.muted,
                     }} />
                     <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0, textTransform: 'capitalize' }}>
                       {cfg.agent.replace(/_/g, ' ')}
                     </h3>
-                    <span style={{ fontSize: 10, color: W.muted, fontFamily: 'monospace' }}>{cfg.cron_schedule}</span>
+                    <span style={{ fontSize: 10, color: C.muted, fontFamily: 'monospace' }}>{cfg.cron_schedule}</span>
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button onClick={() => toggleActive(cfg)} style={iconBtn}>
@@ -151,28 +164,28 @@ export default function AgentsMonitorPage() {
               </div>
 
               {/* Recent logs */}
-              <div style={{ padding: 16, background: W.bg }}>
-                <div style={{ fontSize: 10, color: W.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
+              <div style={{ padding: 16, background: C.bg1 }}>
+                <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>
                   Últimos 5 runs
                 </div>
                 {(logs[cfg.agent] ?? []).slice(0, 5).map((l) => (
                   <div key={l.id} style={{ display: 'flex', gap: 12, padding: '4px 0', fontSize: 11, alignItems: 'center' }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: l.status === 'error' ? '#ef4444' : l.status === 'success' ? '#10b981' : W.muted }} />
-                    <span style={{ color: W.muted, width: 60 }}>{timeAgo(l.created_at)}</span>
-                    <span style={{ color: W.muted, width: 70 }}>{l.duration_ms ?? '—'}ms</span>
-                    <span style={{ flex: 1, color: l.status === 'error' ? '#ef4444' : W.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: l.status === 'error' ? '#ef4444' : l.status === 'success' ? '#10b981' : C.muted }} />
+                    <span style={{ color: C.muted, width: 60 }}>{timeAgo(l.created_at)}</span>
+                    <span style={{ color: C.muted, width: 70 }}>{l.duration_ms ?? '—'}ms</span>
+                    <span style={{ flex: 1, color: l.status === 'error' ? '#ef4444' : C.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {JSON.stringify(l.details).slice(0, 100)}
                     </span>
                   </div>
                 ))}
                 {(logs[cfg.agent] ?? []).length === 0 && (
-                  <p style={{ fontSize: 11, color: W.muted, margin: 0 }}>Sin actividad reciente</p>
+                  <p style={{ fontSize: 11, color: C.muted, margin: 0 }}>Sin actividad reciente</p>
                 )}
               </div>
 
               {/* Prompt editor */}
               {editing === cfg.agent && (
-                <div style={{ padding: 16, borderTop: `1px solid ${W.border}` }}>
+                <div style={{ padding: 16, borderTop: `1px solid ${C.border}` }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                     <span style={{ fontSize: 11, fontWeight: 600 }}>System Prompt</span>
                     <div style={{ display: 'flex', gap: 6 }}>
@@ -189,8 +202,8 @@ export default function AgentsMonitorPage() {
                     onChange={(e) => setPromptDraft(e.target.value)}
                     rows={12}
                     style={{
-                      width: '100%', padding: 12, background: W.bg, color: W.text,
-                      border: `1px solid ${W.border}`, borderRadius: 4, fontSize: 11,
+                      width: '100%', padding: 12, background: C.bg1, color: C.text,
+                      border: `1px solid ${C.border}`, borderRadius: 0, fontSize: 11,
                       fontFamily: 'monospace', resize: 'vertical', boxSizing: 'border-box',
                     }}
                   />
@@ -207,15 +220,15 @@ export default function AgentsMonitorPage() {
 function Metric({ label, value, highlight }: { label: string; value: string; highlight?: string }) {
   return (
     <div>
-      <span style={{ fontSize: 9, color: W.muted, textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</span>
-      <p style={{ fontSize: 13, fontWeight: 600, margin: '2px 0 0', color: highlight ?? W.text }}>{value}</p>
+      <span style={{ fontSize: 9, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</span>
+      <p style={{ fontSize: 13, fontWeight: 600, margin: '2px 0 0', color: highlight ?? C.text }}>{value}</p>
     </div>
   );
 }
 
 const iconBtn: React.CSSProperties = {
-  width: 28, height: 28, background: 'transparent', border: `1px solid ${W.border}`,
-  borderRadius: 4, color: W.text, cursor: 'pointer',
+  width: 28, height: 28, background: 'transparent', border: `1px solid ${C.border}`,
+  borderRadius: 0, color: C.text, cursor: 'pointer',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
 };
 

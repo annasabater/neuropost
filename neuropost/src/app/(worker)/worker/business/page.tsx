@@ -4,7 +4,20 @@ import { useEffect, useState } from 'react';
 import { TrendingUp, Users, DollarSign, AlertTriangle } from 'lucide-react';
 import { createBrowserClient } from '@/lib/supabase';
 
-const W = { bg: '#0a0a14', card: '#111827', border: '#1e2533', blue: '#3b82f6', text: '#e5e7eb', muted: '#6b7280' };
+const C = {
+  bg: '#ffffff',
+  bg1: '#f5f5f5',
+  bg2: '#fafafa',
+  card: '#ffffff',
+  border: '#E5E7EB',
+  text: '#111111',
+  muted: '#6B7280',
+  accent: '#0F766E',
+  accent2: '#3B82F6',
+  red: '#EF4444',
+  orange: '#F59E0B',
+  green: '#14B8A6',
+};
 
 const PLAN_PRICES = { starter: 29, pro: 69, total: 129, agency: 199 };
 
@@ -66,30 +79,30 @@ export default function BusinessPage() {
     })();
   }, []);
 
-  if (loading) return <div style={{ padding: 40, color: W.muted }}>Cargando métricas de negocio...</div>;
+  if (loading) return <div style={{ padding: 40, color: C.muted }}>Cargando métricas de negocio...</div>;
 
   const margin = stats.mrr > 0 ? ((stats.mrr - stats.aiCostMonth) / stats.mrr) * 100 : 0;
 
   return (
-    <div style={{ padding: 28, color: W.text }}>
+    <div style={{ padding: 28, color: C.text }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <TrendingUp size={22} style={{ color: W.blue }} /> Métricas de negocio
+          <TrendingUp size={22} style={{ color: C.accent2 }} /> Métricas de negocio
         </h1>
-        <p style={{ color: W.muted, fontSize: 13, margin: '4px 0 0' }}>Panel ejecutivo</p>
+        <p style={{ color: C.muted, fontSize: 13, margin: '4px 0 0' }}>Panel ejecutivo</p>
       </div>
 
       {/* Top KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 28 }}>
-        <KpiCard icon={DollarSign} label="MRR" value={`€${stats.mrr.toLocaleString()}`} sub={`ARR €${stats.arr.toLocaleString()}`} color="#10b981" />
-        <KpiCard icon={Users} label="Clientes activos" value={String(stats.totalBrands)} sub={`${stats.activeTrials} trials`} color={W.blue} />
+        <KpiCard icon={DollarSign} label="MRR" value={`€${stats.mrr.toLocaleString()}`} sub={`ARR €${stats.arr.toLocaleString()}`} color={C.green} />
+        <KpiCard icon={Users} label="Clientes activos" value={String(stats.totalBrands)} sub={`${stats.activeTrials} trials`} color={C.accent2} />
         <KpiCard icon={TrendingUp} label="Margen bruto" value={`${margin.toFixed(1)}%`} sub={`Coste IA €${stats.aiCostMonth.toFixed(2)}`} color="#a855f7" />
-        <KpiCard icon={AlertTriangle} label="En riesgo" value={String(stats.atRisk)} sub="Health score bajo" color={stats.atRisk > 0 ? '#ef4444' : '#10b981'} />
+        <KpiCard icon={AlertTriangle} label="En riesgo" value={String(stats.atRisk)} sub="Health score bajo" color={stats.atRisk > 0 ? C.red : C.green} />
       </div>
 
       {/* Plans distribution */}
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
-        <div style={{ background: W.card, border: `1px solid ${W.border}`, borderRadius: 8, padding: 24 }}>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, padding: 24 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, marginTop: 0, marginBottom: 16 }}>Distribución de planes</h3>
           {Object.entries(stats.byPlan).map(([plan, count]) => {
             const revenue = count * PLAN_PRICES[plan as keyof typeof PLAN_PRICES];
@@ -98,19 +111,19 @@ export default function BusinessPage() {
               <div key={plan} style={{ marginBottom: 12 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   <span style={{ fontSize: 12, fontWeight: 600, textTransform: 'capitalize' }}>{plan}</span>
-                  <span style={{ fontSize: 12, color: W.muted }}>
+                  <span style={{ fontSize: 12, color: C.muted }}>
                     {count} clientes · €{revenue}/mes ({pct.toFixed(0)}%)
                   </span>
                 </div>
-                <div style={{ height: 6, background: W.bg, borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${pct}%`, background: W.blue, transition: 'width 0.4s' }} />
+                <div style={{ height: 6, background: C.bg1, borderRadius: 0, overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${pct}%`, background: C.accent2, transition: 'width 0.4s' }} />
                 </div>
               </div>
             );
           })}
         </div>
 
-        <div style={{ background: W.card, border: `1px solid ${W.border}`, borderRadius: 8, padding: 24 }}>
+        <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, padding: 24 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, marginTop: 0, marginBottom: 16 }}>Resumen</h3>
           <Row label="ARPU" value={`€${stats.totalBrands > 0 ? (stats.mrr / stats.totalBrands).toFixed(0) : 0}`} />
           <Row label="LTV (12 meses)" value={`€${stats.totalBrands > 0 ? ((stats.mrr / stats.totalBrands) * 12).toFixed(0) : 0}`} />
@@ -124,21 +137,21 @@ export default function BusinessPage() {
 
 function KpiCard({ icon: Icon, label, value, sub, color }: { icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>; label: string; value: string; sub: string; color: string }) {
   return (
-    <div style={{ background: W.card, border: `1px solid ${W.border}`, borderRadius: 8, padding: 20 }}>
+    <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, padding: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-        <span style={{ fontSize: 10, color: W.muted, textTransform: 'uppercase', letterSpacing: 1 }}>{label}</span>
+        <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>{label}</span>
         <Icon size={16} style={{ color }} />
       </div>
-      <p style={{ fontSize: 28, fontWeight: 800, margin: 0, color: W.text }}>{value}</p>
-      <p style={{ fontSize: 11, color: W.muted, margin: '4px 0 0' }}>{sub}</p>
+      <p style={{ fontSize: 28, fontWeight: 800, margin: 0, color: C.text }}>{value}</p>
+      <p style={{ fontSize: 11, color: C.muted, margin: '4px 0 0' }}>{sub}</p>
     </div>
   );
 }
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `1px solid ${W.border}` }}>
-      <span style={{ fontSize: 12, color: W.muted }}>{label}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `1px solid ${C.border}` }}>
+      <span style={{ fontSize: 12, color: C.muted }}>{label}</span>
       <span style={{ fontSize: 12, fontWeight: 600 }}>{value}</span>
     </div>
   );

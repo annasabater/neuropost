@@ -26,9 +26,22 @@ function LoginForm() {
     });
     if (error) { setLoading(false); toast.error(error.message); return; }
 
-    // Check if user has a brand → dashboard or onboarding
     setLoading(false);
     setVerifying(true);
+
+    // 1. Check if user is a worker (admin/senior/worker) → redirect to worker portal
+    try {
+      const workerRes = await fetch('/api/worker/me');
+      if (workerRes.ok) {
+        const { worker } = await workerRes.json();
+        if (worker?.is_active) {
+          router.push('/worker/dashboard');
+          return;
+        }
+      }
+    } catch { /* not a worker, continue */ }
+
+    // 2. Regular user: brand → dashboard, no brand → onboarding
     const { data: brand } = await supabase
       .from('brands')
       .select('id')
