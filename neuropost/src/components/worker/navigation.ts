@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
   BarChart3,
+  Bell,
   Bot,
   CheckSquare,
   Home,
@@ -44,6 +45,7 @@ const BASE_GROUPS: WorkerNavGroup[] = [
     items: [
       { href: '/worker/inbox', icon: Inbox, label: 'Inbox', badge: 'msg' },
       { href: '/worker/clientes', icon: Users, label: 'Clientes' },
+      { href: '/worker/anuncios', icon: Bell, label: 'Notificaciones' },
       { href: '/worker/analytics', icon: BarChart3, label: 'Analytics' },
     ],
   },

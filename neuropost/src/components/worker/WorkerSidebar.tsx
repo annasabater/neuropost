@@ -12,7 +12,6 @@ import {
 import type { Worker } from '@/types';
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
-const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 interface WorkerSidebarProps {
   pathname: string;
@@ -62,23 +61,6 @@ export function WorkerSidebar({
         <button className="sidebar-close-btn" onClick={onClose} aria-label="Cerrar menú">
           <X size={18} />
         </button>
-      </div>
-
-      {/* ── Validation CTA button ── */}
-      <div style={{ padding: '8px 8px 4px', flexShrink: 0 }}>
-        <ProgressLink
-          href="/worker/validation"
-          onClick={onClose}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            padding: '9px 12px', background: '#111827', color: '#ffffff', border: 'none',
-            fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase',
-            letterSpacing: '0.06em', cursor: 'pointer', width: '100%',
-            transition: 'background 0.15s', textDecoration: 'none', boxSizing: 'border-box',
-          }}
-        >
-          🔍 Validar
-        </ProgressLink>
       </div>
 
       {/* ── Navigation ── */}

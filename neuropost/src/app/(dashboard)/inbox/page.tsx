@@ -46,16 +46,16 @@ function InboxInner() {
   const setNotifications = useAppStore((s) => s.setNotifications);
   const markAllNotificationsRead = useAppStore((s) => s.markAllNotificationsRead);
 
-  // Soporte state
+  // Soporte state — loading arranca en true; solo se baja dentro del .then() del fetch
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [ticketsLoading, setTicketsLoading] = useState(false);
+  const [ticketsLoading, setTicketsLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [ticketForm, setTicketForm] = useState({ subject: '', description: '', category: 'technical', priority: 'normal' });
   const [saving, setSaving] = useState(false);
 
   // Chat state
   const [messages, setMessages] = useState<ChatMsg[]>([]);
-  const [chatLoading, setChatLoading] = useState(false);
+  const [chatLoading, setChatLoading] = useState(true);
   const [chatText, setChatText] = useState('');
   const [chatSending, setChatSending] = useState(false);
   const chatBottom = useRef<HTMLDivElement>(null);
@@ -65,23 +65,59 @@ function InboxInner() {
 
   function setTab(t: Tab) { router.push(`/inbox?tab=${t}`); }
 
-  // Load data per tab
+  // Banderas "cargado" por tab — usamos refs para NO disparar re-render al mutarlas
+  // y evitar el loop infinito cuando la API devuelve [].
+  const loadedTabsRef = useRef<Record<string, boolean>>({});
+
+  // Fechas base (hoy/ayer) calculadas una sola vez al montar con lazy useState.
+  // Lazy initializers sí pueden llamar funciones impuras (solo corren 1 vez).
+  const [dateStrings] = useState(() => ({
+    today: new Date().toDateString(),
+    yesterday: new Date(Date.now() - 86400000).toDateString(),
+  }));
+
+  // Agrupar notificaciones por fecha (Hoy / Ayer / Anteriores).
+  const notificationGroups = useMemo(() => {
+    const groups: { label: string; items: typeof notifications }[] = [];
+    for (const n of notifications) {
+      const d = new Date(n.created_at).toDateString();
+      const label = d === dateStrings.today ? 'Hoy' : d === dateStrings.yesterday ? 'Ayer' : 'Anteriores';
+      const last = groups[groups.length - 1];
+      if (last && last.label === label) last.items.push(n);
+      else groups.push({ label, items: [n] });
+    }
+    return groups;
+  }, [notifications, dateStrings]);
+
+  // Load data per tab — solo la primera vez que entras a cada tab.
   useEffect(() => {
-    if (tab === 'soporte' && tickets.length === 0 && !ticketsLoading) {
-      setTicketsLoading(true);
-      fetch('/api/soporte').then(r => r.json()).then(d => { setTickets(d.tickets ?? []); setTicketsLoading(false); }).catch(() => setTicketsLoading(false));
+    if (loadedTabsRef.current[tab]) return;
+    loadedTabsRef.current[tab] = true;
+
+    if (tab === 'soporte') {
+      fetch('/api/soporte')
+        .then((r) => r.json())
+        .then((d) => setTickets(d.tickets ?? []))
+        .catch(() => { loadedTabsRef.current[tab] = false; })
+        .finally(() => setTicketsLoading(false));
+    } else if (tab === 'mensajes') {
+      fetch('/api/chat')
+        .then((r) => r.json())
+        .then((d) => setMessages(d.messages ?? []))
+        .catch(() => { loadedTabsRef.current[tab] = false; })
+        .finally(() => setChatLoading(false));
+    } else if (tab === 'novedades') {
+      fetch('/api/changelog')
+        .then((r) => r.json())
+        .then((d) => setEntries(d.entries ?? []))
+        .catch(() => { loadedTabsRef.current[tab] = false; });
+    } else if (tab === 'notificaciones') {
+      fetch('/api/notifications')
+        .then((r) => r.json())
+        .then((d) => { if (d.notifications) setNotifications(d.notifications); })
+        .catch(() => { loadedTabsRef.current[tab] = false; });
     }
-    if (tab === 'mensajes' && messages.length === 0 && !chatLoading) {
-      setChatLoading(true);
-      fetch('/api/chat').then(r => r.json()).then(d => { setMessages(d.messages ?? []); setChatLoading(false); }).catch(() => setChatLoading(false));
-    }
-    if (tab === 'novedades' && entries.length === 0) {
-      fetch('/api/changelog').then(r => r.json()).then(d => setEntries(d.entries ?? [])).catch(() => {});
-    }
-    if (tab === 'notificaciones' && notifications.length === 0) {
-      fetch('/api/notifications').then(r => r.json()).then(d => { if (d.notifications) setNotifications(d.notifications); }).catch(() => {});
-    }
-  }, [tab, tickets.length, ticketsLoading, messages.length, chatLoading, entries.length, notifications.length, setNotifications]);
+  }, [tab, setNotifications]);
 
   useEffect(() => { chatBottom.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
@@ -345,18 +381,8 @@ function InboxInner() {
               <p style={{ fontFamily: f, fontSize: 14, color: '#9ca3af' }}>Aquí aparecerán las novedades sobre tu contenido</p>
             </div>
           ) : (() => {
-            // Group by date
-            const groups: { label: string; items: typeof notifications }[] = [];
-            const today = new Date().toDateString();
-            const yesterday = new Date(Date.now() - 86400000).toDateString();
-
-            for (const n of notifications) {
-              const d = new Date(n.created_at).toDateString();
-              const label = d === today ? 'Hoy' : d === yesterday ? 'Ayer' : 'Anteriores';
-              const last = groups[groups.length - 1];
-              if (last && last.label === label) last.items.push(n);
-              else groups.push({ label, items: [n] });
-            }
+            // Usa los grupos precomputados en notificationGroups (useMemo arriba)
+            const groups = notificationGroups;
 
             const NOTIF_ICON: Record<string, string> = {
               approval_needed: '⏳', published: '✅', failed: '❌', comment: '💬',

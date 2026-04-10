@@ -7,11 +7,12 @@ export async function GET() {
     const worker = await requireWorker();
     const db     = createAdminClient();
 
+    // Ordena por antigüedad (los clientes más antiguos primero)
     let query = db.from('brands').select(`
-      id, name, sector, plan, ig_username, ig_account_id, fb_page_id,
+      id, user_id, name, sector, plan, ig_username, ig_account_id, fb_page_id,
       meta_token_expires_at, publish_mode, created_at, trial_ends_at,
       posts_this_week, stories_this_week
-    `).order('name');
+    `).order('created_at', { ascending: true });
 
     if (worker.role === 'worker' && worker.brands_assigned?.length) {
       query = query.in('id', worker.brands_assigned);
@@ -20,9 +21,10 @@ export async function GET() {
     const { data: brands, error } = await query;
     if (error) throw error;
 
-    // Enrich with queue counts
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const brandIds = (brands ?? []).map((b: any) => b.id);
+
+    // Queue counts
     const { data: queueCounts } = await db
       .from('content_queue')
       .select('brand_id, status')
@@ -34,9 +36,24 @@ export async function GET() {
       pendingByBrand[q.brand_id] = (pendingByBrand[q.brand_id] ?? 0) + 1;
     }
 
+    // Emails desde auth.users (a través de user_id de cada brand)
+    const emailByBrand: Record<string, string> = {};
+    try {
+      const { data: authList } = await db.auth.admin.listUsers();
+      const emailMap = new Map((authList?.users ?? []).map((u) => [u.id, u.email ?? '']));
+      for (const b of brands ?? []) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const bAny = b as any;
+        if (bAny.user_id) emailByBrand[bAny.id] = emailMap.get(bAny.user_id) ?? '';
+      }
+    } catch {
+      // Si falla el listUsers seguimos sin emails
+    }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const enriched = (brands ?? []).map((b: any) => ({
       ...b,
+      email: emailByBrand[b.id] ?? null,
       pending_in_queue: pendingByBrand[b.id] ?? 0,
     }));
 
