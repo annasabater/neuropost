@@ -116,9 +116,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           })}}
         />
         {/* Runs before React hydrates — prevents dark/light flash on load */}
-        <Script id="theme-init" strategy="beforeInteractive">{`
-          (function(){try{var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})()`}
-        </Script>
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})()`,
+          }}
+        />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <PageProgressBar />
           <Providers>{children}</Providers>
