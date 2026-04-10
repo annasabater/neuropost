@@ -241,7 +241,7 @@ export default function AboutPage() {
             </h2>
             <div style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 15, color: '#6b7280', lineHeight: 1.75, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <p style={{ margin: 0 }}>NeuroPost nace observando algo que nos llamó la atención: negocios increíbles con una presencia digital que no les hacía justicia.</p>
-              <p style={{ margin: 0 }}>Restaurantes llenos, centros con agendas completas, gimnasios con comunidad… que podrían crecer aún más si su imagen en redes estuviera a la altura.</p>
+              <p style={{ margin: 0 }}>Restaurantes de calidad, centros profesionales, gimnasios… negocios que ya funcionan, pero que pueden crecer mucho más si mejoran su presencia en redes.</p>
               <p style={{ margin: 0, color: '#111827', fontWeight: 600 }}>Ahí es donde decidimos aportar valor.</p>
               <p style={{ margin: 0 }}>Nos encargamos de toda la gestión para que tu negocio tenga una presencia cuidada, constante y profesional, sin que le dediques tiempo.</p>
             </div>
@@ -313,7 +313,7 @@ export default function AboutPage() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: '#e5e7eb', border: '1px solid #e5e7eb' }}>
             <ValueCard icon="✦" title="Simplicidad" desc="Creemos que la tecnología debe simplificar la vida, no complicarla. Si algo no es fácil de usar, lo rediseñamos hasta que lo sea." />
-            <ValueCard icon="📈" title="Resultados reales" desc="No medimos el éxito en funcionalidades. Lo medimos en clientes que venden más, en negocios que crecen y en dueños que recuperan su tiempo." />
+            <ValueCard icon="📈" title="Resultados reales" desc="No medimos funcionalidades. Medimos más clientes, más ventas y más tiempo para lo que de verdad importa." />
             <ValueCard icon="🤝" title="Transparencia" desc="Sin contratos largos, sin letra pequeña, sin sorpresas en la factura. Precio claro, resultado claro, cancela cuando quieras." />
           </div>
         </div>

@@ -10,10 +10,10 @@ export interface BlogPost {
 export const BLOG_POSTS: BlogPost[] = [
   {
     slug: 'como-conseguir-mas-seguidores-en-instagram-2025',
-    title: 'Cómo conseguir más seguidores en Instagram en 2026',
+    title: 'Cómo conseguir más seguidores en Instagram',
     excerpt: 'La consistencia y el contenido de calidad son las dos claves para crecer en Instagram este año. Te contamos cómo aplicarlas sin perder horas.',
     date: '2026-03-10',
-    readTime: 5,
+    readTime: 4,
     content: `<h2>La constancia es la primera regla</h2>
 <p>En 2026, el algoritmo de Instagram sigue recompensando la regularidad por encima de casi cualquier otro factor. No importa si publicas dos veces por semana o cada día: lo que importa es que lo hagas de forma predecible. Los negocios que mantienen un calendario constante durante tres meses consiguen, de media, un 37% más de alcance orgánico que los que publican de forma irregular.</p>
 <p>Lo primero que debes hacer es definir tu cadencia real. Si solo puedes publicar tres veces por semana de forma sostenida, hazlo. Tres posts bien trabajados cada semana son más efectivos que cinco posts mediocres seguidos de un silencio de diez días.</p>
@@ -31,9 +31,10 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Las mejores horas para publicar en Instagram según tu sector',
     excerpt: 'No existe una hora mágica válida para todos. Los horarios óptimos varían según el tipo de negocio. Aquí tienes los datos por sector.',
     date: '2026-02-18',
-    readTime: 4,
+    readTime: 3,
     content: `<h2>Por qué el horario importa</h2>
-<p>El algoritmo de Instagram da un peso muy alto a la interacción que recibe un post en los primeros 30-60 minutos tras la publicación. Si publicas cuando tu audiencia está dormida o trabajando, ese impulso inicial será débil y el algoritmo reducirá su distribución. Publicar en el momento adecuado puede doblar el alcance de un mismo contenido.</p>
+  <p>El algoritmo de Instagram da un peso muy alto a la interacción que recibe un post en los primeros 30-60 minutos tras la publicación. Si publicas cuando tu audiencia está dormida o trabajando, ese impulso inicial será débil y el algoritmo reducirá su distribución.</p>
+  <p>Publicar en el momento adecuado puede doblar el alcance de un mismo contenido.</p>
 <h2>Horarios óptimos por sector</h2>
 <p><strong>Restaurantes y cafeterías:</strong> Los mejores momentos son justo antes de las comidas: 12:00-13:00 y 19:30-20:30. Los jueves y viernes son los días de mayor engagement, ya que los usuarios planifican sus salidas del fin de semana. Evita publicar los martes a mediodía.</p>
 <p><strong>Heladerías, pastelerías y cafés:</strong> El pico es en la franja de tarde: 16:00-18:30. Los fines de semana funcionan especialmente bien. Las publicaciones del sábado por la mañana tienen un alcance un 28% superior a las del lunes.</p>
@@ -50,9 +51,10 @@ export const BLOG_POSTS: BlogPost[] = [
     title: 'Qué hashtags funcionan mejor para negocios locales',
     excerpt: 'Los hashtags masivos ya no son la estrategia ganadora. Te explicamos cómo elegir los hashtags correctos para que tu negocio local llegue a los clientes adecuados.',
     date: '2026-01-27',
-    readTime: 5,
+    readTime: 4,
     content: `<h2>El error más común con los hashtags</h2>
-<p>La mayoría de los negocios locales usan hashtags demasiado grandes: #restaurante (más de 40 millones de posts), #moda (más de 200 millones) o #fitness (más de 500 millones). El problema es que en esos hashtags tu publicación queda enterrada en segundos. Nadie la verá. La estrategia correcta es usar hashtags medianos y locales donde la competencia es menor y la audiencia es más relevante para tu negocio.</p>
+  <p>La mayoría de los negocios locales usan hashtags demasiado grandes: #restaurante (más de 40 millones de posts), #moda (más de 200 millones) o #fitness (más de 500 millones). El problema es que en esos hashtags tu publicación queda enterrada en segundos. Nadie la verá.</p>
+  <p>La estrategia correcta es usar hashtags medianos y locales donde la competencia es menor y la audiencia es más relevante para tu negocio.</p>
 <h2>La combinación que funciona</h2>
 <p>La mezcla que mejor rinde en 2026 combina tres grupos: nicho, sector y ubicación.</p>
 <p><strong>1. Hashtags de nicho (10.000 a 200.000 posts):</strong> Son los que más convierten porque conectan con una intención concreta. Ejemplos: #cafeteriabarcelona, #desayunobarcelona, #brunchbcn o #floresmadrid.</p>

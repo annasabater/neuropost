@@ -39,6 +39,37 @@ function normalizeText(value: string): string {
   return value.toLowerCase().replace(/[\s\W_]+/g, ' ').trim();
 }
 
+function uniqueByNormalized(values: string[]): string[] {
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const value of values) {
+    const normalized = normalizeText(value);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(value);
+  }
+
+  return result;
+}
+
+function getFirstSentence(text: string): string {
+  const [first] = text.split(/(?<=[.!?])\s+/);
+  return first ?? text;
+}
+
+function removeLeadingSentence(text: string, leadingSentence: string): string {
+  const normalizedText = normalizeText(text);
+  const normalizedLeading = normalizeText(leadingSentence);
+
+  if (!normalizedLeading || !normalizedText.startsWith(normalizedLeading)) {
+    return text;
+  }
+
+  const remainder = text.slice(leadingSentence.length).trim().replace(/^[,;:\-–—\s]+/, '');
+  return remainder || text;
+}
+
 function renderTextWithHighlights(text: string): ReactNode[] {
   const parts = text.split(/(#[A-Za-z0-9_\u00C0-\u017F]+|\b\d+(?:[.,]\d+)?%\b|\b\d+(?:[.,]\d+)?\s*(?:a|-)\s*\d+(?:[.,]\d+)?\b|\b\d+(?:[.,]\d+)?\s*(?:mill[oó]n(?:es)?|mil)\b)/gi);
   return parts.map((part, index) => {
@@ -202,20 +233,43 @@ export function ArticleReadingExperience({
           <article id="article-reading-root" className="blog-reading-article" style={{ display: 'grid', gap: 44, maxWidth: 780, margin: '0 auto' }}>
             {sections.map((section, index) => {
               const keyIdeaNormalized = normalizeText(section.keyIdea);
-              const visibleParagraphs = section.paragraphs.filter((paragraph, paragraphIndex) => {
-                if (paragraphIndex !== 0) return true;
-                return normalizeText(paragraph) !== keyIdeaNormalized;
-              });
+              const visibleParagraphs = uniqueByNormalized(
+                section.paragraphs
+                  .map((paragraph, paragraphIndex) => {
+                    if (paragraphIndex === 0) {
+                      const firstSentence = getFirstSentence(paragraph);
+                      if (normalizeText(firstSentence) === keyIdeaNormalized) {
+                        return removeLeadingSentence(paragraph, firstSentence);
+                      }
+                    }
+                    return paragraph;
+                  })
+                  .filter((paragraph) => normalizeText(paragraph) !== keyIdeaNormalized),
+              );
 
               const chunkedParagraphs = visibleParagraphs.flatMap((paragraph) => chunkParagraph(paragraph));
 
-              const visibleInsights = section.insights.filter((insight) => {
-                return normalizeText(insight) !== keyIdeaNormalized;
-              });
+              const paragraphSentenceSet = new Set(
+                visibleParagraphs
+                  .flatMap((paragraph) => paragraph.split(/(?<=[.!?])\s+/))
+                  .map((sentence) => normalizeText(sentence))
+                  .filter(Boolean),
+              );
 
-              const actionPoints = extractActionPoints(visibleParagraphs, section.keyIdea);
-              const mergedPoints = Array.from(new Set([...visibleInsights, ...actionPoints])).slice(0, 5);
-              const apartes = mergedPoints.slice(0, 2);
+              const visibleInsights = uniqueByNormalized(
+                section.insights.filter((insight) => normalizeText(insight) !== keyIdeaNormalized),
+              );
+
+              // Keep only points that add value beyond what is already written in body paragraphs.
+              const mergedPoints = visibleInsights
+                .filter((insight) => !paragraphSentenceSet.has(normalizeText(insight)))
+                .slice(0, 5);
+              const mergedPointNormals = new Set(mergedPoints.map((item) => normalizeText(item)));
+              const microCalloutNormalized = normalizeText(section.microCallout);
+              const showMicroCallout =
+                Boolean(microCalloutNormalized) &&
+                microCalloutNormalized !== keyIdeaNormalized &&
+                !mergedPointNormals.has(microCalloutNormalized);
               const hashtags = Array.from(
                 new Set((visibleParagraphs.join(' ').match(/#[A-Za-z0-9_\u00C0-\u017F]+/g) ?? []).map((h) => h.trim())),
               ).slice(0, 6);
@@ -250,23 +304,14 @@ export function ArticleReadingExperience({
                       })}
                     </div>
 
-                    <div style={{ background: '#f7f8fa', borderLeft: '3px solid #d1d5db', padding: '14px 16px', marginBottom: 16 }}>
-                      <p style={{ color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: 10, fontWeight: 900, marginBottom: 8 }}>Puntos clave</p>
-                      <ul className="article-insights-list" style={{ marginBottom: 0 }}>
-                        {mergedPoints.map((item, itemIdx) => (
-                          <li key={itemIdx}><span className="article-point-marker">✔</span> {formatKeyPoint(item)}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    {apartes.length > 0 && (
-                      <div className="article-apartes-wrap" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0, 1fr))', gap: 10, marginBottom: 14 }}>
-                        {apartes.map((aparte, aparteIdx) => (
-                          <div key={aparteIdx} className="article-aparte-card" style={{ background: '#ffffff', border: '1px solid #e5e7eb', borderLeft: '3px solid #d1d5db', padding: '10px 12px' }}>
-                            <p className="article-aparte-label" style={{ color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 10, fontWeight: 900, marginBottom: 6 }}>Aparte</p>
-                            <p className="article-aparte-text" style={{ color: '#374151', fontSize: 13, lineHeight: 1.55, fontWeight: 600 }}>{formatKeyPoint(aparte)}</p>
-                          </div>
-                        ))}
+                    {mergedPoints.length > 0 && (
+                      <div style={{ background: '#f7f8fa', borderLeft: '3px solid #d1d5db', padding: '14px 16px', marginBottom: 16 }}>
+                        <p style={{ color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.1em', fontSize: 10, fontWeight: 900, marginBottom: 8 }}>Puntos clave</p>
+                        <ul className="article-insights-list" style={{ marginBottom: 0 }}>
+                          {mergedPoints.map((item, itemIdx) => (
+                            <li key={itemIdx}><span className="article-point-marker">✔</span> {formatKeyPoint(item)}</li>
+                          ))}
+                        </ul>
                       </div>
                     )}
 
@@ -280,7 +325,9 @@ export function ArticleReadingExperience({
                       </div>
                     )}
 
-                    <p className="article-micro-callout">→ {renderTextWithHighlights(section.microCallout)}</p>
+                    {showMicroCallout && (
+                      <p className="article-micro-callout">→ {renderTextWithHighlights(section.microCallout)}</p>
+                    )}
                   </section>
 
                   {index === 1 && (
@@ -291,7 +338,7 @@ export function ArticleReadingExperience({
                     </div>
                   )}
 
-                  {index % 2 === 1 && index < sections.length - 1 && (
+                  {showMicroCallout && index % 2 === 1 && index < sections.length - 1 && (
                     <blockquote className="article-quote-break" style={{ marginTop: 8 }}>
                       “{section.microCallout}”
                     </blockquote>

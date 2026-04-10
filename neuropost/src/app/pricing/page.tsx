@@ -23,7 +23,6 @@ interface ComparisonRow {
   starter: string;
   pro: string;
   total: string;
-  agencia: string;
 }
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
@@ -38,85 +37,74 @@ const PLANS: Plan[] = [
     desc: 'Para empezar con presencia constante en redes',
     featured: false,
     features: [
-      '1 cuenta (Instagram o Facebook)',
       '2 posts de foto por semana',
-      'Sin posts de vídeo',
       'Carruseles hasta 3 fotos',
-      'Edición gestionada por nuestro equipo (base)',
-      'Publicación manual (sin automatización)',
+      'Publicación programada',
+      'Edición y creación de contenido',
+      'Solicitudes de contenido personalizadas',
+      'Generación con IA integrada',
+      'Calendario de contenido básico',
     ],
   },
   {
     name: 'Pro',
-    monthlyPrice: 69,
-    desc: 'Para crecer con foto, vídeo y automatización',
+    monthlyPrice: 89,
+    desc: 'Para crecer con contenido, IA y optimización',
     featured: true,
     badge: '⚡ Más popular',
     features: [
-      'Instagram + Facebook conectados',
-      '3 posts de foto + 2 de vídeo por semana',
+      '4 fotos + 2 vídeos por semana',
       'Carruseles hasta 8 fotos',
-      'Edición gestionada por nuestro equipo (prioritaria)',
-      'Solicitudes con IA incluidas',
-      'Publicación automática programada',
-      'Analytics avanzado',
-      'Brand Kit completo',
+      'Publicación programada y calendario avanzado',
+      'Ideas de contenido + creación a medida',
+      'Mejores horas para publicar',
+      'Solicitudes de contenido personalizadas',
+      'Análisis de rendimiento y mejoras',
+      'Generación con IA integrada',
+      'Soporte prioritario',
     ],
   },
   {
     name: 'Total',
-    monthlyPrice: 129,
-    desc: 'Para escalar volumen con soporte y operación avanzada',
+    monthlyPrice: 189,
+    desc: 'Para escalar con volumen, datos y optimización continua',
     featured: false,
     badge: '🚀 Completo',
     features: [
-      'Instagram + Facebook conectados',
-      '7 posts de foto + 7 de vídeo por semana',
+      'Hasta 20 fotos + 10 vídeos por semana',
       'Carruseles hasta 20 fotos',
-      'Edición gestionada por nuestro equipo (prioritaria)',
-      'Solicitudes con IA incluidas',
-      'Publicación automática programada',
-      'Analytics avanzado',
-      'Brand Kit completo',
-      'Soporte prioritario 24 h',
-    ],
-  },
-  {
-    name: 'Agencia',
-    monthlyPrice: 199,
-    desc: 'Para agencias y gestión de múltiples marcas',
-    featured: false,
-    features: [
-      'Volumen de foto y vídeo a medida por marca',
-      'Carruseles hasta 20 fotos',
-      'Hasta 20 plataformas conectadas',
-      'Panel de gestión unificado',
-      'Edición gestionada por nuestro equipo (por marca)',
-      'Solicitudes con IA incluidas',
-      'Gestión multicliente',
-      'Soporte prioritario 24 h',
+      'Publicación programada y calendario avanzado',
+      'Ideas + contenido basado en tendencias',
+      'Solicitudes de contenido personalizadas',
+      'Análisis de rendimiento y mejoras continuas',
+      'Generación con IA integrada',
+      'Soporte prioritario 24h',
     ],
   },
 ];
 
 const COMPARISON_ROWS: ComparisonRow[] = [
-  { feature: 'Posts de foto por semana', starter: '2', pro: '3', total: '7', agencia: 'A medida × marca' },
-  { feature: 'Posts de vídeo por semana', starter: '—', pro: '2', total: '7', agencia: 'A medida × marca' },
-  { feature: 'Fotos por carrusel', starter: '3', pro: '8', total: '20', agencia: '20' },
-  { feature: 'Plataformas',            starter: '1',    pro: '2 (IG + FB)', total: '2 (IG + FB)',   agencia: 'Hasta 20' },
-  { feature: 'Publicación automática', starter: '—',    pro: '✓',           total: '✓',             agencia: '✓' },
-  { feature: 'Edición gestionada por nuestro equipo', starter: 'Sí (base)', pro: 'Sí (prioritaria)', total: 'Sí (prioritaria)', agencia: 'Sí (por marca)' },
-  { feature: 'Solicitudes con IA (a demanda)', starter: '—', pro: 'Incluida', total: 'Incluida', agencia: 'Incluida' },
-  { feature: 'Analytics avanzado',     starter: '—',    pro: '✓',           total: '✓',             agencia: '✓' },
-  { feature: 'Brand Kit',              starter: '—',    pro: '✓',           total: '✓',             agencia: '✓' },
-  { feature: 'Gestión multicliente',   starter: '—',    pro: '—',           total: '—',             agencia: '✓' },
-  { feature: 'Soporte',                starter: 'Email', pro: 'Prioritario', total: 'Prioritario 24 h',  agencia: 'Prioritario 24 h' },
+  { feature: 'Contenido semanal*', starter: '2 fotos', pro: '4 fotos + 2 vídeos', total: 'Hasta 20 fotos + 10 vídeos' },
+  { feature: 'Carruseles (nº de fotos)', starter: 'Hasta 3', pro: 'Hasta 8', total: 'Hasta 20' },
+  { feature: 'Plataformas conectadas', starter: 'Instagram + Facebook', pro: 'Instagram + Facebook', total: 'Instagram + Facebook' },
+  { feature: 'Publicación programada (tú decides cuándo)', starter: '✓', pro: '✓', total: '✓' },
+  { feature: 'Calendario de contenido', starter: 'Básico', pro: 'Avanzado', total: 'Avanzado' },
+  { feature: 'Edición y creacion de contenido', starter: 'Avanzado', pro: 'Avanzado', total: 'Avanzado' },
+  { feature: 'Solicitudes de contenido personalizadas', starter: '✓', pro: '✓', total: '✓' },
+  { feature: 'Generación con IA integrada', starter: '✓', pro: '✓', total: '✓' },
+  { feature: 'Ideas de contenido + creación a medida', starter: '—', pro: '✓', total: '✓' },
+  { feature: 'Mejores horas para publicar', starter: '—', pro: '✓', total: '✓' },
+  { feature: 'Análisis de rendimiento y mejoras', starter: '—', pro: '✓', total: '✓' },
+  { feature: 'Contenido en tendencia', starter: '—', pro: '—', total: '✓' },
+  { feature: 'Aprobación de contenido', starter: '✓', pro: '✓', total: '✓' },
+  { feature: 'Análisis de rendimiento', starter: 'Avanzado', pro: 'Avanzado', total: 'Avanzado' },
+  { feature: 'Soporte', starter: 'Prioritario', pro: 'Prioritario', total: '24h prioritario' },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function annualPrice(monthly: number): number {
-  return Math.round(monthly * 0.8);
+  return Math.round(monthly * 0.85);
 }
 
 function annualSavings(monthly: number): number {
@@ -138,12 +126,15 @@ function FooterSection() {
 function RoiCalculator() {
   const [postsPerWeek, setPostsPerWeek] = useState(3);
   const [minsPerPost, setMinsPerPost] = useState(45);
+  const [hourlyRate, setHourlyRate] = useState(14);
 
   const currentMonthlyMins = postsPerWeek * 4 * minsPerPost;
   const currentMonthlyHours = currentMonthlyMins / 60;
   const withNeuroPostHours = currentMonthlyHours * 0.1;
   const savedHours = currentMonthlyHours - withNeuroPostHours;
   const savedDays = savedHours / 8;
+  const monthlySavingsEur = savedHours * hourlyRate;
+  const yearlySavingsEur = monthlySavingsEur * 12;
 
   return (
     <section
@@ -207,7 +198,7 @@ function RoiCalculator() {
             <input
               type="range"
               min={1}
-              max={7}
+              max={20}
               value={postsPerWeek}
               onChange={(e) => setPostsPerWeek(Number(e.target.value))}
               style={{ width: '100%', accentColor: 'var(--orange)', cursor: 'pointer', height: '6px' }}
@@ -223,7 +214,7 @@ function RoiCalculator() {
               }}
             >
               <span>1 vez</span>
-              <span>7 veces</span>
+              <span>20 veces</span>
             </div>
           </div>
 
@@ -245,7 +236,7 @@ function RoiCalculator() {
                   color: 'var(--ink)',
                 }}
               >
-                ¿Cuántos minutos tardas por publicación?
+                ¿Cuántos minutos tardas entre hacer un buen plano, editar y publicar?
               </label>
               <span
                 style={{
@@ -260,8 +251,8 @@ function RoiCalculator() {
             </div>
             <input
               type="range"
-              min={10}
-              max={120}
+              min={5}
+              max={240}
               step={5}
               value={minsPerPost}
               onChange={(e) => setMinsPerPost(Number(e.target.value))}
@@ -277,8 +268,63 @@ function RoiCalculator() {
                 marginTop: '6px',
               }}
             >
-              <span>10 min</span>
-              <span>2 horas</span>
+              <span>5 min</span>
+              <span>4 horas</span>
+            </div>
+          </div>
+
+          {/* Slider 3 */}
+          <div style={{ marginBottom: '40px' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '12px',
+              }}
+            >
+              <label
+                style={{
+                  fontFamily: f,
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                  color: 'var(--ink)',
+                }}
+              >
+                Coste por hora de una persona (€)
+              </label>
+              <span
+                style={{
+                  fontFamily: fc,
+                  fontWeight: 900,
+                  fontSize: '1.4rem',
+                  color: 'var(--orange)',
+                }}
+              >
+                {hourlyRate} €/h
+              </span>
+            </div>
+            <input
+              type="range"
+              min={8}
+              max={40}
+              step={1}
+              value={hourlyRate}
+              onChange={(e) => setHourlyRate(Number(e.target.value))}
+              style={{ width: '100%', accentColor: 'var(--orange)', cursor: 'pointer', height: '6px' }}
+            />
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                fontFamily: f,
+                fontSize: '0.78rem',
+                color: 'var(--muted)',
+                marginTop: '6px',
+              }}
+            >
+              <span>8 €/h</span>
+              <span>40 €/h</span>
             </div>
           </div>
 
@@ -423,6 +469,12 @@ function RoiCalculator() {
                 <div style={{ fontSize: '0.78rem', marginTop: '4px', color: 'rgba(250,248,243,0.4)' }}>
                   calculado a 8 h/día
                 </div>
+                <div style={{ marginTop: '10px', fontSize: '0.85rem', color: 'rgba(250,248,243,0.92)', fontWeight: 700 }}>
+                  ≈ €{Math.round(monthlySavingsEur).toLocaleString('es-ES')}/mes
+                </div>
+                <div style={{ fontSize: '0.78rem', color: 'rgba(250,248,243,0.7)' }}>
+                  (€{hourlyRate}/h · ahorro anual ≈ €{Math.round(yearlySavingsEur).toLocaleString('es-ES')})
+                </div>
               </div>
             </div>
           </div>
@@ -436,30 +488,21 @@ function PlanRecommender({ billing }: { billing: BillingCycle }) {
   const [photosPerWeek, setPhotosPerWeek] = useState(8);
   const [videosPerWeek, setVideosPerWeek] = useState(2);
   const [engagementGoal, setEngagementGoal] = useState(6);
-  const [multiCompany, setMultiCompany] = useState(false);
-  const [companiesCount, setCompaniesCount] = useState(2);
 
   const planRules = {
     starter: { photos: 2, videos: 0 },
     pro: { photos: 3, videos: 2 },
-    total: { photos: 7, videos: 7 },
+    total: { photos: 20, videos: 10 },
   } as const;
 
   let recommended: Plan = PLANS[0];
-  if (multiCompany) {
-    recommended = PLANS[3];
-  } else if (photosPerWeek <= planRules.starter.photos && videosPerWeek <= planRules.starter.videos) {
+  if (photosPerWeek <= planRules.starter.photos && videosPerWeek <= planRules.starter.videos) {
     recommended = PLANS[0];
   } else if (photosPerWeek <= planRules.pro.photos && videosPerWeek <= planRules.pro.videos) {
     recommended = PLANS[1];
-  } else if (photosPerWeek <= planRules.total.photos && videosPerWeek <= planRules.total.videos) {
-    recommended = PLANS[2];
   } else {
-    recommended = PLANS[3];
+    recommended = PLANS[2];
   }
-
-  const workloadScore = photosPerWeek + videosPerWeek;
-  const ambitionScore = workloadScore + engagementGoal;
 
   const price = billing === 'annual' ? annualPrice(recommended.monthlyPrice) : recommended.monthlyPrice;
   const savings = annualSavings(recommended.monthlyPrice);
@@ -545,51 +588,6 @@ function PlanRecommender({ billing }: { billing: BillingCycle }) {
               />
             </div>
 
-            <div style={{ marginTop: 24 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                <label style={{ fontFamily: f, fontSize: '0.9rem', fontWeight: 700, color: 'var(--ink)' }}>
-                  ¿Gestionas más de una empresa?
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setMultiCompany((v) => !v)}
-                  style={{
-                    border: '1px solid var(--border)',
-                    background: multiCompany ? 'var(--orange)' : '#ffffff',
-                    color: multiCompany ? '#ffffff' : 'var(--muted)',
-                    fontFamily: f,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    padding: '6px 10px',
-                    cursor: 'pointer',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.06em',
-                  }}
-                >
-                  {multiCompany ? 'Sí' : 'No'}
-                </button>
-              </div>
-
-              {multiCompany && (
-                <>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <label style={{ fontFamily: f, fontSize: '0.86rem', fontWeight: 600, color: 'var(--muted)' }}>
-                      Número de empresas
-                    </label>
-                    <span style={{ fontFamily: fc, fontSize: '1.1rem', fontWeight: 900, color: 'var(--orange)' }}>{companiesCount}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={2}
-                    max={10}
-                    step={1}
-                    value={companiesCount}
-                    onChange={(e) => setCompaniesCount(Number(e.target.value))}
-                    style={{ width: '100%', accentColor: 'var(--orange)', cursor: 'pointer' }}
-                  />
-                </>
-              )}
-            </div>
           </div>
 
           <aside style={{ background: '#111111', color: '#ffffff', padding: 22, border: '1px solid #111111' }}>
@@ -616,8 +614,6 @@ function PlanRecommender({ billing }: { billing: BillingCycle }) {
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8, marginBottom: 16 }}>
               <li style={{ fontFamily: f, fontSize: 12, color: '#d1d5db' }}>✔ Carga estimada: {photosPerWeek + videosPerWeek} piezas/semana</li>
               <li style={{ fontFamily: f, fontSize: 12, color: '#d1d5db' }}>✔ Intensidad de crecimiento: {engagementGoal}/10</li>
-              <li style={{ fontFamily: f, fontSize: 12, color: '#d1d5db' }}>✔ Score total: {Math.round(ambitionScore)}</li>
-              {multiCompany && <li style={{ fontFamily: f, fontSize: 12, color: '#d1d5db' }}>✔ Empresas: {companiesCount}</li>}
             </ul>
 
             <a href="#pricing-plans" style={{ display: 'inline-block', width: '100%', textAlign: 'center', background: '#ffffff', color: '#111111', textDecoration: 'none', fontFamily: fc, fontWeight: 700, fontSize: 12, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '10px 14px' }}>
@@ -749,7 +745,7 @@ export default function PricingPage() {
                         fontWeight: 800,
                       }}
                     >
-                      −20%
+                      −15%
                     </span>
                   )}
                 </button>
@@ -758,7 +754,7 @@ export default function PricingPage() {
           </div>
 
           <div style={{ overflowX: 'auto', overflowY: 'visible', paddingTop: 10, paddingBottom: 4 }}>
-            <div className="pricing-grid" style={{ minWidth: 1040, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, alignItems: 'stretch' }}>
+            <div className="pricing-grid" style={{ minWidth: 780, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, alignItems: 'stretch' }}>
               {PLANS.map((plan) => {
                 const price = displayPrice(plan);
                 const savings = annualSavings(plan.monthlyPrice);
@@ -801,7 +797,7 @@ export default function PricingPage() {
                       ))}
                     </ul>
                     <Link href="/register" className="plan-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
-                      Empezar gratis →
+                      👉 Empezar gratis →
                     </Link>
                   </div>
                 );
@@ -827,7 +823,7 @@ export default function PricingPage() {
             <table
               style={{
                 width: '100%',
-                maxWidth: '820px',
+                maxWidth: '860px',
                 margin: '0 auto',
                 borderCollapse: 'collapse',
                 fontFamily: f,
@@ -837,7 +833,7 @@ export default function PricingPage() {
                 <tr>
                   <th
                     style={{
-                      padding: '16px 20px',
+                      padding: '16px 22px',
                       textAlign: 'left',
                       fontSize: '0.8rem',
                       fontWeight: 700,
@@ -849,17 +845,17 @@ export default function PricingPage() {
                   >
                     Función
                   </th>
-                  {(['Starter', 'Pro', 'Total', 'Agencia'] as const).map((col) => (
+                  {(['STARTER', 'PRO', 'TOTAL'] as const).map((col) => (
                     <th
                       key={col}
                       style={{
-                        padding: '16px 20px',
+                        padding: '16px 22px',
                         textAlign: 'center',
                         fontSize: '0.88rem',
                         fontWeight: 800,
-                        color: col === 'Pro' ? 'var(--orange)' : 'var(--ink)',
+                        color: col === 'PRO' ? 'var(--orange)' : 'var(--ink)',
                         borderBottom: '2px solid var(--border)',
-                        background: col === 'Pro' ? 'rgba(255,92,26,0.04)' : 'transparent',
+                        background: col === 'PRO' ? 'rgba(255,92,26,0.04)' : 'transparent',
                         borderRadius: undefined,
                       }}
                     >
@@ -876,8 +872,8 @@ export default function PricingPage() {
                   >
                     <td
                       style={{
-                        padding: '14px 20px',
-                        fontSize: '0.9rem',
+                        padding: '14px 22px',
+                        fontSize: '0.84rem',
                         color: 'var(--ink)',
                         fontWeight: 600,
                         borderBottom: '1px solid var(--border)',
@@ -885,11 +881,11 @@ export default function PricingPage() {
                     >
                       {row.feature}
                     </td>
-                    {([row.starter, row.pro, row.total, row.agencia] as const).map((val, j) => (
+                    {([row.starter, row.pro, row.total] as const).map((val, j) => (
                       <td
                         key={j}
                         style={{
-                          padding: '14px 20px',
+                          padding: '14px 22px',
                           textAlign: 'center',
                           borderBottom: '1px solid var(--border)',
                           background: j === 1 ? 'rgba(255,92,26,0.04)' : undefined,
@@ -900,7 +896,7 @@ export default function PricingPage() {
                                 ? 'var(--border)'
                                 : 'var(--ink)',
                           fontWeight: val === '✓' || val === '—' ? 900 : 500,
-                          fontSize: val === '✓' || val === '—' ? '1rem' : '0.88rem',
+                          fontSize: val === '✓' || val === '—' ? '0.94rem' : '0.82rem',
                         }}
                       >
                         {val}
@@ -911,6 +907,10 @@ export default function PricingPage() {
               </tbody>
             </table>
           </div>
+
+          <p style={{ maxWidth: '820px', margin: '14px auto 0', fontFamily: f, fontSize: '0.8rem', color: 'var(--muted)' }}>
+            * Adapta el contenido a tus objetivos: más fotos o más vídeos.
+          </p>
         </div>
       </section>
 

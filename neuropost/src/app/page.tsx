@@ -120,9 +120,9 @@ const FAQ_DATA: FaqCategory[] = [
 ];
 
 const TESTIMONIALS = [
-  { name: 'María González', biz: 'Heladería Toscana, Barcelona', quote: 'Antes tardaba 3 horas semanales en Instagram. Ahora subo las fotos y el equipo se encarga de todo. El engagement ha subido un 280%.' },
-  { name: 'Carlos Martín', biz: 'Cafetería El Rincón, Madrid', quote: 'Nadie nota que no soy yo quien escribe los posts. Han aprendido exactamente cómo habla mi marca. Los clientes preguntan quién lleva el Instagram.' },
-  { name: 'Laura Jiménez', biz: 'Agencia LJ Social, Valencia', quote: 'Gestiono 6 locales. Con NeuroPost tengo un equipo para cada uno. He triplicado lo que puedo cobrar por los mismos servicios.' },
+  { name: 'María González', biz: 'Heladería Toscana, Barcelona', quote: 'En pocas semanas, el local empezó a llenarse, sobre todo de gente joven que venía por lo que veía en Instagram. Ahora tengo más clientes entrando cada día.' },
+  { name: 'Carlos Martín', biz: 'Cafetería El Rincón, Madrid', quote: 'Han captado perfectamente el tono de mi negocio y lo que quiero transmitir. Ahora mi Instagram refleja de verdad mi marca... y se nota en los clientes.' },
+  { name: 'Laura Jiménez', biz: 'Cafetería El Rincón, Madrid', quote: 'Han captado perfectamente el tono de mi negocio y lo que quiero transmitir. Ahora mi Instagram refleja de verdad mi marca... y se nota en los clientes.' },
 ];
 
 const LOGOS = ['🍦 Heladería Toscana', '☕ Cafetería El Rincón', '🌮 Tacos & Co.', '💈 Barbería Retro', '🌸 Centro Estético Alma', '🍕 Pizzería Napoli', '👗 Boutique Mía', '🏋️ Gym Urban Fit'];
@@ -195,70 +195,56 @@ export default function LandingPage() {
       monthlyPrice: 29,
       desc: 'Para empezar con presencia constante en redes',
       features: [
-        '1 cuenta (Instagram o Facebook)',
         '2 posts de foto por semana',
-        'Sin posts de vídeo',
         'Carruseles hasta 3 fotos',
-        'Edición gestionada por nuestro equipo (base)',
-        'Publicación manual (sin automatización)',
+        'Publicación programada',
+        'Edición y creación de contenido',
+        'Solicitudes de contenido personalizadas',
+        'Generación con IA integrada',
+        'Calendario de contenido básico',
       ],
     },
     {
       name: 'Pro',
-      monthlyPrice: 69,
-      desc: 'Para crecer con foto, vídeo y automatización',
+      monthlyPrice: 89,
+      desc: 'Para crecer con contenido, IA y optimización',
       featured: true,
       badge: '⚡ Más popular',
       features: [
-        'Instagram + Facebook conectados',
-        '3 posts de foto + 2 de vídeo por semana',
+        '4 fotos + 2 vídeos por semana',
         'Carruseles hasta 8 fotos',
-        'Edición gestionada por nuestro equipo (prioritaria)',
-        'Solicitudes con IA incluidas',
-        'Publicación automática programada',
-        'Analytics avanzado',
-        'Brand Kit completo',
+        'Publicación programada y calendario avanzado',
+        'Ideas de contenido + creación a medida',
+        'Mejores horas para publicar',
+        'Solicitudes de contenido personalizadas',
+        'Análisis de rendimiento y mejoras',
+        'Generación con IA integrada',
+        'Soporte prioritario',
       ],
     },
     {
       name: 'Total',
-      monthlyPrice: 129,
-      desc: 'Para escalar volumen con soporte y operación avanzada',
+      monthlyPrice: 189,
+      desc: 'Para escalar con volumen, datos y optimización continua',
       badge: '🚀 Completo',
       features: [
-        'Instagram + Facebook conectados',
-        '7 posts de foto + 7 de vídeo por semana',
+        'Hasta 20 fotos + 10 vídeos por semana',
         'Carruseles hasta 20 fotos',
-        'Edición gestionada por nuestro equipo (prioritaria)',
-        'Solicitudes con IA incluidas',
-        'Publicación automática programada',
-        'Analytics avanzado',
-        'Brand Kit completo',
-        'Soporte prioritario 24 h',
-      ],
-    },
-    {
-      name: 'Agencia',
-      monthlyPrice: 199,
-      desc: 'Para agencias y gestión de múltiples marcas',
-      features: [
-        'Volumen de foto y vídeo a medida por marca',
-        'Carruseles hasta 20 fotos',
-        'Hasta 20 plataformas conectadas',
-        'Panel de gestión unificado',
-        'Edición gestionada por nuestro equipo (por marca)',
-        'Solicitudes con IA incluidas',
-        'Gestión multicliente',
-        'Soporte prioritario 24 h',
+        'Publicación programada y calendario avanzado',
+        'Ideas + contenido basado en tendencias',
+        'Solicitudes de contenido personalizadas',
+        'Análisis de rendimiento y mejoras continuas',
+        'Generación con IA integrada',
+        'Soporte prioritario 24h',
       ],
     },
   ];
 
   const homeDisplayPrice = (monthlyPrice: number) =>
-    homeBilling === 'annual' ? Math.round(monthlyPrice * 0.8) : monthlyPrice;
+    homeBilling === 'annual' ? Math.round(monthlyPrice * 0.85) : monthlyPrice;
 
   const homeSavings = (monthlyPrice: number) =>
-    Math.round((monthlyPrice - Math.round(monthlyPrice * 0.8)) * 12);
+    Math.round((monthlyPrice - Math.round(monthlyPrice * 0.85)) * 12);
 
   const faqSchema = {
     '@context': 'https://schema.org',
@@ -585,7 +571,7 @@ export default function LandingPage() {
                       fontWeight: 800,
                     }}
                   >
-                    −20%
+                    −15%
                   </span>
                 )}
               </button>
@@ -594,7 +580,7 @@ export default function LandingPage() {
         </div>
         <div className="container">
           <div style={{ overflowX: 'auto', overflowY: 'visible', paddingTop: 10, paddingBottom: 4 }}>
-            <div className="pricing-home-grid" style={{ minWidth: 1040, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, alignItems: 'stretch' }}>
+            <div className="pricing-home-grid" style={{ minWidth: 780, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, alignItems: 'stretch' }}>
             {homePlans.map(({ name, monthlyPrice, desc, featured, badge, features }) => (
               <div key={name} className="pricing-home-card" style={{ background: featured ? '#111111' : '#ffffff', border: featured ? 'none' : '1px solid #e5e7eb', padding: '40px 24px', display: 'flex', flexDirection: 'column' }}>
                 {(badge || featured) && (
@@ -624,7 +610,7 @@ export default function LandingPage() {
                   background: featured ? '#ffffff' : '#111111', color: featured ? '#111111' : '#ffffff',
                   fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
                 }}>
-                  Empezar gratis →
+                  👉 Empezar gratis →
                 </Link>
               </div>
             ))}
