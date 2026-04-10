@@ -82,10 +82,36 @@ export async function analyzeCompetitor(input: {
   clientSector:       string;
   clientBrandVoice:   string;
   clientName:         string;
+  /** Words the client brand marks as forbidden. */
+  forbiddenWords?:    string[];
+  /** Topics the client brand wants to avoid entirely. */
+  forbiddenTopics?:   string[];
+  /** Drop all emojis from generated captions. */
+  noEmojis?:          boolean;
+  /** Format preferences from the client's brand kit. */
+  likesCarousels?:    boolean;
+  includeVideos?:     boolean;
 }): Promise<CompetitorAnalysisResult> {
   const postsText = input.recentPosts.slice(0, 12).map((p, i) =>
     `Post ${i + 1}: [${p.media_type}] Likes: ${p.like_count} | Comentarios: ${p.comments_count} | Caption: ${(p.caption ?? '').substring(0, 120)}`,
   ).join('\n');
+
+  const constraints: string[] = [];
+  if (input.forbiddenWords?.length) {
+    constraints.push(`NO uses jamás estas palabras en las captions generadas: ${input.forbiddenWords.join(', ')}.`);
+  }
+  if (input.forbiddenTopics?.length) {
+    constraints.push(`Evita por completo estos temas en todas las ideas: ${input.forbiddenTopics.join(', ')}.`);
+  }
+  if (input.noEmojis) {
+    constraints.push('NO uses emojis ni emoticonos en ninguna caption.');
+  }
+  if (input.likesCarousels === false) {
+    constraints.push('El cliente NO quiere carruseles — NO propongas ideas con format="carrusel".');
+  }
+  if (input.includeVideos === false) {
+    constraints.push('El cliente NO incluye vídeos — NO propongas ideas con format="reel".');
+  }
 
   const message = await client.messages.create({
     model:      'claude-opus-4-6',
@@ -93,6 +119,7 @@ export async function analyzeCompetitor(input: {
     system: `Analiza la estrategia de contenido de este competidor en Instagram.
 Tu objetivo es identificar qué está funcionando para INSPIRAR al cliente, NO para copiar.
 Genera ideas 100% originales basadas en lo que funciona.
+${constraints.length ? `\nREGLAS ESTRICTAS DE LA MARCA DEL CLIENTE:\n${constraints.map(c => `- ${c}`).join('\n')}\n` : ''}
 
 Devuelve SOLO JSON válido:
 {

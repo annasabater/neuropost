@@ -12,7 +12,7 @@ const CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://eu.posthog.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "img-src 'self' data: blob: https://*.supabase.co https://*.instagram.com https://graph.facebook.com https://images.unsplash.com",
+  "img-src 'self' data: blob: https://*.supabase.co https://*.instagram.com https://graph.facebook.com https://images.unsplash.com https://loremflickr.com https://*.staticflickr.com",
   "font-src 'self' https://fonts.gstatic.com",
   "frame-src https://js.stripe.com",
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://eu.posthog.com",

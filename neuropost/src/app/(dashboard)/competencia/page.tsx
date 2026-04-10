@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Users, Plus, Loader2 } from 'lucide-react';
+import { PlanGate } from '@/components/PlanGate';
 
 interface ContentIdea {
   title:         string;
@@ -29,6 +30,18 @@ interface Analysis {
 }
 
 export default function CompetenciaPage() {
+  return (
+    <PlanGate
+      feature="competitorAgent"
+      title="Análisis de competencia"
+      description="Descubre qué está funcionando en tu sector. Analizamos cuentas de competidores y sacamos ideas de contenido adaptadas a tu marca."
+    >
+      <CompetenciaContent />
+    </PlanGate>
+  );
+}
+
+function CompetenciaContent() {
   const router  = useRouter();
   const [analyses,   setAnalyses]   = useState<Analysis[]>([]);
   const [selected,   setSelected]   = useState<Analysis | null>(null);

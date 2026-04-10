@@ -56,7 +56,7 @@ function LoginForm() {
       if (workerRes.ok) {
         const { worker } = await workerRes.json();
         if (worker?.is_active) {
-          router.push('/worker/dashboard');
+          router.push('/worker');
           return;
         }
       }

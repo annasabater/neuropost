@@ -13,7 +13,12 @@ export async function GET(request: Request) {
 
   const { error, count } = await supabase
     .from('brands')
-    .update({ posts_this_week: 0, stories_this_week: 0, week_reset_at: new Date().toISOString() })
+    .update({
+      posts_this_week:   0,
+      stories_this_week: 0,
+      videos_this_week:  0,
+      week_reset_at:     new Date().toISOString(),
+    })
     .neq('id', '00000000-0000-0000-0000-000000000000') // update all rows
     .select('id', { count: 'exact', head: true });
 

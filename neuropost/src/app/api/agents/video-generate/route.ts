@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { runVideoGenerateAgent } from '@/agents/VideoGenerateAgent';
 import { checkRateLimit } from '@/lib/ratelimit';
-import type { VisualStyle, SocialSector, Brand } from '@/types';
+import { checkVideoLimit, incrementVideoCounter } from '@/lib/plan-limits';
+import type { VisualStyle, SocialSector, Brand, BrandRules } from '@/types';
 import type { RunwayDuration } from '@/lib/runway';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -31,18 +32,28 @@ export async function POST(request: Request) {
 
     const { data: brand } = await supabase
       .from('brands')
-      .select('id, name, sector, tone, hashtags, visual_style, plan')
+      .select('id, name, sector, tone, hashtags, visual_style, plan, colors, rules')
       .eq('user_id', user.id)
       .single();
 
     if (!brand) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
 
     const typedBrand  = brand as Brand;
+
+    // Plan gate — checks both "is video allowed on this plan" AND the weekly
+    // counter. Starter (videosPerWeek=0) is rejected immediately, and Pro/Total
+    // will be blocked when they run out of their 2/10 weekly quota.
+    const videoGate = await checkVideoLimit(typedBrand.id);
+    if (!videoGate.allowed) {
+      return NextResponse.json({ error: videoGate.reason, upgradeUrl: videoGate.upgradeUrl }, { status: 402 });
+    }
     const brandContext = [
       `Negoci: ${typedBrand.name}`,
       `Sector: ${typedBrand.sector}`,
       `Ton: ${typedBrand.tone ?? 'proper i directe'}`,
     ].join(' | ');
+
+    const rules = (typedBrand.rules ?? null) as BrandRules | null;
 
     const result = await runVideoGenerateAgent({
       userPrompt:         body.userPrompt,
@@ -52,7 +63,13 @@ export async function POST(request: Request) {
       referenceImageUrl:  body.referenceImageUrl,
       duration:           body.duration ?? 5,
       brandId:            typedBrand.id,
+      colors:             typedBrand.colors,
+      forbiddenWords:     rules?.forbiddenWords,
+      noEmojis:           rules?.noEmojis,
     });
+
+    // Increment the weekly video counter so the next call sees the new total.
+    await incrementVideoCounter(typedBrand.id);
 
     // Log activity
     await supabase.from('activity_log').insert({

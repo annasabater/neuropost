@@ -12,7 +12,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { generateVideo } from '@/lib/runway';
 import type { RunwayDuration } from '@/lib/runway';
-import type { VisualStyle, SocialSector } from '@/types';
+import type { VisualStyle, SocialSector, BrandColors } from '@/types';
 
 const anthropic = new Anthropic();
 
@@ -24,6 +24,12 @@ export interface VideoGenerateInput {
   referenceImageUrl?: string;        // optional: animate an existing photo
   duration?:     RunwayDuration;     // 5 or 10 seconds (default 5)
   brandId?:      string;
+  /** Brand palette — injected into the cinematic prompt. */
+  colors?:       BrandColors | null;
+  /** Words to avoid in any overlay text (we also tell RunwayML to skip text overlays). */
+  forbiddenWords?: string[];
+  /** If true, no emojis should appear (belt and braces — Runway doesn't render emojis). */
+  noEmojis?:     boolean;
 }
 
 export interface VideoGenerateOutput {
@@ -55,6 +61,18 @@ export async function runVideoGenerateAgent(
   const start    = Date.now();
   const duration = input.duration ?? 5;
 
+  // Brand constraints woven into the video prompt.
+  const brandRules: string[] = [];
+  if (input.colors?.primary) {
+    brandRules.push(`Grade the footage toward the brand palette: primary ${input.colors.primary}${input.colors.secondary ? `, secondary ${input.colors.secondary}` : ''}.`);
+  }
+  if (input.forbiddenWords?.length) {
+    brandRules.push(`Do NOT reference these concepts in the scene: ${input.forbiddenWords.join(', ')}.`);
+  }
+  if (input.noEmojis) {
+    brandRules.push('No emoji-like icons or cartoonish overlays.');
+  }
+
   // ── Step 1: Claude writes the optimal RunwayML prompt ─────────────────────
   const promptMsg = await anthropic.messages.create({
     model:      'claude-sonnet-4-20250514',
@@ -70,7 +88,7 @@ Brand context: ${input.brandContext}
 Duration: ${duration} seconds
 Format: 9:16 vertical (Instagram Reel)
 ${input.referenceImageUrl ? 'A reference image will be provided — animate and extend it.' : 'Generate from text only.'}
-
+${brandRules.length ? `\nBrand rules:\n${brandRules.map(r => `- ${r}`).join('\n')}\n` : ''}
 Requirements for RunwayML Gen-4:
 - Describe the scene, action, camera movement and lighting precisely
 - Use cinematic language: "slow dolly forward", "rack focus", "golden hour sunlight"

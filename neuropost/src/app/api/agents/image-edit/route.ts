@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { runImageEditAgent } from '@/agents/ImageEditAgent';
-import type { VisualStyle, Brand } from '@/types';
+import type { VisualStyle, Brand, BrandRules } from '@/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
     const { data: brand } = await supabase
       .from('brands')
-      .select('id, name, tone, sector, visual_style, plan')
+      .select('id, name, tone, sector, visual_style, plan, colors, rules')
       .eq('user_id', user.id)
       .single();
 
@@ -30,6 +30,7 @@ export async function POST(request: Request) {
 
     const typedBrand = brand as Brand;
     const brandContext = `${typedBrand.name} · ${typedBrand.sector} · tono: ${typedBrand.tone ?? 'cercano'}`;
+    const rules = (typedBrand.rules ?? null) as BrandRules | null;
 
     const result = await runImageEditAgent({
       imageUrl:         body.imageUrl,
@@ -38,6 +39,9 @@ export async function POST(request: Request) {
       visualStyle:      (typedBrand.visual_style ?? 'warm') as VisualStyle,
       brandContext,
       brandId:          typedBrand.id,
+      colors:           typedBrand.colors,
+      forbiddenWords:   rules?.forbiddenWords,
+      noEmojis:         rules?.noEmojis,
     });
 
     // Log activity

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { generateSeasonalContent } from '@/agents/SeasonalAgent';
-import type { Brand } from '@/types';
+import { normalizePreferences } from '@/lib/plan-features';
+import type { Brand, BrandRules } from '@/types';
 
 export async function POST(request: Request) {
   try {
@@ -39,6 +40,9 @@ export async function POST(request: Request) {
       .limit(1)
       .single();
 
+    const rules = (b.rules ?? null) as BrandRules | null;
+    const prefs = normalizePreferences(b.plan, rules?.preferences);
+
     const content = await generateSeasonalContent({
       fecha:            seasonalDate.name,
       diasRestantes,
@@ -46,6 +50,11 @@ export async function POST(request: Request) {
       brandName:        b.name,
       brandVoiceDoc:    b.brand_voice_doc ?? `Negocio: ${b.name}, Sector: ${b.sector}, Tono: ${b.tone}`,
       previousYearPost: previousPost?.caption ?? null,
+      forbiddenWords:   rules?.forbiddenWords,
+      forbiddenTopics:  rules?.forbiddenTopics,
+      noEmojis:         rules?.noEmojis,
+      likesCarousels:   prefs.likesCarousels,
+      includeVideos:    prefs.includeVideos,
     });
 
     // Publish date = days_advance before the actual date

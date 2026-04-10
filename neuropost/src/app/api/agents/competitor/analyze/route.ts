@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { fetchCompetitorPublicData, analyzeCompetitor } from '@/agents/CompetitorAgent';
-import type { Brand } from '@/types';
+import { checkFeature } from '@/lib/plan-limits';
+import { normalizePreferences } from '@/lib/plan-features';
+import type { Brand, BrandRules } from '@/types';
 
 export async function POST(request: Request) {
   try {
@@ -15,6 +17,12 @@ export async function POST(request: Request) {
 
     const b = brand as Brand;
 
+    // Plan gate — competitor analysis is a Total+ feature.
+    const gate = await checkFeature(b.id, 'competitorAgent');
+    if (!gate.allowed) {
+      return NextResponse.json({ error: gate.reason, upgradeUrl: gate.upgradeUrl }, { status: 402 });
+    }
+
     // Need Meta access token to query IG Graph API
     const accessToken = b.ig_access_token ?? b.fb_access_token;
     if (!accessToken) {
@@ -22,6 +30,9 @@ export async function POST(request: Request) {
     }
 
     const { profile, posts } = await fetchCompetitorPublicData(competitorUsername, accessToken);
+
+    const rules = (b.rules ?? null) as BrandRules | null;
+    const prefs = normalizePreferences(b.plan, rules?.preferences);
 
     const result = await analyzeCompetitor({
       competitorUsername,
@@ -31,6 +42,11 @@ export async function POST(request: Request) {
       clientSector:     b.sector ?? 'otro',
       clientBrandVoice: b.brand_voice_doc ?? `${b.name}, ${b.sector}, tono ${b.tone}`,
       clientName:       b.name,
+      forbiddenWords:   rules?.forbiddenWords,
+      forbiddenTopics:  rules?.forbiddenTopics,
+      noEmojis:         rules?.noEmojis,
+      likesCarousels:   prefs.likesCarousels,
+      includeVideos:    prefs.includeVideos,
     });
 
     // Save analysis

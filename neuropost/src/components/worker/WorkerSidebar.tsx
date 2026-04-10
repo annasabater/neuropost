@@ -57,7 +57,7 @@ export function WorkerSidebar({
     <aside className="dash-sidebar">
       {/* ── Header ── */}
       <div className="dash-sidebar-header">
-        <ProgressLink href="/worker/dashboard" className="dash-logo">NeuroPost</ProgressLink>
+        <ProgressLink href="/worker" className="dash-logo">NeuroPost</ProgressLink>
         <button className="sidebar-close-btn" onClick={onClose} aria-label="Cerrar menú">
           <X size={18} />
         </button>

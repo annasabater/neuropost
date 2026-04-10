@@ -45,12 +45,52 @@ export interface BrandFaq {
   a: string;
 }
 
+export interface BrandPreferences {
+  /** 0=Sunday … 6=Saturday. Empty array means "no preference". */
+  preferredDays:      number[];
+  /** Desired posts per week. Clamped client-side to PLAN_LIMITS[plan].postsPerWeek. */
+  postsPerWeek:       number;
+  /** Whether to include videos in the rotation (Pro+ only). */
+  includeVideos:      boolean;
+  /** Desired videos per week. Clamped to PLAN_LIMITS[plan].videosPerWeek. */
+  videosPerWeek:      number;
+  /** Whether the user likes carousels. */
+  likesCarousels:     boolean;
+  /** Preferred photos per carousel. Clamped to PLAN_LIMITS[plan].carouselMaxPhotos. */
+  carouselSize:       number;
+  /** Preferred posting window — hour of day 0..23. */
+  preferredHourStart: number;
+  preferredHourEnd:   number;
+  /** Whether hashtags are appended to generated posts. */
+  hashtagsEnabled:    boolean;
+  /** Whether slogans are weaved into generated posts. */
+  slogansEnabled:     boolean;
+}
+
+/** Structured voice configuration so the editor can reopen pre-selected. */
+export interface BrandVoicePreset {
+  /** Personality chips (multi-select): cercano, enérgico, premium, … */
+  personality:    string[];
+  /** Caption length preference: short / medium / long. */
+  length:         'short' | 'medium' | 'long';
+  /** Tú / usted / mezclado. */
+  addressing:     'tu' | 'usted' | 'mixed';
+  /** How much the brand tells stories vs. states facts. */
+  storytelling:   'low' | 'medium' | 'high';
+  /** Free-form extra notes (optional). */
+  extraNotes:     string;
+}
+
 export interface BrandRules {
   noPublishDays:          number[];   // 0=Sunday … 6=Saturday
   noEmojis:               boolean;
   noAutoReplyNegative:    boolean;
   forbiddenWords:         string[];
   forbiddenTopics:        string[];
+  /** Plan-aware publishing preferences. Optional for backwards-compat. */
+  preferences?:           BrandPreferences;
+  /** Structured voice preset, used to regenerate brand_voice_doc on save. */
+  voicePreset?:           BrandVoicePreset;
 }
 
 export interface Brand {
@@ -87,8 +127,15 @@ export interface Brand {
   plan_cancels_at:        string | null;
   notify_email_publish:   boolean;
   notify_email_comments:  boolean;
+  /** Uploaded logo/avatar URL (optional). */
+  logo_url?:              string | null;
+  /** Short business description shown in settings and brand kit. */
+  description?:           string | null;
+  /** Timezone for scheduling — IANA e.g. 'Europe/Madrid'. */
+  timezone?:              string | null;
   posts_this_week:        number;
   stories_this_week:      number;
+  videos_this_week:       number;
   token_refreshed_at:     string | null;
   created_at:             string;
 }
@@ -201,12 +248,14 @@ export interface ActivityLog {
 // ─── Agent Shared Types ───────────────────────────────────────────────────────
 
 export interface BrandVoice {
-  tone:            BrandTone;
-  keywords:        string[];
-  forbiddenWords:  string[];
-  sector:          SocialSector;
-  language:        string;         // BCP-47 tag e.g. 'es'
-  exampleCaptions: string[];
+  tone:             BrandTone;
+  keywords:         string[];
+  forbiddenWords:   string[];
+  forbiddenTopics:  string[];
+  noEmojis:         boolean;
+  sector:           SocialSector;
+  language:         string;         // BCP-47 tag e.g. 'es'
+  exampleCaptions:  string[];
 }
 
 export interface SocialAccounts {
@@ -216,15 +265,18 @@ export interface SocialAccounts {
 }
 
 export interface AgentContext {
-  businessId:       string;
-  businessName:     string;
-  brandVoice:       BrandVoice;
-  socialAccounts:   SocialAccounts;
-  timezone:         string;          // IANA e.g. 'Europe/Madrid'
-  subscriptionTier: SubscriptionPlan;
-  brandVoiceDoc?:   string;          // full generated doc
-  visualStyle?:     VisualStyle;
+  businessId:        string;
+  businessName:      string;
+  brandVoice:        BrandVoice;
+  socialAccounts:    SocialAccounts;
+  timezone:          string;          // IANA e.g. 'Europe/Madrid'
+  subscriptionTier:  SubscriptionPlan;
+  brandVoiceDoc?:    string;          // full generated doc
+  visualStyle?:      VisualStyle;
+  colors?:           BrandColors | null;
   secondarySectors?: SocialSector[];
+  /** Plan-aware publishing preferences (days, carousel size, videos, etc). */
+  preferences?:      BrandPreferences;
 }
 
 export interface AgentError {
@@ -642,10 +694,23 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, {
   inspirationAccess:    boolean;  // Access to inspiration library
   carouselMaxPhotos:    number;   // Max photos per carousel
 }> = {
-  starter: { postsPerMonth: Infinity, postsPerWeek: 2,  storiesPerWeek: 0,  brands: 1,  platforms: 1, autoPublish: false, competitorAgent: false, trendsAgent: false, autoComments: false, autoProposalsPerWeek: 3, videosPerWeek: 0, requestsPerMonth: 2,  selfServiceActions: 10,       autopilot: false, inspirationAccess: true,  carouselMaxPhotos: 3  },
-  pro:     { postsPerMonth: Infinity, postsPerWeek: 5,  storiesPerWeek: 3,  brands: 1,  platforms: 2, autoPublish: true,  competitorAgent: false, trendsAgent: false, autoComments: false, autoProposalsPerWeek: 5, videosPerWeek: 2, requestsPerMonth: 10, selfServiceActions: 50,       autopilot: false, inspirationAccess: true,  carouselMaxPhotos: 8  },
-  total:   { postsPerMonth: Infinity, postsPerWeek: 7,  storiesPerWeek: 7,  brands: 1,  platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true,  autoProposalsPerWeek: 7, videosPerWeek: 7, requestsPerMonth: Infinity, selfServiceActions: Infinity, autopilot: true,  inspirationAccess: true,  carouselMaxPhotos: 20 },
-  agency:  { postsPerMonth: Infinity, postsPerWeek: 7,  storiesPerWeek: 7,  brands: 10, platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true,  autoProposalsPerWeek: 7, videosPerWeek: 7, requestsPerMonth: Infinity, selfServiceActions: Infinity, autopilot: true,  inspirationAccess: true,  carouselMaxPhotos: 20 },
+  // Values aligned with the pricing page (Starter 2, Pro 4+2, Total 20+10).
+  starter: { postsPerMonth: Infinity, postsPerWeek: 2,  storiesPerWeek: 0,  brands: 1,  platforms: 2, autoPublish: false, competitorAgent: false, trendsAgent: false, autoComments: false, autoProposalsPerWeek: 3,  videosPerWeek: 0,  requestsPerMonth: 2,        selfServiceActions: 10,       autopilot: false, inspirationAccess: true, carouselMaxPhotos: 3  },
+  pro:     { postsPerMonth: Infinity, postsPerWeek: 4,  storiesPerWeek: 3,  brands: 1,  platforms: 2, autoPublish: true,  competitorAgent: false, trendsAgent: false, autoComments: false, autoProposalsPerWeek: 6,  videosPerWeek: 2,  requestsPerMonth: 10,       selfServiceActions: 50,       autopilot: false, inspirationAccess: true, carouselMaxPhotos: 8  },
+  total:   { postsPerMonth: Infinity, postsPerWeek: 20, storiesPerWeek: 14, brands: 1,  platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true,  autoProposalsPerWeek: 30, videosPerWeek: 10, requestsPerMonth: Infinity, selfServiceActions: Infinity, autopilot: true,  inspirationAccess: true, carouselMaxPhotos: 20 },
+  agency:  { postsPerMonth: Infinity, postsPerWeek: 20, storiesPerWeek: 14, brands: 10, platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true,  autoProposalsPerWeek: 30, videosPerWeek: 10, requestsPerMonth: Infinity, selfServiceActions: Infinity, autopilot: true,  inspirationAccess: true, carouselMaxPhotos: 20 },
+};
+
+/** UI-facing metadata per plan. */
+export const PLAN_META: Record<SubscriptionPlan, {
+  label:    string;
+  price:    number;
+  tagline:  string;
+}> = {
+  starter: { label: 'Starter', price: 29,  tagline: 'Para empezar con presencia constante' },
+  pro:     { label: 'Pro',     price: 89,  tagline: 'Para crecer con IA y análisis' },
+  total:   { label: 'Total',   price: 189, tagline: 'Para escalar con volumen y datos' },
+  agency:  { label: 'Agency',  price: 449, tagline: 'Para gestionar varias marcas' },
 };
 
 // ─── Content mode type ───────────────────────────────────────────────────────

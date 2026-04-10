@@ -9,53 +9,139 @@ import { TONE_OPTIONS, PUBLISH_MODE_OPTIONS } from '@/lib/brand-options';
 import { useTagInput } from '@/hooks/useTagInput';
 import CouponInput from '@/components/billing/CouponInput';
 
-// ─── Unsplash helper ──────────────────────────────────────────────────────────
+// ─── Themed image helper ──────────────────────────────────────────────────────
+// We use loremflickr, which returns a real Flickr photo matching one or more
+// tags and honours a `?lock=N` seed for deterministic results. This replaces
+// the previous opaque Unsplash IDs, where photos often didn't match the sector
+// (e.g. "decoracion" showing pizzas). Thematic accuracy beats polish here.
+const IMG = (keyword: string, seed: number, w = 400): string =>
+  `https://loremflickr.com/${w}/${w}/${encodeURIComponent(keyword)}?lock=${seed}`;
 
-const UNS = (id: string, w = 400) =>
-  `https://images.unsplash.com/photo-${id}?w=${w}&q=80&auto=format&fit=crop`;
+// Primary English keyword per sector — drives every image on the onboarding.
+const SECTOR_KEYWORD: Record<SocialSector, string> = {
+  restaurante:      'restaurant,food',
+  heladeria:        'ice-cream',
+  cafeteria:        'coffee-shop',
+  cocteleria:       'cocktail,bar',
+  street_food:      'street-food',
+  vinoteca:         'wine-bar',
+  panaderia:        'bakery,bread',
+  barberia:         'barbershop',
+  nail_art:         'manicure',
+  estetica:         'spa,wellness',
+  maquillaje:       'makeup',
+  boutique:         'fashion-boutique',
+  moda_hombre:      'mens-fashion',
+  zapateria:        'shoes',
+  skincare:         'skincare',
+  gym:              'gym,fitness',
+  yoga:             'yoga',
+  dental:           'dentist,teeth',
+  clinica:          'clinic,medical',
+  clinica_estetica: 'aesthetic-clinic',
+  nutricion:        'healthy-food',
+  decoracion:       'interior-design',
+  jardineria:       'garden',
+  reformas:         'renovation',
+  inmobiliaria:     'real-estate',
+  inmobiliaria_lujo:'luxury-home',
+  fotografia:       'photography,camera',
+  floristeria:      'flowers,bouquet',
+  academia:         'classroom,study',
+  abogado:          'law-office',
+  veterinario:      'veterinary,pet',
+  mecanica:         'car-workshop',
+  teatro:           'theatre,stage',
+  arte:             'art-gallery',
+  libreria:         'bookstore',
+  gaming:           'gaming,esports',
+  viajes:           'travel,landscape',
+  hotel:            'hotel',
+  regalos:          'gift-shop',
+  tecnologia:       'technology,gadgets',
+  otro:             'business,storefront',
+};
+
+// Secondary modifier per visual style. Combined with the sector keyword to get
+// images that already "feel" like that style, so we don't rely on CSS filters.
+const STYLE_KEYWORD: Record<VisualStyle, string> = {
+  creative:  'colorful',
+  elegant:   'minimal',
+  warm:      'warm',
+  dynamic:   'modern',
+  // These variants exist in the VisualStyle type but aren't selectable in the
+  // current UI. Map them anyway so the type is exhaustive.
+  editorial: 'editorial',
+  dark:      'dark',
+  fresh:     'fresh',
+  vintage:   'vintage',
+};
+
+// Seeds per style for step 2 — distinct ranges so every card shows a
+// different set of photos and the right preview never overlaps.
+const STYLE_SEED: Record<VisualStyle, number> = {
+  creative:  100,
+  elegant:   200,
+  warm:      300,
+  dynamic:   400,
+  editorial: 500,
+  dark:      600,
+  fresh:     700,
+  vintage:   800,
+};
+
+// Three post images for the step 1 mock feed — themed to the selected sector.
+function sectorPostsFor(sector: SocialSector): string[] {
+  const kw = SECTOR_KEYWORD[sector];
+  return [IMG(kw, 1, 500), IMG(kw, 2, 500), IMG(kw, 3, 500)];
+}
 
 // ─── Sector data with images ──────────────────────────────────────────────────
 
 type SectorItem = { value: SocialSector; label: string; img: string };
 type SectorGroup = { group: string; items: SectorItem[] };
 
+// Thumbnail for each sector card in step 1 — seed 0 keeps it stable across
+// reloads while still pulling a photo that matches the sector keyword.
+const THUMB = (sector: SocialSector) => IMG(SECTOR_KEYWORD[sector], 0);
+
 const SECTOR_GROUPS: SectorGroup[] = [
   { group: 'Comida y Bebida', items: [
-    { value: 'restaurante', label: 'Gastronomía',        img: UNS('1517248135467-4c7edcad34c4') },
-    { value: 'heladeria',   label: 'Heladería',           img: UNS('1563805042-7684c019e1cb') },
-    { value: 'cafeteria',   label: 'Cafetería / Brunch', img: UNS('1501339847302-ac426a4a7cbb') },
-    { value: 'cocteleria',  label: 'Cócteles / Bar',     img: UNS('1514362545857-3bc16c4c7d1b') },
-    { value: 'street_food', label: 'Street Food',        img: UNS('1565299624946-b28f40a0ae38') },
-    { value: 'vinoteca',    label: 'Vinoteca',           img: UNS('1510812431401-41d2bd2722f3') },
-    { value: 'panaderia',   label: 'Panadería',          img: UNS('1509440159596-0249088772ff') },
+    { value: 'restaurante', label: 'Gastronomía',        img: THUMB('restaurante') },
+    { value: 'heladeria',   label: 'Heladería',           img: THUMB('heladeria')   },
+    { value: 'cafeteria',   label: 'Cafetería / Brunch', img: THUMB('cafeteria')   },
+    { value: 'cocteleria',  label: 'Cócteles / Bar',     img: THUMB('cocteleria')  },
+    { value: 'street_food', label: 'Street Food',        img: THUMB('street_food') },
+    { value: 'vinoteca',    label: 'Vinoteca',           img: THUMB('vinoteca')    },
+    { value: 'panaderia',   label: 'Panadería',          img: THUMB('panaderia')   },
   ]},
   { group: 'Belleza y Estética', items: [
-    { value: 'barberia',   label: 'Barbería',    img: UNS('1503951914875-452162b0f3f1') },
-    { value: 'nail_art',   label: 'Nail Art',    img: UNS('1604654894610-df63bc536371') },
-    { value: 'estetica',   label: 'Centro Spa',  img: UNS('1540555700478-4be289fbecef') },
-    { value: 'maquillaje', label: 'Cosmética',   img: UNS('1522335789203-aabd1fc54bc9') },
+    { value: 'barberia',   label: 'Barbería',    img: THUMB('barberia')   },
+    { value: 'nail_art',   label: 'Nail Art',    img: THUMB('nail_art')   },
+    { value: 'estetica',   label: 'Centro Spa',  img: THUMB('estetica')   },
+    { value: 'maquillaje', label: 'Cosmética',   img: THUMB('maquillaje') },
   ]},
   { group: 'Moda y Estilo', items: [
-    { value: 'boutique',    label: 'Boutique',    img: UNS('1441984904996-e0b6ba687e04') },
-    { value: 'moda_hombre', label: 'Moda Hombre', img: UNS('1507003211169-0a1dd7228f2d') },
-    { value: 'zapateria',   label: 'Zapatería',   img: UNS('1542291026-7eec264c27ff') },
-    { value: 'skincare',    label: 'Skincare',    img: UNS('1556228578-8c89e6adf883') },
+    { value: 'boutique',    label: 'Boutique',    img: THUMB('boutique')    },
+    { value: 'moda_hombre', label: 'Moda Hombre', img: THUMB('moda_hombre') },
+    { value: 'zapateria',   label: 'Zapatería',   img: THUMB('zapateria')   },
+    { value: 'skincare',    label: 'Skincare',    img: THUMB('skincare')    },
   ]},
   { group: 'Salud y Bienestar', items: [
-    { value: 'gym',       label: 'Gimnasio / Fitness', img: UNS('1534438327276-14e5300c3a48') },
-    { value: 'yoga',      label: 'Yoga / Pilates',     img: UNS('1571019614242-c5c5dee9f50b') },
-    { value: 'dental',    label: 'Clínica Dental',     img: UNS('1559757148-5c350d0d3c56') },
-    { value: 'clinica',   label: 'Clínica / Medicina', img: UNS('1519494026892-80bbd2d6fd0d') },
-    { value: 'nutricion', label: 'Nutrición',          img: UNS('1512621776951-a57141f2eefd') },
+    { value: 'gym',       label: 'Gimnasio / Fitness', img: THUMB('gym')       },
+    { value: 'yoga',      label: 'Yoga / Pilates',     img: THUMB('yoga')      },
+    { value: 'dental',    label: 'Clínica Dental',     img: THUMB('dental')    },
+    { value: 'clinica',   label: 'Clínica / Medicina', img: THUMB('clinica')   },
+    { value: 'nutricion', label: 'Nutrición',          img: THUMB('nutricion') },
   ]},
   { group: 'Hogar y Servicios', items: [
-    { value: 'decoracion',  label: 'Decoración',   img: UNS('1513694203311-0126e4d700d5') },
-    { value: 'jardineria',  label: 'Jardinería',   img: UNS('1416879595882-3373a0480b5b') },
-    { value: 'reformas',    label: 'Reformas',     img: UNS('1504307651254-35680f356dfd') },
-    { value: 'inmobiliaria',label: 'Inmobiliaria', img: UNS('1560518883-ce09059eeffa') },
-    { value: 'fotografia',  label: 'Fotografía',   img: UNS('1516035069371-29a1b244cc32') },
-    { value: 'floristeria', label: 'Floristería',  img: UNS('1490750967868-88aa4f44baee') },
-    { value: 'otro',        label: 'Otro negocio', img: UNS('1497366216548-37526070297c') },
+    { value: 'decoracion',  label: 'Decoración',   img: THUMB('decoracion')   },
+    { value: 'jardineria',  label: 'Jardinería',   img: THUMB('jardineria')   },
+    { value: 'reformas',    label: 'Reformas',     img: THUMB('reformas')     },
+    { value: 'inmobiliaria',label: 'Inmobiliaria', img: THUMB('inmobiliaria') },
+    { value: 'fotografia',  label: 'Fotografía',   img: THUMB('fotografia')   },
+    { value: 'floristeria', label: 'Floristería',  img: THUMB('floristeria')  },
+    { value: 'otro',        label: 'Otro negocio', img: THUMB('otro')         },
   ]},
 ];
 
@@ -74,83 +160,26 @@ const VISUAL_STYLES: {
     palette: ['#1C1C1E','#FF3B30','#636366','#AEAEB2'] },
 ];
 
-// ─── CSS filters per visual style ────────────────────────────────────────────
-
-const STYLE_FILTERS: Record<VisualStyle, string> = {
-  creative:  'saturate(1.5) brightness(1.05)',
-  elegant:   'saturate(0.25) brightness(1.1)',
-  warm:      'saturate(0.95) brightness(1.02)',
-  dynamic:   'contrast(1.25) saturate(1.35)',
-  editorial: 'sepia(0.1) brightness(1.05)',
-  dark:      'brightness(0.65) contrast(1.3) saturate(0.8)',
-  fresh:     'saturate(0.9) brightness(1.12) hue-rotate(-5deg)',
-  vintage:   'sepia(0.45) saturate(0.75) brightness(0.9)',
-};
-
 // ─── Sector-aware visual images ──────────────────────────────────────────────
-// Builds a bank of 12 images relevant to the selected sector, used in step 2
+// All step 2 photos are generated deterministically from loremflickr:
+//   - 4 photos per (sector, style) for each style card on the left
+//   - 9 photos per (sector, style) for the right-column preview
+// Seeds are chosen in disjoint ranges so nothing overlaps across styles or
+// between the left cards and the right preview.
 
-function getSectorVisualImages(sector: SocialSector): string[] {
-  const posts = [...(SECTOR_POSTS[sector] ?? DEFAULT_POSTS)];
-
-  // Add sector thumbnail from SECTOR_GROUPS
-  const sectorItem = SECTOR_GROUPS.flatMap(g => g.items).find(i => i.value === sector);
-  if (sectorItem && !posts.includes(sectorItem.img)) posts.push(sectorItem.img);
-
-  // Add images from same sector group category
-  const sameGroup = SECTOR_GROUPS.find(g => g.items.some(i => i.value === sector));
-  if (sameGroup) {
-    for (const item of sameGroup.items) {
-      if (item.value !== sector && !posts.includes(item.img) && posts.length < 12) {
-        posts.push(item.img);
-      }
-      // Also add sector posts from sibling sectors
-      const siblingPosts = SECTOR_POSTS[item.value];
-      if (siblingPosts) {
-        for (const sp of siblingPosts) {
-          if (!posts.includes(sp) && posts.length < 12) posts.push(sp);
-        }
-      }
-    }
-  }
-
-  // Pad to 12 by cycling
-  const base = [...posts];
-  while (posts.length < 12) posts.push(base[posts.length % base.length]);
-  return posts;
+function getSectorStyleImages(sector: SocialSector, style: VisualStyle): string[] {
+  const kw = `${SECTOR_KEYWORD[sector]},${STYLE_KEYWORD[style]}`;
+  const base = STYLE_SEED[style];
+  // Seeds 1..4 (relative to STYLE_SEED) for the 4 card thumbnails.
+  return [1, 2, 3, 4].map((i) => IMG(kw, base + i));
 }
 
-// ─── Preview post images per sector ──────────────────────────────────────────
-
-const SECTOR_POSTS: Partial<Record<SocialSector, string[]>> = {
-  restaurante:  [UNS('1565299624946-b28f40a0ae38',300), UNS('1482049016688-2d3e1b311543',300), UNS('1567306226416-28f0efdc88ce',300)],
-  heladeria:    [UNS('1563805042-7684c019e1cb',300), UNS('1570145820259-b5b80c5c8bd6',300), UNS('1497034825429-c343d7c6a68f',300)],
-  cafeteria:    [UNS('1501339847302-ac426a4a7cbb',300), UNS('1495474472287-4d71bcdd2085',300), UNS('1521017432531-fbd92d768814',300)],
-  gym:          [UNS('1534438327276-14e5300c3a48',300), UNS('1571019614242-c5c5dee9f50b',300), UNS('1517963879433-6ad2a56fcd15',300)],
-  barberia:     [UNS('1503951914875-452162b0f3f1',300), UNS('1508214751196-c5bf6f5e2751',300), UNS('1560066984-138dadb4c305',300)],
-  boutique:     [UNS('1441984904996-e0b6ba687e04',300), UNS('1507003211169-0a1dd7228f2d',300), UNS('1558618666-fcd25c85cd64',300)],
-  inmobiliaria: [UNS('1560518883-ce09059eeffa',300), UNS('1570129477492-45c003edd2be',300), UNS('1582653291997-79a4f2b7d9a7',300)],
-  floristeria:  [UNS('1490750967868-88aa4f44baee',300), UNS('1499444819541-60e4a698ecf5',300), UNS('1439127989242-9da695f9ca26',300)],
-  yoga:         [UNS('1571019614242-c5c5dee9f50b',300), UNS('1506126613408-eca07ce68773',300), UNS('1544367654-00eb648f0b1f',300)],
-  cocteleria:   [UNS('1514362545857-3bc16c4c7d1b',300), UNS('1510812431401-41d2bd2722f3',300), UNS('1517248135467-4c7edcad34c4',300)],
-  street_food:  [UNS('1565299624946-b28f40a0ae38',300), UNS('1567306226416-28f0efdc88ce',300), UNS('1482049016688-2d3e1b311543',300)],
-  vinoteca:     [UNS('1510812431401-41d2bd2722f3',300), UNS('1514362545857-3bc16c4c7d1b',300), UNS('1517248135467-4c7edcad34c4',300)],
-  panaderia:    [UNS('1509440159596-0249088772ff',300), UNS('1501339847302-ac426a4a7cbb',300), UNS('1495474472287-4d71bcdd2085',300)],
-  nail_art:     [UNS('1604654894610-df63bc536371',300), UNS('1522335789203-aabd1fc54bc9',300), UNS('1540555700478-4be289fbecef',300)],
-  estetica:     [UNS('1540555700478-4be289fbecef',300), UNS('1604654894610-df63bc536371',300), UNS('1556228578-8c89e6adf883',300)],
-  maquillaje:   [UNS('1522335789203-aabd1fc54bc9',300), UNS('1604654894610-df63bc536371',300), UNS('1556228578-8c89e6adf883',300)],
-  moda_hombre:  [UNS('1507003211169-0a1dd7228f2d',300), UNS('1441984904996-e0b6ba687e04',300), UNS('1542291026-7eec264c27ff',300)],
-  zapateria:    [UNS('1542291026-7eec264c27ff',300), UNS('1507003211169-0a1dd7228f2d',300), UNS('1441984904996-e0b6ba687e04',300)],
-  skincare:     [UNS('1556228578-8c89e6adf883',300), UNS('1540555700478-4be289fbecef',300), UNS('1522335789203-aabd1fc54bc9',300)],
-  dental:       [UNS('1559757148-5c350d0d3c56',300), UNS('1519494026892-80bbd2d6fd0d',300), UNS('1512621776951-a57141f2eefd',300)],
-  clinica:      [UNS('1519494026892-80bbd2d6fd0d',300), UNS('1559757148-5c350d0d3c56',300), UNS('1512621776951-a57141f2eefd',300)],
-  nutricion:    [UNS('1512621776951-a57141f2eefd',300), UNS('1571019614242-c5c5dee9f50b',300), UNS('1519494026892-80bbd2d6fd0d',300)],
-  decoracion:   [UNS('1513694203311-0126e4d700d5',300), UNS('1504307651254-35680f356dfd',300), UNS('1416879595882-3373a0480b5b',300)],
-  jardineria:   [UNS('1416879595882-3373a0480b5b',300), UNS('1490750967868-88aa4f44baee',300), UNS('1439127989242-9da695f9ca26',300)],
-  reformas:     [UNS('1504307651254-35680f356dfd',300), UNS('1513694203311-0126e4d700d5',300), UNS('1560518883-ce09059eeffa',300)],
-  fotografia:   [UNS('1516035069371-29a1b244cc32',300), UNS('1506126613408-eca07ce68773',300), UNS('1544367654-00eb648f0b1f',300)],
-};
-const DEFAULT_POSTS = [UNS('1482049016688-2d3e1b311543',300), UNS('1558618666-fcd25c85cd64',300), UNS('1570129477492-45c003edd2be',300)];
+function getSectorPreviewImages(sector: SocialSector, style: VisualStyle): string[] {
+  const kw = `${SECTOR_KEYWORD[sector]},${STYLE_KEYWORD[style]}`;
+  const base = STYLE_SEED[style];
+  // Seeds 10..18 — never overlap with the 1..4 used for the cards.
+  return [10, 11, 12, 13, 14, 15, 16, 17, 18].map((i) => IMG(kw, base + i, 500));
+}
 
 const SECTOR_CAPTIONS: Partial<Record<SocialSector, string[]>> = {
   restaurante:  ['El mejor risotto de la ciudad 🍝', 'Mesa lista para esta noche ✨', 'Ingredientes frescos cada mañana 🌿'],
@@ -227,11 +256,41 @@ const SECTOR_SERVICE_OPTIONS: Partial<Record<SocialSector, string[]>> = {
   floristeria: ['Ramos de novia', 'Flores naturales', 'Plantas de interior', 'Arreglos florales', 'Flores secas'],
 };
 
-const REGION_OPTIONS = [
-  'Andalucía', 'Aragón', 'Asturias', 'Islas Baleares', 'Canarias',
-  'Cantabria', 'Castilla-La Mancha', 'Castilla y León', 'Cataluña',
-  'Comunidad Valenciana', 'Extremadura', 'Galicia', 'Comunidad de Madrid',
-  'Región de Murcia', 'Navarra', 'País Vasco', 'La Rioja', 'Ceuta', 'Melilla',
+// Country dropdown grouped by region. Covers Europe, Latin America (incl.
+// Caribbean and Central America), South America and North America.
+const COUNTRY_GROUPS: { region: string; countries: string[] }[] = [
+  {
+    region: 'Europa',
+    countries: [
+      'Alemania', 'Andorra', 'Austria', 'Bélgica', 'Bielorrusia',
+      'Bosnia y Herzegovina', 'Bulgaria', 'Chipre', 'Croacia', 'Dinamarca',
+      'Eslovaquia', 'Eslovenia', 'España', 'Estonia', 'Finlandia', 'Francia',
+      'Grecia', 'Hungría', 'Irlanda', 'Islandia', 'Italia', 'Letonia',
+      'Liechtenstein', 'Lituania', 'Luxemburgo', 'Macedonia del Norte',
+      'Malta', 'Moldavia', 'Mónaco', 'Montenegro', 'Noruega', 'Países Bajos',
+      'Polonia', 'Portugal', 'Reino Unido', 'República Checa', 'Rumanía',
+      'San Marino', 'Serbia', 'Suecia', 'Suiza', 'Ucrania', 'Vaticano',
+    ],
+  },
+  {
+    region: 'América del Norte',
+    countries: ['Canadá', 'Estados Unidos', 'México'],
+  },
+  {
+    region: 'Centroamérica y Caribe',
+    countries: [
+      'Belice', 'Costa Rica', 'Cuba', 'El Salvador', 'Guatemala',
+      'Haití', 'Honduras', 'Jamaica', 'Nicaragua', 'Panamá',
+      'Puerto Rico', 'República Dominicana', 'Trinidad y Tobago',
+    ],
+  },
+  {
+    region: 'América del Sur',
+    countries: [
+      'Argentina', 'Bolivia', 'Brasil', 'Chile', 'Colombia', 'Ecuador',
+      'Guyana', 'Paraguay', 'Perú', 'Surinam', 'Uruguay', 'Venezuela',
+    ],
+  },
 ];
 
 // ─── Step 4 keyword suggestions ───────────────────────────────────────────────
@@ -253,14 +312,6 @@ const SECTOR_KEYWORD_SUGGESTIONS: Partial<Record<SocialSector, string[]>> = {
   decoracion:  ['hogar', 'diseño', 'estilo', 'exclusivo', 'personalizado', 'inspiración'],
 };
 
-// ─── Step 5 publish mode images ───────────────────────────────────────────────
-
-const PUBLISH_MODE_IMGS: Record<PublishMode, string> = {
-  manual: UNS('1551434678-e0ef8e06e461', 800),
-  semi:   UNS('1460925895917-afdab827c52f', 800),
-  auto:   UNS('1485827404703-89b55fcc595e', 800),
-};
-
 // ─── Shared design tokens ─────────────────────────────────────────────────────
 
 const ACCENT = '#0F766E';
@@ -276,7 +327,7 @@ const inputStyle: React.CSSProperties = {
   width: '100%', padding: '14px 16px',
   background: '#ffffff',
   border: `1px solid ${BORDER}`,
-  borderRadius: 8, color: INK,
+  borderRadius: 0, color: INK,
   fontFamily: FONT,
   fontSize: '0.9rem', outline: 'none',
   transition: 'border-color 0.15s',
@@ -286,7 +337,7 @@ const selectStyle: React.CSSProperties = {
   width: '100%', padding: '14px 40px 14px 16px',
   background: '#ffffff',
   border: `1px solid ${BORDER}`,
-  borderRadius: 8, color: INK,
+  borderRadius: 0, color: INK,
   fontFamily: FONT,
   fontSize: 14, outline: 'none', cursor: 'pointer',
   appearance: 'none' as React.CSSProperties['appearance'],
@@ -327,7 +378,7 @@ function StepSub({ children }: { children: React.ReactNode }) {
 function BtnPrimary({ onClick, disabled, children }: { onClick?: () => void; disabled?: boolean; children: React.ReactNode }) {
   return (
     <button onClick={onClick} disabled={disabled} style={{
-      padding: '12px 28px', borderRadius: 8,
+      padding: '12px 28px', borderRadius: 0,
       background: disabled ? '#e5e7eb' : INK,
       color: disabled ? '#9ca3af' : '#ffffff', border: 'none',
       cursor: disabled ? 'not-allowed' : 'pointer',
@@ -341,10 +392,43 @@ function BtnPrimary({ onClick, disabled, children }: { onClick?: () => void; dis
   );
 }
 
+function PillOption({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        padding: '9px 16px',
+        cursor: 'pointer',
+        fontFamily: FONT,
+        fontSize: '0.82rem',
+        fontWeight: 700,
+        border: `1.5px solid ${active ? ACCENT : BORDER}`,
+        background: active ? ACCENT : '#ffffff',
+        color: active ? '#ffffff' : '#374151',
+        transition: 'all 0.15s',
+        outline: 'none',
+        borderRadius: 0,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
+function PillGroup({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
+      {children}
+    </div>
+  );
+}
+
 function BtnBack({ onClick }: { onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
-      padding: '12px 20px', borderRadius: 8,
+      padding: '12px 20px', borderRadius: 0,
       background: '#ffffff', border: `1px solid ${BORDER}`,
       color: MUTED, cursor: 'pointer',
       fontFamily: FONT, fontWeight: 600, fontSize: 13,
@@ -356,25 +440,25 @@ function BtnBack({ onClick }: { onClick: () => void }) {
 }
 
 function MockPost({ img, caption, index }: { img: string; caption: string; index: number }) {
-  const handles = ['@tunegocio', '@tunegocio', '@tunegocio'];
-  const likes   = [234, 189, 312];
-  const comms   = [18, 24, 9];
+  const likes = [234, 189, 312];
+  const comms = [18, 24, 9];
   return (
     <div style={{
-      background: '#ffffff', borderRadius: 14, overflow: 'hidden',
-      border: '1px solid #e5e7eb', flexShrink: 0, width: 200,
+      background: '#ffffff', overflow: 'hidden',
+      border: '1px solid #e5e7eb', width: '100%',
+      display: 'flex', flexDirection: 'column',
     }}>
-      <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ width: 28, height: 28, borderRadius: '50%', background: ACCENT, flexShrink: 0 }} />
-        <span style={{ fontFamily: FONT, fontSize: '0.75rem', fontWeight: 700, color: INK }}>{handles[index]}</span>
+      <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #f3f4f6', height: 44, boxSizing: 'border-box' }}>
+        <div style={{ width: 26, height: 26, background: ACCENT, flexShrink: 0 }} />
+        <span style={{ fontFamily: FONT, fontSize: '0.72rem', fontWeight: 700, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>@tunegocio</span>
       </div>
-      <img src={img} alt="" style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />
-      <div style={{ padding: '10px 12px' }}>
-        <div style={{ display: 'flex', gap: 10, marginBottom: 8 }}>
-          <span style={{ fontSize: '0.78rem', color: MUTED }}>♥ {likes[index]}</span>
-          <span style={{ fontSize: '0.78rem', color: MUTED }}>💬 {comms[index]}</span>
+      <img src={img} alt="" style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block', background: '#f3f4f6' }} />
+      <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, minHeight: 72, boxSizing: 'border-box' }}>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <span style={{ fontSize: '0.72rem', color: MUTED }}>♥ {likes[index]}</span>
+          <span style={{ fontSize: '0.72rem', color: MUTED }}>💬 {comms[index]}</span>
         </div>
-        <div style={{ fontFamily: FONT, fontSize: '0.75rem', color: INK, lineHeight: 1.5 }}>
+        <div style={{ fontFamily: FONT, fontSize: '0.72rem', color: INK, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
           {caption}
         </div>
       </div>
@@ -385,6 +469,70 @@ function MockPost({ img, caption, index }: { img: string; caption: string; index
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 type Step = 1 | 2 | 3 | 4 | 5;
+
+type PlanId = 'starter' | 'pro' | 'total';
+
+// Weekly post frequency is determined by the selected plan (decided at the
+// payment step); the backend still expects publish_frequency, so we derive it.
+const FREQUENCY_BY_PLAN: Record<PlanId, 2 | 5 | 7> = {
+  starter: 2,
+  pro: 5,
+  total: 7,
+};
+
+const ONBOARDING_PLANS: {
+  id: PlanId;
+  name: string;
+  price: number;
+  desc: string;
+  features: string[];
+  featured?: boolean;
+  badge?: string;
+}[] = [
+  {
+    id: 'starter',
+    name: 'Starter',
+    price: 29,
+    desc: 'Para empezar con presencia constante en redes',
+    features: [
+      '2 posts de foto por semana',
+      'Carruseles hasta 3 fotos',
+      'Publicación programada',
+      'Edición y creación de contenido',
+      'Generación con IA integrada',
+    ],
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    price: 89,
+    desc: 'Para crecer con contenido, IA y optimización',
+    featured: true,
+    badge: 'Más popular',
+    features: [
+      '4 fotos + 2 vídeos por semana',
+      'Carruseles hasta 8 fotos',
+      'Calendario avanzado',
+      'Mejores horas para publicar',
+      'Análisis de rendimiento',
+      'Soporte prioritario',
+    ],
+  },
+  {
+    id: 'total',
+    name: 'Total',
+    price: 189,
+    desc: 'Para escalar con volumen, datos y optimización continua',
+    badge: 'Completo',
+    features: [
+      'Hasta 20 fotos + 10 vídeos por semana',
+      'Carruseles hasta 20 fotos',
+      'Ideas basadas en tendencias',
+      'Análisis continuo y mejoras',
+      'Soporte prioritario 24h',
+    ],
+  },
+];
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -405,14 +553,13 @@ export default function OnboardingPage() {
   const [forbidden,        setForbidden]        = useState<string[]>([]);
   const [fbInput,          setFbInput]          = useState('');
   const [objective]                             = useState<PostGoal>('engagement');
-  const [publishMode,      setPublishMode]      = useState<PublishMode>('manual');
-  const [publishFrequency, setPublishFrequency] = useState<2 | 5 | 7>(5);
+  const [publishMode,      setPublishMode]      = useState<PublishMode>('semi');
   const [country, setCountry] = useState('España');
-  const [locationDropdown, setLocationDropdown] = useState('');
   const [primaryColor,     setPrimaryColor]     = useState('#0F766E');
   const [secondaryColor,   setSecondaryColor]   = useState('#374151');
   const [promoCodeId,      setPromoCodeId]      = useState<string | null>(null);
   const [discountText,     setDiscountText]     = useState('');
+  const [selectedPlan,     setSelectedPlan]     = useState<PlanId>('pro');
 
   const dynamicQuestions = getDynamicQuestions(sector);
 
@@ -447,7 +594,8 @@ export default function OnboardingPage() {
           visual_style: visualStyle, tone, hashtags: keywords,
           location: location ? `${location}, ${country}` : country || null, slogans: slogan ? [slogan] : [],
           publish_mode: publishMode,
-          publish_frequency: publishFrequency,
+          publish_frequency: FREQUENCY_BY_PLAN[selectedPlan],
+          plan: selectedPlan,
           colors: { primary: primaryColor, secondary: secondaryColor, accent: primaryColor },
           promo_code_id: promoCodeId ?? undefined,
           rules: { forbiddenWords: forbidden, noPublishDays: [], noEmojis: visualStyle === 'elegant' || visualStyle === 'dark', noAutoReplyNegative: false, forbiddenTopics: [] },
@@ -471,24 +619,26 @@ export default function OnboardingPage() {
     } finally { setSaving(false); }
   }
 
-  const previewPosts    = SECTOR_POSTS[sector] ?? DEFAULT_POSTS;
+  const previewPosts    = sectorPostsFor(sector);
   const previewCaptions = SECTOR_CAPTIONS[sector] ?? DEFAULT_CAPTIONS;
   const selectedStyle   = VISUAL_STYLES.find((s) => s.value === visualStyle)!;
-  const sectorVisualImgs = getSectorVisualImages(sector);
+  // Right-column preview for step 2 — 9 photos specific to the current
+  // (sector, style) pair, so switching style actually changes the images.
+  const step2PreviewImgs = getSectorPreviewImages(sector, visualStyle);
 
   // ─── Right column previews ─────────────────────────────────────────────────
 
   const rightStep1 = (
-    <div style={{ padding: '48px 40px', display: 'flex', flexDirection: 'column', gap: 16, height: '100%', overflowY: 'auto' }}>
-      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT, marginBottom: 8 }}>
-        Así quedará tu feed
+    <div style={{ padding: '48px 40px', display: 'flex', flexDirection: 'column', gap: 20, height: '100%', overflow: 'hidden' }}>
+      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT }}>
+        Ejemplos de posibles publicaciones
       </div>
-      <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 8 }}>
-        {previewPosts.map((img, i) => (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, alignItems: 'start' }}>
+        {previewPosts.slice(0, 3).map((img, i) => (
           <MockPost key={i} img={img} caption={previewCaptions[i] ?? DEFAULT_CAPTIONS[i]} index={i} />
         ))}
       </div>
-      <div style={{ marginTop: 'auto', padding: '20px', background: '#f3f4f6', borderRadius: 12, border: '1px solid #f3f4f6' }}>
+      <div style={{ marginTop: 'auto', padding: '20px', background: '#f3f4f6', border: '1px solid #e5e7eb' }}>
         <div style={{ fontFamily: FONT, fontSize: '0.8rem', color: MUTED, lineHeight: 1.7 }}>
           NeuroPost adapta el tono, los hashtags y el tipo de contenido según tu sector. Puedes añadir un sector secundario con clic derecho.
         </div>
@@ -501,14 +651,14 @@ export default function OnboardingPage() {
       <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT, marginBottom: 16 }}>
         Preview de tu feed
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 3, borderRadius: 12, overflow: 'hidden' }}>
-        {sectorVisualImgs.slice(0, 9).map((img: string, i: number) => (
-          <img key={i} src={img} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block', filter: STYLE_FILTERS[visualStyle] }} />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 3, overflow: 'hidden' }}>
+        {step2PreviewImgs.map((img: string, i: number) => (
+          <img key={i} src={img} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block', background: '#f3f4f6' }} />
         ))}
       </div>
       <div style={{ marginTop: 16, display: 'flex', gap: 6 }}>
         {selectedStyle.palette.map((c) => (
-          <div key={c} style={{ flex: 1, height: 6, borderRadius: 3, background: c }} />
+          <div key={c} style={{ flex: 1, height: 6, borderRadius: 0, background: c }} />
         ))}
       </div>
       <div style={{ marginTop: 8, fontFamily: FONT, fontSize: '0.78rem', color: MUTED }}>
@@ -517,37 +667,95 @@ export default function OnboardingPage() {
     </div>
   );
 
-  const rightStep3 = (
-    <div style={{ padding: '48px 40px', display: 'flex', flexDirection: 'column', gap: 20, height: '100%' }}>
-      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT }}>
-        Tu tarjeta de negocio
-      </div>
-      <div style={{ background: '#ffffff', borderRadius: 18, padding: '32px', border: '1px solid #e5e7eb', flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ width: 56, height: 56, borderRadius: 14, background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: 'white', fontFamily: FONT }}>
-          {name ? name[0].toUpperCase() : 'N'}
+  const rightStep3 = (() => {
+    // Current specialty from the sector-specific dynamic question.
+    const specialty = Object.values(dynamicAnswers).find((v) => v && v.trim() !== '') ?? '';
+    // Location line combines region + country when available.
+    const locationLine = location
+      ? `${location}, ${country}`
+      : country;
+    // Use the user-selected brand colors; fall back to a near-white if the
+    // hex can't be parsed. We don't tint the text — just borders and accents.
+    const primary = primaryColor || ACCENT;
+    const secondary = secondaryColor || '#374151';
+
+    return (
+      <div style={{ padding: '48px 40px', display: 'flex', flexDirection: 'column', gap: 18, height: '100%', overflowY: 'auto' }}>
+        <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT }}>
+          Tu tarjeta de negocio
         </div>
+
+        {/* Business card header */}
+        <div style={{ background: '#ffffff', border: `1px solid ${BORDER}`, position: 'relative' }}>
+          {/* Color bar at the top — visualises the two brand colors */}
+          <div style={{ display: 'flex', height: 6 }}>
+            <div style={{ flex: 2, background: primary }} />
+            <div style={{ flex: 1, background: secondary }} />
+          </div>
+          <div style={{ padding: '24px 28px', display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+            <div style={{
+              width: 58, height: 58, background: primary, flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: FONT_C, fontWeight: 900, fontSize: 26, color: '#ffffff',
+              letterSpacing: '-0.02em',
+            }}>
+              {name ? name[0].toUpperCase() : 'N'}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '1.45rem', color: INK, letterSpacing: '-0.02em', lineHeight: 1.1, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {name || 'Tu negocio'}
+              </div>
+              {specialty && (
+                <div style={{ fontFamily: FONT, fontSize: '0.82rem', color: INK, marginTop: 4, fontWeight: 600 }}>
+                  {specialty}
+                </div>
+              )}
+              <div style={{ fontFamily: FONT, fontSize: '0.78rem', color: MUTED, marginTop: 3, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ display: 'inline-block', width: 8, height: 8, background: secondary }} />
+                {locationLine}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Mini feed preview — 3×3 grid of sector + style photos */}
         <div>
-          <div style={{ fontFamily: FONT, fontWeight: 900, fontSize: '1.4rem', color: INK, letterSpacing: '-0.03em' }}>
-            {name || 'Tu negocio'}
+          <div style={{ fontSize: '0.66rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT, marginBottom: 8 }}>
+            Vista previa del feed
           </div>
-          {location && <div style={{ fontFamily: FONT, fontSize: '0.85rem', color: MUTED, marginTop: 2 }}>{location}</div>}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 3, border: `1px solid ${BORDER}` }}>
+            {step2PreviewImgs.map((img, i) => (
+              <img
+                key={i}
+                src={img}
+                alt=""
+                style={{
+                  width: '100%',
+                  aspectRatio: '1 / 1',
+                  objectFit: 'cover',
+                  display: 'block',
+                  background: '#f3f4f6',
+                }}
+              />
+            ))}
+          </div>
         </div>
-        {slogan && (
-          <div style={{ fontFamily: FONT, fontStyle: 'italic', fontSize: '0.9rem', color: '#6b7280', borderLeft: `3px solid ${ACCENT}`, paddingLeft: 12 }}>
-            &ldquo;{slogan}&rdquo;
+
+        {/* Brand color chips */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px 16px', background: '#ffffff', border: `1px solid ${BORDER}` }}>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ width: 22, height: 22, background: primary, border: '1px solid rgba(0,0,0,0.08)' }} title={`Principal ${primary}`} />
+            <div style={{ width: 22, height: 22, background: secondary, border: '1px solid rgba(0,0,0,0.08)' }} title={`Secundario ${secondary}`} />
           </div>
-        )}
-        <div style={{ marginTop: 'auto', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ background: 'rgba(15,118,110,0.15)', color: ACCENT, fontFamily: FONT, fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: 40, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            {sector}
-          </span>
-          <span style={{ background: '#e5e7eb', color: MUTED, fontFamily: FONT, fontSize: '0.72rem', fontWeight: 700, padding: '4px 10px', borderRadius: 40 }}>
-            {visualStyle}
-          </span>
+          <div style={{ fontFamily: FONT, fontSize: '0.74rem', color: MUTED }}>
+            Paleta de marca · <span style={{ color: INK, fontWeight: 700 }}>{primary}</span>
+            {' · '}
+            <span style={{ color: INK, fontWeight: 700 }}>{secondary}</span>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  })();
 
   const SECTOR_TONE_MAP: Partial<Record<SocialSector, Record<BrandTone, string>>> = {
     heladeria: {
@@ -648,7 +856,7 @@ export default function OnboardingPage() {
       <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT, marginBottom: 16 }}>
         Ejemplo de post con tu tono
       </div>
-      <div style={{ background: '#ffffff', borderRadius: 14, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+      <div style={{ background: '#ffffff', borderRadius: 0, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
         <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid #f3f4f6' }}>
           <div style={{ width: 32, height: 32, borderRadius: '50%', background: ACCENT }} />
           <div>
@@ -671,50 +879,52 @@ export default function OnboardingPage() {
     </div>
   );
 
-  const modeDescriptions: Record<PublishMode, string> = {
-    manual: 'Te enviamos propuestas de contenido. Tú decides qué publicar y cuándo.',
-    semi:   'Nuestro equipo prepara el contenido y te lo envía para aprobación. Un clic y publicamos.',
-    auto:   'Publicamos de forma autónoma según tu estrategia. Tú revisas los resultados.',
-  };
-
-  const modeSteps: Record<PublishMode, string[]> = {
-    manual:   ['Nuestro equipo genera propuestas de contenido', 'Tú revisas y decides qué publicar', 'Publicamos en Instagram y Facebook'],
-    semi:     ['El equipo crea y programa el contenido', 'Te enviamos una notificación para aprobar', 'Un clic y publicamos automáticamente'],
-    auto:     ['El equipo crea contenido según tu estrategia', 'Publicamos sin interrupciones', 'Recibes informes semanales de resultados'],
-  };
-
+  const selectedPlanData = ONBOARDING_PLANS.find((p) => p.id === selectedPlan)!;
   const rightStep5 = (
     <div style={{ padding: '48px 40px', height: '100%', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT }}>
-        Cómo funciona
+        Resumen de tu plan
       </div>
-      <div style={{ borderRadius: 14, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
-        <img src={PUBLISH_MODE_IMGS[publishMode]} alt="" style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />
-        <div style={{ background: '#ffffff', padding: 24 }}>
-          <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: '1rem', color: INK, marginBottom: 8 }}>
-            {PUBLISH_MODE_OPTIONS.find((m) => m.value === publishMode)?.label}
+      <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', padding: '28px' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
+          <div style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '1.6rem', color: INK, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+            {selectedPlanData.name}
           </div>
-          <div style={{ fontFamily: FONT, fontSize: '0.85rem', color: MUTED, lineHeight: 1.7, marginBottom: 20 }}>
-            {modeDescriptions[publishMode]}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-            {modeSteps[publishMode].map((s, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 24, height: 24, borderRadius: '50%', background: `rgba(15,118,110,${0.3 + i * 0.2})`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 800, color: ACCENT, fontFamily: FONT, flexShrink: 0 }}>
-                  {i + 1}
-                </div>
-                <div style={{ fontFamily: FONT, fontSize: '0.83rem', color: INK }}>{s}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{ background: 'rgba(15,118,110,0.08)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ fontFamily: FONT, fontWeight: 900, fontSize: '1.8rem', color: ACCENT }}>{publishFrequency}</div>
-            <div>
-              <div style={{ fontFamily: FONT, fontSize: '0.78rem', fontWeight: 700, color: INK }}>posts por semana</div>
-              <div style={{ fontFamily: FONT, fontSize: '0.72rem', color: MUTED, marginTop: 1 }}>≈ {publishFrequency * 4} publicaciones al mes</div>
-            </div>
-          </div>
+          {selectedPlanData.badge && (
+            <span style={{
+              background: selectedPlanData.featured ? ACCENT : INK,
+              color: '#ffffff',
+              fontFamily: FONT_C,
+              fontSize: 10,
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              padding: '4px 9px',
+            }}>
+              {selectedPlanData.badge}
+            </span>
+          )}
         </div>
+        <div style={{ fontFamily: FONT, fontSize: 13, color: MUTED, marginBottom: 16, lineHeight: 1.5 }}>
+          {selectedPlanData.desc}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, paddingBottom: 20, marginBottom: 20, borderBottom: '1px solid #f3f4f6' }}>
+          <span style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '2.6rem', color: INK, letterSpacing: '-0.02em' }}>
+            {selectedPlanData.price}€
+          </span>
+          <span style={{ fontFamily: FONT, fontSize: 13, color: MUTED }}>/mes</span>
+        </div>
+        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {selectedPlanData.features.map((f) => (
+            <li key={f} style={{ fontFamily: FONT, fontSize: 13, color: '#374151', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+              <span style={{ color: ACCENT, fontWeight: 900, flexShrink: 0 }}>✓</span>
+              <span>{f}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div style={{ marginTop: 'auto', padding: '16px 20px', background: '#f3f4f6', border: '1px solid #e5e7eb', fontFamily: FONT, fontSize: '0.8rem', color: MUTED, lineHeight: 1.6 }}>
+        Sin permanencia. Puedes cambiar de plan o cancelar cuando quieras desde los ajustes.
       </div>
     </div>
   );
@@ -748,17 +958,17 @@ export default function OnboardingPage() {
 
         {/* ── Step 1: Sector ── */}
         {step === 1 && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             <SectionTitle>¿De qué trata tu negocio?</SectionTitle>
             <StepSub>Elige tu sector principal. Clic derecho en otro sector para añadirlo como secundario.</StepSub>
 
-            <div style={{ flex: 1, overflowY: 'auto', marginBottom: 24 }}>
+            <div style={{ marginBottom: 24 }}>
               {SECTOR_GROUPS.map((group) => (
                 <div key={group.group} style={{ marginBottom: 20 }}>
                   <div style={{ fontSize: '0.68rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT, marginBottom: 10 }}>
                     {group.group}
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
                     {group.items.map((s) => {
                       const isPrimary   = sector === s.value;
                       const isSecondary = secondarySectors.includes(s.value);
@@ -769,7 +979,7 @@ export default function OnboardingPage() {
                           onClick={() => { if (isPrimary) return; if (isSecondary) { toggleSecondary(s.value); return; } setSector(s.value as SocialSector); setSecondarySectors([]); }}
                           onContextMenu={(e) => { e.preventDefault(); toggleSecondary(s.value as SocialSector); }}
                           style={{
-                            position: 'relative', height: 80, borderRadius: 10,
+                            position: 'relative', aspectRatio: '4 / 3',
                             overflow: 'hidden', border: `2px solid ${isPrimary ? ACCENT : isSecondary ? ACCENT : 'transparent'}`,
                             cursor: 'pointer', padding: 0, background: 'transparent',
                             outline: 'none', transition: 'border-color 0.2s, transform 0.15s',
@@ -796,7 +1006,9 @@ export default function OnboardingPage() {
               ))}
             </div>
 
-            <BtnPrimary onClick={() => setStep(2)}>Siguiente →</BtnPrimary>
+            <div style={{ position: 'sticky', bottom: 0, marginTop: 8, paddingTop: 16, paddingBottom: 4, background: `linear-gradient(to top, ${BG_L} 70%, transparent)` }}>
+              <BtnPrimary onClick={() => setStep(2)}>Siguiente →</BtnPrimary>
+            </div>
           </div>
         )}
 
@@ -806,14 +1018,14 @@ export default function OnboardingPage() {
             <SectionTitle>¿Cómo quieres que se vea?</SectionTitle>
             <StepSub>Elige la estética visual de tu feed. Define la edición, colores y tipo de contenido.</StepSub>
 
-            <div style={{ flex: 1, overflowY: 'auto', marginBottom: 16 }}>
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: 16, paddingRight: 4 }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {VISUAL_STYLES.map((style, styleIdx) => {
+                {VISUAL_STYLES.map((style) => {
                   const selected = visualStyle === style.value;
-                  const cardImgs = [0, 1, 2, 3].map(i => sectorVisualImgs[(styleIdx * 2 + i) % sectorVisualImgs.length]);
+                  const cardImgs = getSectorStyleImages(sector, style.value);
                   return (
                     <button key={style.value} type="button" onClick={() => setVisualStyle(style.value)} style={{
-                      padding: 0, borderRadius: 12, overflow: 'hidden',
+                      padding: 0, overflow: 'hidden',
                       border: `2px solid ${selected ? ACCENT : '#e5e7eb'}`,
                       cursor: 'pointer', background: 'transparent', outline: 'none',
                       transition: 'border-color 0.2s, box-shadow 0.2s',
@@ -822,10 +1034,10 @@ export default function OnboardingPage() {
                     }}>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
                         {cardImgs.map((img, i) => (
-                          <img key={i} src={img} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block', filter: STYLE_FILTERS[style.value] }} />
+                          <img key={i} src={img} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block', background: '#f3f4f6' }} />
                         ))}
                       </div>
-                      <div style={{ background: '#ffffff', padding: '9px 11px' }}>
+                      <div style={{ background: '#ffffff', padding: '10px 12px', borderTop: '1px solid #e5e7eb' }}>
                         <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: '0.8rem', color: INK, marginBottom: 2 }}>
                           {style.title}
                         </div>
@@ -840,6 +1052,46 @@ export default function OnboardingPage() {
                   );
                 })}
               </div>
+
+              {/* Optional brand palette — shown below the style cards so the
+                  user can override the default accent if their business has
+                  its own identity colors. */}
+              <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px dashed ${BORDER}` }}>
+                <Label>
+                  ¿Tienes una paleta propia?{' '}
+                  <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400, letterSpacing: 0 }}>
+                    (opcional)
+                  </span>
+                </Label>
+                <div style={{ fontFamily: FONT, fontSize: '0.78rem', color: MUTED, marginBottom: 12, lineHeight: 1.5 }}>
+                  Si tu negocio ya tiene colores de marca, elígelos aquí. Los usaremos en tus publicaciones.
+                </div>
+                <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {[
+                    { label: 'Principal', value: primaryColor, set: setPrimaryColor },
+                    { label: 'Secundario', value: secondaryColor, set: setSecondaryColor },
+                  ].map((c) => {
+                    const colorInputId = `brand-color-${c.label.toLowerCase().replace(/\s+/g, '-')}`;
+                    return (
+                      <div key={c.label} className="brandColorPicker">
+                        <input
+                          id={colorInputId}
+                          type="color"
+                          value={c.value}
+                          onChange={(e) => c.set(e.target.value)}
+                          className="brandColorInput"
+                          title={`Seleccionar color ${c.label.toLowerCase()}`}
+                          aria-label={`Color ${c.label.toLowerCase()}`}
+                        />
+                        <div>
+                          <label htmlFor={colorInputId} className="brandColorLabel">{c.label}</label>
+                          <div className="brandColorValue">{c.value}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
@@ -851,102 +1103,128 @@ export default function OnboardingPage() {
 
         {/* ── Step 3: Business details ── */}
         {step === 3 && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <SectionTitle>Cuéntanos sobre ti</SectionTitle>
             <StepSub>Para que NeuroPost adapte el contenido a tu negocio.</StepSub>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 28 }}>
-              <div>
-                <Label>Nombre del negocio *</Label>
-                <input style={inputStyle} type="text" placeholder="Ej: Heladería La Nube" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
-              </div>
-              {dynamicQuestions.map((q) => {
-                const options = SECTOR_SERVICE_OPTIONS[sector];
-                return (
-                  <div key={q.key}>
-                    <Label>{q.label}</Label>
-                    {options ? (
-                      <select
-                        style={selectStyle}
-                        value={dynamicAnswers[q.key] ?? ''}
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4, marginBottom: 20 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+
+                {/* Business name (free text input — required) */}
+                <div>
+                  <Label>Nombre del negocio *</Label>
+                  <input
+                    style={inputStyle}
+                    type="text"
+                    placeholder="Ej: Heladería La Nube"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+
+                {/* Dynamic sector question — as pills if we have suggestions */}
+                {dynamicQuestions.map((q) => {
+                  const options = SECTOR_SERVICE_OPTIONS[sector];
+                  const current = dynamicAnswers[q.key] ?? '';
+                  if (options) {
+                    return (
+                      <div key={q.key}>
+                        <Label>{q.label} <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(elige una o escribe)</span></Label>
+                        <PillGroup>
+                          {options.map((opt) => (
+                            <PillOption
+                              key={opt}
+                              active={current === opt}
+                              onClick={() => setDynamicAnswers((prev) => ({ ...prev, [q.key]: prev[q.key] === opt ? '' : opt }))}
+                            >
+                              {opt}
+                            </PillOption>
+                          ))}
+                        </PillGroup>
+                        {!options.includes(current) && (
+                          <input
+                            style={{ ...inputStyle, marginTop: 10 }}
+                            type="text"
+                            placeholder={`O escribe: ${q.placeholder}`}
+                            value={current}
+                            onChange={(e) => setDynamicAnswers((prev) => ({ ...prev, [q.key]: e.target.value }))}
+                          />
+                        )}
+                      </div>
+                    );
+                  }
+                  return (
+                    <div key={q.key}>
+                      <Label>{q.label}</Label>
+                      <input
+                        style={inputStyle}
+                        type="text"
+                        placeholder={q.placeholder}
+                        value={current}
                         onChange={(e) => setDynamicAnswers((prev) => ({ ...prev, [q.key]: e.target.value }))}
-                      >
-                        <option value="">Elige una opción...</option>
-                        {options.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
-                    ) : (
-                      <input style={inputStyle} type="text" placeholder={q.placeholder} value={dynamicAnswers[q.key] ?? ''} onChange={(e) => setDynamicAnswers((prev) => ({ ...prev, [q.key]: e.target.value }))} />
-                    )}
-                  </div>
-                );
-              })}
-              <div>
-                <Label>País</Label>
-                <select
-                  style={selectStyle}
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                >
-                  <option value="España">España</option>
-                  <option value="México">México</option>
-                  <option value="Argentina">Argentina</option>
-                  <option value="Colombia">Colombia</option>
-                  <option value="Chile">Chile</option>
-                  <option value="Perú">Perú</option>
-                  <option value="Ecuador">Ecuador</option>
-                  <option value="Francia">Francia</option>
-                  <option value="Portugal">Portugal</option>
-                  <option value="Italia">Italia</option>
-                  <option value="Estados Unidos">Estados Unidos</option>
-                  <option value="Reino Unido">Reino Unido</option>
-                  <option value="Alemania">Alemania</option>
-                  <option value="__otro__">Otro país...</option>
-                </select>
-                {country === '__otro__' && (
-                  <input style={{ ...inputStyle, marginTop: 8 }} type="text" placeholder="Escribe tu país..." onChange={(e) => setCountry(e.target.value)} />
-                )}
-              </div>
-              <div>
-                <Label>Comunidad autónoma <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span></Label>
-                <select
-                  style={selectStyle}
-                  value={locationDropdown}
-                  onChange={(e) => {
-                    setLocationDropdown(e.target.value);
-                    if (e.target.value !== '__otra__') setLocation(e.target.value);
-                    else setLocation('');
-                  }}
-                >
-                  <option value="">Selecciona tu comunidad...</option>
-                  {REGION_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
-                  <option value="__otra__">Otra región...</option>
-                </select>
-                {locationDropdown === '__otra__' && (
-                  <input style={{ ...inputStyle, marginTop: 8 }} type="text" placeholder="Escribe tu región..." value={location} onChange={(e) => setLocation(e.target.value)} />
-                )}
+                      />
+                    </div>
+                  );
+                })}
+
+                {/* Country — native dropdown grouped by region */}
+                <div>
+                  <Label>País</Label>
+                  <select
+                    style={selectStyle}
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                  >
+                    {COUNTRY_GROUPS.map((g) => (
+                      <optgroup key={g.region} label={g.region}>
+                        {g.countries.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Region / Autonomous community — free text input */}
+                <div>
+                  <Label>
+                    {country === 'España' ? 'Comunidad autónoma' : 'Región / Ciudad'}{' '}
+                    <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span>
+                  </Label>
+                  <input
+                    style={inputStyle}
+                    type="text"
+                    placeholder={country === 'España' ? 'Ej: Cataluña, Madrid, Andalucía...' : 'Ej: Ciudad de México, Buenos Aires...'}
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                  />
+                </div>
+
+
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 'auto' }}>
+            <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
               <BtnBack onClick={() => setStep(2)} />
               <BtnPrimary onClick={() => { if (!name.trim()) { toast.error('El nombre es obligatorio'); return; } setStep(4); }}>Siguiente →</BtnPrimary>
             </div>
           </div>
         )}
 
-        {/* ── Step 4: Brand voice ── */}
+        {/* ── Step 4: Brand voice + publish mode ── */}
         {step === 4 && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <SectionTitle>Tu voz de marca</SectionTitle>
-            <StepSub>Elige cómo quieres comunicarte con tu audiencia.</StepSub>
+            <StepSub>Elige cómo quieres comunicarte y cómo gestionamos las publicaciones.</StepSub>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 20, marginBottom: 24 }}>
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4, display: 'flex', flexDirection: 'column', gap: 24, marginBottom: 20 }}>
               <div>
                 <Label>Tono de comunicación</Label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   {TONE_OPTIONS.map((t) => (
                     <button key={t.value} type="button" onClick={() => setTone(t.value)} style={{
-                      padding: '14px', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+                      padding: '14px', borderRadius: 0, cursor: 'pointer', textAlign: 'left',
                       border: `1.5px solid ${tone === t.value ? ACCENT : '#e5e7eb'}`,
                       background: tone === t.value ? 'rgba(15,118,110,0.1)' : '#ffffff',
                       outline: 'none', transition: 'all 0.15s',
@@ -976,7 +1254,7 @@ export default function OnboardingPage() {
                         type="button"
                         onClick={() => active ? removeTag(keywords, setKeywords, kw) : addTag(keywords, setKeywords, kw)}
                         style={{
-                          padding: '7px 14px', borderRadius: 40, cursor: 'pointer',
+                          padding: '7px 14px', borderRadius: 0, cursor: 'pointer',
                           fontFamily: FONT, fontSize: '0.82rem', fontWeight: 700,
                           border: `1.5px solid ${active ? ACCENT : '#e5e7eb'}`,
                           background: active ? ACCENT : '#f3f4f6',
@@ -990,101 +1268,159 @@ export default function OnboardingPage() {
                   })}
                 </div>
               </div>
+
+              {/* Publish mode — moved here from the old step 5. Frequency is
+                  derived from the selected plan later, so we only ask how much
+                  control the user wants over approvals. */}
+              <div>
+                <Label>Modo de publicación</Label>
+                <div style={{ fontFamily: FONT, fontSize: '0.78rem', color: MUTED, marginBottom: 10, lineHeight: 1.5 }}>
+                  ¿Cómo quieres que gestionemos tu contenido?
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                  {PUBLISH_MODE_OPTIONS.map((m) => {
+                    const active = publishMode === m.value;
+                    return (
+                      <button
+                        key={m.value}
+                        type="button"
+                        onClick={() => setPublishMode(m.value)}
+                        style={{
+                          position: 'relative',
+                          padding: '16px 14px',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          border: `1.5px solid ${active ? ACCENT : '#e5e7eb'}`,
+                          background: active ? 'rgba(15,118,110,0.08)' : '#ffffff',
+                          outline: 'none',
+                          transition: 'all 0.15s',
+                          boxShadow: active ? `0 0 0 3px rgba(15,118,110,0.1)` : 'none',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: 6,
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          <span style={{ fontFamily: FONT_C, fontWeight: 800, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.04em', color: active ? INK : '#374151' }}>
+                            {m.label}
+                          </span>
+                          {m.value === 'semi' && (
+                            <span style={{ fontFamily: FONT, fontSize: 9, fontWeight: 700, color: ACCENT, background: '#f0fdf4', padding: '2px 6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                              Recomendado
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontFamily: FONT, fontSize: 11, color: MUTED, lineHeight: 1.45 }}>
+                          {m.desc}
+                        </div>
+                        {active && (
+                          <span style={{ color: ACCENT, fontWeight: 900, fontSize: 14, marginTop: 2 }}>✓</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: 'flex', gap: 10, marginTop: 'auto' }}>
+            <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
               <BtnBack onClick={() => setStep(3)} />
               <BtnPrimary onClick={() => setStep(5)}>Siguiente →</BtnPrimary>
             </div>
           </div>
         )}
 
-        {/* ── Step 5: Publish mode + colors ── */}
+        {/* ── Step 5: Subscription plan + coupon ── */}
         {step === 5 && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
-            <SectionTitle>Modo de publicación</SectionTitle>
-            <StepSub>¿Cómo quieres que gestionemos tu contenido?</StepSub>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+            <SectionTitle>Elige tu plan</SectionTitle>
+            <StepSub>Selecciona el plan que mejor se adapta a tu negocio. Puedes cambiarlo cuando quieras.</StepSub>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
-              {PUBLISH_MODE_OPTIONS.map((m) => (
-                <button key={m.value} type="button" onClick={() => setPublishMode(m.value)} style={{
-                  padding: 0, borderRadius: 8, cursor: 'pointer', textAlign: 'left',
-                  border: `1.5px solid ${publishMode === m.value ? ACCENT : '#e5e7eb'}`,
-                  background: publishMode === m.value ? 'rgba(15,118,110,0.08)' : '#ffffff',
-                  outline: 'none', transition: 'all 0.15s', overflow: 'hidden',
-                  boxShadow: publishMode === m.value ? `0 0 0 3px rgba(15,118,110,0.1)` : 'none',
-                  display: 'flex', flexDirection: 'column',
-                }}>
-                  <img src={PUBLISH_MODE_IMGS[m.value]} alt="" style={{ width: '100%', height: 100, objectFit: 'cover', display: 'block' }} />
-                  <div style={{ padding: '12px 14px', flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontFamily: FONT_C, fontWeight: 700, fontSize: 13, textTransform: 'uppercase', color: publishMode === m.value ? INK : '#374151' }}>{m.label}</span>
-                      {m.value === 'semi' && <span style={{ fontFamily: FONT, fontSize: 9, fontWeight: 600, color: ACCENT, background: '#f0fdf4', padding: '1px 6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Recomendado</span>}
-                    </div>
-                    <div style={{ fontFamily: FONT, fontSize: 11, color: MUTED, lineHeight: 1.4 }}>{m.desc}</div>
-                    {publishMode === m.value && <span style={{ color: ACCENT, fontWeight: 900, fontSize: 14, marginTop: 4 }}>✓</span>}
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <Label>Frecuencia de publicación</Label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {([2, 5, 7] as const).map((freq) => (
-                  <button
-                    key={freq}
-                    type="button"
-                    onClick={() => setPublishFrequency(freq)}
-                    style={{
-                      flex: 1, padding: '14px 8px', borderRadius: 12, cursor: 'pointer', textAlign: 'center',
-                      border: `1.5px solid ${publishFrequency === freq ? ACCENT : '#e5e7eb'}`,
-                      background: publishFrequency === freq ? 'rgba(15,118,110,0.1)' : '#ffffff',
-                      outline: 'none', transition: 'all 0.15s',
-                    }}
-                  >
-                    <div style={{ fontFamily: FONT, fontWeight: 900, fontSize: '1.5rem', color: publishFrequency === freq ? INK : '#9ca3af' }}>{freq}</div>
-                    <div style={{ fontFamily: FONT, fontSize: '0.7rem', color: MUTED, marginTop: 2 }}>posts/sem</div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <Label>Colores de marca <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400, letterSpacing: 0 }}>(opcional)</span></Label>
-              <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-                {[{ label: 'Principal', value: primaryColor, set: setPrimaryColor }, { label: 'Secundario', value: secondaryColor, set: setSecondaryColor }].map((c) => {
-                  const colorInputId = `brand-color-${c.label.toLowerCase().replace(/\s+/g, '-')}`;
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4, marginBottom: 20 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 24 }}>
+                {ONBOARDING_PLANS.map((plan) => {
+                  const selected = selectedPlan === plan.id;
                   return (
-                    <div key={c.label} className="brandColorPicker">
-                      <input
-                        id={colorInputId}
-                        type="color"
-                        value={c.value}
-                        onChange={(e) => c.set(e.target.value)}
-                        className="brandColorInput"
-                        title={`Seleccionar color ${c.label.toLowerCase()}`}
-                        aria-label={`Color ${c.label.toLowerCase()}`}
-                      />
-                      <div>
-                        <label htmlFor={colorInputId} className="brandColorLabel">{c.label}</label>
-                        <div className="brandColorValue">{c.value}</div>
+                    <button
+                      key={plan.id}
+                      type="button"
+                      onClick={() => setSelectedPlan(plan.id)}
+                      style={{
+                        position: 'relative',
+                        padding: 0,
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        border: `2px solid ${selected ? ACCENT : '#e5e7eb'}`,
+                        background: selected ? 'rgba(15,118,110,0.04)' : '#ffffff',
+                        outline: 'none',
+                        transition: 'all 0.15s',
+                        boxShadow: selected ? `0 0 0 4px rgba(15,118,110,0.12)` : 'none',
+                        display: 'flex',
+                        flexDirection: 'column',
+                      }}
+                    >
+                      {plan.badge && (
+                        <div style={{
+                          position: 'absolute',
+                          top: -1,
+                          right: -1,
+                          background: plan.featured ? ACCENT : INK,
+                          color: '#ffffff',
+                          fontFamily: FONT_C,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          letterSpacing: '0.08em',
+                          textTransform: 'uppercase',
+                          padding: '5px 10px',
+                        }}>
+                          {plan.badge}
+                        </div>
+                      )}
+                      <div style={{ padding: '22px 18px 14px', borderBottom: '1px solid #f3f4f6' }}>
+                        <div style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '1.15rem', color: INK, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 6 }}>
+                          {plan.name}
+                        </div>
+                        <div style={{ fontFamily: FONT, fontSize: 11, color: MUTED, lineHeight: 1.5, minHeight: 32 }}>
+                          {plan.desc}
+                        </div>
+                        <div style={{ marginTop: 14, display: 'flex', alignItems: 'baseline', gap: 4 }}>
+                          <span style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '1.9rem', color: INK, letterSpacing: '-0.02em' }}>{plan.price}€</span>
+                          <span style={{ fontFamily: FONT, fontSize: 11, color: MUTED }}>/mes</span>
+                        </div>
                       </div>
-                    </div>
+                      <ul style={{ listStyle: 'none', padding: '14px 18px 18px', margin: 0, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                        {plan.features.map((f) => (
+                          <li key={f} style={{ fontFamily: FONT, fontSize: 11, color: '#374151', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                            <span style={{ color: ACCENT, fontWeight: 900, flexShrink: 0 }}>✓</span>
+                            <span>{f}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {selected && (
+                        <div style={{ padding: '10px 18px', background: ACCENT, color: '#ffffff', fontFamily: FONT_C, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', textAlign: 'center', marginTop: 'auto' }}>
+                          ✓ Seleccionado
+                        </div>
+                      )}
+                    </button>
                   );
                 })}
               </div>
+
+              <div style={{ padding: '20px', background: '#ffffff', border: '1px solid #e5e7eb' }}>
+                <Label>¿Tienes un código de descuento?</Label>
+                <CouponInput
+                  onValidCoupon={(id, text) => { setPromoCodeId(id); setDiscountText(text); }}
+                  onClearCoupon={() => { setPromoCodeId(null); setDiscountText(''); }}
+                />
+                {discountText && (
+                  <p style={{ fontSize: '0.8rem', color: ACCENT, marginTop: 8, fontFamily: FONT, fontWeight: 700 }}>
+                    {discountText}
+                  </p>
+                )}
+              </div>
             </div>
 
-            <div style={{ marginBottom: 20 }}>
-              <CouponInput
-                onValidCoupon={(id, text) => { setPromoCodeId(id); setDiscountText(text); }}
-                onClearCoupon={() => { setPromoCodeId(null); setDiscountText(''); }}
-              />
-              {discountText && <p style={{ fontSize: '0.8rem', color: '#4ade80', marginTop: 6, fontFamily: FONT }}>{discountText}</p>}
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, marginTop: 'auto', paddingBottom: 4 }}>
+            <div style={{ display: 'flex', gap: 10, flexShrink: 0, paddingBottom: 4 }}>
               <BtnBack onClick={() => setStep(4)} />
               <BtnPrimary onClick={handleSubmit} disabled={saving}>
                 {saving ? (
@@ -1111,7 +1447,7 @@ export default function OnboardingPage() {
         .brandColorInput {
           width: 44px;
           height: 44px;
-          border-radius: 10px;
+          border-radius: 0;
           border: 1px solid rgba(255, 255, 255, 0.1);
           cursor: pointer;
           padding: 2px;

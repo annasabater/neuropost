@@ -367,7 +367,7 @@ export default function WorkerDashboardPage() {
     <div style={{ maxWidth: 1200, margin: '0 auto' }}>
       {/* ── Header ── */}
       <div style={{ padding: '40px 0 32px' }}>
-        <h1 style={{ fontSize: 32, fontFamily: fc, fontWeight: 900, margin: 0, color: C.text }}>
+        <h1 style={{ fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', fontFamily: fc, fontWeight: 900, margin: 0, color: C.text, lineHeight: 0.95 }}>
           Centro de control
         </h1>
         <p style={{ fontSize: 14, color: C.muted, margin: '8px 0 0', fontFamily: f }}>

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
+import { checkFeature } from '@/lib/plan-limits';
 
 export async function GET() {
   try {
@@ -9,6 +10,12 @@ export async function GET() {
 
     const { data: brand } = await supabase.from('brands').select('id').eq('user_id', user.id).single();
     if (!brand) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
+
+    // Plan gate — competitor agent is a Total+ feature.
+    const gate = await checkFeature(brand.id, 'competitorAgent');
+    if (!gate.allowed) {
+      return NextResponse.json({ error: gate.reason, upgradeUrl: gate.upgradeUrl, analyses: [] }, { status: 402 });
+    }
 
     const { data: analyses } = await supabase
       .from('competitor_analysis')

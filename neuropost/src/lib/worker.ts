@@ -28,6 +28,17 @@ export async function requireAdminWorker(): Promise<Worker> {
   return worker;
 }
 
+/**
+ * Require the current worker to be assigned to the given brand. Admins bypass
+ * the assignment check. Throws FORBIDDEN otherwise.
+ */
+export async function requireWorkerForBrand(brandId: string): Promise<Worker> {
+  const worker = await requireWorker();
+  if (worker.role === 'admin') return worker;
+  if (!worker.brands_assigned?.includes(brandId)) throw new Error('FORBIDDEN');
+  return worker;
+}
+
 export function workerErrorResponse(err: unknown): { error: string; status: number } {
   const message = err instanceof Error ? err.message : String(err);
   if (message === 'UNAUTHENTICATED') return { error: 'No autenticado', status: 401 };

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { TrendingUp, Check, X } from 'lucide-react';
+import { PlanGate } from '@/components/PlanGate';
 
 interface BrandTrend {
   id:                  string;
@@ -31,6 +32,18 @@ const URGENCY_COLOR: Record<string, string> = {
 };
 
 export default function TendenciasPage() {
+  return (
+    <PlanGate
+      feature="trendsAgent"
+      title="Tendencias del sector"
+      description="Recibe tendencias semanales de tu sector adaptadas a tu marca y convierte las que te gusten en posts con un clic."
+    >
+      <TendenciasContent />
+    </PlanGate>
+  );
+}
+
+function TendenciasContent() {
   const t = useTranslations('trends');
   const router   = useRouter();
   const [trends, setTrends]   = useState<BrandTrend[]>([]);

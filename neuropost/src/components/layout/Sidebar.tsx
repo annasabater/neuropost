@@ -147,7 +147,7 @@ export function Sidebar() {
           }}>
             {[
               { href: '/brand', label: 'Brand Kit', icon: Palette },
-              { href: '/settings/connections', label: 'Conexiones', icon: Link2 },
+              { href: '/settings#redes',       label: 'Conexiones', icon: Link2 },
               { href: '/settings', label: 'Ajustes', icon: Settings },
               { href: '/settings/plan', label: 'Facturación', icon: CreditCard },
             ].map(({ href, label, icon: Icon }) => (

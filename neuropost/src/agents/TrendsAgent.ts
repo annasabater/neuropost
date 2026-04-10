@@ -39,6 +39,15 @@ export interface TrendsAdaptInput {
   sector:          string;
   tone:            string;
   recentPosts:     string[];  // last 5 captions
+  /** Words the brand has marked as forbidden in `/brand` rules. */
+  forbiddenWords?: string[];
+  /** Topics the brand wants to avoid entirely. */
+  forbiddenTopics?: string[];
+  /** If true, the output must NOT include any emoji characters. */
+  noEmojis?:       boolean;
+  /** Brand preferences — lets the agent honour carousel/video preferences. */
+  likesCarousels?: boolean;
+  includeVideos?:  boolean;
 }
 
 // ─── Step 1: Detect trends by sector ─────────────────────────────────────────
@@ -91,6 +100,25 @@ Devuelve SOLO JSON válido con esta estructura exacta:
 // ─── Step 2: Adapt trend to brand ────────────────────────────────────────────
 
 export async function adaptTrendToBrand(input: TrendsAdaptInput): Promise<AdaptedTrend> {
+  // Build extra constraints from the brand kit rules so the model respects
+  // forbidden words/topics, the no-emoji flag and format preferences.
+  const constraints: string[] = [];
+  if (input.forbiddenWords?.length) {
+    constraints.push(`NO uses jamás estas palabras: ${input.forbiddenWords.join(', ')}.`);
+  }
+  if (input.forbiddenTopics?.length) {
+    constraints.push(`Evita por completo estos temas: ${input.forbiddenTopics.join(', ')}.`);
+  }
+  if (input.noEmojis) {
+    constraints.push('NO uses emojis ni emoticonos en el caption.');
+  }
+  if (input.likesCarousels === false && input.trend.format === 'carrusel') {
+    constraints.push('El cliente NO quiere carruseles — adapta la tendencia a un formato de imagen única.');
+  }
+  if (input.includeVideos === false && input.trend.format === 'reel') {
+    constraints.push('El cliente NO incluye vídeos — adapta la tendencia a un formato de imagen.');
+  }
+
   const message = await client.messages.create({
     model:      'claude-opus-4-6',
     max_tokens: 1000,
@@ -102,6 +130,7 @@ La adaptación debe:
 - Respetar el tono de marca del cliente
 - Ser ejecutable con fotos normales del negocio
 - Incluir caption y hashtags listos para publicar
+${constraints.length ? `\nREGLAS ESTRICTAS DE LA MARCA:\n${constraints.map(c => `- ${c}`).join('\n')}` : ''}
 
 Devuelve SOLO JSON válido:
 {

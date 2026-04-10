@@ -51,7 +51,6 @@ export function WeeklyProposals({ proposals }: { proposals: Proposal[] }) {
         border: '1px solid var(--border)', padding: '40px 24px',
         textAlign: 'center', marginBottom: 48,
       }}>
-        <Sparkles size={24} style={{ color: 'var(--accent)', marginBottom: 12 }} />
         <p style={{
           fontFamily: fc, fontWeight: 900, fontSize: 18,
           textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 6,

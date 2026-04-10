@@ -166,7 +166,7 @@ export default function CommentsPage() {
               }}>
                 <Zap size={14} /> Procesar demo <ArrowRight size={14} />
               </button>
-              <a href="/settings/connections" style={{
+              <a href="/settings#redes" style={{
                 padding: '14px 24px', border: '1px solid #d4d4d8', background: '#ffffff',
                 fontFamily: f, fontSize: 13, fontWeight: 600, color: '#6b7280',
                 textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, borderRadius: 6,

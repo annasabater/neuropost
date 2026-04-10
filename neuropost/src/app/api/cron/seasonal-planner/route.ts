@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { getUpcomingDatesForBrand, generateSeasonalContent } from '@/agents/SeasonalAgent';
-import type { Brand } from '@/types';
+import { normalizePreferences } from '@/lib/plan-features';
+import type { Brand, BrandRules } from '@/types';
 
 export async function GET(request: Request) {
   const auth = request.headers.get('authorization');
@@ -36,6 +37,8 @@ export async function GET(request: Request) {
       if ((count ?? 0) > 0) continue;
 
       try {
+        const rules = (b.rules ?? null) as BrandRules | null;
+        const prefs = normalizePreferences(b.plan, rules?.preferences);
         const content = await generateSeasonalContent({
           fecha:            d.name,
           diasRestantes:    d.daysUntil,
@@ -43,6 +46,11 @@ export async function GET(request: Request) {
           brandName:        b.name,
           brandVoiceDoc:    b.brand_voice_doc ?? `${b.name}, ${b.sector}`,
           previousYearPost: null,
+          forbiddenWords:   rules?.forbiddenWords,
+          forbiddenTopics:  rules?.forbiddenTopics,
+          noEmojis:         rules?.noEmojis,
+          likesCarousels:   prefs.likesCarousels,
+          includeVideos:    prefs.includeVideos,
         });
 
         const publishDate = new Date(d.nextOccurrence);

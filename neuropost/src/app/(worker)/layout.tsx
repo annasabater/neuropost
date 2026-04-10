@@ -101,9 +101,6 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
       <div className="dash-content">
         <WorkerTopNav
           pathname={pathname}
-          worker={worker}
-          queueBadge={queueBadge}
-          msgBadge={0}
           onToggleSidebar={() => setSidebarOpen((value) => !value)}
         />
         <main className="dash-main">{children}</main>

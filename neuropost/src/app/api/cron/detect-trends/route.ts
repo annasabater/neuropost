@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { detectTrendsBySector, adaptTrendToBrand } from '@/agents/TrendsAgent';
-import type { Brand } from '@/types';
+import { normalizePreferences } from '@/lib/plan-features';
+import type { Brand, BrandRules } from '@/types';
 
 const SECTORS = ['heladeria', 'restaurante', 'cafeteria', 'gym', 'clinica', 'barberia', 'boutique'];
 
@@ -43,16 +44,22 @@ export async function GET(request: Request) {
 
       trendsDetected += savedTrends.filter(Boolean).length;
 
-      // Adapt to all active Pro/Agency brands in this sector
+      // Adapt to brands in this sector whose plan includes trendsAgent
+      // (Total and Agency). Pro/Starter do not get trend adaptations.
       const { data: brands } = await db
         .from('brands')
         .select('*')
         .eq('sector', sector)
-        .in('plan', ['pro', 'agency']);
+        .in('plan', ['total', 'agency']);
 
       for (const brand of brands ?? []) {
         const b = brand as Brand;
         const highUrgencyTrends = (result.trends ?? []).filter(t => t.viralScore >= 75);
+
+        // Hydrate rules + preferences so the agent respects forbidden words,
+        // noEmojis and the user's format preferences (carousels, videos).
+        const rules = (b.rules ?? null) as BrandRules | null;
+        const prefs = normalizePreferences(b.plan, rules?.preferences);
 
         for (const trend of highUrgencyTrends.slice(0, 2)) {
           try {
@@ -62,10 +69,15 @@ export async function GET(request: Request) {
 
             const adapted = await adaptTrendToBrand({
               trend,
-              brandVoiceDoc: b.brand_voice_doc ?? `${b.name}, ${b.sector}, tono ${b.tone}`,
-              sector:        b.sector ?? 'otro',
-              tone:          b.tone   ?? 'cercano',
-              recentPosts:   (recentPosts ?? []).map((p: { caption: string }) => p.caption ?? ''),
+              brandVoiceDoc:   b.brand_voice_doc ?? `${b.name}, ${b.sector}, tono ${b.tone}`,
+              sector:          b.sector ?? 'otro',
+              tone:            b.tone   ?? 'cercano',
+              recentPosts:     (recentPosts ?? []).map((p: { caption: string }) => p.caption ?? ''),
+              forbiddenWords:  rules?.forbiddenWords,
+              forbiddenTopics: rules?.forbiddenTopics,
+              noEmojis:        rules?.noEmojis,
+              likesCarousels:  prefs.likesCarousels,
+              includeVideos:   prefs.includeVideos,
             });
 
             const trendId = savedTrends.find(t => (t as { title?: string })?.title === trend.title) as { id?: string } | null;

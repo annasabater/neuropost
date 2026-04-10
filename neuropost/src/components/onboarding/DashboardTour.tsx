@@ -13,7 +13,7 @@ type OnboardingProgress = {
 };
 
 const CHECKLIST_STEPS = [
-  { key: 'instagram',  label: 'Conecta tu Instagram',     desc: 'Sincroniza tu cuenta para empezar a publicar', href: '/settings/connections', icon: Link2 },
+  { key: 'instagram',  label: 'Conecta tu Instagram',     desc: 'Sincroniza tu cuenta para empezar a publicar', href: '/settings#redes', icon: Link2 },
   { key: 'first_post', label: 'Crea tu primer post',      desc: 'Sube una foto y deja que la IA haga el resto',  href: '/posts/new',            icon: ImagePlus },
   { key: 'approved',   label: 'Aprueba tu primer post',   desc: 'Revisa el contenido y apruébalo con un clic',   href: '/posts',                icon: CheckSquare },
   { key: 'calendar',   label: 'Revisa tu calendario',     desc: 'Ve qué está programado para esta semana',        href: '/calendar',             icon: Calendar },

@@ -35,6 +35,43 @@ export async function checkPostLimit(brandId: string): Promise<PlanLimitResult> 
   return { allowed: true };
 }
 
+/** Check if a brand can generate another video this week. */
+export async function checkVideoLimit(brandId: string): Promise<PlanLimitResult> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createServerClient() as any;
+  const { data: brand } = await supabase
+    .from('brands').select('plan, videos_this_week').eq('id', brandId).single();
+
+  const plan  = (brand?.plan ?? 'starter') as SubscriptionPlan;
+  const limit = PLAN_LIMITS[plan].videosPerWeek;
+
+  if (limit === 0) {
+    return {
+      allowed:    false,
+      reason:     `La generación de vídeo no está incluida en el plan ${plan}.`,
+      upgradeUrl: `${appUrl()}/settings/plan`,
+    };
+  }
+
+  const used = brand?.videos_this_week ?? 0;
+  if (used >= limit) {
+    return {
+      allowed:    false,
+      reason:     `Has alcanzado el límite de ${limit} vídeos/semana del plan ${plan}. Se restablece cada lunes.`,
+      upgradeUrl: `${appUrl()}/settings/plan`,
+    };
+  }
+  return { allowed: true };
+}
+
+/** Increment video counter after successful generation. */
+export async function incrementVideoCounter(brandId: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createServerClient() as any;
+  const { data } = await supabase.from('brands').select('videos_this_week').eq('id', brandId).single();
+  if (data) await supabase.from('brands').update({ videos_this_week: (data.videos_this_week ?? 0) + 1 }).eq('id', brandId);
+}
+
 /** Check if a brand can publish a story this week. */
 export async function checkStoryLimit(brandId: string): Promise<PlanLimitResult> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

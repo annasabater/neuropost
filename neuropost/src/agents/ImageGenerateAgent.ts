@@ -8,18 +8,24 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { generateImage } from '@/lib/imageGeneration';
 import type { NanoBananaQuality } from '@/lib/nanoBanana';
-import type { VisualStyle, SocialSector } from '@/types';
+import type { VisualStyle, SocialSector, BrandColors } from '@/types';
 
 const anthropic = new Anthropic();
 
 export interface ImageGenerateInput {
-  userPrompt:   string;
-  sector:       SocialSector;
-  visualStyle:  VisualStyle;
-  brandContext: string;        // brand name, tone, keywords
-  quality?:     NanoBananaQuality;
-  format?:      'post' | 'story' | 'reel_cover';
-  brandId?:     string;        // if provided, uploads to Supabase
+  userPrompt:      string;
+  sector:          SocialSector;
+  visualStyle:     VisualStyle;
+  brandContext:    string;        // brand name, tone, keywords
+  /** Brand palette — injected into the enhanced prompt. */
+  colors?:         BrandColors | null;
+  /** Words to avoid in any overlay text / subject copy. */
+  forbiddenWords?: string[];
+  /** If true, no emojis/emoticons should appear in the generated image. */
+  noEmojis?:       boolean;
+  quality?:        NanoBananaQuality;
+  format?:         'post' | 'story' | 'reel_cover';
+  brandId?:        string;        // if provided, uploads to Supabase
 }
 
 export interface ImageGenerateOutput {
@@ -66,7 +72,19 @@ export async function runImageGenerateAgent(
   const start = Date.now();
   const { width, height } = DIMENSIONS[input.format ?? 'post'];
 
-  // ── Step 1: Claude enhances the prompt ────────────────────────────��─────────
+  // Build brand-aware constraint lines that Claude should take into account.
+  const brandRules: string[] = [];
+  if (input.colors?.primary) {
+    brandRules.push(`Primary brand color: ${input.colors.primary}${input.colors.secondary ? `, secondary ${input.colors.secondary}` : ''}. Weave these colors into the composition naturally (props, background, accents).`);
+  }
+  if (input.forbiddenWords?.length) {
+    brandRules.push(`Do NOT render any of these words visibly in the image: ${input.forbiddenWords.join(', ')}.`);
+  }
+  if (input.noEmojis) {
+    brandRules.push('Do NOT include emoji characters or cartoonish icons in the image.');
+  }
+
+  // ── Step 1: Claude enhances the prompt ──────────────────────────────────────
   const promptMsg = await anthropic.messages.create({
     model:      'claude-sonnet-4-20250514',
     max_tokens: 400,
@@ -79,7 +97,7 @@ Business sector: ${input.sector}
 Visual style: ${input.visualStyle} — ${STYLE_GUIDE[input.visualStyle]}
 Brand context: ${input.brandContext}
 Format: ${input.format ?? 'post'} (${width}×${height}px)
-
+${brandRules.length ? `\nBrand rules (must follow):\n${brandRules.map(r => `- ${r}`).join('\n')}\n` : ''}
 Improve this prompt to get the best possible image for Instagram with Nano Banana 2.
 
 Requirements:

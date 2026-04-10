@@ -3,7 +3,7 @@ import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { runImageGenerateAgent } from '@/agents/ImageGenerateAgent';
 import { IMAGE_QUALITY_BY_PLAN } from '@/lib/plan-limits';
 import { checkRateLimit } from '@/lib/ratelimit';
-import type { VisualStyle, SocialSector, SubscriptionPlan } from '@/types';
+import type { VisualStyle, SocialSector, SubscriptionPlan, BrandRules, BrandColors } from '@/types';
 import type { NanoBananaQuality } from '@/lib/nanoBanana';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,10 +30,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'userPrompt is required' }, { status: 400 });
     }
 
-    // Get brand context
+    // Get brand context — full row so we can forward rules + colors to the agent.
     const { data: brand } = await supabase
       .from('brands')
-      .select('id, name, sector, tone, hashtags, visual_style, plan, brand_voice_doc')
+      .select('id, name, sector, tone, hashtags, visual_style, plan, brand_voice_doc, colors, rules')
       .eq('user_id', user.id)
       .single();
 
@@ -54,14 +54,19 @@ export async function POST(request: Request) {
       brand.hashtags?.length ? `Paraules clau: ${brand.hashtags.slice(0, 5).join(', ')}` : '',
     ].filter(Boolean).join(' | ');
 
+    const rules = (brand.rules ?? null) as BrandRules | null;
+
     const result = await runImageGenerateAgent({
       userPrompt,
-      sector:       brand.sector as SocialSector,
-      visualStyle:  (brand.visual_style ?? 'warm') as VisualStyle,
+      sector:         brand.sector as SocialSector,
+      visualStyle:    (brand.visual_style ?? 'warm') as VisualStyle,
       brandContext,
+      colors:         (brand.colors ?? null) as BrandColors | null,
+      forbiddenWords: rules?.forbiddenWords,
+      noEmojis:       rules?.noEmojis,
       quality,
-      format:       format ?? 'post',
-      brandId:      brand.id,
+      format:         format ?? 'post',
+      brandId:        brand.id,
     });
 
     // Activity log

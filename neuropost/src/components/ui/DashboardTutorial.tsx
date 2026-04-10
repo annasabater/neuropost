@@ -23,7 +23,7 @@ const STEPS: Step[] = [
     icon: <span style={{ fontSize: '2.5rem' }}>📱</span>,
     title: 'Conecta tu Instagram',
     desc:  'Vincula tu cuenta de Instagram o Facebook para que NeuroPost pueda publicar y leer comentarios de forma automática.',
-    cta:  { label: 'Conectar ahora', href: '/settings/connections' },
+    cta:  { label: 'Conectar ahora', href: '/settings#redes' },
   },
   {
     icon: <Lightbulb size={40} color="#0F766E" />,

@@ -1,15 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import Link from 'next/link';
 import toast from 'react-hot-toast';
-import { Save, ExternalLink, CreditCard, Users, Bell, Lock, Trash2, Sun, Moon, Globe } from 'lucide-react';
+import { Save, ExternalLink, CreditCard, Bell, Lock, Trash2, Sun, Moon, Globe } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAppStore } from '@/store/useAppStore';
-import type { SocialSector, BrandTone, PublishMode, BrandRules, VisualStyle } from '@/types';
-import { SECTOR_OPTIONS, TONE_OPTIONS, PUBLISH_MODE_OPTIONS } from '@/lib/brand-options';
 import { createBrowserClient } from '@/lib/supabase';
-import { useTagInput } from '@/hooks/useTagInput';
 import { useRouter } from 'next/navigation';
 import { locales, localeNames, defaultLocale, type Locale } from '@/i18n/config';
 
@@ -19,31 +15,16 @@ export default function SettingsPage() {
   const setBrand     = useAppStore((s) => s.setBrand);
   const brandLoading = useAppStore((s) => s.brandLoading);
   const t            = useTranslations('settings');
-  const tc           = useTranslations('calendar');
   const tAuthErr     = useTranslations('auth.register');
 
-  const [saving,  setSaving]  = useState(false);
   const [billing, setBilling] = useState(false);
 
-  // Basic info
-  const [name,       setName]       = useState('');
-  const [sector,     setSector]     = useState<SocialSector>('otro');
-  const [tone,        setTone]        = useState<BrandTone>('cercano');
-  const [visualStyle, setVisualStyle] = useState<VisualStyle>('warm');
-  const [location,    setLocation]    = useState('');
-
-  // Publish mode
-  const [publishMode, setPublishMode] = useState<PublishMode>('manual');
-
-  // Rules
-  const [noPublishDays,       setNoPublishDays]       = useState<number[]>([]);
-  const [noEmojis,            setNoEmojis]            = useState(false);
-  const [noAutoReplyNegative, setNoAutoReplyNegative] = useState(false);
-  const [forbiddenWords,      setForbiddenWords]      = useState<string[]>([]);
-  const [forbiddenTopics,     setForbiddenTopics]     = useState<string[]>([]);
-  const [fwInput,  setFwInput]  = useState('');
-  const [ftInput,  setFtInput]  = useState('');
-  const { addTag, removeTag, handleTagKeyDown } = useTagInput();
+  // Profile (Perfil section) — local editable copies of brand fields.
+  const [profileLogo,        setProfileLogo]        = useState<string | null>(null);
+  const [profileDescription, setProfileDescription] = useState('');
+  const [profileTimezone,    setProfileTimezone]    = useState('Europe/Madrid');
+  const [uploadingLogo,      setUploadingLogo]      = useState(false);
+  const [savingProfile,      setSavingProfile]      = useState(false);
 
   // Notifications
   const [notifyPublish,  setNotifyPublish]  = useState(false);
@@ -60,27 +41,13 @@ export default function SettingsPage() {
   const [showDeleteZone,  setShowDeleteZone]  = useState(false);
 
   // Active nav section (IntersectionObserver)
-  const [activeSection, setActiveSection] = useState('negocio');
+  const [activeSection, setActiveSection] = useState('tema');
   const observerRef = useRef<IntersectionObserver | null>(null);
 
-  // Dynamic data depending on translations
-  const VISUAL_STYLE_OPTIONS: { value: VisualStyle; label: string; emoji: string; desc: string }[] = [
-    { value: 'creative', label: t('styles.creative.label'), emoji: '🎨', desc: t('styles.creative.desc') },
-    { value: 'elegant',  label: t('styles.elegant.label'),  emoji: '🤍', desc: t('styles.elegant.desc') },
-    { value: 'warm',     label: t('styles.warm.label'),     emoji: '🧡', desc: t('styles.warm.desc') },
-    { value: 'dynamic',  label: t('styles.dynamic.label'),  emoji: '⚡', desc: t('styles.dynamic.desc') },
-  ];
-
-  const DAY_LABELS = [
-    tc('days.sun'), tc('days.mon'), tc('days.tue'), tc('days.wed'),
-    tc('days.thu'), tc('days.fri'), tc('days.sat'),
-  ];
-
+  // Brand-identity sections (negocio, estilo, publicacion, reglas) were moved
+  // to /brand — this nav only keeps app-level and account-level settings.
   const NAV_SECTIONS = [
-    { id: 'negocio',        label: t('nav.business') },
-    { id: 'estilo',         label: t('nav.visualStyle') },
-    { id: 'publicacion',    label: t('nav.publishMode') },
-    { id: 'reglas',         label: t('nav.rules') },
+    { id: 'perfil',         label: 'Perfil' },
     { id: 'tema',           label: 'Tema' },
     { id: 'idioma',         label: 'Idioma' },
     { id: 'notificaciones', label: t('sections.notifications') },
@@ -88,7 +55,6 @@ export default function SettingsPage() {
     { id: 'exportar',       label: t('nav.export') },
     { id: 'plan',           label: t('nav.plan') },
     { id: 'cuenta',         label: t('nav.account') },
-    { id: 'equipo',         label: t('nav.team') },
   ];
 
   const confirmWord = t('account.deleteConfirmWord');
@@ -138,44 +104,41 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!brand) return;
-    setName(brand.name ?? '');
-    setSector(brand.sector ?? 'otro');
-    setTone(brand.tone ?? 'cercano');
-    setVisualStyle(brand.visual_style ?? 'warm');
-    setLocation(brand.location ?? '');
-    setPublishMode(brand.publish_mode ?? 'manual');
     setNotifyPublish(brand.notify_email_publish ?? false);
     setNotifyComments(brand.notify_email_comments ?? false);
-
-    const rules = brand.rules as BrandRules | null;
-    setNoPublishDays(rules?.noPublishDays ?? []);
-    setNoEmojis(rules?.noEmojis ?? false);
-    setNoAutoReplyNegative(rules?.noAutoReplyNegative ?? false);
-    setForbiddenWords(rules?.forbiddenWords ?? []);
-    setForbiddenTopics(rules?.forbiddenTopics ?? []);
+    setProfileLogo(brand.logo_url ?? null);
+    setProfileDescription(brand.description ?? '');
+    setProfileTimezone(brand.timezone ?? 'Europe/Madrid');
   }, [brand]);
 
-  function toggleDay(day: number) {
-    setNoPublishDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day],
-    );
+  async function handleLogoUpload(file: File) {
+    setUploadingLogo(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res  = await fetch('/api/upload', { method: 'POST', body: form });
+      const json = await res.json() as { url?: string; error?: string };
+      if (!res.ok || !json.url) throw new Error(json.error ?? 'Upload failed');
+      setProfileLogo(json.url);
+      toast.success('Logo subido');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error subiendo logo');
+    } finally {
+      setUploadingLogo(false);
+    }
   }
 
-  async function saveBrand(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
+  async function saveProfile() {
+    setSavingProfile(true);
     try {
-      const rules: BrandRules = {
-        noPublishDays,
-        noEmojis,
-        noAutoReplyNegative,
-        forbiddenWords,
-        forbiddenTopics,
-      };
       const res = await fetch('/api/brands', {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ name, sector, tone, visual_style: visualStyle, location, publish_mode: publishMode, rules }),
+        body:    JSON.stringify({
+          logo_url:    profileLogo,
+          description: profileDescription || null,
+          timezone:    profileTimezone,
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Error');
@@ -184,9 +147,17 @@ export default function SettingsPage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error');
     } finally {
-      setSaving(false);
+      setSavingProfile(false);
     }
   }
+
+  // Common timezones — cover the main regions without being exhaustive.
+  const TIMEZONES = [
+    'Europe/Madrid', 'Europe/London', 'Europe/Paris', 'Europe/Berlin',
+    'Europe/Lisbon', 'America/New_York', 'America/Mexico_City',
+    'America/Bogota', 'America/Buenos_Aires', 'America/Santiago',
+    'America/Lima', 'America/Caracas', 'America/Los_Angeles',
+  ];
 
   async function saveNotifications() {
     setSavingNotifs(true);
@@ -435,219 +406,143 @@ export default function SettingsPage() {
         {/* Right content */}
         <div style={{ flex: 1, minWidth: 0 }}>
 
-          <form onSubmit={saveBrand}>
-            {/* ── Negocio ── */}
-            <div id="negocio" className="settings-section">
-              <h2 className="settings-section-title">{t('business.title')}</h2>
-              <div className="settings-grid">
-                <div className="form-group">
-                  <label htmlFor="business-name">{t('business.name')}</label>
+          {/* ── Perfil del negocio ── */}
+          <div id="perfil" className="settings-section">
+            <h2 className="settings-section-title">Perfil del negocio</h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: 20 }}>
+              La información que tu audiencia ve. El nombre y la ubicación se editan en el{' '}
+              <a href="/brand" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>Brand Kit</a>.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 24, alignItems: 'start' }}>
+              {/* Logo uploader */}
+              <div>
+                <label
+                  htmlFor="logo-upload"
+                  style={{
+                    display:        'flex',
+                    alignItems:     'center',
+                    justifyContent: 'center',
+                    width:          120,
+                    height:         120,
+                    border:         '1.5px dashed var(--border)',
+                    background:     profileLogo ? '#ffffff' : 'var(--bg-1)',
+                    cursor:         uploadingLogo ? 'wait' : 'pointer',
+                    overflow:       'hidden',
+                    position:       'relative',
+                  }}
+                >
+                  {profileLogo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={profileLogo} alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ textAlign: 'center', color: 'var(--muted)' }}>
+                      <div style={{ fontSize: 32, marginBottom: 4 }}>📷</div>
+                      <div style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 11 }}>
+                        {uploadingLogo ? 'Subiendo…' : 'Subir logo'}
+                      </div>
+                    </div>
+                  )}
                   <input
-                    id="business-name"
-                    type="text"
-                    title={t('business.name')}
-                    placeholder={t('business.name')}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
+                    id="logo-upload"
+                    type="file"
+                    accept="image/*"
+                    disabled={uploadingLogo}
+                    aria-label="Subir logo"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleLogoUpload(file);
+                    }}
+                    style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer' }}
                   />
-                </div>
-                <div className="form-group">
-                  <label>{t('business.location')}</label>
-                  <input type="text" value={location} onChange={(e) => setLocation(e.target.value)} />
-                </div>
-                <div className="form-group">
-                  <label>{t('business.sector')}</label>
-                  <select value={sector} onChange={(e) => setSector(e.target.value as SocialSector)}>
-                    {SECTOR_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label>{t('business.tone')}</label>
-                  <select value={tone} onChange={(e) => setTone(e.target.value as BrandTone)}>
-                    {TONE_OPTIONS.map((tone_) => <option key={tone_.value} value={tone_.value}>{tone_.label}</option>)}
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Estilo visual ── */}
-            <div id="estilo" className="settings-section">
-              <h2 className="settings-section-title">{t('visualStyle.title')}</h2>
-              <p style={{ fontSize: '0.84rem', color: 'var(--muted)', marginBottom: 14 }}>
-                {t('visualStyle.subtitle')}
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {VISUAL_STYLE_OPTIONS.map((s) => (
+                </label>
+                {profileLogo && (
                   <button
-                    key={s.value}
                     type="button"
-                    onClick={() => setVisualStyle(s.value)}
+                    onClick={() => setProfileLogo(null)}
                     style={{
-                      padding: '12px 14px', borderRadius: 0, textAlign: 'left', cursor: 'pointer',
-                      border: `1.5px solid ${visualStyle === s.value ? 'var(--accent)' : 'var(--border)'}`,
-                      background: visualStyle === s.value ? 'var(--accent-light)' : '#ffffff',
+                      display: 'block',
+                      marginTop: 6,
+                      width: 120,
+                      padding: '6px 8px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: 'var(--muted)',
+                      fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                      fontSize: 11,
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
                     }}
                   >
-                    <div style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 700, fontSize: '0.88rem', marginBottom: 3 }}>
-                      {s.emoji} {s.label}
-                    </div>
-                    <div style={{ fontSize: '0.74rem', color: 'var(--muted)' }}>{s.desc}</div>
+                    Quitar logo
                   </button>
-                ))}
-              </div>
-              <p style={{ fontSize: '0.76rem', color: 'var(--muted)', marginTop: 10 }}>
-                {t('visualStyle.note')}
-              </p>
-            </div>
-
-            {/* ── Publicación ── */}
-            <div id="publicacion" className="settings-section">
-              <h2 className="settings-section-title">{t('publishMode.title')}</h2>
-              <p style={{ fontSize: '0.84rem', color: 'var(--muted)', marginBottom: 14 }}>
-                {t('publishMode.subtitle')}
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {PUBLISH_MODE_OPTIONS.map((m) => (
-                  <label
-                    key={m.value}
-                    style={{
-                      display:     'flex',
-                      alignItems:  'center',
-                      gap:         14,
-                      padding:     '12px 16px',
-                      borderRadius: 0,
-                      border:      `1.5px solid ${publishMode === m.value ? 'var(--accent)' : 'var(--border)'}`,
-                      background:  publishMode === m.value ? 'var(--accent-light)' : '#ffffff',
-                      cursor:      'pointer',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="publish_mode"
-                      value={m.value}
-                      checked={publishMode === m.value}
-                      onChange={() => setPublishMode(m.value)}
-                      style={{ accentColor: 'var(--accent)', width: 16, height: 16 }}
-                    />
-                    <div>
-                      <div style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 700, fontSize: '0.88rem' }}>{m.label}</div>
-                      <div style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 2 }}>{m.desc}</div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* ── Reglas ── */}
-            <div id="reglas" className="settings-section">
-              <h2 className="settings-section-title">{t('rules.title')}</h2>
-
-              {/* No-publish days */}
-              <div className="form-group">
-                <label>{t('rules.noPublishDays')}</label>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {DAY_LABELS.map((d, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => toggleDay(i)}
-                      style={{
-                        padding:      '6px 12px',
-                        borderRadius: 0,
-                        border:       `1.5px solid ${noPublishDays.includes(i) ? 'var(--accent)' : 'var(--border)'}`,
-                        background:   noPublishDays.includes(i) ? 'var(--accent-light)' : '#ffffff',
-                        color:        noPublishDays.includes(i) ? 'var(--accent)' : 'var(--ink)',
-                        fontFamily:   "var(--font-barlow), 'Barlow', sans-serif",
-                        fontWeight:   600,
-                        fontSize:     '0.82rem',
-                        cursor:       'pointer',
-                      }}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
-                {noPublishDays.length > 0 && (
-                  <p style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 6 }}>
-                    {t('rules.noPublishNote', { days: noPublishDays.map((d) => DAY_LABELS[d]).join(', ') })}
-                  </p>
                 )}
               </div>
 
-              {/* Forbidden words */}
-              <div className="form-group">
-                <label>{t('rules.forbiddenWords')}</label>
-                <div className="tags-input-area">
-                  {forbiddenWords.map((w) => (
-                    <span key={w} className="tag-chip" style={{ background: '#ffeded' }}>
-                      {w}<button type="button" onClick={() => removeTag(forbiddenWords, setForbiddenWords, w)}>×</button>
-                    </span>
-                  ))}
-                  <input
-                    value={fwInput}
-                    onChange={(e) => setFwInput(e.target.value)}
-                    onKeyDown={(e) => handleTagKeyDown(e, forbiddenWords, setForbiddenWords, fwInput, setFwInput)}
-                    onBlur={() => { if (fwInput.trim()) { addTag(forbiddenWords, setForbiddenWords, fwInput); setFwInput(''); } }}
-                    placeholder="barato, descuento, ofertón..."
-                  />
+              {/* Description + timezone + summary */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div>
+                  <div className="form-group" style={{ margin: 0 }}>
+                    <label htmlFor="profile-desc">Descripción corta</label>
+                    <textarea
+                      id="profile-desc"
+                      value={profileDescription}
+                      onChange={(e) => setProfileDescription(e.target.value.slice(0, 160))}
+                      placeholder="Ej: Heladería artesanal en el barrio gótico desde 1995."
+                      rows={2}
+                      style={{ width: '100%', resize: 'vertical' }}
+                    />
+                    <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
+                      {profileDescription.length}/160
+                    </p>
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label htmlFor="profile-tz">Zona horaria</label>
+                  <select
+                    id="profile-tz"
+                    value={profileTimezone}
+                    onChange={(e) => setProfileTimezone(e.target.value)}
+                    style={{ width: '100%' }}
+                  >
+                    {TIMEZONES.includes(profileTimezone) ? null : (
+                      <option value={profileTimezone}>{profileTimezone}</option>
+                    )}
+                    {TIMEZONES.map((tz) => (
+                      <option key={tz} value={tz}>{tz}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ padding: '12px 14px', background: 'var(--bg-1)', border: '1px solid var(--border)' }}>
+                  <p style={{
+                    fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif",
+                    fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
+                    color: 'var(--muted)', marginBottom: 4,
+                  }}>
+                    Datos del brand kit
+                  </p>
+                  <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 13, color: 'var(--ink)' }}>
+                    {brand.name || 'Sin nombre'}
+                    {brand.location && <> · <span style={{ color: 'var(--muted)' }}>{brand.location}</span></>}
+                    {brand.sector && <> · <span style={{ color: 'var(--muted)', textTransform: 'capitalize' }}>{brand.sector}</span></>}
+                  </p>
+                </div>
+
+                <div>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    onClick={saveProfile}
+                    disabled={savingProfile}
+                  >
+                    {savingProfile ? <><span className="loading-spinner" />{t('saving')}</> : <><Save size={16} />Guardar perfil</>}
+                  </button>
                 </div>
               </div>
-
-              {/* Forbidden topics */}
-              <div className="form-group">
-                <label>{t('rules.forbiddenTopics')}</label>
-                <div className="tags-input-area">
-                  {forbiddenTopics.map((topic) => (
-                    <span key={topic} className="tag-chip" style={{ background: '#fff3cd' }}>
-                      {topic}<button type="button" onClick={() => removeTag(forbiddenTopics, setForbiddenTopics, topic)}>×</button>
-                    </span>
-                  ))}
-                  <input
-                    value={ftInput}
-                    onChange={(e) => setFtInput(e.target.value)}
-                    onKeyDown={(e) => handleTagKeyDown(e, forbiddenTopics, setForbiddenTopics, ftInput, setFtInput)}
-                    onBlur={() => { if (ftInput.trim()) { addTag(forbiddenTopics, setForbiddenTopics, ftInput); setFtInput(''); } }}
-                    placeholder="política, religión, competencia..."
-                  />
-                </div>
-              </div>
-
-              {/* Toggle switches */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={noEmojis}
-                    onChange={(e) => setNoEmojis(e.target.checked)}
-                    style={{ width: 18, height: 18, accentColor: 'var(--accent)' }}
-                  />
-                  <div>
-                    <span style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 600, fontSize: '0.88rem' }}>{t('rules.noEmojis')}</span>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--muted)', marginLeft: 8 }}>{t('rules.noEmojisDesc')}</span>
-                  </div>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={noAutoReplyNegative}
-                    onChange={(e) => setNoAutoReplyNegative(e.target.checked)}
-                    style={{ width: 18, height: 18, accentColor: 'var(--accent)' }}
-                  />
-                  <div>
-                    <span style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 600, fontSize: '0.88rem' }}>{t('rules.noAutoReply')}</span>
-                    <span style={{ fontSize: '0.78rem', color: 'var(--muted)', marginLeft: 8 }}>{t('rules.noAutoReplyDesc')}</span>
-                  </div>
-                </label>
-              </div>
             </div>
-
-            <div style={{ marginBottom: 24 }}>
-              <button type="submit" className="btn-primary" disabled={saving}>
-                {saving ? <><span className="loading-spinner" />{t('saving')}</> : <><Save size={16} />{t('account.saveChanges')}</>}
-              </button>
-            </div>
-          </form>
+          </div>
 
           {/* ── Tema ── */}
           <ThemeSection />
@@ -721,38 +616,141 @@ export default function SettingsPage() {
 
           {/* ── Redes sociales ── */}
           <div id="redes" className="settings-section">
-            <h2 className="settings-section-title">{t('social.title')}</h2>
-            <div className="connection-item">
-              <div className="connection-info">
-                <p className="connection-name">Instagram</p>
-                <p className={`connection-status ${brand.ig_account_id ? 'connected' : ''}`}>
-                  {brand.ig_account_id ? `${t('connections.connected')} · @${brand.ig_username ?? brand.ig_account_id}` : t('social.notConnected')}
-                </p>
-              </div>
-              <button type="button" className="btn-outline" onClick={() => connectMeta('instagram')}>
-                <ExternalLink size={14} />
-                {brand.ig_account_id ? t('connections.reconnect') : t('connections.connect')}
-              </button>
-            </div>
-            <div className="connection-item">
-              <div className="connection-info">
-                <p className="connection-name">Facebook</p>
-                <p className={`connection-status ${brand.fb_page_id ? 'connected' : ''}`}>
-                  {brand.fb_page_id
-                    ? `${t('connections.connected')} · ${brand.fb_page_name ?? `Página ${brand.fb_page_id}`}`
-                    : t('social.notConnected')}
-                </p>
-              </div>
-              <button type="button" className="btn-outline" onClick={() => connectMeta('facebook')}>
-                <ExternalLink size={14} />
-                {brand.fb_page_id ? t('connections.reconnect') : t('connections.connect')}
-              </button>
-            </div>
-            {brand.meta_token_expires_at && (
-              <p style={{ fontSize: '0.78rem', color: 'var(--muted)', marginTop: 8 }}>
-                {t('social.tokenExpires')} {new Date(brand.meta_token_expires_at).toLocaleDateString()}
-              </p>
-            )}
+            <h2 className="settings-section-title">Redes sociales</h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: 20 }}>
+              Conecta tus cuentas de Instagram y Facebook. Las dos se enlazan con un único flujo gracias a Facebook Login — el mismo botón autoriza ambas.
+            </p>
+
+            {(() => {
+              // Connection status derivation
+              const igConnected = !!brand.ig_account_id;
+              const fbConnected = !!brand.fb_page_id;
+              const expiresAt   = brand.meta_token_expires_at ? new Date(brand.meta_token_expires_at) : null;
+              const now         = new Date();
+              const expired     = !!expiresAt && expiresAt.getTime() < now.getTime();
+              const expiringSoon = !!expiresAt && !expired && (expiresAt.getTime() - now.getTime()) < 7 * 24 * 60 * 60 * 1000;
+              const lastSync    = brand.token_refreshed_at ? new Date(brand.token_refreshed_at) : null;
+
+              const statusLabel = (connected: boolean) => {
+                if (!connected) return { text: 'Sin conectar', color: '#9ca3af', bg: '#f3f4f6' };
+                if (expired)    return { text: 'Expirado',     color: '#c62828', bg: '#ffebee' };
+                if (expiringSoon) return { text: 'Caduca pronto', color: '#e65100', bg: '#fff3e0' };
+                return { text: 'Conectado', color: '#2d7d32', bg: '#e8f5e9' };
+              };
+
+              const Card = ({
+                platform, name, detail, connected, onConnect, emoji, typeLabel, body,
+              }: {
+                platform: 'instagram' | 'facebook';
+                name:     string;
+                detail:   string | null;
+                connected: boolean;
+                onConnect: () => void;
+                emoji:    string;
+                typeLabel: string;
+                body:     string;
+              }) => {
+                const status = statusLabel(connected);
+                return (
+                  <div style={{
+                    border: '1px solid var(--border)', background: '#ffffff',
+                    padding: '18px 20px', marginBottom: 12,
+                    display: 'grid', gridTemplateColumns: '1fr auto', gap: 14, alignItems: 'flex-start',
+                  }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                        <span style={{ fontSize: 20 }}>{emoji}</span>
+                        <span style={{
+                          fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif",
+                          fontWeight: 800, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.08em',
+                          color: 'var(--ink)',
+                        }}>
+                          {typeLabel}
+                        </span>
+                        <span style={{
+                          fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                          fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                          padding: '3px 8px', background: status.bg, color: status.color,
+                        }}>
+                          {status.text}
+                        </span>
+                      </div>
+                      <p style={{
+                        fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                        fontSize: 14, fontWeight: 600, color: 'var(--ink)', margin: '0 0 2px',
+                      }}>
+                        {name}
+                      </p>
+                      {detail && (
+                        <p style={{
+                          fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                          fontSize: 12, color: 'var(--muted)', margin: 0,
+                        }}>
+                          {detail}
+                        </p>
+                      )}
+                      <p style={{
+                        fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                        fontSize: 12, color: 'var(--muted)', marginTop: 8, lineHeight: 1.5,
+                      }}>
+                        {body}
+                      </p>
+                      {connected && lastSync && (
+                        <p style={{
+                          fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                          fontSize: 11, color: '#9ca3af', marginTop: 6,
+                        }}>
+                          Última sincronización: {lastSync.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
+                        </p>
+                      )}
+                      {connected && expiresAt && (
+                        <p style={{
+                          fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                          fontSize: 11, color: expired ? '#c62828' : expiringSoon ? '#e65100' : '#9ca3af',
+                          marginTop: 2,
+                        }}>
+                          Token {expired ? 'expiró' : 'caduca'} el {expiresAt.toLocaleDateString('es-ES', { dateStyle: 'medium' })}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-outline"
+                      onClick={() => connectMeta(platform)}
+                      style={{ alignSelf: 'center', whiteSpace: 'nowrap' }}
+                    >
+                      <ExternalLink size={14} />
+                      {connected ? (expired || expiringSoon ? 'Reconectar' : 'Reautorizar') : 'Conectar'}
+                    </button>
+                  </div>
+                );
+              };
+
+              return (
+                <>
+                  <Card
+                    platform="instagram"
+                    emoji="📷"
+                    typeLabel="Instagram Business"
+                    name={igConnected ? `@${brand.ig_username ?? brand.ig_account_id}` : 'Instagram'}
+                    detail={igConnected ? null : 'No hay ninguna cuenta vinculada todavía'}
+                    connected={igConnected}
+                    onConnect={() => connectMeta('instagram')}
+                    body="Necesitas una cuenta de Instagram Business o Creator vinculada a una página de Facebook. Si aún no la tienes, cámbiala desde la app móvil de Instagram en Configuración → Cuenta."
+                  />
+                  <Card
+                    platform="facebook"
+                    emoji="👍"
+                    typeLabel="Facebook Page"
+                    name={fbConnected ? (brand.fb_page_name ?? `Página ${brand.fb_page_id}`) : 'Facebook'}
+                    detail={fbConnected ? null : 'No hay ninguna página vinculada todavía'}
+                    connected={fbConnected}
+                    onConnect={() => connectMeta('facebook')}
+                    body="Conecta con el mismo botón de Instagram — ambas cuentas se enlazan juntas a través de Facebook Login. Si solo quieres Facebook, usa el botón de la derecha."
+                  />
+                </>
+              );
+            })()}
           </div>
 
           {/* ── Exportar datos ── */}
@@ -967,34 +965,6 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
-          </div>
-
-          {/* ── Equipo ── */}
-          <div id="equipo" className="settings-section">
-            <h2 className="settings-section-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Users size={18} />{t('team.title')}
-            </h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: 16 }}>
-              {t('team.subtitle')}
-            </p>
-            <Link
-              href="/settings/team"
-              style={{
-                display:        'inline-flex',
-                alignItems:     'center',
-                gap:            8,
-                padding:        '10px 18px',
-                border:         '1px solid var(--border)',
-                borderRadius:   0,
-                fontSize:       13,
-                fontWeight:     600,
-                color:          'var(--ink)',
-                textDecoration: 'none',
-                background:     'var(--surface)',
-              }}
-            >
-              <Users size={16} />{t('team.manage')}
-            </Link>
           </div>
 
           {/* ── Cerrar sesión ── */}

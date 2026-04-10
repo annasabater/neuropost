@@ -627,26 +627,40 @@ function ValidacionTab() {
     const updates: Record<string, unknown> = {};
 
     if (act === 'approve') {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: post } = await (sb as any).from('posts').insert({
-        brand_id: current.brand_id,
-        caption: current.caption_ig,
-        hashtags: [
-          ...(current.hashtags?.branded ?? []),
-          ...(current.hashtags?.nicho ?? []),
-          ...(current.hashtags?.broad ?? []),
-        ],
-        image_url: current.image_url,
-        format: 'image',
-        platform: ['instagram', 'facebook'],
-        status: 'pending',
-        quality_score: current.quality_score,
-        scheduled_at: current.dia_publicacion ? `${current.dia_publicacion}T${current.hora_publicacion ?? '10:00'}:00` : null,
-      }).select('id').single();
+      // Create the post via the worker API so plan limits (posts/week,
+      // carousel size, auto-publish) are enforced server-side.
+      const scheduled_at = current.dia_publicacion
+        ? `${current.dia_publicacion}T${current.hora_publicacion ?? '10:00'}:00`
+        : null;
+      const res = await fetch('/api/worker/posts', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brand_id:      current.brand_id,
+          caption:       current.caption_ig,
+          hashtags: [
+            ...(current.hashtags?.branded ?? []),
+            ...(current.hashtags?.nicho ?? []),
+            ...(current.hashtags?.broad ?? []),
+          ],
+          image_url:     current.image_url,
+          format:        'image',
+          platform:      ['instagram', 'facebook'],
+          status:        scheduled_at ? 'scheduled' : 'pending',
+          quality_score: current.quality_score,
+          scheduled_at,
+        }),
+      });
+      const json = await res.json() as { post?: { id: string }; error?: string };
+      if (!res.ok) {
+        toast.error(json.error ?? 'No se pudo aprobar el post');
+        setActing(false);
+        return;
+      }
 
       updates.status = 'converted_to_post';
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      if (post?.id) (updates as any).post_id = post.id;
+      if (json.post?.id) (updates as any).post_id = json.post.id;
       toast.success('Aprobado y enviado al cliente');
     } else if (act === 'reject') {
       updates.status = 'rejected';

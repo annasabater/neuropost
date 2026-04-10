@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
+import { checkFeature } from '@/lib/plan-limits';
 
 export async function POST(request: Request) {
   try {
@@ -14,6 +15,12 @@ export async function POST(request: Request) {
 
     if (!brand || !brandTrend) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     if (brandTrend.brand_id !== brand.id) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+    // Plan gate — trends agent is a Total+ feature.
+    const gate = await checkFeature(brand.id, 'trendsAgent');
+    if (!gate.allowed) {
+      return NextResponse.json({ error: gate.reason, upgradeUrl: gate.upgradeUrl }, { status: 402 });
+    }
 
     // Create a post from the trend
     const { data: post, error } = await supabase
