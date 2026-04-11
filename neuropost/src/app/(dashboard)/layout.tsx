@@ -12,7 +12,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const toggleSidebar = useAppStore((s) => s.toggleSidebar);
 
   return (
-    <div className={`dash-root${sidebarOpen ? ' sidebar-open' : ''}`}>
+    <div className={`dash-root${sidebarOpen ? ' sidebar-open' : ' sidebar-collapsed'}`}>
       {/* Initial page-load animation — fades out after 1.2s */}
       <AppLoader />
 

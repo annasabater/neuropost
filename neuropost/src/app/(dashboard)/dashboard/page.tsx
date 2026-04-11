@@ -97,66 +97,77 @@ export default async function DashboardPage() {
   void (supabase as any).from('brands').update({ last_login_at: now.toISOString() }).eq('id', brand.id);
 
   return (
-    <div className="page-content" style={{ maxWidth: 1000 }}>
-      <DashboardTour />
-      <IncidentBanner />
-
-      {/* ── Greeting ── */}
-      <div style={{ padding: '48px 0 40px' }}>
-        <h1 style={{
-          fontFamily: fc, fontWeight: 900,
-          fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
-          textTransform: 'uppercase', letterSpacing: '0.01em',
-          color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 12,
-        }}>
-          {t('greeting', { name: brand.name })}
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontFamily: f }}>
-          {t('subtitle')}
-          {pending > 0 && (
-            <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-              {' — '}{pending} {t('metrics.pending')}
-            </span>
-          )}
-        </p>
+    <div className="page-content dashboard-page">
+      <div className="dashboard-tour-section">
+        <div className="dashboard-inner">
+          <DashboardTour />
+        </div>
       </div>
 
-      <TrendsBanner />
-
-      {/* ── Metrics — Nike 1px gap grid ── */}
-      <div data-tour="dashboard-metrics" style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px',
-        background: 'var(--border)', border: '1px solid var(--border)',
-        marginBottom: 48,
-      }}>
-        {[
-          { label: t('metrics.published'), value: String(publishedThisMonth) },
-          { label: t('metrics.scheduled'), value: String(scheduled) },
-          { label: t('metrics.pending'),   value: String(pending) },
-          { label: t('metrics.plan'),      value: brand.plan, capitalize: true },
-        ].map(({ label, value, capitalize }) => (
-          <div key={label} style={{
-            background: 'var(--bg)', padding: '28px 24px',
-            transition: 'background 0.15s',
+      <div className="dashboard-summary-section">
+        <div className="dashboard-inner">
+          <IncidentBanner />
+        {/* ── Greeting ── */}
+        <div style={{ padding: '48px 0 40px' }}>
+          <h1 style={{
+            fontFamily: fc, fontWeight: 900,
+            fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
+            textTransform: 'uppercase', letterSpacing: '0.01em',
+            color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 12,
           }}>
-            <p style={{
-              fontFamily: fc, fontWeight: 900, fontSize: '3rem',
-              letterSpacing: '-0.02em', lineHeight: 1,
-              color: 'var(--text-primary)',
-              textTransform: capitalize ? 'capitalize' : 'none',
+            {t('greeting', { name: brand.name })}
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontFamily: f }}>
+            {t('subtitle')}
+            {pending > 0 && (
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                {' — '}{pending} {t('metrics.pending')}
+              </span>
+            )}
+          </p>
+        </div>
+
+        <TrendsBanner />
+
+        {/* ── Metrics — Nike 1px gap grid ── */}
+        <div data-tour="dashboard-metrics" style={{
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px',
+          background: 'var(--border)', border: '1px solid var(--border)',
+          marginBottom: 48,
+        }}>
+          {[
+            { label: t('metrics.published'), value: String(publishedThisMonth) },
+            { label: t('metrics.scheduled'), value: String(scheduled) },
+            { label: t('metrics.pending'),   value: String(pending) },
+            { label: t('metrics.plan'),      value: brand.plan, capitalize: true },
+          ].map(({ label, value, capitalize }) => (
+            <div key={label} style={{
+              background: 'var(--bg)', padding: '28px 24px',
+              transition: 'background 0.15s',
             }}>
-              {value}
-            </p>
-            <p style={{
-              fontFamily: f, fontSize: 10, fontWeight: 600,
-              textTransform: 'uppercase', letterSpacing: '0.14em',
-              color: 'var(--text-tertiary)', marginTop: 8,
-            }}>
-              {label}
-            </p>
-          </div>
-        ))}
+              <p style={{
+                fontFamily: fc, fontWeight: 900, fontSize: '3rem',
+                letterSpacing: '-0.02em', lineHeight: 1,
+                color: 'var(--text-primary)',
+                textTransform: capitalize ? 'capitalize' : 'none',
+              }}>
+                {value}
+              </p>
+              <p style={{
+                fontFamily: f, fontSize: 10, fontWeight: 600,
+                textTransform: 'uppercase', letterSpacing: '0.14em',
+                color: 'var(--text-tertiary)', marginTop: 8,
+              }}>
+                {label}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
+
+      </div>
+
+      <div className="dashboard-inner">
 
       {/* ── Plan usage ── */}
       {!isUnlimited && (
@@ -355,47 +366,53 @@ export default async function DashboardPage() {
         <WeeklyProposals proposals={proposalPosts} />
       </div>
 
+      </div>
+
       {/* ── Upcoming dates — horizontal scroll ── */}
       {upcomingDates.length > 0 && (
-        <>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-            <h2 style={{
-              fontFamily: f, fontSize: 10, fontWeight: 600,
-              textTransform: 'uppercase', letterSpacing: '0.14em',
-              color: 'var(--accent)', margin: 0,
-              paddingBottom: 8, borderBottom: '1px solid var(--accent-soft)',
-            }}>
-              {t('sections.upcomingDates')}
-            </h2>
-          </div>
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1px', background: 'var(--border)',
-            border: '1px solid var(--border)', marginBottom: 48,
-          }}>
-            {upcomingDates.map((d: { id: string; name: string; daysUntil: number; idea?: string }) => (
-              <div key={d.id} style={{
-                background: 'var(--bg)', padding: '16px 20px',
-                minHeight: 122,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
+        <div className="dashboard-upcoming-section">
+          <div className="dashboard-inner">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <h2 style={{
+                fontFamily: f, fontSize: 10, fontWeight: 600,
+                textTransform: 'uppercase', letterSpacing: '0.14em',
+                color: 'var(--accent)', margin: 0,
+                paddingBottom: 8, borderBottom: '1px solid var(--accent-soft)',
               }}>
-                <p style={{ fontFamily: fc, fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                  {d.name}
-                </p>
-                <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
-                  en {d.daysUntil} días
-                </p>
-                {d.idea && (
-                  <p style={{ fontFamily: f, fontSize: 11, color: '#6b7280', marginTop: 8, lineHeight: 1.5 }}>
-                    {d.idea}
+                {t('sections.upcomingDates')}
+              </h2>
+            </div>
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1px', background: 'var(--border)',
+              border: '1px solid var(--border)', marginBottom: 48,
+            }}>
+              {upcomingDates.map((d: { id: string; name: string; daysUntil: number; idea?: string }) => (
+                <div key={d.id} style={{
+                  background: 'var(--bg)', padding: '16px 20px',
+                  minHeight: 122,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                }}>
+                  <p style={{ fontFamily: fc, fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                    {d.name}
                   </p>
-                )}
-              </div>
-            ))}
+                  <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                    en {d.daysUntil} días
+                  </p>
+                  {d.idea && (
+                    <p style={{ fontFamily: f, fontSize: 11, color: '#6b7280', marginTop: 8, lineHeight: 1.5 }}>
+                      {d.idea}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
-        </>
+        </div>
       )}
+
+      <div className="dashboard-inner">
 
       {/* ── Quick actions — 3x2 grid ── */}
       <h2 style={{
@@ -433,7 +450,15 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <InspirationTeaser />
+      </div>
+
+      <div className="dashboard-inspiration-section">
+        <div className="dashboard-inner">
+          <InspirationTeaser />
+        </div>
+      </div>
+
+      <div className="dashboard-inner">
 
       {/* ── Pending alert ── */}
       {pending > 0 && (
@@ -543,6 +568,7 @@ export default async function DashboardPage() {
       )}
 
       <ChangelogModal />
+      </div>
     </div>
   );
 }

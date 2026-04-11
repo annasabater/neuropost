@@ -130,7 +130,7 @@ export default function InspirationTeaser() {
       }}>
         {items.map((item, i) => (
           <Link key={i} href="/inspiracion" style={{
-            flex: '0 0 220px', scrollSnapAlign: 'start',
+            flex: '1 0 220px', minWidth: 220, scrollSnapAlign: 'start',
             background: 'var(--bg)', textDecoration: 'none',
             display: 'block', transition: 'opacity 0.2s',
           }}>

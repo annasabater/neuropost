@@ -29,7 +29,17 @@ export async function GET(
     ]);
 
     // Unifica en una estructura común
-    const special = (specialRes.data ?? []).map((r) => ({
+    const special = (specialRes.data ?? []).map((r: {
+      id: string;
+      title: string | null;
+      description: string | null;
+      type: string | null;
+      status: string | null;
+      deadline_at: string | null;
+      created_at: string;
+      completed_at: string | null;
+      worker_response: string | null;
+    }) => ({
       id: r.id,
       kind: 'special' as const,
       title: r.title,
@@ -42,7 +52,13 @@ export async function GET(
       worker_response: r.worker_response,
     }));
 
-    const recreations = (recreationRes.data ?? []).map((r) => ({
+    const recreations = (recreationRes.data ?? []).map((r: {
+      id: string;
+      client_notes: string | null;
+      status: string | null;
+      worker_notes: string | null;
+      created_at: string;
+    }) => ({
       id: r.id,
       kind: 'recreation' as const,
       title: 'Recreación',

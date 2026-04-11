@@ -138,8 +138,8 @@ export default function InspiracionPage() {
   const inputStyle: React.CSSProperties = { width: '100%', padding: '12px 14px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: f, fontSize: 14, outline: 'none', boxSizing: 'border-box' as const };
 
   return (
-    <div className="page-content" style={{ maxWidth: 1000 }}>
-      <div style={{ padding: '48px 0 24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+    <div className="page-content dashboard-feature-page" style={{ maxWidth: 1000 }}>
+      <div className="dashboard-feature-header" style={{ padding: '48px 0 24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
           <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 12 }}>Inspiración</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontFamily: f }}>Encuentra el estilo perfecto para tu negocio</p>
@@ -148,6 +148,8 @@ export default function InspiracionPage() {
           <Plus size={14} /> Añadir referencia
         </button>
       </div>
+
+      <div className="dashboard-feature-body">
 
       <div style={{ display: 'flex', gap: 32, borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
         {(['explore', 'saved'] as const).map(t => (
@@ -256,6 +258,7 @@ export default function InspiracionPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

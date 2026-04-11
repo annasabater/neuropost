@@ -166,7 +166,7 @@ export default function EquipoTab() {
 
       {/* ── Lista ────────────────────────────────────────────────────────── */}
       {loading ? (
-        <div style={{ padding: 80, textAlign: 'center', color: C.muted, fontSize: 13, background: C.card ?? C.bg, border: `1px solid ${C.border}` }}>
+        <div style={{ padding: 80, textAlign: 'center', color: C.muted, fontSize: 13, background: C.bg, border: `1px solid ${C.border}` }}>
           Cargando equipo…
         </div>
       ) : workers.length === 0 ? (

@@ -40,7 +40,7 @@ export async function GET() {
     const emailByBrand: Record<string, string> = {};
     try {
       const { data: authList } = await db.auth.admin.listUsers();
-      const emailMap = new Map((authList?.users ?? []).map((u) => [u.id, u.email ?? '']));
+      const emailMap = new Map((authList?.users ?? []).map((u: { id: string; email?: string | null }) => [u.id, u.email ?? '']));
       for (const b of brands ?? []) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const bAny = b as any;

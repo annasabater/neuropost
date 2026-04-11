@@ -34,9 +34,9 @@ export default function HistorialPage() {
   }
 
   return (
-    <div className="page-content" style={{ maxWidth: 1000 }}>
+    <div className="page-content dashboard-feature-page" style={{ maxWidth: 1000 }}>
       {/* Header */}
-      <div style={{ padding: '48px 0 28px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
+      <div className="dashboard-feature-header" style={{ padding: '48px 0 28px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
         <div>
           <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 8 }}>
             Historial
@@ -55,6 +55,8 @@ export default function HistorialPage() {
           </button>
         )}
       </div>
+
+      <div className="dashboard-feature-body">
 
       {/* Grid */}
       {loading ? (
@@ -134,6 +136,7 @@ export default function HistorialPage() {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }

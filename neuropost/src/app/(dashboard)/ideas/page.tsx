@@ -184,9 +184,9 @@ export default function IdeasPage() {
   const sectorHints = brand?.sector ? SECTOR_PROMPTS[brand.sector] ?? [] : [];
 
   return (
-    <div className="page-content" style={{ maxWidth: 1000 }}>
+    <div className="page-content dashboard-feature-page" style={{ maxWidth: 1000 }}>
       {/* ── Title ── */}
-      <div style={{ padding: '48px 0 40px' }}>
+      <div className="dashboard-feature-header" style={{ padding: '48px 0 40px' }}>
         <h1 style={{
           fontFamily: fc, fontWeight: 900,
           fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
@@ -199,6 +199,8 @@ export default function IdeasPage() {
           {t('subtitle')}
         </p>
       </div>
+
+      <div className="dashboard-feature-body">
 
       {/* ── Prompt input — Stripe-style clean bar ── */}
       <div style={{
@@ -584,6 +586,7 @@ export default function IdeasPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
