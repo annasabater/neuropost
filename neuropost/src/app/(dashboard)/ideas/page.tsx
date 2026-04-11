@@ -260,10 +260,10 @@ export default function IdeasPage() {
             No hay ideas para "{searchQuery}"
           </p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)' }}>
             {filteredSaved.map((idea) => (
               <div key={idea.id} onClick={() => { if (promptRef.current) promptRef.current.value = idea.caption; }}
-                style={{ background: 'var(--bg)', padding: '14px 16px', cursor: 'pointer', transition: 'background 0.1s' }}>
+                style={{ background: 'var(--bg)', padding: '14px 16px', cursor: 'pointer', transition: 'background 0.1s', flex: '1 1 280px', minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6, marginBottom: 6 }}>
                   <span style={{ fontFamily: fc, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'uppercase' }}>{idea.title}</span>
                   <span style={{ fontFamily: f, fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', border: '1px solid var(--border)', padding: '1px 6px', flexShrink: 0 }}>
@@ -292,8 +292,8 @@ export default function IdeasPage() {
             {t('sectorLabel')}
           </h2>
           <div style={{
-            display: 'flex', gap: '1px', background: 'var(--border)',
-            border: '1px solid var(--border)', overflowX: 'auto', scrollbarWidth: 'none',
+            display: 'flex', flexWrap: 'wrap', gap: '1px', background: 'var(--border)',
+            border: '1px solid var(--border)',
           }}>
             {sectorHints.map(({ hint, img }) => (
               <button
@@ -301,7 +301,7 @@ export default function IdeasPage() {
                 onClick={() => usePreset(hint)}
                 disabled={loading}
                 style={{
-                  flex: '0 0 260px', background: 'none', border: 'none',
+                  flex: '1 1 260px', minWidth: 0, background: 'none', border: 'none',
                   padding: 0, cursor: loading ? 'wait' : 'pointer',
                   position: 'relative', overflow: 'hidden', display: 'block',
                   textAlign: 'left',
@@ -350,8 +350,8 @@ export default function IdeasPage() {
           {t('campaignsLabel')}
         </h2>
         <div style={{
-          display: 'flex', gap: '1px', background: 'var(--border)',
-          border: '1px solid var(--border)', overflowX: 'auto', scrollbarWidth: 'none',
+          display: 'flex', flexWrap: 'wrap', gap: '1px', background: 'var(--border)',
+          border: '1px solid var(--border)',
         }}>
           {CAMPAIGNS.map(({ key, prompt, img }) => (
             <button
@@ -359,7 +359,7 @@ export default function IdeasPage() {
               onClick={() => usePreset(prompt)}
               disabled={loading}
               style={{
-                flex: '0 0 200px', background: 'none', border: 'none',
+                flex: '1 1 160px', minWidth: 0, background: 'none', border: 'none',
                 padding: 0, cursor: loading ? 'wait' : 'pointer',
                 position: 'relative', overflow: 'hidden', display: 'block',
                 textAlign: 'left',

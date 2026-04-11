@@ -68,6 +68,8 @@ export default function InspiracionPage() {
   const [references, setReferences] = useState<Reference[]>([]);
   const [loadingRefs, setLoadingRefs] = useState(true);
   const [filterFormat, setFilterFormat] = useState('all');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
   const [showAddModal, setShowAddModal] = useState(false);
   const [addType, setAddType] = useState<'url' | 'upload'>('url');
   const [addUrl, setAddUrl] = useState('');
@@ -94,6 +96,12 @@ export default function InspiracionPage() {
     if (filterFormat !== 'all' && t.format !== filterFormat) return false;
     return true;
   });
+  const totalPages = Math.max(1, Math.ceil(filteredTemplates.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedTemplates = filteredTemplates.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  function handleFilterChange(v: string) { setFilterFormat(v); setPage(1); }
+  function handleTabChange(t: 'explore' | 'saved') { setTab(t); setPage(1); }
 
   async function saveTemplate(template: Template) {
     const res = await fetch('/api/inspiracion/referencias', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'template', title: template.title, thumbnail_url: template.thumbnail_url, format: template.format, style_tags: template.styles, notes: '' }) });
@@ -149,7 +157,7 @@ export default function InspiracionPage() {
 
       <div style={{ display: 'flex', gap: 32, borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
         {(['explore', 'saved'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', paddingBottom: 12, fontFamily: fc, fontSize: 18, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em', color: tab === t ? 'var(--text-primary)' : 'var(--text-tertiary)', borderBottom: tab === t ? '2px solid var(--text-primary)' : '2px solid transparent', transition: 'all 0.15s' }}>
+          <button key={t} onClick={() => handleTabChange(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', paddingBottom: 12, fontFamily: fc, fontSize: 18, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em', color: tab === t ? 'var(--text-primary)' : 'var(--text-tertiary)', borderBottom: tab === t ? '2px solid var(--text-primary)' : '2px solid transparent', transition: 'all 0.15s' }}>
             {t === 'explore' ? 'Explorar' : `Guardadas (${references.length})`}
           </button>
         ))}
@@ -157,10 +165,10 @@ export default function InspiracionPage() {
 
       {tab === 'explore' && (
         <>
-          <div style={{ display: 'flex', gap: 32, marginBottom: 32 }}>
-            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-              <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-tertiary)' }}>Formato</span>
-              {FORMAT_OPTIONS.map(v => <button key={v} onClick={() => setFilterFormat(v)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: f, fontSize: 13, fontWeight: 500, color: filterFormat === v ? 'var(--text-primary)' : 'var(--text-tertiary)', borderBottom: filterFormat === v ? '1px solid var(--text-primary)' : '1px solid transparent', paddingBottom: 2, transition: 'all 0.15s' }}>{FORMAT_LABEL[v]}</button>)}
+          <div className="inspiration-format-bar" style={{ display: 'flex', marginBottom: 24, background: '#000', border: '1px solid #000', padding: '10px 14px' }}>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.75)' }}>Formato</span>
+              {FORMAT_OPTIONS.map(v => <button key={v} onClick={() => handleFilterChange(v)} style={{ background: filterFormat === v ? '#ffffff' : 'transparent', border: filterFormat === v ? '1px solid #ffffff' : '1px solid rgba(255,255,255,0.32)', cursor: 'pointer', fontFamily: f, fontSize: 12, fontWeight: 600, color: filterFormat === v ? '#000' : '#ffffff', padding: '4px 10px', textTransform: 'uppercase', letterSpacing: '0.05em', transition: 'all 0.15s' }}>{FORMAT_LABEL[v]}</button>)}
             </div>
           </div>
 
@@ -171,9 +179,27 @@ export default function InspiracionPage() {
               <p style={{ fontSize: 14, color: 'var(--text-tertiary)', fontFamily: f }}>Prueba con otros filtros</p>
             </div>
           ) : (
-            <div style={{ columns: '3 260px', gap: 2 }}>
-              {filteredTemplates.map(t => <InspirationCard key={t.id} image={t.thumbnail_url} title={t.title} description={t.description} format={t.format} tags={t.tags} onSave={() => saveTemplate(t)} onRecreate={() => openRecreateForTemplate(t)} />)}
+            <>
+            <div className="inspiration-gallery-grid" style={{ display: 'flex', flexWrap: 'wrap', gap: 2, background: 'transparent', padding: 0 }}>
+              {pagedTemplates.map(t => (
+                <div key={t.id} style={{ flex: '1 1 260px', minWidth: 0 }}>
+                  <InspirationCard image={t.thumbnail_url} title={t.title} description={t.description} format={t.format} tags={t.tags} onSave={() => saveTemplate(t)} onRecreate={() => openRecreateForTemplate(t)} />
+                </div>
+              ))}
             </div>
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 24 }}>
+                <button type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+                  style={{ padding: '8px 14px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: f, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', opacity: currentPage === 1 ? 0.4 : 1 }}>← Anterior</button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                  <button type="button" key={n} onClick={() => setPage(n)}
+                    style={{ minWidth: 36, padding: '8px 12px', border: '1px solid var(--border)', background: n === currentPage ? 'var(--text-primary)' : 'var(--bg)', color: n === currentPage ? 'var(--bg)' : 'var(--text-primary)', fontFamily: f, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{n}</button>
+                ))}
+                <button type="button" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+                  style={{ padding: '8px 14px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: f, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', opacity: currentPage === totalPages ? 0.4 : 1 }}>Siguiente →</button>
+              </div>
+            )}
+            </>
           )}
         </>
       )}
@@ -188,9 +214,9 @@ export default function InspiracionPage() {
               <button onClick={() => setTab('explore')} style={{ background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', padding: '14px 32px', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', cursor: 'pointer' }}>Explorar →</button>
             </div>
           ) : (
-            <div style={{ columns: '3 260px', gap: 2 }}>
+            <div className="inspiration-gallery-grid" style={{ display: 'flex', flexWrap: 'wrap', gap: 2, background: 'transparent', padding: 0 }}>
               {references.map(ref => (
-                <div key={ref.id} style={{ position: 'relative', breakInside: 'avoid', marginBottom: 2 }}>
+                <div key={ref.id} style={{ position: 'relative', flex: '1 1 260px', minWidth: 0 }}>
                   <InspirationCard image={ref.thumbnail_url} title={ref.title} description={ref.notes ?? ''} format={ref.format ?? undefined} onRecreate={ref.recreation ? undefined : () => openRecreateForRef(ref)} />
                   <button onClick={() => handleDeleteRef(ref.id)} title="Eliminar referencia" aria-label="Eliminar referencia" style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', padding: '4px 6px', cursor: 'pointer' }}><Trash2 size={12} /> Eliminar</button>
                   {ref.recreation && <div style={{ position: 'absolute', top: 8, left: 8, background: ref.recreation.status === 'completed' ? 'var(--accent)' : 'rgba(0,0,0,0.6)', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 600, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{ref.recreation.status === 'completed' ? 'Recreado' : 'En proceso'}</div>}

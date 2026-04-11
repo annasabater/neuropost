@@ -1,11 +1,35 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
+import { useState, useEffect, useRef, Suspense, useMemo, useSyncExternalStore } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { MessageSquare, MessageCircle, LifeBuoy, Sparkles, Bell, ArrowRight, Plus, Send, X, TrendingUp, AlertCircle, TrendingDown, CheckCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppStore } from '@/store/useAppStore';
 import { createBrowserClient } from '@/lib/supabase';
+
+// Realtime row shapes delivered by postgres_changes payloads.
+type ChatRow = {
+  id: string; brand_id: string; sender_id: string | null;
+  sender_type: 'client' | 'worker'; message: string; created_at: string;
+};
+type NotificationRow = {
+  id: string; brand_id: string; type: string; message: string;
+  read: boolean; created_at: string; metadata?: Record<string, unknown> | null;
+};
+type TicketRow = {
+  id: string; brand_id: string; subject: string; status: string;
+  category: string; created_at: string; resolution?: string | null;
+};
+type ChangelogRow = {
+  id: string; version: string | null; title: string; summary: string | null;
+  published_at: string | null;
+};
+import {
+  addPendingTestimonial,
+  subscribeTestimonials,
+  getTestimonialsSnapshot,
+  getTestimonialsServerSnapshot,
+} from '@/lib/site-testimonials';
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
@@ -40,6 +64,7 @@ function InboxInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const tab = (searchParams.get('tab') as Tab) || 'comentarios';
+  const brand = useAppStore((s) => s.brand);
   const unreadComments = useAppStore((s) => s.unreadComments);
   const unreadNotifications = useAppStore((s) => s.unreadNotifications);
   const notifications = useAppStore((s) => s.notifications);
@@ -53,6 +78,27 @@ function InboxInner() {
   const [ticketForm, setTicketForm] = useState({ subject: '', description: '', category: 'technical', priority: 'normal' });
   const [saving, setSaving] = useState(false);
 
+  // Site testimonials (web feedback) — read from localStorage via external store.
+  const allTestimonials = useSyncExternalStore(
+    subscribeTestimonials,
+    getTestimonialsSnapshot,
+    getTestimonialsServerSnapshot,
+  );
+  const testimonials = useMemo(
+    () => allTestimonials.filter((t) => t.status === 'approved'),
+    [allTestimonials],
+  );
+  const [testimonialMessage, setTestimonialMessage] = useState('');
+  const [showAllComments, setShowAllComments] = useState(false);
+
+  function submitTestimonial() {
+    const msg = testimonialMessage.trim();
+    if (msg.length < 5) { toast.error('Escribe al menos 5 caracteres'); return; }
+    addPendingTestimonial({ name: brand?.name ?? 'Cliente', message: msg });
+    setTestimonialMessage('');
+    toast.success('Gracias. Tu comentario será revisado por el equipo antes de publicarse');
+  }
+
   // Chat state
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [chatLoading, setChatLoading] = useState(true);
@@ -62,6 +108,103 @@ function InboxInner() {
 
   // Changelog state
   const [entries, setEntries] = useState<ChangeEntry[]>([]);
+
+  // Supabase browser client — created once and reused across realtime subscriptions.
+  const supabase = useMemo(() => createBrowserClient(), []);
+
+  // ── Realtime: chat_messages scoped to this brand ────────────────────────
+  useEffect(() => {
+    if (!brand?.id) return;
+    const brandId = brand.id;
+    // Cast: `.on('postgres_changes', ...)` overloads are narrow in newer
+    // @supabase/supabase-js type defs; use a loose cast so we can pass filters.
+    const ch = (supabase.channel(`client-chat-${brandId}`) as unknown as {
+      on: (event: string, filter: Record<string, unknown>, cb: (payload: { new: ChatRow }) => void) => typeof ch;
+      subscribe: () => typeof ch;
+    });
+    ch.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'chat_messages', filter: `brand_id=eq.${brandId}` },
+      (payload) => {
+        const row = payload.new;
+        setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row as ChatMsg]));
+        if (row.sender_type === 'worker') toast.success('Nuevo mensaje de tu equipo');
+      },
+    ).subscribe();
+    return () => { supabase.removeChannel(ch as unknown as Parameters<typeof supabase.removeChannel>[0]); };
+  }, [brand?.id, supabase]);
+
+  // ── Realtime: notifications for this brand (push into store + toast) ─────
+  useEffect(() => {
+    if (!brand?.id) return;
+    const brandId = brand.id;
+    const ch = (supabase.channel(`client-notifications-${brandId}`) as unknown as {
+      on: (event: string, filter: Record<string, unknown>, cb: (payload: { new: NotificationRow }) => void) => typeof ch;
+      subscribe: () => typeof ch;
+    });
+    ch.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'notifications', filter: `brand_id=eq.${brandId}` },
+      (payload) => {
+        const n = payload.new;
+        // Best-effort: shape the row into whatever the store's Notification type expects.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        useAppStore.getState().addNotification(n as any);
+        toast(n.message, { icon: '🔔' });
+      },
+    ).subscribe();
+    return () => { supabase.removeChannel(ch as unknown as Parameters<typeof supabase.removeChannel>[0]); };
+  }, [brand?.id, supabase]);
+
+  // ── Realtime: support ticket status changes for this brand ──────────────
+  useEffect(() => {
+    if (!brand?.id) return;
+    const brandId = brand.id;
+    const ch = (supabase.channel(`client-tickets-${brandId}`) as unknown as {
+      on: (event: string, filter: Record<string, unknown>, cb: (payload: { old: TicketRow; new: TicketRow }) => void) => typeof ch;
+      subscribe: () => typeof ch;
+    });
+    ch.on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'support_tickets', filter: `brand_id=eq.${brandId}` },
+      (payload) => {
+        const prev = payload.old;
+        const next = payload.new;
+        setTickets((list) => list.map((t) => (t.id === next.id ? { ...t, ...next } : t)));
+        if (prev.status !== next.status) {
+          const label =
+            next.status === 'resolved' ? 'aceptado y resuelto' :
+            next.status === 'in_progress' ? 'aceptado — en proceso' :
+            next.status === 'closed' ? 'denegado' :
+            next.status;
+          toast(`Tu ticket "${next.subject}" ha sido ${label}`, { icon: '🎟️' });
+        }
+      },
+    ).subscribe();
+    return () => { supabase.removeChannel(ch as unknown as Parameters<typeof supabase.removeChannel>[0]); };
+  }, [brand?.id, supabase]);
+
+  // ── Realtime: new changelog / novedades entries ─────────────────────────
+  useEffect(() => {
+    const ch = (supabase.channel('client-changelog') as unknown as {
+      on: (event: string, filter: Record<string, unknown>, cb: (payload: { new: ChangelogRow }) => void) => typeof ch;
+      subscribe: () => typeof ch;
+    });
+    ch.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'changelog_entries' },
+      (payload) => {
+        const n = payload.new;
+        if (!n.published_at) return; // skip drafts
+        toast(`Nueva novedad: ${n.title}`, { icon: '✨' });
+        setEntries((prev) => (prev.some((e) => e.id === n.id) ? prev : [{
+          id: n.id, version: n.version, title: n.title, summary: n.summary,
+          changes: [], published_at: n.published_at,
+        }, ...prev]));
+      },
+    ).subscribe();
+    return () => { supabase.removeChannel(ch as unknown as Parameters<typeof supabase.removeChannel>[0]); };
+  }, [supabase]);
 
   function setTab(t: Tab) { router.push(`/inbox?tab=${t}`); }
 
@@ -173,18 +316,50 @@ function InboxInner() {
       </div>
 
       {/* ── COMENTARIOS ── */}
-      {tab === 'comentarios' && (
+      {tab === 'comentarios' && (() => {
+        const seeded: { name: string; platform: string; msg: string; time: string }[] = [
+          { name: 'María García', platform: 'Instagram', msg: '¡Me encanta vuestro producto! ¿Cuándo online?', time: 'Hace 2h' },
+          { name: 'Carlos López', platform: 'Facebook', msg: 'Llevo 2 semanas esperando respuesta...', time: 'Hace 5h' },
+          { name: 'Ana Martín', platform: 'Instagram', msg: '¿Hacéis envíos a Canarias?', time: 'Ayer' },
+          { name: 'Pedro Ruiz', platform: 'Instagram', msg: 'El mejor sitio de la ciudad', time: 'Hace 2 días' },
+        ];
+        const fromWeb = testimonials.map((t) => ({
+          name: t.name, platform: 'Web', msg: t.message, time: new Date(t.created_at).toLocaleDateString(),
+        }));
+        const all = [...fromWeb, ...seeded];
+        const visible = showAllComments ? all : all.slice(0, 6);
+        return (
         <div>
           <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: '#111827', marginBottom: 20 }}>Comentarios</h2>
+
+          {/* Deja tu comentario — web feedback form */}
+          <div style={{ border: '1px solid #e5e7eb', padding: 20, marginBottom: 24, background: '#ffffff' }}>
+            <h3 style={{ fontFamily: fc, fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#111827', marginBottom: 4 }}>
+              Deja tu comentario
+            </h3>
+            <p style={{ fontFamily: f, fontSize: 12, color: '#6b7280', marginBottom: 14 }}>
+              Publicarás como <strong style={{ color: '#111827' }}>{brand?.name ?? 'Cliente'}</strong>. Cuéntanos qué te parece la web — tu comentario será revisado por el equipo antes de publicarse.
+            </p>
+            <textarea
+              value={testimonialMessage}
+              onChange={(e) => setTestimonialMessage(e.target.value)}
+              placeholder="¿Qué te parece la web?"
+              rows={3}
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 13, outline: 'none', color: '#111827', background: '#f9fafb', resize: 'vertical', marginBottom: 10 }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button type="button" onClick={submitTestimonial} disabled={!testimonialMessage.trim()}
+                style={{ padding: '8px 20px', background: testimonialMessage.trim() ? '#111827' : '#e5e7eb', color: '#ffffff', border: 'none', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: testimonialMessage.trim() ? 'pointer' : 'not-allowed' }}>
+                Enviar comentario
+              </button>
+            </div>
+          </div>
+
+          {/* Lista */}
           <div style={{ border: '1px solid #e5e7eb' }}>
-            {[
-              { name: 'María García', platform: 'Instagram', msg: '¡Me encanta vuestro producto! ¿Cuándo online?', time: 'Hace 2h' },
-              { name: 'Carlos López', platform: 'Facebook', msg: 'Llevo 2 semanas esperando respuesta...', time: 'Hace 5h' },
-              { name: 'Ana Martín', platform: 'Instagram', msg: '¿Hacéis envíos a Canarias?', time: 'Ayer' },
-              { name: 'Pedro Ruiz', platform: 'Instagram', msg: 'El mejor sitio de la ciudad', time: 'Hace 2 días' },
-            ].map((item, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: i < 3 ? '1px solid #f3f4f6' : 'none' }}>
-                  <div style={{ width: 32, height: 32, background: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 12, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>{item.name.charAt(0)}</div>
+            {visible.map((item, i) => (
+              <div key={`${item.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: i < visible.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+                <div style={{ width: 32, height: 32, background: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 12, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>{item.name.charAt(0)}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
                     <span style={{ fontFamily: f, fontSize: 13, fontWeight: 600, color: '#111827' }}>{item.name}</span>
@@ -196,8 +371,19 @@ function InboxInner() {
               </div>
             ))}
           </div>
+
+          {/* Ver todos / ver menos */}
+          {all.length > 6 && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
+              <button type="button" onClick={() => setShowAllComments((v) => !v)}
+                style={{ padding: '8px 20px', background: '#ffffff', color: '#111827', border: '1px solid #e5e7eb', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer' }}>
+                {showAllComments ? 'Ver menos' : `Ver todos los comentarios (${all.length})`}
+              </button>
+            </div>
+          )}
         </div>
-      )}
+        );
+      })()}
 
       {/* ── MENSAJES — inline chat ── */}
       {tab === 'mensajes' && (

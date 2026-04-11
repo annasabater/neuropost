@@ -61,14 +61,24 @@ export async function PATCH(request: Request) {
     }
 
     const brandId = (ticket.brands as any)?.id;
-    if (brandId && status === 'resolved') {
-      await db.from('notifications').insert({
-        brand_id: brandId,
-        type: 'ticket_resolved',
-        message: 'Tu ticket de soporte ha sido resuelto',
-        read: false,
-        metadata: { ticket_id: id },
-      }).catch(() => null);
+    if (brandId && status) {
+      const notif = (() => {
+        switch (status) {
+          case 'in_progress': return { type: 'ticket_accepted', message: 'Tu ticket ha sido aceptado y está en proceso' };
+          case 'resolved':    return { type: 'ticket_resolved', message: 'Tu ticket de soporte ha sido resuelto' };
+          case 'closed':      return { type: 'ticket_rejected', message: 'Tu ticket ha sido cerrado por el equipo' };
+          default:            return null;
+        }
+      })();
+      if (notif) {
+        await db.from('notifications').insert({
+          brand_id: brandId,
+          type: notif.type,
+          message: notif.message,
+          read: false,
+          metadata: { ticket_id: id },
+        }).catch(() => null);
+      }
     }
 
     return NextResponse.json({ ticket });

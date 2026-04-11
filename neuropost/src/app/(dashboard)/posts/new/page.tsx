@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight, Check, Sparkles, Send, Paintbrush, Flame } from 'lucide-react';
+import { ArrowRight, Check, Sparkles, Send, Paintbrush, Flame, X } from 'lucide-react';
 import { PostEditor } from '@/components/posts/PostEditor';
 import { MediaPicker, type SelectedMedia } from '@/components/posts/MediaPicker';
 import { useAppStore } from '@/store/useAppStore';
@@ -21,19 +21,88 @@ export default function NewPostPage() {
   const initialMode = searchParams.get('mode') as ContentMode | null;
   const [mode, setMode] = useState<ContentMode | null>(initialMode);
 
-  // Request (pedido) state
+  // ── Request (pedido) state ──────────────────────────────────────────────
+  // Global description: quick-pick kind + free text
   const [clientNote, setClientNote] = useState('');
-  const [contentType, setContentType] = useState('promocion');
-  const [imageCount, setImageCount] = useState(1);
-  const [customImageCount, setCustomImageCount] = useState('');
-  const [preferredDate, setPreferredDate] = useState('');
-  const [urgency, setUrgency] = useState<'flexible' | 'urgente'>('flexible');
+  const [requestKind, setRequestKind] = useState<string | null>(null);
+
+  // Extra AI-generated photos beyond the ones the user uploaded
+  const [extraGenerated, setExtraGenerated] = useState(0);
+
+  // Preferred timing
+  const [preferredDate, setPreferredDate] = useState('');   // yyyy-mm-dd, empty if quick pick used
+  const [timingPreset, setTimingPreset] = useState<'30min' | 'today' | 'tomorrow' | 'week' | 'custom' | null>(null);
+
+  // Optional extras
   const [extraNotes, setExtraNotes] = useState('');
   const [proposedCaption, setProposedCaption] = useState('');
   const [selectedMedia, setSelectedMedia] = useState<SelectedMedia[]>([]);
+
+  // Per-media details: note + optional inspiration reference, keyed by media id
+  type PerMedia = { note: string; inspirationId: string | null };
+  const [perMedia, setPerMedia] = useState<Record<string, PerMedia>>({});
+  const [expandedMediaId, setExpandedMediaId] = useState<string | null>(null);
+
+  // Inspirations catalog (loaded when the per-image inspiration picker opens)
+  type InspirationRef = { id: string; title: string; thumbnail_url: string | null };
+  const [inspirations, setInspirations] = useState<InspirationRef[]>([]);
+  const [inspirationsLoaded, setInspirationsLoaded] = useState(false);
+
   const [requestSent, setRequestSent] = useState(false);
   const [sending, setSending] = useState(false);
-  const [useInspiration, setUseInspiration] = useState(false);
+
+  // ── Quick-pick descriptions ─────────────────────────────────────────────
+  const REQUEST_KINDS: { v: string; l: string; hint: string }[] = [
+    { v: 'promo',       l: 'Promoción / descuento', hint: 'Anuncia una promo, oferta o descuento limitado.' },
+    { v: 'post_normal', l: 'Post normal',            hint: 'Una publicación regular para tu feed.' },
+    { v: 'novedad',     l: 'Novedad / lanzamiento',  hint: 'Presenta un producto, servicio o novedad.' },
+    { v: 'evento',      l: 'Evento',                 hint: 'Comunica un evento próximo o especial.' },
+    { v: 'testimonio',  l: 'Testimonio / reseña',    hint: 'Destaca una opinión o caso de éxito.' },
+    { v: 'tips',        l: 'Tips / consejos',        hint: 'Contenido educativo o de valor para tu audiencia.' },
+  ];
+  function pickKind(v: string, hint: string) {
+    setRequestKind(v);
+    setClientNote(hint);
+  }
+
+  // Timing presets → derives urgency + scheduled_at
+  function pickTiming(preset: 'now' | 'today' | 'tomorrow' | 'week' | 'custom') {
+    if (preset === 'now') {
+      setTimingPreset('30min');
+      const t = new Date(Date.now() + 30 * 60 * 1000);
+      setPreferredDate(t.toISOString().slice(0, 10));
+    } else if (preset === 'today') {
+      setTimingPreset('today');
+      setPreferredDate(new Date().toISOString().slice(0, 10));
+    } else if (preset === 'tomorrow') {
+      setTimingPreset('tomorrow');
+      setPreferredDate(new Date(Date.now() + 86400000).toISOString().slice(0, 10));
+    } else if (preset === 'week') {
+      setTimingPreset('week');
+      setPreferredDate(new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10));
+    } else {
+      setTimingPreset('custom');
+    }
+  }
+
+  // Lazily load saved inspirations when the picker is first opened
+  async function ensureInspirations() {
+    if (inspirationsLoaded) return;
+    try {
+      const res = await fetch('/api/inspiracion/referencias');
+      if (res.ok) {
+        const d = await res.json();
+        const refs: InspirationRef[] = (d.references ?? []).map((r: { id: string; title: string | null; thumbnail_url: string | null }) => ({
+          id: r.id, title: r.title ?? 'Referencia', thumbnail_url: r.thumbnail_url,
+        }));
+        setInspirations(refs);
+      }
+    } catch { /* ignore — picker stays empty */ }
+    setInspirationsLoaded(true);
+  }
+
+  // Urgency is now derived, not a toggle: "30min" or "today" → urgente.
+  const urgency: 'flexible' | 'urgente' = timingPreset === '30min' || timingPreset === 'today' ? 'urgente' : 'flexible';
 
   const limits = PLAN_LIMITS[brand?.plan ?? 'starter'];
   const allowStories = limits.storiesPerWeek > 0;
@@ -70,32 +139,52 @@ export default function NewPostPage() {
     router.push(`/posts/${json.post.id}`);
   }
 
-  const finalQty = customImageCount ? Number(customImageCount) : imageCount;
+  // Total photos = user-selected + extras-to-generate. Capped by plan.
+  const finalQty = selectedMedia.length + extraGenerated;
 
   async function submitRequest() {
-    if (!clientNote.trim()) { toast.error('Describe qué quieres publicar'); return; }
-    const finalImages = customImageCount ? Number(customImageCount) : imageCount;
-    if (finalImages > maxImages) { toast.error(`Máximo ${maxImages} fotos según tu plan`); return; }
+    if (!clientNote.trim() && !requestKind) {
+      toast.error('Describe qué quieres publicar o elige un tipo');
+      return;
+    }
+    if (finalQty > maxImages) { toast.error(`Máximo ${maxImages} fotos según tu plan`); return; }
+    if (finalQty === 0) { toast.error('Selecciona al menos una foto o pide que generemos una'); return; }
     setSending(true);
     try {
+      // Per-image payload for the worker to consume
+      const perImageMeta = selectedMedia.map((m) => ({
+        media_id: m.id,
+        media_url: m.url,
+        note: perMedia[m.id]?.note?.trim() || null,
+        inspiration_id: perMedia[m.id]?.inspirationId ?? null,
+      }));
       const meta = JSON.stringify({
-        content_type: contentType,
-        quantity: finalQty,
-        urgency,
+        request_kind: requestKind,
+        global_description: clientNote.trim(),
+        user_provided_count: selectedMedia.length,
+        extra_to_generate: extraGenerated,
+        total_quantity: finalQty,
+        urgency,                                // derived: 'urgente' if 30min/today
+        timing_preset: timingPreset,            // 30min | today | tomorrow | week | custom | null
         preferred_date: preferredDate || null,
         extra_notes: extraNotes || null,
         proposed_caption: proposedCaption.trim() || null,
-        media_urls: selectedMedia.map(m => m.url),
-        from_inspiration: useInspiration,
+        per_image: perImageMeta,
       });
 
       let created = 0;
       for (let i = 0; i < finalQty; i++) {
+        const isUserProvided = i < selectedMedia.length;
+        const media = isUserProvided ? selectedMedia[i] : null;
+        const perNote = media ? perMedia[media.id]?.note?.trim() : null;
+        const caption = finalQty > 1
+          ? `${clientNote.trim()} (${i + 1}/${finalQty})${perNote ? ` — ${perNote}` : ''}`
+          : `${clientNote.trim()}${perNote ? ` — ${perNote}` : ''}`;
         const res = await fetch('/api/posts', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            caption: finalQty > 1 ? `${clientNote.trim()} (${i + 1}/${finalQty})` : clientNote.trim(),
-            image_url: selectedMedia[i]?.url ?? selectedMedia[0]?.url ?? null,
+            caption,
+            image_url: media?.url ?? null, // null → worker will generate
             status: 'request',
             format: 'image',
             platform: ['instagram'],
@@ -333,8 +422,8 @@ export default function NewPostPage() {
                 </span>
               </div>
               {[
-                { label: 'Contenido', value: contentType.charAt(0).toUpperCase() + contentType.slice(1) },
-                { label: 'Cantidad', value: `${finalQty} foto${finalQty > 1 ? 's' : ''}` },
+                ...(requestKind ? [{ label: 'Tipo', value: REQUEST_KINDS.find((k) => k.v === requestKind)?.l ?? requestKind }] : []),
+                { label: 'Cantidad', value: `${finalQty} foto${finalQty === 1 ? '' : 's'}` },
                 { label: 'Urgencia', value: urgency === 'urgente' ? 'Urgente' : 'Flexible' },
                 ...(preferredDate ? [{ label: 'Fecha', value: new Date(preferredDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }) }] : []),
               ].map(({ label, value }, i, arr) => (
@@ -357,7 +446,13 @@ export default function NewPostPage() {
               }}>
                 Ir al inicio <ArrowRight size={13} />
               </button>
-              <button onClick={() => { setMode(null); setRequestSent(false); setClientNote(''); setProposedCaption(''); setExtraNotes(''); setSelectedMedia([]); }} style={{
+              <button onClick={() => {
+                setMode(null); setRequestSent(false);
+                setClientNote(''); setRequestKind(null);
+                setProposedCaption(''); setExtraNotes('');
+                setSelectedMedia([]); setPerMedia({}); setExpandedMediaId(null);
+                setExtraGenerated(0); setPreferredDate(''); setTimingPreset(null);
+              }} style={{
                 flex: 1, padding: '14px 24px', border: 'none', background: 'var(--bg)', color: 'var(--text-secondary)',
                 fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               }}>
@@ -401,7 +496,9 @@ export default function NewPostPage() {
       </div>
     );
 
-    const isReady = clientNote.trim().length > 0;
+    // Ready when there's a description or a quick-pick kind, AND at least one photo
+    // (selected OR extras to generate).
+    const isReady = (clientNote.trim().length > 0 || !!requestKind) && finalQty > 0;
 
     return (
       <div className="page-content" style={{ maxWidth: 900 }}>
@@ -423,8 +520,8 @@ export default function NewPostPage() {
           }}>
             Solicitar contenido
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontFamily: f, maxWidth: 500 }}>
-            Describe lo que necesitas y nuestro equipo creativo se encarga de todo: diseño, copy y programación.
+          <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontFamily: f }}>
+            Selecciona el contenido, comparte tu idea y nuestro equipo creativo la transformará en contenido profesional listo para publicar.
           </p>
         </div>
 
@@ -433,7 +530,7 @@ export default function NewPostPage() {
 
           {/* ── LEFT: Form ── */}
           <div>
-            {/* STEP 1 — Describe tu contenido */}
+            {/* STEP 1 — Describe tu contenido (global) */}
             <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
               <div style={{
                 padding: '16px 20px', background: 'var(--bg-1)',
@@ -442,48 +539,45 @@ export default function NewPostPage() {
               }}>
                 <StepNum n={1} />
                 <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
-                  Describe tu contenido
+                  ¿Qué quieres publicar?
                 </span>
-                <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>Obligatorio</span>
+                <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>Descripción global</span>
               </div>
-              <div style={{ padding: '20px' }}>
+
+              {/* Quick-pick chips */}
+              <div style={{ padding: '18px 20px 10px' }}>
+                <label style={labelStyle}>Tipo de publicación</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {REQUEST_KINDS.map(({ v, l, hint }) => (
+                    <button type="button" key={v} onClick={() => pickKind(v, hint)} style={{
+                      padding: '8px 14px',
+                      border: `1px solid ${requestKind === v ? 'var(--accent)' : 'var(--border)'}`,
+                      background: requestKind === v ? 'var(--accent)' : 'var(--bg)',
+                      color: requestKind === v ? '#ffffff' : 'var(--text-secondary)',
+                      fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}>{l}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Global free-text description */}
+              <div style={{ padding: '10px 20px 20px' }}>
+                <label style={labelStyle}>Descripción</label>
                 <textarea
                   value={clientNote}
                   onChange={(e) => setClientNote(e.target.value)}
-                  placeholder="Ej: Quiero 3 posts del nuevo menú de otoño con fotos de los platos. Tono cercano, que invite a reservar mesa."
-                  rows={5}
+                  placeholder="Ej: Promo del menú de otoño todos los viernes: 2x1 en entrantes. Tono cercano, invita a reservar."
+                  rows={4}
                   style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.7 }}
                 />
-              </div>
-
-              {/* Media & Inspiration row */}
-              <div style={{ padding: '0 20px 20px' }}>
-                <MediaPicker selected={selectedMedia} onChange={setSelectedMedia} />
-              </div>
-              <div style={{
-                padding: '14px 20px', borderTop: '1px solid var(--border)',
-                display: 'flex', alignItems: 'center', gap: 10,
-              }}>
-                <button onClick={() => setUseInspiration(!useInspiration)} style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '8px 16px',
-                  border: `1px solid ${useInspiration ? 'var(--accent)' : 'var(--border)'}`,
-                  background: useInspiration ? 'var(--accent)' : 'var(--bg)',
-                  cursor: 'pointer', fontFamily: f, fontSize: 11, fontWeight: 600,
-                  color: useInspiration ? '#ffffff' : 'var(--text-tertiary)',
-                  transition: 'all 0.15s',
-                }}>
-                  <Flame size={13} />
-                  {useInspiration ? 'Inspiración aplicada' : 'Usar mi inspiración'}
-                </button>
-                {useInspiration && (
-                  <span style={{ fontFamily: f, fontSize: 10, color: 'var(--accent)', fontWeight: 500 }}>
-                    Usaremos tus referencias guardadas como guía
-                  </span>
-                )}
+                <p style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 6 }}>
+                  Esta descripción vale para todas las fotos. Luego podrás añadir un contexto específico a cada una.
+                </p>
               </div>
             </div>
 
-            {/* STEP 2 — Configuración */}
+            {/* STEP 2 — Tus fotos + ajustes */}
             <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
               <div style={{
                 padding: '16px 20px', background: 'var(--bg-1)',
@@ -492,80 +586,233 @@ export default function NewPostPage() {
               }}>
                 <StepNum n={2} />
                 <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
-                  Configuración
+                  Tus fotos
+                </span>
+                <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
+                  {selectedMedia.length} seleccionada{selectedMedia.length === 1 ? '' : 's'}
                 </span>
               </div>
 
-              {/* Content type + Image count in 1px gap grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: 'var(--border)' }}>
-                {/* Content type */}
-                <div style={{ padding: '18px 20px', background: 'var(--bg)' }}>
-                  <label style={labelStyle}>Tipo</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                    {[
-                      { v: 'promocion', l: 'Promoción' }, { v: 'educativo', l: 'Educativo' },
-                      { v: 'branding', l: 'Branding' }, { v: 'testimonio', l: 'Testimonio' }, { v: 'otro', l: 'Otro' },
-                    ].map(({ v, l }) => (
-                      <button key={v} onClick={() => setContentType(v)} style={{
-                        padding: '7px 14px',
-                        border: `1px solid ${contentType === v ? 'var(--accent)' : 'var(--border)'}`,
-                        background: contentType === v ? 'var(--accent)' : 'var(--bg)',
-                        color: contentType === v ? '#ffffff' : 'var(--text-tertiary)',
-                        fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                        transition: 'all 0.15s',
-                      }}>{l}</button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Image count */}
-                <div style={{ padding: '18px 20px', background: 'var(--bg)' }}>
-                  <label style={labelStyle}>Fotos</label>
-                  <div style={{ display: 'flex', gap: 0 }}>
-                    {(maxImages <= 3 ? [1, 3] : maxImages <= 8 ? [1, 3, 5, 8] : [1, 3, 5, 10, 20]).map((n, i, arr) => (
-                      <button key={n} onClick={() => { setImageCount(n); setCustomImageCount(''); }} style={{
-                        ...toggleStyle(imageCount === n && !customImageCount),
-                        borderRight: i < arr.length - 1 ? 'none' : undefined,
-                        minWidth: 40, padding: '10px 12px',
-                      }}>{n}</button>
-                    ))}
-                    <input type="number" min={1} max={maxImages} placeholder="#" value={customImageCount}
-                      onChange={(e) => setCustomImageCount(e.target.value)}
-                      style={{ ...inputStyle, width: 56, textAlign: 'center', borderLeft: 'none', padding: '10px 6px' }} />
-                  </div>
-                  {maxImages < 20 && (
-                    <p style={{ fontSize: 9, color: 'var(--text-tertiary)', marginTop: 6, fontFamily: f, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                      Máx {maxImages} (tu plan)
-                    </p>
-                  )}
-                </div>
+              {/* Media picker */}
+              <div style={{ padding: '20px' }}>
+                <MediaPicker selected={selectedMedia} onChange={setSelectedMedia} max={maxImages} />
               </div>
 
-              {/* Date + Urgency in 1px gap grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1px', background: 'var(--border)', borderTop: '1px solid var(--border)' }}>
-                <div style={{ padding: '18px 20px', background: 'var(--bg)' }}>
-                  <label style={labelStyle}>Fecha preferida <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400, letterSpacing: 0 }}>opcional</span></label>
-                  <input type="date" value={preferredDate} onChange={(e) => setPreferredDate(e.target.value)} style={inputStyle} />
-                </div>
-                <div style={{ padding: '18px 20px', background: 'var(--bg)' }}>
-                  <label style={labelStyle}>Urgencia</label>
-                  <div style={{ display: 'flex', gap: 0 }}>
-                    <button onClick={() => setUrgency('flexible')} style={{
-                      ...toggleStyle(urgency === 'flexible'),
-                      flex: 1, justifyContent: 'center', display: 'flex', alignItems: 'center', gap: 6,
-                    }}>
-                      Flexible
-                    </button>
-                    <button onClick={() => setUrgency('urgente')} style={{
-                      ...toggleStyle(urgency === 'urgente'),
-                      borderLeft: 'none', flex: 1, justifyContent: 'center',
-                      display: 'flex', alignItems: 'center', gap: 6,
-                      ...(urgency === 'urgente' ? { background: 'var(--warning, #e65100)' } : {}),
-                    }}>
-                      Urgente
-                    </button>
+              {/* Per-image notes + inspiration */}
+              {selectedMedia.length > 0 && (
+                <div style={{ borderTop: '1px solid var(--border)' }}>
+                  <div style={{ padding: '14px 20px', background: 'var(--bg-1)' }}>
+                    <span style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
+                      Contexto por imagen
+                    </span>
+                    <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 8 }}>
+                      opcional — pulsa en una foto para añadir un comentario o una referencia
+                    </span>
                   </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '16px 20px' }}>
+                    {selectedMedia.map((m, idx) => {
+                      const per = perMedia[m.id] ?? { note: '', inspirationId: null };
+                      const hasNote = per.note.trim().length > 0;
+                      const hasInspo = !!per.inspirationId;
+                      const isOpen = expandedMediaId === m.id;
+                      return (
+                        <button type="button" key={m.id}
+                          onClick={() => setExpandedMediaId(isOpen ? null : m.id)}
+                          style={{
+                            position: 'relative', width: 76, height: 76, padding: 0,
+                            border: `2px solid ${isOpen ? 'var(--accent)' : 'var(--border)'}`,
+                            background: '#000', cursor: 'pointer',
+                          }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          <div style={{
+                            position: 'absolute', bottom: 2, left: 2,
+                            background: isOpen ? 'var(--accent)' : '#111827', color: '#ffffff',
+                            fontFamily: fc, fontSize: 9, fontWeight: 700,
+                            width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}>{idx + 1}</div>
+                          {hasNote && <div style={{ position: 'absolute', top: 2, left: 2, width: 6, height: 6, background: 'var(--accent)' }} />}
+                          {hasInspo && (
+                            <div style={{ position: 'absolute', top: 2, right: 2 }}>
+                              <Flame size={10} style={{ color: 'var(--accent)' }} />
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Active image editor */}
+                  {expandedMediaId && (() => {
+                    const m = selectedMedia.find((x) => x.id === expandedMediaId);
+                    if (!m) return null;
+                    const per = perMedia[m.id] ?? { note: '', inspirationId: null };
+                    const setPer = (patch: Partial<PerMedia>) =>
+                      setPerMedia((prev) => ({ ...prev, [m.id]: { ...(prev[m.id] ?? { note: '', inspirationId: null }), ...patch } }));
+                    const currentInspo = inspirations.find((r) => r.id === per.inspirationId) ?? null;
+                    return (
+                      <div style={{ borderTop: '1px solid var(--border)', padding: '18px 20px', display: 'grid', gridTemplateColumns: '200px 1fr', gap: 16, alignItems: 'start' }}>
+                        <div>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={m.url} alt="" style={{ width: '100%', height: 'auto', maxHeight: 240, objectFit: 'contain', display: 'block', background: 'transparent' }} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Contexto para esta imagen</label>
+                          <textarea
+                            value={per.note}
+                            onChange={(e) => setPer({ note: e.target.value })}
+                            placeholder="Ej: aquí destaca el plato del día y añade el precio con letras grandes."
+                            rows={3}
+                            style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, marginBottom: 14 }}
+                          />
+
+                          <label style={labelStyle}>Inspiración (opcional)</label>
+                          {currentInspo ? (
+                            <div style={{
+                              padding: '10px 12px', border: '1px solid var(--accent)',
+                              background: 'var(--accent-soft, rgba(15,118,110,0.08))',
+                              display: 'flex', gap: 10, alignItems: 'center',
+                            }}>
+                              {currentInspo.thumbnail_url && (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={currentInspo.thumbnail_url} alt="" style={{ width: 36, height: 36, objectFit: 'cover', flexShrink: 0 }} />
+                              )}
+                              <span style={{ flex: 1, fontFamily: f, fontSize: 12, color: 'var(--accent)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {currentInspo.title}
+                              </span>
+                              <button type="button" onClick={() => setPer({ inspirationId: null })}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex' }}>
+                                <X size={13} style={{ color: 'var(--accent)' }} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button type="button"
+                              onClick={() => { void ensureInspirations(); }}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                                padding: '10px 14px', cursor: 'pointer',
+                                border: '1px solid var(--border)', background: 'var(--bg)',
+                                fontFamily: f, fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
+                              }}>
+                              <Flame size={13} /> Elegir inspiración
+                            </button>
+                          )}
+                          {!currentInspo && inspirationsLoaded && (
+                            inspirations.length === 0 ? (
+                              <p style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 8 }}>
+                                No tienes referencias guardadas todavía. Guarda alguna en /inspiracion.
+                              </p>
+                            ) : (
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginTop: 8, maxHeight: 180, overflowY: 'auto' }}>
+                                {inspirations.map((r) => (
+                                  <button type="button" key={r.id} onClick={() => setPer({ inspirationId: r.id })}
+                                    style={{ padding: 0, border: '1px solid var(--border)', background: '#000', cursor: 'pointer', position: 'relative', aspectRatio: '1' }}>
+                                    {r.thumbnail_url ? (
+                                      // eslint-disable-next-line @next/next/no-img-element
+                                      <img src={r.thumbnail_url} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                    ) : (
+                                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 10, color: '#9ca3af' }}>{r.title}</div>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
+              )}
+
+              {/* Extras to generate + plan notice */}
+              <div style={{ borderTop: '1px solid var(--border)', padding: '18px 20px' }}>
+                <label style={labelStyle}>¿Quieres que generemos fotos extra?</label>
+                {(() => {
+                  const remaining = Math.max(0, maxImages - selectedMedia.length);
+                  if (remaining === 0) {
+                    return (
+                      <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>
+                        Has alcanzado el máximo de {maxImages} fotos de tu plan.
+                      </p>
+                    );
+                  }
+                  return (
+                    <>
+                      <div style={{ display: 'flex', gap: 0 }}>
+                        {[0, 1, 2, 3].filter((n) => n <= remaining).map((n, i, arr) => (
+                          <button type="button" key={n} onClick={() => setExtraGenerated(n)}
+                            style={{
+                              ...toggleStyle(extraGenerated === n),
+                              borderRight: i < arr.length - 1 ? 'none' : undefined,
+                              minWidth: 48, padding: '10px 14px', justifyContent: 'center',
+                            }}>
+                            {n === 0 ? 'Ninguna' : `+${n}`}
+                          </button>
+                        ))}
+                      </div>
+                      <p style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 6 }}>
+                        Total: <strong style={{ color: 'var(--text-primary)' }}>{finalQty} foto{finalQty === 1 ? '' : 's'}</strong>
+                        {' · '}Tu plan permite hasta {maxImages}.
+                        {extraGenerated > 0 && ' Las extras las generará el equipo.'}
+                      </p>
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* STEP 3 — ¿Para cuándo? */}
+            <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
+              <div style={{
+                padding: '16px 20px', background: 'var(--bg-1)',
+                display: 'flex', alignItems: 'center', gap: 10,
+                borderBottom: '1px solid var(--border)',
+              }}>
+                <StepNum n={3} />
+                <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
+                  Fecha preferida para tenerlo
+                </span>
+                <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
+                  {urgency === 'urgente' ? 'URGENTE' : 'Flexible'}
+                </span>
+              </div>
+              <div style={{ padding: '18px 20px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                  {([
+                    ['now',      'Hoy (30 min)'],
+                    ['today',    'Hoy'],
+                    ['tomorrow', 'Mañana'],
+                    ['week',     'Esta semana'],
+                    ['custom',   'Otro día'],
+                  ] as const).map(([v, l]) => {
+                    const active =
+                      (v === 'now'      && timingPreset === '30min') ||
+                      (v === 'today'    && timingPreset === 'today') ||
+                      (v === 'tomorrow' && timingPreset === 'tomorrow') ||
+                      (v === 'week'     && timingPreset === 'week') ||
+                      (v === 'custom'   && timingPreset === 'custom');
+                    const isUrgent = v === 'now';
+                    return (
+                      <button type="button" key={v} onClick={() => pickTiming(v)} style={{
+                        padding: '8px 14px',
+                        border: `1px solid ${active ? (isUrgent ? 'var(--warning, #e65100)' : 'var(--accent)') : 'var(--border)'}`,
+                        background: active ? (isUrgent ? 'var(--warning, #e65100)' : 'var(--accent)') : 'var(--bg)',
+                        color: active ? '#ffffff' : 'var(--text-secondary)',
+                        fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                      }}>{l}</button>
+                    );
+                  })}
+                </div>
+                {timingPreset === 'custom' && (
+                  <input type="date" value={preferredDate} onChange={(e) => setPreferredDate(e.target.value)}
+                    min={new Date().toISOString().slice(0, 10)} style={inputStyle} />
+                )}
+                {timingPreset === '30min' && (
+                  <p style={{ fontFamily: f, fontSize: 11, color: 'var(--warning, #e65100)', fontWeight: 600 }}>
+                    ⚡ Lo clasificaremos como urgente y el equipo empezará ahora mismo.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -624,12 +871,14 @@ export default function NewPostPage() {
 
               <div>
                 {[
-                  { label: 'Tipo', value: contentType.charAt(0).toUpperCase() + contentType.slice(1) },
-                  { label: 'Cantidad', value: `${finalQty} foto${finalQty > 1 ? 's' : ''}` },
+                  ...(requestKind ? [{ label: 'Tipo', value: REQUEST_KINDS.find((k) => k.v === requestKind)?.l ?? requestKind }] : []),
+                  { label: 'Fotos tuyas', value: `${selectedMedia.length}` },
+                  ...(extraGenerated > 0 ? [{ label: 'Generadas', value: `+${extraGenerated}` }] : []),
+                  { label: 'Total', value: `${finalQty} foto${finalQty === 1 ? '' : 's'}` },
                   { label: 'Urgencia', value: urgency === 'urgente' ? 'Urgente' : 'Flexible', highlight: urgency === 'urgente' },
-                  ...(preferredDate ? [{ label: 'Fecha', value: new Date(preferredDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) }] : []),
-                  ...(selectedMedia.length > 0 ? [{ label: 'Archivos', value: `${selectedMedia.length} adjunto${selectedMedia.length > 1 ? 's' : ''}` }] : []),
-                  ...(useInspiration ? [{ label: 'Inspiración', value: 'Activada' }] : []),
+                  ...(preferredDate ? [{ label: 'Para', value: new Date(preferredDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) }] : []),
+                  ...(Object.values(perMedia).some((p) => p.note.trim()) ? [{ label: 'Contexto x foto', value: `${Object.values(perMedia).filter((p) => p.note.trim()).length}` }] : []),
+                  ...(Object.values(perMedia).some((p) => p.inspirationId) ? [{ label: 'Inspiración', value: `${Object.values(perMedia).filter((p) => p.inspirationId).length}` }] : []),
                 ].map(({ label, value, highlight }, i, arr) => (
                   <div key={label} style={{
                     padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',

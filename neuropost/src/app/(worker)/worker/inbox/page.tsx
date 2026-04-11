@@ -1,9 +1,30 @@
 'use client';
 
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState, useRef, useMemo } from 'react';
-import { Send, AlertTriangle, MessageCircle } from 'lucide-react';
+import { useEffect, useState, useRef, useMemo, useSyncExternalStore } from 'react';
+import { Send, AlertTriangle, MessageCircle, MessageSquare, Check, X } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { createBrowserClient } from '@/lib/supabase';
+import {
+  approveTestimonial,
+  rejectTestimonial,
+  deleteTestimonial,
+  subscribeTestimonials,
+  getTestimonialsSnapshot,
+  getTestimonialsServerSnapshot,
+} from '@/lib/site-testimonials';
+
+// Realtime row shapes
+type ChatRow = {
+  id: string; brand_id: string; sender_id: string | null;
+  sender_type: 'client' | 'worker'; message: string; created_at: string;
+  read_at: string | null; brands?: { name: string } | null;
+};
+type TicketRow = {
+  id: string; brand_id: string; subject: string; status: string;
+  category: string; priority: string; created_at: string;
+  brands?: { id: string; name: string } | null;
+};
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
@@ -22,12 +43,13 @@ const C = {
   green: '#0F766E',
 };
 
-type Tab = 'cliente' | 'soporte';
+type Tab = 'cliente' | 'soporte' | 'testimonios';
 type IconProps = { size?: number; style?: React.CSSProperties };
 
 const TABS: { key: Tab; title: string; desc: string; icon: React.ComponentType<IconProps> }[] = [
-  { key: 'cliente', title: 'Clientes', desc: 'Chat con clientes', icon: MessageCircle },
-  { key: 'soporte', title: 'Soporte', desc: 'Tickets y consultas', icon: AlertTriangle },
+  { key: 'cliente',     title: 'Clientes',    desc: 'Chat con clientes',    icon: MessageCircle },
+  { key: 'soporte',     title: 'Soporte',     desc: 'Tickets y consultas',  icon: AlertTriangle },
+  { key: 'testimonios', title: 'Testimonios', desc: 'Comentarios sobre la web', icon: MessageSquare },
 ];
 
 type ChatMsg = {
@@ -95,6 +117,7 @@ function ClienteTab() {
   const [sending, setSending] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unanswered' | 'answered'>('all');
   const bottomRef = useRef<HTMLDivElement>(null);
+  const supabase = useMemo(() => createBrowserClient(), []);
 
   async function fetchAll() {
     setLoading(true);
@@ -110,6 +133,30 @@ function ClienteTab() {
   }
 
   useEffect(() => { fetchAll(); }, []);
+
+  // ── Realtime: any new chat_messages row lands here instantly ───────────
+  useEffect(() => {
+    const ch = (supabase.channel('worker-chat-all') as unknown as {
+      on: (event: string, filter: Record<string, unknown>, cb: (payload: { new: ChatRow }) => void) => typeof ch;
+      subscribe: () => typeof ch;
+    });
+    ch.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'chat_messages' },
+      (payload) => {
+        const row = payload.new;
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === row.id)) return prev;
+          return [...prev, row as unknown as ChatMsg];
+        });
+        if (row.sender_type === 'client') {
+          const name = row.brands?.name ?? 'cliente';
+          toast.success(`Nuevo mensaje de ${name}`);
+        }
+      },
+    ).subscribe();
+    return () => { supabase.removeChannel(ch as unknown as Parameters<typeof supabase.removeChannel>[0]); };
+  }, [supabase]);
 
   // Agrupa por brand y calcula si está contestado
   const conversations = useMemo<Conversation[]>(() => {
@@ -298,17 +345,18 @@ function ClienteTab() {
             <div style={{ flex: 1, overflowY: 'auto', padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 10, background: C.bg1 }}>
               {selectedMessages.map((m) => {
                 const isClient = m.sender_type === 'client';
+                // Worker view: client on the LEFT (grey), worker on the RIGHT (accent).
                 return (
-                  <div key={m.id} style={{ display: 'flex', justifyContent: isClient ? 'flex-end' : 'flex-start' }}>
+                  <div key={m.id} style={{ display: 'flex', justifyContent: isClient ? 'flex-start' : 'flex-end' }}>
                     <div
                       style={{
                         maxWidth: '76%',
                         padding: '10px 14px',
-                        background: isClient ? '#d1fae5' : '#e5e7eb',
+                        background: isClient ? '#e5e7eb' : '#d1fae5',
                         color: C.text,
                         fontSize: 13,
                         lineHeight: 1.5,
-                        border: `1px solid ${isClient ? '#a7f3d0' : '#d1d5db'}`,
+                        border: `1px solid ${isClient ? '#d1d5db' : '#a7f3d0'}`,
                       }}
                     >
                       <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, marginBottom: 4, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
@@ -386,6 +434,7 @@ function SoporteTab() {
   const [reply, setReply] = useState('');
   const [sending, setSending] = useState(false);
   const [statusFilter, setStatusFilter] = useState('open');
+  const supabase = useMemo(() => createBrowserClient(), []);
 
   useEffect(() => {
     const params = statusFilter !== 'all' ? `?status=${statusFilter}` : '';
@@ -394,6 +443,34 @@ function SoporteTab() {
       setLoading(false);
     });
   }, [statusFilter]);
+
+  // ── Realtime: new tickets + status updates ─────────────────────────────
+  useEffect(() => {
+    const ch = (supabase.channel('worker-support-tickets') as unknown as {
+      on: (event: string, filter: Record<string, unknown>, cb: (payload: { new: TicketRow; old?: TicketRow; eventType?: string }) => void) => typeof ch;
+      subscribe: () => typeof ch;
+    });
+    ch.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'support_tickets' },
+      (payload) => {
+        const row = payload.new;
+        setTickets((prev) => (prev.some((t) => t.id === row.id) ? prev : [row as unknown as Ticket, ...prev]));
+        const name = row.brands?.name ?? 'un cliente';
+        toast.success(`Nuevo ticket de ${name}: ${row.subject}`);
+      },
+    );
+    ch.on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'support_tickets' },
+      (payload) => {
+        const row = payload.new;
+        setTickets((prev) => prev.map((t) => (t.id === row.id ? { ...t, ...row } as Ticket : t)));
+      },
+    );
+    ch.subscribe();
+    return () => { supabase.removeChannel(ch as unknown as Parameters<typeof supabase.removeChannel>[0]); };
+  }, [supabase]);
 
   async function openTicket(ticket: Ticket) {
     setSelected(ticket);
@@ -423,7 +500,12 @@ function SoporteTab() {
         setMessages((prev) => [...prev, { id: Date.now().toString(), sender_type: 'worker', message: reply.trim(), created_at: new Date().toISOString() }]);
       }
       setReply('');
-      toast.success(status === 'resolved' ? 'Ticket resuelto' : 'Respuesta enviada');
+      const label =
+        status === 'resolved' ? 'Ticket resuelto' :
+        status === 'in_progress' ? 'Ticket aceptado' :
+        status === 'closed' ? 'Ticket denegado' :
+        'Respuesta enviada';
+      toast.success(label);
     } else toast.error(d.error ?? 'Error');
     setSending(false);
   }
@@ -447,12 +529,25 @@ function SoporteTab() {
             </div>
             <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 0, color: st.color, background: 'rgba(255,255,255,0.1)', border: `1px solid ${st.color}` }}>{st.label}</span>
           </div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-            {['in_progress', 'resolved'].map((s) => (
-              <button key={s} onClick={() => sendReply(s)} style={{ padding: '6px 16px', border: `1px solid ${C.border}`, borderRadius: 0, background: 'none', color: C.muted, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
-                {s === 'in_progress' ? '🔄 Marcar en proceso' : '✅ Resolver'}
+          <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+            {selected.status === 'open' && (
+              <>
+                <button type="button" onClick={() => sendReply('in_progress')}
+                  style={{ padding: '6px 16px', border: 'none', background: C.accent, color: '#ffffff', cursor: 'pointer', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  ✓ Aceptar
+                </button>
+                <button type="button" onClick={() => sendReply('closed')}
+                  style={{ padding: '6px 16px', border: `1px solid ${C.red}`, background: '#ffffff', color: C.red, cursor: 'pointer', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  ✕ Denegar
+                </button>
+              </>
+            )}
+            {selected.status === 'in_progress' && (
+              <button type="button" onClick={() => sendReply('resolved')}
+                style={{ padding: '6px 16px', border: 'none', background: C.accent, color: '#ffffff', cursor: 'pointer', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                ✅ Resolver
               </button>
-            ))}
+            )}
           </div>
         </div>
 
@@ -570,6 +665,122 @@ function SoporteTab() {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TAB 3: TESTIMONIOS — moderación de comentarios sobre la web
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+function TestimoniosTab() {
+  const all = useSyncExternalStore(
+    subscribeTestimonials,
+    getTestimonialsSnapshot,
+    getTestimonialsServerSnapshot,
+  );
+  const [filter, setFilter] = useState<'pending' | 'approved' | 'rejected'>('pending');
+
+  const filtered = useMemo(
+    () => all.filter((t) => t.status === filter).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()),
+    [all, filter],
+  );
+  const counts = useMemo(() => ({
+    pending:  all.filter((t) => t.status === 'pending').length,
+    approved: all.filter((t) => t.status === 'approved').length,
+    rejected: all.filter((t) => t.status === 'rejected').length,
+  }), [all]);
+
+  function onApprove(id: string) { approveTestimonial(id); toast.success('Comentario aprobado'); }
+  function onReject(id: string)  { rejectTestimonial(id);  toast.success('Comentario rechazado'); }
+  function onDelete(id: string)  { deleteTestimonial(id);  toast.success('Comentario eliminado'); }
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '24px 40px' }}>
+      {/* Filtros */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        {([
+          { k: 'pending' as const,  l: 'Pendientes', n: counts.pending },
+          { k: 'approved' as const, l: 'Aprobados',  n: counts.approved },
+          { k: 'rejected' as const, l: 'Rechazados', n: counts.rejected },
+        ]).map(({ k, l, n }) => (
+          <button type="button" key={k} onClick={() => setFilter(k)}
+            style={{
+              padding: '8px 16px',
+              background: filter === k ? C.accent : C.card,
+              color: filter === k ? '#ffffff' : C.text,
+              border: `1px solid ${filter === k ? C.accent : C.border}`,
+              fontFamily: f, fontSize: 12, fontWeight: 600,
+              textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer',
+            }}>
+            {l} ({n})
+          </button>
+        ))}
+      </div>
+
+      {/* Lista */}
+      {filtered.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px', border: `1px solid ${C.border}` }}>
+          <MessageSquare size={28} style={{ color: C.muted, marginBottom: 12 }} />
+          <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 16, textTransform: 'uppercase', color: C.text, marginBottom: 4 }}>
+            Sin comentarios
+          </p>
+          <p style={{ fontFamily: f, fontSize: 13, color: C.muted }}>
+            {filter === 'pending' ? 'Ningún comentario pendiente de moderar' : filter === 'approved' ? 'Aún no has aprobado ningún comentario' : 'No hay comentarios rechazados'}
+          </p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {filtered.map((t) => (
+            <div key={t.id} style={{ border: `1px solid ${C.border}`, padding: 16, background: C.card }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 32, height: 32, background: C.bg2, color: C.accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 13, fontWeight: 700 }}>
+                    {t.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: f, fontSize: 13, fontWeight: 600, color: C.text }}>{t.name}</div>
+                    <div style={{ fontFamily: f, fontSize: 11, color: C.muted }}>{new Date(t.created_at).toLocaleString()}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {filter === 'pending' && (
+                    <>
+                      <button type="button" onClick={() => onApprove(t.id)} title="Aprobar"
+                        style={{ padding: '6px 12px', background: C.accent, color: '#ffffff', border: 'none', fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <Check size={13} /> Aprobar
+                      </button>
+                      <button type="button" onClick={() => onReject(t.id)} title="Rechazar"
+                        style={{ padding: '6px 12px', background: '#ffffff', color: C.text, border: `1px solid ${C.border}`, fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <X size={13} /> Rechazar
+                      </button>
+                    </>
+                  )}
+                  {filter === 'approved' && (
+                    <button type="button" onClick={() => onReject(t.id)}
+                      style={{ padding: '6px 12px', background: '#ffffff', color: C.text, border: `1px solid ${C.border}`, fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer' }}>
+                      Despublicar
+                    </button>
+                  )}
+                  {filter === 'rejected' && (
+                    <>
+                      <button type="button" onClick={() => onApprove(t.id)}
+                        style={{ padding: '6px 12px', background: C.accent, color: '#ffffff', border: 'none', fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer' }}>
+                        Restaurar
+                      </button>
+                      <button type="button" onClick={() => onDelete(t.id)}
+                        style={{ padding: '6px 12px', background: '#ffffff', color: C.text, border: `1px solid ${C.border}`, fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer' }}>
+                        Eliminar
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+              <p style={{ fontFamily: f, fontSize: 14, color: C.text, lineHeight: 1.5, whiteSpace: 'pre-wrap', margin: 0 }}>{t.message}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MAIN PAGE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -578,7 +789,7 @@ export default function InboxPage() {
   const searchParams = useSearchParams();
   const rawTab = searchParams.get('tab');
   // Legacy redirects: mensajes/notificaciones → cliente
-  const tab: Tab = rawTab === 'soporte' ? 'soporte' : 'cliente';
+  const tab: Tab = rawTab === 'soporte' ? 'soporte' : rawTab === 'testimonios' ? 'testimonios' : 'cliente';
 
   function setTab(t: Tab) { router.push(`/worker/inbox?tab=${t}`); }
 
@@ -593,7 +804,7 @@ export default function InboxPage() {
       </div>
 
       {/* Tab selector — Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1px', background: C.border, border: `1px solid ${C.border}`, margin: '40px', marginBottom: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${TABS.length}, 1fr)`, gap: '1px', background: C.border, border: `1px solid ${C.border}`, margin: '40px', marginBottom: 0 }}>
         {TABS.map((s) => {
           const active = tab === s.key;
           const Icon = s.icon;
@@ -632,6 +843,7 @@ export default function InboxPage() {
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {tab === 'cliente' && <ClienteTab />}
         {tab === 'soporte' && <SoporteTab />}
+        {tab === 'testimonios' && <TestimoniosTab />}
       </div>
     </div>
   );

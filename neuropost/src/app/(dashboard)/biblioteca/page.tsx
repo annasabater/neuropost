@@ -40,6 +40,8 @@ function getVideoDuration(file: File): Promise<number> {
 export default function BibliotecaPage() {
   const [items, setItems] = useState<MediaItem[]>([]);
   const [filter, setFilter] = useState<'all' | 'image' | 'video'>('all');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -79,6 +81,11 @@ export default function BibliotecaPage() {
   }, [brandId]);
 
   const filtered = filter === 'all' ? items : items.filter(i => i.type === filter);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedItems = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  function handleFilterChange(v: 'all' | 'image' | 'video') { setFilter(v); setPage(1); }
 
   function toggleSelect(id: string) {
     setSelected(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
@@ -216,7 +223,7 @@ export default function BibliotecaPage() {
           { v: 'image' as const, l: 'Imágenes', count: items.filter(i => i.type === 'image').length },
           { v: 'video' as const, l: 'Vídeos', count: items.filter(i => i.type === 'video').length },
         ].map(({ v, l, count }) => (
-          <button key={v} onClick={() => setFilter(v)} style={{
+          <button key={v} onClick={() => handleFilterChange(v)} style={{
             background: 'none', border: 'none', cursor: 'pointer', paddingBottom: 12,
             fontFamily: f, fontSize: 13, fontWeight: 500,
             color: filter === v ? '#111827' : '#9ca3af',
@@ -228,11 +235,11 @@ export default function BibliotecaPage() {
       </div>
 
       {/* Unified drop zone + gallery */}
-      <div style={{ border: '1px solid #e5e7eb', position: 'relative', minHeight: 200 }}>
+      <div style={{ position: 'relative', minHeight: 200 }}>
         {/* Loading skeleton */}
         {loading && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#e5e7eb' }}>
-            {Array.from({ length: 8 }).map((_, i) => <div key={i} style={{ background: '#ffffff' }}><div style={{ aspectRatio: '1', background: '#f3f4f6' }} /></div>)}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+            {Array.from({ length: 8 }).map((_, i) => <div key={i} style={{ flex: '1 1 220px', minWidth: 0 }}><div style={{ aspectRatio: '1', background: '#f3f4f6' }} /></div>)}
           </div>
         )}
 
@@ -252,11 +259,11 @@ export default function BibliotecaPage() {
 
         {/* Grid */}
         {!loading && filtered.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: '#e5e7eb' }}>
-            {filtered.map((item) => {
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+            {pagedItems.map((item) => {
               const isSel = selected.has(item.id);
               return (
-                <div key={item.id} onClick={() => toggleSelect(item.id)} style={{ position: 'relative', background: '#000', cursor: 'pointer' }}>
+                <div key={item.id} onClick={() => toggleSelect(item.id)} style={{ position: 'relative', background: '#000', cursor: 'pointer', flex: '1 1 220px', minWidth: 0 }}>
                   {item.type === 'video' ? (
                     <div style={{ position: 'relative' }}>
                       <video
@@ -311,6 +318,20 @@ export default function BibliotecaPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {!loading && filtered.length > 0 && totalPages > 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 24 }}>
+          <button type="button" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={currentPage === 1}
+            style={{ padding: '8px 14px', border: '1px solid #e5e7eb', background: '#ffffff', color: '#111827', fontFamily: f, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: currentPage === 1 ? 'not-allowed' : 'pointer', opacity: currentPage === 1 ? 0.4 : 1 }}>← Anterior</button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+            <button type="button" key={n} onClick={() => setPage(n)}
+              style={{ minWidth: 36, padding: '8px 12px', border: '1px solid #e5e7eb', background: n === currentPage ? '#111827' : '#ffffff', color: n === currentPage ? '#ffffff' : '#111827', fontFamily: f, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>{n}</button>
+          ))}
+          <button type="button" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
+            style={{ padding: '8px 14px', border: '1px solid #e5e7eb', background: '#ffffff', color: '#111827', fontFamily: f, fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer', opacity: currentPage === totalPages ? 0.4 : 1 }}>Siguiente →</button>
+        </div>
+      )}
 
       {/* Hint below grid */}
       {!loading && filtered.length > 0 && (
