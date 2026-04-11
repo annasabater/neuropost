@@ -111,7 +111,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             contactPoint: {
               '@type': 'ContactPoint',
               contactType: 'customer support',
-              availableLanguage: ['Spanish', 'Catalan', 'English'],
+              availableLanguage: ['Spanish', 'English', 'French', 'Portuguese'],
             },
           })}}
         />
