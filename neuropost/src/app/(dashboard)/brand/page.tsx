@@ -307,8 +307,8 @@ export default function BrandPage() {
 
   return (
     <>
-      <div className="page-content" style={{ maxWidth: 800 }}>
-        <div style={{ padding: '48px 0 40px' }}>
+      <div className="page-content dashboard-unified-page" style={{ maxWidth: 800 }}>
+        <div className="dashboard-unified-header" style={{ padding: '48px 0 40px' }}>
           <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, marginBottom: 8 }}>Brand Kit</h1>
           <p style={{ color: '#6b7280', fontSize: 15, fontFamily: f }}>La identidad de tu marca</p>
         </div>

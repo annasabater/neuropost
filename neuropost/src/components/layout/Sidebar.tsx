@@ -74,12 +74,12 @@ export function Sidebar() {
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
             padding: '9px 12px', background: '#111827', color: '#ffffff', border: 'none',
-            fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase',
+            fontFamily: fc, fontSize: 14, fontWeight: 700, textTransform: 'uppercase',
             letterSpacing: '0.06em', cursor: 'pointer', width: '100%',
             transition: 'background 0.15s', textDecoration: 'none', boxSizing: 'border-box',
           }}
         >
-          <Plus size={14} /> Crear
+          <Plus size={15} /> Crear
         </ProgressLink>
       </div>
 
@@ -147,9 +147,7 @@ export function Sidebar() {
           }}>
             {[
               { href: '/brand', label: 'Brand Kit', icon: Palette },
-              { href: '/settings#redes',       label: 'Conexiones', icon: Link2 },
               { href: '/settings', label: 'Ajustes', icon: Settings },
-              { href: '/settings/plan', label: 'Facturación', icon: CreditCard },
             ].map(({ href, label, icon: Icon }) => (
               <ProgressLink key={href} href={href} onClick={() => nav(href)} style={{
                 display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',

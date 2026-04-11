@@ -90,7 +90,7 @@ export default function IdeasPage() {
   const brand = useAppStore((s) => s.brand);
   const [ideas, setIdeas] = useState<IdeaItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [count, setCount] = useState(3);
+  const count = 3;
   const promptRef = useRef<HTMLInputElement>(null);
 
   // Saved ideas search
@@ -169,7 +169,7 @@ export default function IdeasPage() {
     } finally {
       setLoading(false);
     }
-  }, [count, t]);
+  }, [t]);
 
   function usePreset(prompt: string) {
     if (promptRef.current) promptRef.current.value = prompt;
@@ -184,9 +184,9 @@ export default function IdeasPage() {
   const sectorHints = brand?.sector ? SECTOR_PROMPTS[brand.sector] ?? [] : [];
 
   return (
-    <div className="page-content dashboard-feature-page" style={{ maxWidth: 1000 }}>
+    <div className="page-content dashboard-feature-page dashboard-unified-page" style={{ maxWidth: 1000 }}>
       {/* ── Title ── */}
-      <div className="dashboard-feature-header" style={{ padding: '48px 0 40px' }}>
+      <div className="dashboard-feature-header dashboard-unified-header" style={{ padding: '48px 0 40px' }}>
         <h1 style={{
           fontFamily: fc, fontWeight: 900,
           fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
@@ -200,7 +200,7 @@ export default function IdeasPage() {
         </p>
       </div>
 
-      <div className="dashboard-feature-body">
+      <div className="dashboard-feature-body dashboard-unified-content">
 
       {/* ── Prompt input — Stripe-style clean bar ── */}
       <div style={{
@@ -216,17 +216,6 @@ export default function IdeasPage() {
             fontFamily: f, fontSize: 14, color: 'var(--text-primary)',
           }}
         />
-        <select
-          value={count}
-          onChange={(e) => setCount(Number(e.target.value))}
-          style={{
-            border: '1px solid var(--border)', background: 'var(--bg)',
-            padding: '6px 12px', fontFamily: f, fontSize: 13,
-            color: 'var(--text-secondary)', cursor: 'pointer', outline: 'none',
-          }}
-        >
-          {[1, 2, 3].map((n) => <option key={n} value={n}>{n} {n === 1 ? 'idea' : 'ideas'}</option>)}
-        </select>
         <button
           onClick={() => generate()}
           disabled={loading}

@@ -269,8 +269,8 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="page-content settings-blog-theme">
-      <div className="page-header">
+    <div className="page-content settings-blog-theme dashboard-unified-page">
+      <div className="page-header dashboard-unified-header">
         <div className="page-header-text">
           <h1 className="page-title">{t('title')}</h1>
           <p className="page-sub">{t('subtitle')}</p>

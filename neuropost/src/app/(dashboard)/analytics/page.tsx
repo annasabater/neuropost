@@ -61,9 +61,9 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <div className="page-content dashboard-feature-page" style={{ maxWidth: 1000 }}>
+    <div className="page-content dashboard-feature-page dashboard-unified-page" style={{ maxWidth: 1000 }}>
       {/* ── Header ── */}
-      <div className="dashboard-feature-header" style={{ padding: '48px 0 32px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
+      <div className="dashboard-feature-header dashboard-unified-header" style={{ padding: '48px 0 32px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
         <div>
           <div style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#9ca3af', marginBottom: 8 }}>
             Informe mensual
@@ -92,7 +92,7 @@ export default function AnalyticsPage() {
         </div>
       </div>
 
-      <div className="dashboard-feature-body">
+      <div className="dashboard-feature-body dashboard-unified-content">
 
       {data ? (
         <>

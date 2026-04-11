@@ -141,9 +141,9 @@ function InboxInner() {
   }
 
   return (
-    <div className="page-content" style={{ maxWidth: 1000 }}>
+    <div className="page-content dashboard-unified-page" style={{ maxWidth: 1000 }}>
       {/* Header */}
-      <div style={{ padding: '48px 0 40px' }}>
+      <div className="dashboard-unified-header" style={{ padding: '48px 0 40px' }}>
         <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, marginBottom: 8 }}>
           Inbox
         </h1>

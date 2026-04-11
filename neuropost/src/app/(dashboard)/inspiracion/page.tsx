@@ -20,8 +20,6 @@ type Reference = {
 
 const FORMAT_OPTIONS = ['all', 'image', 'reel', 'carousel', 'story'];
 const FORMAT_LABEL: Record<string, string> = { all: 'Todos', image: 'Imagen', reel: 'Reel', carousel: 'Carrusel', story: 'Story' };
-const STYLE_OPTIONS = ['all', 'creatiu', 'elegant', 'warm', 'dynamic'];
-const STYLE_LABEL: Record<string, string> = { all: 'Todos', creatiu: 'Creativo', elegant: 'Elegante', warm: 'Cálido', dynamic: 'Dinámico' };
 
 function InspirationCard({ image, title, description, format, tags, onSave, onRecreate }: {
   image: string | null; title: string; description: string; format?: string;
@@ -70,7 +68,6 @@ export default function InspiracionPage() {
   const [references, setReferences] = useState<Reference[]>([]);
   const [loadingRefs, setLoadingRefs] = useState(true);
   const [filterFormat, setFilterFormat] = useState('all');
-  const [filterStyle, setFilterStyle] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [addType, setAddType] = useState<'url' | 'upload'>('url');
   const [addUrl, setAddUrl] = useState('');
@@ -95,7 +92,6 @@ export default function InspiracionPage() {
 
   const filteredTemplates = templates.filter(t => {
     if (filterFormat !== 'all' && t.format !== filterFormat) return false;
-    if (filterStyle !== 'all' && !t.styles.includes(filterStyle)) return false;
     return true;
   });
 
@@ -138,8 +134,8 @@ export default function InspiracionPage() {
   const inputStyle: React.CSSProperties = { width: '100%', padding: '12px 14px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: f, fontSize: 14, outline: 'none', boxSizing: 'border-box' as const };
 
   return (
-    <div className="page-content dashboard-feature-page" style={{ maxWidth: 1000 }}>
-      <div className="dashboard-feature-header" style={{ padding: '48px 0 24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+    <div className="page-content dashboard-feature-page dashboard-unified-page" style={{ maxWidth: 1000 }}>
+      <div className="dashboard-feature-header dashboard-unified-header" style={{ padding: '48px 0 24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
           <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 12 }}>Inspiración</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontFamily: f }}>Encuentra el estilo perfecto para tu negocio</p>
@@ -149,7 +145,7 @@ export default function InspiracionPage() {
         </button>
       </div>
 
-      <div className="dashboard-feature-body">
+      <div className="dashboard-feature-body dashboard-unified-content">
 
       <div style={{ display: 'flex', gap: 32, borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
         {(['explore', 'saved'] as const).map(t => (
@@ -165,10 +161,6 @@ export default function InspiracionPage() {
             <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
               <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-tertiary)' }}>Formato</span>
               {FORMAT_OPTIONS.map(v => <button key={v} onClick={() => setFilterFormat(v)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: f, fontSize: 13, fontWeight: 500, color: filterFormat === v ? 'var(--text-primary)' : 'var(--text-tertiary)', borderBottom: filterFormat === v ? '1px solid var(--text-primary)' : '1px solid transparent', paddingBottom: 2, transition: 'all 0.15s' }}>{FORMAT_LABEL[v]}</button>)}
-            </div>
-            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-              <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-tertiary)' }}>Estilo</span>
-              {STYLE_OPTIONS.map(v => <button key={v} onClick={() => setFilterStyle(v)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: f, fontSize: 13, fontWeight: 500, color: filterStyle === v ? 'var(--text-primary)' : 'var(--text-tertiary)', borderBottom: filterStyle === v ? '1px solid var(--text-primary)' : '1px solid transparent', paddingBottom: 2, transition: 'all 0.15s' }}>{STYLE_LABEL[v]}</button>)}
             </div>
           </div>
 

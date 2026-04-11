@@ -188,9 +188,9 @@ export default function PostsPage() {
   const statsPending = posts.filter(p => ['pending', 'request'].includes(p.status)).length;
 
   return (
-    <div className="page-content" style={{ maxWidth: 1060 }}>
+    <div className="page-content dashboard-unified-page" style={{ maxWidth: 1060 }}>
       {/* ── Header ── */}
-      <div style={{ padding: '48px 0 0' }}>
+      <div className="dashboard-unified-header" style={{ padding: '48px 0 0' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}>
           <div>
             <h1 style={{
