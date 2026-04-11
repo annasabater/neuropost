@@ -205,7 +205,9 @@ export async function POST(request: Request) {
           read:     false,
           metadata: { postId: post?.id ?? null },
         });
-      } catch { /* non-blocking */ }
+      } catch (notifErr) {
+        console.error('[worker/posts] Failed to insert notification:', notifErr);
+      }
     }
 
     return NextResponse.json({ post }, { status: 201 });

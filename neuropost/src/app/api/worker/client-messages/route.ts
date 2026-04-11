@@ -17,7 +17,7 @@ export async function GET(request: Request) {
       .order('created_at', { ascending: false })
       .limit(100);
 
-    if (unread === 'true') query = query.is('read_by_worker', false);
+    if (unread === 'true') query = query.is('read_at', null);
     if (brandId) query = query.eq('brand_id', brandId);
 
     const { data, error } = await query;

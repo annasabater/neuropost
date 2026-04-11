@@ -219,7 +219,7 @@ export default function PostDetailPage() {
     request:   { bg: 'var(--accent-soft)', border: 'var(--accent)', icon: '✦', title: 'En preparación', subtitle: 'Nuestro equipo está preparando tu contenido. Te avisaremos cuando esté listo.' },
     draft:     { bg: 'var(--bg-1)', border: 'var(--border-dark)', icon: '✎', title: 'Pendiente', subtitle: 'Revisa la propuesta. Si no te convence, devuélvelo a En preparación.' },
     generated: { bg: 'var(--accent-soft)', border: 'var(--accent)', icon: '✦', title: 'Generado por IA', subtitle: 'Revisa el contenido y apruébalo o modifícalo' },
-    pending:   { bg: 'var(--bg-1)', border: 'var(--border-dark)', icon: '✎', title: 'Pendiente de revisión', subtitle: originalImages.length > 0 ? 'Tu equipo ha procesado el contenido. Compara la versión original con la propuesta y decide.' : 'Revisa la propuesta. Para programar, selecciona fecha y hora.' },
+    pending:   { bg: 'var(--bg-1)', border: 'var(--border-dark)', icon: '✎', title: 'Propuesta lista para revisar', subtitle: postMeta?.worker_notes ? String(postMeta.worker_notes) : originalImages.length > 0 ? 'Tu equipo ha procesado el contenido. Compara la versión original con la propuesta y decide.' : 'Tu equipo ha preparado esta propuesta. Acéptala o pide una nueva versión.' },
     approved:  { bg: 'var(--accent-soft)', border: 'var(--accent)', icon: '✓', title: 'Aprobado', subtitle: 'Listo para programar o publicar' },
     scheduled: { bg: 'var(--accent-soft)', border: 'var(--accent)', icon: '◷', title: 'Programado', subtitle: post.scheduled_at ? `Se publicará el ${new Date(post.scheduled_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : 'Fecha pendiente' },
     published: { bg: 'var(--accent-soft)', border: 'var(--accent)', icon: '✓', title: 'Publicado', subtitle: post.published_at ? `Publicado el ${new Date(post.published_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}` : 'Publicación completada' },
@@ -242,7 +242,19 @@ export default function PostDetailPage() {
           { status: 'pending', label: 'Pasar a Pendiente (validar)', bg: 'var(--bg)', color: '#111827', border: 'var(--border-dark)' },
         ];
       case 'draft':
+        return [
+          { status: 'request', label: 'Devolver a En preparación', bg: 'var(--bg)', color: 'var(--text-secondary)', border: 'var(--border)' },
+          { status: 'regenerate', label: 'Regenerar propuesta', bg: 'var(--accent)', color: '#fff', border: 'var(--accent)' },
+          { status: 'published', label: 'Publicar ahora', bg: '#111827', color: '#fff', border: '#111827' },
+        ];
       case 'pending':
+        // from_worker → client reviews worker proposal: Accept / Request new version
+        if (postMeta?.from_worker) {
+          return [
+            { status: 'request', label: 'Pedir nueva versión', bg: 'var(--bg)', color: 'var(--text-secondary)', border: 'var(--border)' },
+            { status: 'approved', label: '✓ Aceptar propuesta', bg: '#0D9488', color: '#fff', border: '#0D9488' },
+          ];
+        }
         return [
           { status: 'request', label: 'Devolver a En preparación', bg: 'var(--bg)', color: 'var(--text-secondary)', border: 'var(--border)' },
           { status: 'regenerate', label: 'Regenerar propuesta', bg: 'var(--accent)', color: '#fff', border: 'var(--accent)' },

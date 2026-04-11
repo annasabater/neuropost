@@ -56,6 +56,19 @@ export async function POST(request: Request) {
       });
     }
 
+    // Notify worker team of new support ticket
+    try {
+      await db.from('notifications').insert({
+        brand_id: brand.id,
+        type: 'support_ticket',
+        message: `Nueva solicitud de soporte: "${subject.trim()}"`,
+        read: false,
+        metadata: { ticketId: ticket.id, category, priority },
+      });
+    } catch (notifErr) {
+      console.error('[soporte] Failed to insert notification:', notifErr);
+    }
+
     return NextResponse.json({ ticket });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

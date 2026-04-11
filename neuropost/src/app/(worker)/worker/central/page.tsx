@@ -183,6 +183,11 @@ export default function WorkerDashboardPage() {
       try {
         const res = await fetch('/api/worker/dashboard');
         const dashData = await res.json();
+        if (!res.ok || !dashData?.postsByState) {
+          toast.error(dashData?.error ?? 'Error cargando datos');
+          setLoading(false);
+          return;
+        }
         setData(dashData);
         setFilteredData(dashData);
       } catch (err) {
@@ -209,6 +214,7 @@ export default function WorkerDashboardPage() {
         fetch('/api/worker/dashboard')
           .then((r) => r.json())
           .then((newData) => {
+            if (!newData?.postsByState) return;
             setData(newData);
             applyFilters(newData, search, selectedBrand, selectedState);
           });
@@ -223,6 +229,7 @@ export default function WorkerDashboardPage() {
         fetch('/api/worker/dashboard')
           .then((r) => r.json())
           .then((newData) => {
+            if (!newData?.postsByState) return;
             setData(newData);
             applyFilters(newData, search, selectedBrand, selectedState);
           });
@@ -237,6 +244,7 @@ export default function WorkerDashboardPage() {
         fetch('/api/worker/dashboard')
           .then((r) => r.json())
           .then((newData) => {
+            if (!newData?.postsByState) return;
             setData(newData);
             applyFilters(newData, search, selectedBrand, selectedState);
           });

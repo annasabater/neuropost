@@ -3,7 +3,7 @@
 import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { X, Edit2, Save, Send, MessageCircle, LifeBuoy, BookOpen, Sparkles, Plus, Flag } from 'lucide-react';
+import { X, Edit2, Save, Send, MessageCircle, LifeBuoy, BookOpen, Sparkles, Plus, Flag, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const C = {
@@ -38,10 +38,14 @@ type Brand = Record<string, unknown> & {
 type Post = Record<string, unknown> & {
   id: string;
   image_url?: string;
+  caption?: string;
+  hashtags?: string[];
+  format?: string;
   status: string;
   created_at: string;
   agent_id?: string;
   agent_name?: string;
+  ai_explanation?: string;
 };
 
 type Agent = { id: string; name: string };
@@ -332,6 +336,13 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
   const [newRequest, setNewRequest] = useState({ title: '', description: '', type: 'custom' as string, deadline_at: '' });
   const [creatingRequest, setCreatingRequest] = useState(false);
 
+  // Modal: ver solicitud de cliente + responder
+  const [requestModalPost, setRequestModalPost] = useState<Post | null>(null);
+  const [workerReplyImage, setWorkerReplyImage] = useState('');
+  const [workerReplyCaption, setWorkerReplyCaption] = useState('');
+  const [workerReplyNotes, setWorkerReplyNotes] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
+
   useEffect(() => {
     async function load() {
       try {
@@ -503,6 +514,48 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
       console.error(err);
       toast.error('Error al añadir nota');
     }
+  }
+
+  // Parse ai_explanation JSON safely
+  function parseMeta(post: Post): Record<string, unknown> {
+    if (!post.ai_explanation) return {};
+    try { return JSON.parse(post.ai_explanation); } catch { return {}; }
+  }
+  const KIND_LABEL: Record<string, string> = {
+    promo: 'Promoción / descuento', post_normal: 'Post normal', novedad: 'Novedad / lanzamiento',
+    evento: 'Evento', testimonio: 'Testimonio / reseña', tips: 'Tips / consejos',
+  };
+  const TIMING_LABEL: Record<string, string> = {
+    '30min': 'Urgente (30 min)', today: 'Hoy', tomorrow: 'Mañana', week: 'Esta semana', custom: 'Fecha personalizada',
+  };
+
+  async function sendWorkerReply() {
+    if (!requestModalPost || sendingReply) return;
+    if (!workerReplyImage.trim() && !workerReplyCaption.trim()) {
+      toast.error('Añade al menos una imagen o un caption');
+      return;
+    }
+    setSendingReply(true);
+    try {
+      const res = await fetch(`/api/worker/posts/${requestModalPost.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          image_url: workerReplyImage.trim() || requestModalPost.image_url || null,
+          caption: workerReplyCaption.trim() || null,
+          worker_notes: workerReplyNotes.trim() || null,
+          status: 'pending',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Error');
+      setPosts(prev => prev.map(p => p.id === requestModalPost.id ? { ...p, ...data.post } : p));
+      toast.success('Propuesta enviada al cliente');
+      setRequestModalPost(null);
+      setWorkerReplyImage(''); setWorkerReplyCaption(''); setWorkerReplyNotes('');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al enviar');
+    } finally { setSendingReply(false); }
   }
 
   const getPostsByState = (state: string) => {
@@ -719,6 +772,68 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
       {/* TAB 1: CONTENIDO */}
       {tab === 1 && (
         <div>
+          {/* ── POSTS EN SOLICITUD (status=request) ──────────────────── */}
+          {posts.filter(p => p.status === 'request').length > 0 && (
+            <div style={{ background: C.card, border: `1px solid ${C.accent}`, marginBottom: 28 }}>
+              <div style={{ padding: '14px 22px', background: `${C.accent}10`, borderBottom: `1px solid ${C.accent}40`, display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Upload size={15} color={C.accent} />
+                <h3 style={{ fontSize: 13, fontWeight: 800, color: C.accent, margin: 0, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Solicitudes pendientes de respuesta
+                </h3>
+                <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 800, padding: '2px 8px', background: C.accent, color: '#fff', fontFamily: fc }}>
+                  {posts.filter(p => p.status === 'request').length}
+                </span>
+              </div>
+              <div>
+                {posts.filter(p => p.status === 'request').map((post, i, arr) => {
+                  const meta = parseMeta(post);
+                  const kind = meta.request_kind as string | undefined;
+                  const desc = meta.global_description as string | undefined;
+                  const timing = meta.timing_preset as string | undefined;
+                  const urgency = meta.urgency as string | undefined;
+                  const perImage = meta.per_image as Array<{media_url?: string; note?: string}> | undefined;
+                  const extraGenerate = meta.extra_to_generate as number | undefined;
+                  return (
+                    <div key={post.id} style={{ padding: '16px 22px', borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : 'none', display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+                      <div style={{ width: 72, height: 72, flexShrink: 0, background: C.bg1, border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+                        {post.image_url
+                          ? <img src={String(post.image_url)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>📋</div>
+                        }
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
+                          {kind && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', fontFamily: fc, textTransform: 'uppercase' }}>{KIND_LABEL[kind] ?? kind}</span>}
+                          {urgency === 'urgente' && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontFamily: fc, textTransform: 'uppercase' }}>⚡ Urgente</span>}
+                          {timing && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', background: C.bg1, color: C.muted, border: `1px solid ${C.border}`, fontFamily: fc, textTransform: 'uppercase' }}>{TIMING_LABEL[timing] ?? timing}</span>}
+                          {typeof extraGenerate === 'number' && extraGenerate > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', fontFamily: fc, textTransform: 'uppercase' }}>+{extraGenerate} a generar</span>}
+                        </div>
+                        {desc && <p style={{ fontSize: 13, color: C.text, lineHeight: 1.5, margin: '0 0 6px 0', fontFamily: f }}>{desc}</p>}
+                        {Array.isArray(perImage) && perImage.length > 0 && (
+                          <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                            {perImage.slice(0, 5).map((pi, idx) => pi.media_url ? (
+                              <div key={idx} style={{ position: 'relative' }}>
+                                <img src={pi.media_url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', border: `1px solid ${C.border}` }} />
+                                {pi.note && <div title={pi.note} style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, background: C.accent, borderRadius: '50%' }} />}
+                              </div>
+                            ) : null)}
+                          </div>
+                        )}
+                        <div style={{ fontSize: 11, color: C.muted, marginTop: 6 }}>{timeAgo(post.created_at)}</div>
+                      </div>
+                      <button
+                        onClick={() => { setRequestModalPost(post); setWorkerReplyCaption(post.caption ?? ''); setWorkerReplyImage(post.image_url ? String(post.image_url) : ''); }}
+                        style={{ flexShrink: 0, padding: '9px 18px', background: C.accent, color: '#fff', border: 'none', fontFamily: fc, fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer' }}
+                      >
+                        Responder →
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* ── SOLICITUDES DEL CLIENTE ──────────────────────────────── */}
           <div style={{ background: C.card, border: `1px solid ${C.border}`, marginBottom: 28 }}>
             <div style={{ padding: '16px 22px', borderBottom: `1px solid ${C.border}`, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12 }}>
@@ -1262,6 +1377,124 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
           </div>
         </div>
       )}
+
+      {/* ── MODAL: Ver solicitud + Responder ─────────────────────────── */}
+      {requestModalPost && (() => {
+        const meta = parseMeta(requestModalPost);
+        const kind = meta.request_kind as string | undefined;
+        const desc = meta.global_description as string | undefined;
+        const timing = meta.timing_preset as string | undefined;
+        const urgency = meta.urgency as string | undefined;
+        const preferredDate = meta.preferred_date as string | undefined;
+        const extraNotes = meta.extra_notes as string | undefined;
+        const proposedCaption = meta.proposed_caption as string | undefined;
+        const perImage = meta.per_image as Array<{media_url?: string; note?: string}> | undefined;
+        const extraGenerate = meta.extra_to_generate as number | undefined;
+        const globalInspirationIds = meta.global_inspiration_ids as string[] | undefined;
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 1100, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+            <div style={{ background: C.card, width: '100%', maxWidth: 760, maxHeight: '92vh', overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ padding: '18px 24px', borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: C.card, zIndex: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Upload size={16} color={C.accent} />
+                  <h2 style={{ fontSize: 15, fontWeight: 800, color: C.text, margin: 0, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Solicitud del cliente</h2>
+                  {urgency === 'urgente' && <span style={{ fontSize: 10, fontWeight: 800, padding: '2px 8px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', fontFamily: fc }}>⚡ URGENTE</span>}
+                </div>
+                <button onClick={() => setRequestModalPost(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted, padding: 4 }}><X size={20} /></button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+                {/* LEFT: lo que pide el cliente */}
+                <div style={{ padding: '20px 24px', borderRight: `1px solid ${C.border}` }}>
+                  <p style={{ fontSize: 10, fontWeight: 800, color: C.muted, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Lo que pide el cliente</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                    {kind && <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', fontFamily: fc, textTransform: 'uppercase' }}>{KIND_LABEL[kind] ?? kind}</span>}
+                    {timing && <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', background: C.bg1, color: C.muted, border: `1px solid ${C.border}`, fontFamily: fc, textTransform: 'uppercase' }}>{TIMING_LABEL[timing] ?? timing}</span>}
+                    {preferredDate && <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', background: C.bg1, color: C.text, border: `1px solid ${C.border}`, fontFamily: f }}>{new Date(preferredDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
+                  </div>
+                  {desc && (
+                    <div style={{ marginBottom: 14 }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: C.muted, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Descripción</p>
+                      <p style={{ fontSize: 13, color: C.text, lineHeight: 1.6, fontFamily: f, padding: '10px 12px', background: C.bg1, border: `1px solid ${C.border}`, margin: 0 }}>{desc}</p>
+                    </div>
+                  )}
+                  {proposedCaption && (
+                    <div style={{ marginBottom: 14 }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: C.muted, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Caption sugerido</p>
+                      <p style={{ fontSize: 13, color: C.text, lineHeight: 1.6, fontFamily: f, padding: '10px 12px', background: '#f0fdf4', border: '1px solid #bbf7d0', margin: 0 }}>{proposedCaption}</p>
+                    </div>
+                  )}
+                  {extraNotes && (
+                    <div style={{ marginBottom: 14 }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: C.muted, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Notas extra</p>
+                      <p style={{ fontSize: 13, color: C.text, lineHeight: 1.6, fontFamily: f, padding: '10px 12px', background: '#fffbeb', border: '1px solid #fde68a', margin: 0 }}>{extraNotes}</p>
+                    </div>
+                  )}
+                  {((Array.isArray(perImage) && perImage.length > 0) || (typeof extraGenerate === 'number' && extraGenerate > 0)) && (
+                    <div style={{ marginBottom: 14 }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: C.muted, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+                        Fotos enviadas{typeof extraGenerate === 'number' && extraGenerate > 0 ? ` · +${extraGenerate} a generar` : ''}
+                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {(perImage ?? []).map((pi, idx) => pi.media_url ? (
+                          <div key={idx} style={{ position: 'relative' }}>
+                            <img src={pi.media_url} alt="" style={{ width: 80, height: 80, objectFit: 'cover', border: `1px solid ${C.border}`, display: 'block' }} />
+                            {pi.note && <div title={pi.note} style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '3px 5px', background: 'rgba(0,0,0,0.7)', fontSize: 9, color: '#fff', fontFamily: f, lineHeight: 1.3 }}>{pi.note}</div>}
+                          </div>
+                        ) : null)}
+                        {typeof extraGenerate === 'number' && Array.from({ length: extraGenerate }).map((_, i) => (
+                          <div key={`gen-${i}`} style={{ width: 80, height: 80, border: `2px dashed ${C.accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: C.accent, fontFamily: fc, fontWeight: 700 }}>IA</div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {Array.isArray(globalInspirationIds) && globalInspirationIds.length > 0 && (
+                    <div>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: C.muted, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Referencias de inspiración</p>
+                      <p style={{ fontSize: 12, color: C.muted, fontFamily: f, margin: 0 }}>{globalInspirationIds.length} referencia{globalInspirationIds.length > 1 ? 's' : ''} seleccionada{globalInspirationIds.length > 1 ? 's' : ''}</p>
+                    </div>
+                  )}
+                </div>
+                {/* RIGHT: respuesta del worker */}
+                <div style={{ padding: '20px 24px' }}>
+                  <p style={{ fontSize: 10, fontWeight: 800, color: C.accent, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>Tu respuesta</p>
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: C.muted, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>URL imagen / vídeo generado</label>
+                    <input type="text" value={workerReplyImage} onChange={e => setWorkerReplyImage(e.target.value)}
+                      placeholder="https://... (pega la URL del resultado)"
+                      style={{ width: '100%', padding: '10px 12px', border: `1px solid ${C.border}`, fontFamily: f, fontSize: 13, color: C.text, outline: 'none', boxSizing: 'border-box' }} />
+                    {workerReplyImage.trim() && (
+                      <img src={workerReplyImage.trim()} alt="preview" onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                        style={{ marginTop: 8, width: '100%', maxHeight: 160, objectFit: 'cover', display: 'block', border: `1px solid ${C.border}` }} />
+                    )}
+                  </div>
+                  <div style={{ marginBottom: 14 }}>
+                    <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: C.muted, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Caption propuesto</label>
+                    <textarea value={workerReplyCaption} onChange={e => setWorkerReplyCaption(e.target.value)} rows={4}
+                      placeholder="Escribe el caption que propones para este post..."
+                      style={{ width: '100%', padding: '10px 12px', border: `1px solid ${C.border}`, fontFamily: f, fontSize: 13, color: C.text, outline: 'none', resize: 'vertical', lineHeight: 1.6, boxSizing: 'border-box' }} />
+                  </div>
+                  <div style={{ marginBottom: 20 }}>
+                    <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: C.muted, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Notas para el cliente (opcional)</label>
+                    <textarea value={workerReplyNotes} onChange={e => setWorkerReplyNotes(e.target.value)} rows={2}
+                      placeholder="Explica qué has hecho o cambios que recomendarías..."
+                      style={{ width: '100%', padding: '10px 12px', border: `1px solid ${C.border}`, fontFamily: f, fontSize: 13, color: C.text, outline: 'none', resize: 'vertical', lineHeight: 1.6, boxSizing: 'border-box' }} />
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={() => setRequestModalPost(null)}
+                      style={{ flex: 1, padding: '11px 0', background: C.bg1, border: `1px solid ${C.border}`, color: C.muted, fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer' }}>
+                      Cancelar
+                    </button>
+                    <button onClick={sendWorkerReply} disabled={sendingReply}
+                      style={{ flex: 2, padding: '11px 0', background: sendingReply ? C.muted : C.accent, border: 'none', color: '#fff', fontFamily: fc, fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', cursor: sendingReply ? 'wait' : 'pointer' }}>
+                      {sendingReply ? 'Enviando...' : 'Enviar propuesta al cliente →'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
