@@ -30,7 +30,7 @@ const PORTFOLIO = [
   { img: UNS('1503951914875-452162b0f3f1'), caption: 'Corte clásico, estilo eterno ✂️', hashtags: '#barberia #grooming', sector: 'Barbería' },
   { img: UNS('1441984904996-e0b6ba687e04'), caption: 'Nueva colección ya en tienda 🛍️', hashtags: '#boutique #moda', sector: 'Boutique' },
   { img: UNS('1570129477492-45c003edd2be'), caption: 'Cocina reformada con estilo ✨', hashtags: '#inmobiliaria #hogar', sector: 'Inmobiliaria' },
-  { img: UNS('1487530811015-780780169677'), caption: 'Ramos que enamoran 🌺', hashtags: '#floristeria #flores', sector: 'Floristería' },
+  { img: 'https://images.unsplash.com/photo-1487530811015-780780169677?w=800&q=80', caption: 'Ramos que enamoran 🌹', hashtags: '#floristería #flores', sector: 'Floristería' },
 ];
 
 const SECTORS = [
