@@ -30,7 +30,7 @@ const PORTFOLIO = [
   { img: UNS('1503951914875-452162b0f3f1'), caption: 'Corte clásico, estilo eterno ✂️', hashtags: '#barberia #grooming', sector: 'Barbería' },
   { img: UNS('1441984904996-e0b6ba687e04'), caption: 'Nueva colección ya en tienda 🛍️', hashtags: '#boutique #moda', sector: 'Boutique' },
   { img: UNS('1570129477492-45c003edd2be'), caption: 'Cocina reformada con estilo ✨', hashtags: '#inmobiliaria #hogar', sector: 'Inmobiliaria' },
-  { img: UNS('1490750967868-88aa4f44baee'), caption: 'Ramos que enamoran 🌺', hashtags: '#floristeria #flores', sector: 'Floristería' },
+  { img: UNS('1487530811015-780780169677'), caption: 'Ramos que enamoran 🌺', hashtags: '#floristeria #flores', sector: 'Floristería' },
 ];
 
 const SECTORS = [
@@ -391,7 +391,7 @@ export default function LandingPage() {
             {PORTFOLIO.map((p, i) => (
               <div key={i} style={{ background: '#ffffff' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={p.img} alt="" style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />
+                <img src={p.img} alt={p.caption} style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />
                 <div style={{ padding: '8px 10px' }}>
                   <p style={{ fontFamily: f, fontSize: 11, color: '#111111', lineHeight: 1.4, marginBottom: 2 }}>{p.caption}</p>
                   <p style={{ fontFamily: f, fontSize: 9, color: '#9ca3af' }}>{p.hashtags}</p>
