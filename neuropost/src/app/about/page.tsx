@@ -89,11 +89,11 @@ function ValueCard({ icon, title, desc }: { icon: string; title: string; desc: s
 
 // ─── Contact info card ────────────────────────────────────────────────────────
 
-function ContactCard({ icon, title, value, sub, href }: { icon: string; title: string; value: string; sub?: string; href: string }) {
+function ContactCard({ icon, title, value, sub, href }: { icon: React.ReactNode; title: string; value: string; sub?: string; href: string }) {
   return (
-    <a href={href} style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: 0, background: '#ffffff', border: '1px solid #e5e7eb', textDecoration: 'none', transition: 'border-color 0.15s', overflow: 'hidden' }}>
-      <div style={{ width: 48, background: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch', flexShrink: 0 }}>
-        <span style={{ fontSize: 18 }}>{icon}</span>
+    <a href={href} style={{ display: 'flex', alignItems: 'flex-start', gap: 0, padding: 0, background: '#ffffff', border: '1px solid #e5e7eb', textDecoration: 'none', transition: 'border-color 0.15s', overflow: 'hidden' }}>
+      <div style={{ width: 52, background: '#0f0f0f', display: 'flex', alignItems: 'center', justifyContent: 'center', alignSelf: 'stretch', flexShrink: 0 }}>
+        {icon}
       </div>
       <div style={{ padding: '14px 16px' }}>
         <div style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 10, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 4 }}>{title}</div>
@@ -122,7 +122,7 @@ export default function AboutPage() {
   const statsRef = useRef<HTMLDivElement>(null);
 
   // Contact form state
-  const [form, setForm]       = useState({ name: '', email: '', business_type: '', subject: '', message: '', privacy: false });
+  const [form, setForm]       = useState({ name: '', email: '', phone: '', business_type: '', subject: '', message: '', privacy: false });
   const [sending, setSending] = useState(false);
   const [sent, setSent]       = useState(false);
   const [formError, setFormError] = useState('');
@@ -348,7 +348,7 @@ export default function AboutPage() {
       {/* ─── CONTACTO ─── */}
       <section id="contacto" style={{ background: '#ffffff', padding: '96px 0' }}>
         <div className="container">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48 }}>
+          <div className="contact-grid">
 
             {/* Left: info */}
             <div className="fade-in">
@@ -360,10 +360,48 @@ export default function AboutPage() {
                 ¿Tienes alguna pregunta? ¿Quieres ver una demo? Escríbenos y te respondemos en menos de 24 horas.
               </p>
 
+              {/* Trust bar */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: '#e5e7eb', border: '1px solid #e5e7eb', marginBottom: 32 }}>
+                {[
+                  { metric: '+500', label: 'Negocios activos' },
+                  { metric: '<24h', label: 'Respuesta garantizada' },
+                  { metric: '4.9★', label: 'Valoración media' },
+                ].map(({ metric, label }) => (
+                  <div key={label} style={{ background: '#f9fafb', padding: '14px 12px', textAlign: 'center' }}>
+                    <div style={{ fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 20, color: '#111827', letterSpacing: '-0.02em' }}>{metric}</div>
+                    <div style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 11, color: '#9ca3af', marginTop: 2, fontWeight: 600 }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: 1, border: '1px solid #e5e7eb', marginBottom: 32 }}>
-                <ContactCard icon="📧" title="Email general" value="hola@neuropost.es" href="mailto:hola@neuropost.es" />
-                <ContactCard icon="📞" title="Teléfono" value="+34 900 000 000" sub="Lunes a viernes, 9:00 - 18:00" href="tel:+34900000000" />
-                <ContactCard icon="📍" title="Dirección" value="Barcelona, España" href="https://maps.google.com/?q=Barcelona" />
+                <ContactCard
+                  icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>}
+                  title="Email"
+                  value="neuropost.team@gmail.com"
+                  href="mailto:neuropost.team@gmail.com"
+                />
+                <ContactCard
+                  icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.59 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>}
+                  title="Teléfono principal"
+                  value="616 77 34 66"
+                  sub="Lunes a viernes, 9:00 – 18:00"
+                  href="tel:+34616773466"
+                />
+                <ContactCard
+                  icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.59 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>}
+                  title="Teléfono secundario"
+                  value="672 83 66 66"
+                  sub="Lunes a viernes, 9:00 – 18:00"
+                  href="tel:+34672836666"
+                />
+                <ContactCard
+                  icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>}
+                  title="Ubicación"
+                  value="Barcelona, España"
+                  sub="Solo con cita previa"
+                  href="https://maps.google.com/?q=Barcelona"
+                />
               </div>
 
               {/* Horario — clean list */}
@@ -371,8 +409,8 @@ export default function AboutPage() {
                 <div style={{ padding: '10px 16px', borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>
                   <span style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af' }}>Horario de atención</span>
                 </div>
-                {[['Lunes - Viernes', '9:00 - 18:00'], ['Sábados', '10:00 - 14:00'], ['Domingos', 'Cerrado']].map(([d, h], i) => (
-                  <div key={d} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 16px', borderBottom: i < 2 ? '1px solid #f3f4f6' : 'none' }}>
+                {[['Lunes – Viernes', '9:00 – 18:00'], ['Sábados y Domingos', 'Cerrado']].map(([d, h], i) => (
+                  <div key={d} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 16px', borderBottom: i < 1 ? '1px solid #f3f4f6' : 'none' }}>
                     <span style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 13, color: '#6b7280' }}>{d}</span>
                     <span style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 13, fontWeight: 600, color: '#111827' }}>{h}</span>
                   </div>
@@ -380,16 +418,25 @@ export default function AboutPage() {
               </div>
 
               <div className="contact-social-links">
-                <a href="https://instagram.com/neuropost_es" target="_blank" rel="noopener noreferrer" className="contact-social-link">📷 @neuropost_es</a>
-                <a href="https://linkedin.com/company/neuropost" target="_blank" rel="noopener noreferrer" className="contact-social-link">💼 LinkedIn</a>
+                <a href="https://instagram.com/neuropost.es" target="_blank" rel="noopener noreferrer" className="contact-social-link">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                  @neuropost.es
+                </a>
+                <a href="https://linkedin.com/company/neuropost" target="_blank" rel="noopener noreferrer" className="contact-social-link">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                  LinkedIn
+                </a>
               </div>
             </div>
 
-            {/* Right: form */}
-            <div className="fade-in">
+            {/* Right: form — sticky on desktop */}
+            <div className="contact-form-col fade-in">
               <div style={{ border: '1px solid #e5e7eb', background: '#ffffff' }}>
                 {sent ? (
                   <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                    <div style={{ width: 48, height: 48, background: '#f0fdf4', border: '2px solid #0F766E', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0F766E" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+                    </div>
                     <p style={{ fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 24, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Mensaje enviado</p>
                     <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", color: '#6b7280', fontSize: 14 }}>Te respondemos en menos de 24 horas.</p>
                   </div>
@@ -407,7 +454,13 @@ export default function AboutPage() {
                           style={{ width: '100%', padding: '10px 0', border: 'none', borderBottom: '1px solid #e5e7eb', fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 14, color: '#111827', outline: 'none', background: 'none' }} />
                       </div>
                     </div>
-                    {/* Tipo de negocio — grid centrat */}
+                    {/* Teléfono */}
+                    <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb' }}>
+                      <label style={{ display: 'block', fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af', marginBottom: 6 }}>Teléfono</label>
+                      <input type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="+34 600 000 000"
+                        style={{ width: '100%', padding: '10px 0', border: 'none', borderBottom: '1px solid #e5e7eb', fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 14, color: '#111827', outline: 'none', background: 'none', boxSizing: 'border-box' }} />
+                    </div>
+                    {/* Tipo de negocio */}
                     <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb' }}>
                       <label style={{ display: 'block', fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af', marginBottom: 10 }}>Tipo de negocio</label>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: '#e5e7eb', border: '1px solid #e5e7eb' }}>
@@ -466,20 +519,25 @@ export default function AboutPage() {
                       <textarea value={form.message} onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))} placeholder="Cuéntanos cómo podemos ayudarte..." required
                         style={{ width: '100%', padding: '10px 0', border: 'none', borderBottom: '1px solid #e5e7eb', fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 14, color: '#111827', outline: 'none', background: 'none', minHeight: 100, resize: 'vertical', boxSizing: 'border-box' }} />
                     </div>
-                    <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                        <input type="checkbox" checked={form.privacy} onChange={(e) => setForm((f) => ({ ...f, privacy: e.target.checked }))} style={{ accentColor: '#0F766E', width: 14, height: 14 }} />
-                        <span style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 12, color: '#9ca3af' }}>
-                          Acepto la <Link href="/legal/privacidad" style={{ color: '#0F766E', textDecoration: 'none' }}>privacidad</Link>
+                    <div style={{ padding: '16px 20px', borderTop: '1px solid #e5e7eb' }}>
+                      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer', marginBottom: 16 }}>
+                        <input type="checkbox" checked={form.privacy} onChange={(e) => setForm((f) => ({ ...f, privacy: e.target.checked }))} style={{ accentColor: '#0F766E', width: 14, height: 14, marginTop: 2, flexShrink: 0 }} />
+                        <span style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 12, color: '#9ca3af', lineHeight: 1.5 }}>
+                          Acepto la{' '}
+                          <Link href="/legal/privacidad" style={{ color: '#0F766E', textDecoration: 'none' }}>política de privacidad</Link>
+                          {' '}y el tratamiento de mis datos conforme al RGPD
                         </span>
                       </label>
                       <button type="submit" disabled={sending} style={{
-                        padding: '10px 24px', background: '#111827', color: '#ffffff', border: 'none',
-                        fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif", fontSize: 13, fontWeight: 700,
+                        width: '100%', padding: '13px 24px', background: '#111827', color: '#ffffff', border: 'none',
+                        fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif", fontSize: 15, fontWeight: 700,
                         textTransform: 'uppercase', letterSpacing: '0.06em', cursor: sending ? 'wait' : 'pointer', opacity: sending ? 0.5 : 1,
                       }}>
                         {sending ? 'Enviando...' : 'Enviar mensaje →'}
                       </button>
+                      <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 11, color: '#9ca3af', textAlign: 'center', margin: '10px 0 0', lineHeight: 1.5 }}>
+                        Te respondemos en menos de 24h · Datos 100% seguros
+                      </p>
                     </div>
                     {formError && (
                       <div style={{ padding: '10px 20px', background: '#fef2f2', borderTop: '1px solid #fca5a5', fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 13, color: '#c62828' }}>
@@ -488,9 +546,6 @@ export default function AboutPage() {
                     )}
                   </form>
                 )}
-                <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 11, color: '#9ca3af', textAlign: 'center', padding: '12px 20px' }}>
-                  Te responderemos en menos de 24h
-                </p>
               </div>
             </div>
           </div>
@@ -514,6 +569,18 @@ export default function AboutPage() {
       <SiteFooter />
 
       <style jsx>{`
+        .contact-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 48px;
+          align-items: start;
+        }
+
+        .contact-form-col {
+          position: sticky;
+          top: 24px;
+        }
+
         .contact-social-links {
           display: flex;
           gap: 16px;
@@ -525,6 +592,19 @@ export default function AboutPage() {
           color: #0f766e;
           font-weight: 600;
           text-decoration: none;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+
+        @media (max-width: 768px) {
+          .contact-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .contact-form-col {
+            position: static;
+          }
         }
       `}</style>
     </>
