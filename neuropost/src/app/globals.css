@@ -872,7 +872,7 @@ h2 {
   font-size: 0.82rem; color: rgba(250,248,243,0.35); position: relative;
 }
 
-/* ─── FOOTER ─── */
+/* ─── FOOTER (clases legacy — mantenidas por compatibilidad con responsive breakpoints) ─── */
 .site-footer {
   background: #0d0d0d;
   border-top: 0.5px solid rgba(255,255,255,0.08);
