@@ -3,27 +3,34 @@ import { requireServerUser, createServerClient } from '@/lib/supabase';
 
 // GET /api/posts/:id/assets — list all generated versions for a post
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const user = await requireServerUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  try {
+    const { id } = await params;
+    const user = await requireServerUser();
 
-  const supabase = await createServerClient();
-  const { data: brand } = await supabase.from('brands').select('id').eq('user_id', user.id).single();
-  if (!brand) return NextResponse.json({ error: 'No brand' }, { status: 404 });
+    const supabase = await createServerClient();
+    const { data: brand } = await supabase.from('brands').select('id').eq('user_id', user.id).single();
+    if (!brand) return NextResponse.json({ error: 'No brand' }, { status: 404 });
 
-  // Verify post belongs to brand
-  const { data: post } = await supabase.from('posts').select('id').eq('id', id).eq('brand_id', brand.id).single();
-  if (!post) return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    // Verify post belongs to brand
+    const { data: post } = await supabase.from('posts').select('id').eq('id', id).eq('brand_id', brand.id).single();
+    if (!post) return NextResponse.json({ assets: [] });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: assets, error } = await (supabase as any)
-    .from('generated_assets')
-    .select('*')
-    .eq('post_id', id)
-    .order('version', { ascending: false });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: assets, error } = await (supabase as any)
+      .from('generated_assets')
+      .select('*')
+      .eq('post_id', id)
+      .order('version', { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ assets: assets ?? [] });
+    // Some environments may not have generated_assets migrated yet.
+    if (error?.code === '42P01') return NextResponse.json({ assets: [] });
+    if (error) return NextResponse.json({ assets: [] });
+    return NextResponse.json({ assets: assets ?? [] });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ assets: [] });
+  }
 }
 
 // POST /api/posts/:id/assets — create a new generated asset version

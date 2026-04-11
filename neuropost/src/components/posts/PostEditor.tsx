@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Upload, Wand2, RefreshCw, Image as ImageIcon, Check, Flame, X, Play, ChevronLeft, ChevronRight, ArrowRight, Plus } from 'lucide-react';
+import { Upload, Wand2, RefreshCw, Image as ImageIcon, Check, Flame, X, Play, ChevronLeft, ArrowRight, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { Platform, PostFormat, PostGoal, EditorOutput, CopywriterOutput } from '@/types';
 import { PostPreview } from './PostPreview';
@@ -78,9 +78,8 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
 
   const FORMATS: { value: PostFormat; label: string }[] = [
     { value: 'image', label: t('formats.image') },
-    { value: 'reel', label: t('formats.reel') },
+    { value: 'reel', label: 'Video' },
     { value: 'carousel', label: t('formats.carousel') },
-    { value: 'story', label: t('formats.story') },
   ];
   const GOALS: { value: PostGoal; label: string }[] = [
     { value: 'engagement', label: 'Engagement' },
@@ -244,11 +243,21 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
 
   // ── Tab style helper ──
   const tabBtn = (active: boolean): React.CSSProperties => ({
-    padding: '6px 14px', fontSize: 11, fontFamily: f, fontWeight: 600, cursor: 'pointer',
+    padding: '6px 14px',
+    fontSize: 11,
+    fontFamily: f,
+    fontWeight: 600,
+    cursor: 'pointer',
     background: active ? '#111827' : 'var(--bg)',
     color: active ? '#ffffff' : 'var(--text-tertiary)',
-    border: `1px solid ${active ? '#111827' : 'var(--border)'}`,
-    display: 'flex', alignItems: 'center', gap: 5, transition: 'all 0.15s',
+    borderTop: `1px solid ${active ? '#111827' : 'var(--border)'}`,
+    borderBottom: `1px solid ${active ? '#111827' : 'var(--border)'}`,
+    borderLeft: `1px solid ${active ? '#111827' : 'var(--border)'}`,
+    borderRight: `1px solid ${active ? '#111827' : 'var(--border)'}`,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 5,
+    transition: 'all 0.15s',
   });
 
   // ══════════════════════════════════════════════════════════════════
@@ -264,7 +273,7 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
               Paso 1 de 3
             </p>
             <p style={{ fontFamily: fc, fontSize: 20, fontWeight: 900, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0 }}>
-              Selecciona tus imágenes
+              Adjuntar imágenes de referencia
             </p>
           </div>
           {slots.length > 0 && (
@@ -284,7 +293,10 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
           <button type="button" onClick={() => setImgSource('library')} style={{ ...tabBtn(imgSource === 'library'), borderRight: 'none' }}>
             <ImageIcon size={12} /> Biblioteca
           </button>
-          <button type="button" onClick={() => setImgSource('upload')} style={tabBtn(imgSource === 'upload')}>
+          <button type="button" onClick={() => setImgSource('instagram')} style={{ ...tabBtn(imgSource === 'instagram'), borderLeft: 'none', borderRight: 'none' }}>
+            <ImageIcon size={12} /> Instagram
+          </button>
+          <button type="button" onClick={() => setImgSource('upload')} style={{ ...tabBtn(imgSource === 'upload'), borderLeft: 'none' }}>
             <Upload size={12} /> Subir
           </button>
         </div>
@@ -316,8 +328,8 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
           </div>
         )}
 
-        {/* Grid */}
-        {imgSource === 'library' ? (
+        {/* Grid source switch */}
+        {imgSource === 'library' && (
           <div style={{ border: '1px solid var(--border)', maxHeight: 420, overflowY: 'auto', background: 'var(--bg-1)' }}>
             {loadingLib ? (
               <div style={{ padding: 40, textAlign: 'center' }}>
@@ -361,7 +373,15 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
               </div>
             )}
           </div>
-        ) : (
+        )}
+        {imgSource === 'instagram' && (
+          <div style={{ border: '1px solid var(--border)', padding: 40, textAlign: 'center', background: 'var(--bg-1)' }}>
+            <ImageIcon size={32} style={{ color: 'var(--text-tertiary)', marginBottom: 12 }} />
+            <p style={{ fontFamily: f, fontSize: 14, color: 'var(--text-secondary)', marginBottom: 4 }}>Conecta tu cuenta de Instagram para importar imágenes.</p>
+            <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>Próximamente: importar imágenes directamente desde Instagram.</p>
+          </div>
+        )}
+        {imgSource === 'upload' && (
           <div style={{ border: '1px solid var(--border)', padding: 40, textAlign: 'center', background: 'var(--bg-1)', cursor: 'pointer' }}
             onClick={() => fileRef.current?.click()}>
             <Upload size={32} style={{ color: 'var(--text-tertiary)', marginBottom: 12 }} />
@@ -564,25 +584,6 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
           </div>
         )}
 
-        {/* Prev / Next navigation */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
-          <button disabled={activeIdx === 0} onClick={() => setActiveIdx(activeIdx - 1)} style={{
-            padding: '8px 16px', border: '1px solid var(--border)', background: 'var(--bg)',
-            color: activeIdx === 0 ? 'var(--border)' : 'var(--text-secondary)',
-            fontFamily: f, fontSize: 12, fontWeight: 600, cursor: activeIdx === 0 ? 'default' : 'pointer',
-            display: 'flex', alignItems: 'center', gap: 4,
-          }}>
-            <ChevronLeft size={13} /> Anterior
-          </button>
-          <button disabled={activeIdx >= slots.length - 1} onClick={() => setActiveIdx(activeIdx + 1)} style={{
-            padding: '8px 16px', border: '1px solid var(--border)', background: 'var(--bg)',
-            color: activeIdx >= slots.length - 1 ? 'var(--border)' : 'var(--text-secondary)',
-            fontFamily: f, fontSize: 12, fontWeight: 600, cursor: activeIdx >= slots.length - 1 ? 'default' : 'pointer',
-            display: 'flex', alignItems: 'center', gap: 4,
-          }}>
-            Siguiente <ChevronRight size={13} />
-          </button>
-        </div>
       </div>
     );
   }
@@ -606,7 +607,7 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
             Paso 3 de 3
           </p>
           <p style={{ fontFamily: fc, fontSize: 20, fontWeight: 900, textTransform: 'uppercase', color: 'var(--text-primary)', margin: 0 }}>
-            Genera y publica
+            Genera con IA
           </p>
         </div>
 
@@ -635,19 +636,38 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
           </div>
         </div>
 
-        {/* Format + Goal */}
+        {/* Format */}
         <div className="editor-section editor-row">
           <div className="form-group" style={{ flex: 1 }}>
             <label>Formato</label>
-            <select value={format} onChange={(e) => { const v = e.target.value as PostFormat; setFormat(v); setIsStory(v === 'story'); }}>
-              {FORMATS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-            </select>
-          </div>
-          <div className="form-group" style={{ flex: 1 }}>
-            <label>Objetivo</label>
-            <select value={goal} onChange={(e) => setGoal(e.target.value as PostGoal)}>
-              {GOALS.map((g) => <option key={g.value} value={g.value}>{g.label}</option>)}
-            </select>
+            <div style={{ display: 'flex', gap: 0, flexWrap: 'wrap', border: '1px solid var(--border)' }}>
+              {FORMATS.map((fmt, i) => {
+                const active = format === fmt.value;
+                return (
+                  <button
+                    type="button"
+                    key={fmt.value}
+                    onClick={() => { setFormat(fmt.value); setIsStory(fmt.value === 'story'); }}
+                    style={{
+                      flex: '1 1 120px',
+                      padding: '10px 12px',
+                      border: 'none',
+                      borderLeft: i === 0 ? 'none' : '1px solid var(--border)',
+                      background: active ? 'var(--accent)' : 'var(--bg)',
+                      color: active ? '#ffffff' : 'var(--text-tertiary)',
+                      fontFamily: f,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {fmt.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 

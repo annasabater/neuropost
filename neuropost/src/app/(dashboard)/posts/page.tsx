@@ -102,7 +102,9 @@ export default function PostsPage() {
   const storePostList = useAppStore((s) => s.posts);
 
   const [posts, setPosts_] = useState<Post[]>([]);
-  const [filter, setFilter] = useState<PostStatus | 'all'>('all');
+  // 'proposal' is a synthetic filter: posts the worker team proposed (marked
+  // via ai_explanation.from_worker) and that are still awaiting client decision.
+  const [filter, setFilter] = useState<PostStatus | 'all' | 'proposal'>('all');
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'grid' | 'feed'>('grid');
 
@@ -120,10 +122,23 @@ export default function PostsPage() {
     request: t('status.request'), draft: t('status.draft'), generated: t('status.generated'),
     pending: t('status.pending'), approved: t('status.approved'), scheduled: t('status.scheduled'),
     published: t('status.published'), failed: t('status.failed'), cancelled: t('status.cancelled'),
+    proposal: 'Propuesta automática', all: t('status.all'),
   };
 
-  const STATUS_FILTERS: { value: PostStatus | 'all'; label: string; count: number }[] = [
+  // A post is a "team proposal" if the worker route stamped its ai_explanation
+  // with from_worker=true and the client hasn't acted on it yet.
+  function isWorkerProposal(p: Post): boolean {
+    if (!p.ai_explanation) return false;
+    try {
+      const parsed = JSON.parse(p.ai_explanation);
+      return parsed?.from_worker === true;
+    } catch { return false; }
+  }
+  const proposalPosts = posts.filter(p => isWorkerProposal(p) && (p.status === 'generated' || p.status === 'pending' || p.status === 'draft'));
+
+  const STATUS_FILTERS: { value: PostStatus | 'all' | 'proposal'; label: string; count: number }[] = [
     { value: 'all',       label: t('status.all'),       count: posts.length },
+    { value: 'proposal',  label: 'Propuesta automática', count: proposalPosts.length },
     { value: 'request',   label: t('status.request'),   count: posts.filter(p => p.status === 'request').length },
     { value: 'pending',   label: t('status.pending'),   count: posts.filter(p => p.status === 'pending' || p.status === 'draft').length },
     { value: 'scheduled', label: t('status.scheduled'), count: posts.filter(p => p.status === 'scheduled').length },
@@ -177,6 +192,7 @@ export default function PostsPage() {
   }
 
   const filtered = filter === 'all' ? posts
+    : filter === 'proposal' ? proposalPosts
     : filter === 'pending' ? posts.filter((p) => p.status === 'pending' || p.status === 'draft')
     : posts.filter((p) => p.status === filter);
   const gridQueued = queuedItems.slice(0, 9);
@@ -358,18 +374,22 @@ export default function PostsPage() {
               <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 22, textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 8 }}>
                 {filter === 'all' ? 'Empieza a crear contenido' : `No hay posts en "${STATUS_LABEL[filter]}"`}
               </p>
-              <p style={{ fontSize: 14, color: 'var(--text-tertiary)', fontFamily: f, marginBottom: 28, maxWidth: 400, margin: '0 auto 28px' }}>
-                Crea tu primera publicación y empieza a hacer crecer tu negocio en redes sociales
-              </p>
-              <Link href="/posts/new" style={{
-                background: 'var(--accent)', color: '#fff',
-                padding: '12px 32px', textDecoration: 'none',
-                fontFamily: fc, fontSize: 13, fontWeight: 700,
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-              }}>
-                <Plus size={14} /> Nuevo contenido
-              </Link>
+              {filter !== 'proposal' && (
+                <>
+                  <p style={{ fontSize: 14, color: 'var(--text-tertiary)', fontFamily: f, marginBottom: 28, maxWidth: 400, margin: '0 auto 28px' }}>
+                    Crea tu primera publicación y empieza a hacer crecer tu negocio en redes sociales
+                  </p>
+                  <Link href="/posts/new" style={{
+                    background: 'var(--accent)', color: '#fff',
+                    padding: '12px 32px', textDecoration: 'none',
+                    fontFamily: fc, fontSize: 13, fontWeight: 700,
+                    textTransform: 'uppercase', letterSpacing: '0.08em',
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                  }}>
+                    <Plus size={14} /> Nuevo contenido
+                  </Link>
+                </>
+              )}
             </div>
           ) : (
             <div style={{

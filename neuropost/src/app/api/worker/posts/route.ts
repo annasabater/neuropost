@@ -94,6 +94,16 @@ export async function POST(request: Request) {
     }
 
     // ── Insert ─────────────────────────────────────────────────────────────
+    // Build an ai_explanation marker so the client UI can identify worker-sent
+    // proposals without depending on the optional `metadata` jsonb column
+    // (which may not exist in every environment).
+    const aiExplanation = JSON.stringify({
+      ...(typeof body.ai_explanation === 'string'
+        ? (() => { try { return JSON.parse(body.ai_explanation as string); } catch { return { note: body.ai_explanation }; } })()
+        : (body.ai_explanation ?? {})),
+      from_worker: true,
+    });
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: post, error } = await (db as any)
       .from('posts')
@@ -108,6 +118,7 @@ export async function POST(request: Request) {
         scheduled_at:  body.scheduled_at ?? null,
         quality_score: body.quality_score ?? null,
         is_story:      body.is_story ?? false,
+        ai_explanation: aiExplanation,
         metadata:      { ...body.metadata, created_by_worker: true },
       })
       .select()

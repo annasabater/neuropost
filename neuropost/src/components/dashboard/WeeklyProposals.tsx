@@ -20,10 +20,24 @@ interface Proposal {
   ai_explanation: string | null;
 }
 
-export function WeeklyProposals({ proposals }: { proposals: Proposal[] }) {
+/** A proposal counts as "from the team" only if its ai_explanation marker says so. */
+function isWorkerProposal(p: Proposal): boolean {
+  if (!p.ai_explanation) return false;
+  try {
+    const parsed = JSON.parse(p.ai_explanation);
+    return parsed?.from_worker === true;
+  } catch {
+    return false;
+  }
+}
+
+export function WeeklyProposals({ proposals: rawProposals }: { proposals: Proposal[] }) {
   const router = useRouter();
   const updatePostStatus = useAppStore((s) => s.updatePostStatus);
   const [acting, setActing] = useState<string | null>(null);
+
+  // Only show proposals the team (worker) has actually sent.
+  const proposals = rawProposals.filter(isWorkerProposal);
 
   const pending = proposals.filter(p => p.status === 'generated' || p.status === 'pending');
   const approved = proposals.filter(p => p.status === 'approved' || p.status === 'scheduled');
