@@ -1,0 +1,11 @@
+.caption-textarea {
+  background: #f4f4f4;
+  border-radius: 0;
+  border: none;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 15px;
+  color: var(--text-primary);
+  padding: 14px 16px;
+  box-sizing: border-box;
+}

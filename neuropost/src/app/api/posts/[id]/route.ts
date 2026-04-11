@@ -48,10 +48,28 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       ? { ...body, approved_by: user.id }
       : body;
 
+    // Fetch current status before updating so we can detect the request→pending transition.
+    const { data: current } = await supabase
+      .from('posts').select('status').eq('id', id).eq('brand_id', brand.id).single();
+
     const { data, error } = await supabase
       .from('posts').update(updatePayload).eq('id', id).eq('brand_id', brand.id).select().single();
     if (error) throw error;
     await syncPostIntoFeedQueue(createAdminClient(), data as Post);
+
+    // Notify brand when content transitions to pending (worker processed it).
+    if (body.status === 'pending' && current?.status === 'request') {
+      try {
+        await supabase.from('notifications').insert({
+          brand_id: brand.id,
+          type:     'content_ready',
+          message:  'Tu contenido ya está listo — revisa la propuesta de tu equipo.',
+          read:     false,
+          metadata: { postId: id },
+        });
+      } catch { /* non-blocking */ }
+    }
+
     return NextResponse.json({ post: data as Post });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

@@ -222,14 +222,14 @@
     "metrics": {
       "published": "Published this month",
       "scheduled": "Scheduled",
-      "pending": "Pending approval",
+      "pending": "Proposals to review",
       "plan": "Plan"
     },
     "sections": {
       "contentHub": "Your content",
-      "pendingApproval": "{count} post pending approval|{count} posts pending approval",
-      "pendingSubtitle": "Review and approve them so the AI publishes them on schedule",
-      "pendingAction": "Review posts →",
+      "pendingApproval": "{count} team proposal|{count} team proposals",
+      "pendingSubtitle": "Your team has processed these requests. Review them, accept or ask for another version.",
+      "pendingAction": "View proposals",
       "upcomingDates": "Upcoming important dates",
       "quickActions": "Quick actions",
       "recentPosts": "Recent posts",

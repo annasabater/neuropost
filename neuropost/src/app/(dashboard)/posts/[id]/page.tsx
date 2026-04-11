@@ -188,12 +188,38 @@ export default function PostDetailPage() {
     router.push('/posts');
   }
 
+  // Parse metadata — must come before STATUS_BANNER so originalImages is available.
+  const postMeta = post.ai_explanation
+    ? (() => { try { return JSON.parse(post.ai_explanation); } catch { return null; } })()
+    : null;
+
+  // Merge requestMeta and postMeta
+  const meta = requestMeta ?? postMeta;
+
+  // Original images to show alongside the worker's version in 'pending' state.
+  const originalImages: string[] = (() => {
+    if (post.status !== 'pending' || !meta) return [];
+    const urls: string[] = [];
+    if (meta.original_image_url) urls.push(meta.original_image_url);
+    if (Array.isArray(meta.per_image)) {
+      for (const p of meta.per_image) {
+        if (p.media_url && !urls.includes(p.media_url)) urls.push(p.media_url);
+      }
+    }
+    if (Array.isArray(meta.media_urls)) {
+      for (const u of meta.media_urls) {
+        if (u && !urls.includes(u)) urls.push(u);
+      }
+    }
+    return urls.filter(u => u !== post.image_url);
+  })();
+
   // ── Unified layout for ALL states ──
   const STATUS_BANNER: Record<string, { bg: string; border: string; icon: string; title: string; subtitle: string }> = {
     request:   { bg: 'var(--accent-soft)', border: 'var(--accent)', icon: '✦', title: 'En preparación', subtitle: 'Nuestro equipo está preparando tu contenido. Te avisaremos cuando esté listo.' },
     draft:     { bg: 'var(--bg-1)', border: 'var(--border-dark)', icon: '✎', title: 'Pendiente', subtitle: 'Revisa la propuesta. Si no te convence, devuélvelo a En preparación.' },
     generated: { bg: 'var(--accent-soft)', border: 'var(--accent)', icon: '✦', title: 'Generado por IA', subtitle: 'Revisa el contenido y apruébalo o modifícalo' },
-    pending:   { bg: 'var(--bg-1)', border: 'var(--border-dark)', icon: '✎', title: 'Pendiente de revisión', subtitle: 'Revisa la propuesta. Para programar, selecciona fecha y hora.' },
+    pending:   { bg: 'var(--bg-1)', border: 'var(--border-dark)', icon: '✎', title: 'Pendiente de revisión', subtitle: originalImages.length > 0 ? 'Tu equipo ha procesado el contenido. Compara la versión original con la propuesta y decide.' : 'Revisa la propuesta. Para programar, selecciona fecha y hora.' },
     approved:  { bg: 'var(--accent-soft)', border: 'var(--accent)', icon: '✓', title: 'Aprobado', subtitle: 'Listo para programar o publicar' },
     scheduled: { bg: 'var(--accent-soft)', border: 'var(--accent)', icon: '◷', title: 'Programado', subtitle: post.scheduled_at ? `Se publicará el ${new Date(post.scheduled_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : 'Fecha pendiente' },
     published: { bg: 'var(--accent-soft)', border: 'var(--accent)', icon: '✓', title: 'Publicado', subtitle: post.published_at ? `Publicado el ${new Date(post.published_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}` : 'Publicación completada' },
@@ -202,14 +228,6 @@ export default function PostDetailPage() {
   };
 
   const banner = STATUS_BANNER[post.status] ?? STATUS_BANNER.draft;
-
-  // Parse metadata
-  const postMeta = post.ai_explanation
-    ? (() => { try { return JSON.parse(post.ai_explanation); } catch { return null; } })()
-    : null;
-
-  // Merge requestMeta and postMeta
-  const meta = requestMeta ?? postMeta;
 
   const inputBase: React.CSSProperties = {
     padding: '6px 10px', border: '1px solid var(--border)',
@@ -321,6 +339,12 @@ export default function PostDetailPage() {
       <div className="post-detail-layout" style={{ marginBottom: 24, gridTemplateColumns: post.image_url ? '360px minmax(0, 1fr)' : '1fr' }}>
         {post.image_url && (
           <div>
+            {/* Worker's version label when comparing */}
+            {originalImages.length > 0 && (
+              <p style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--accent)', marginBottom: 4 }}>
+                Propuesta del equipo
+              </p>
+            )}
             <div className="post-detail-preview" style={{ border: '1px solid var(--border)', background: '#000' }}>
               {/\.(mp4|mov|webm|avi)(\?|$)/i.test(post.image_url) ? (
                 <video src={post.image_url} controls style={{ width: '100%', maxHeight: 560, objectFit: 'contain', display: 'block' }} />
@@ -329,6 +353,27 @@ export default function PostDetailPage() {
                 <img src={post.image_url} alt="" style={{ width: '100%', maxHeight: 560, objectFit: 'contain', display: 'block' }} />
               )}
             </div>
+
+            {/* Original reference images (only in pending state when worker modified) */}
+            {originalImages.length > 0 && (
+              <div style={{ marginTop: 12 }}>
+                <p style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 6 }}>
+                  Tu imagen original
+                </p>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                  {originalImages.map((url, i) => (
+                    <div key={i} style={{ border: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0 }}>
+                      {/\.(mp4|mov|webm|avi)(\?|$)/i.test(url) ? (
+                        <video src={url} style={{ width: 160, height: 160, objectFit: 'cover', display: 'block' }} />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={url} alt={`Original ${i + 1}`} style={{ width: 160, height: 160, objectFit: 'cover', display: 'block' }} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Generated asset versions */}
             <AssetVersions

@@ -1,5 +1,6 @@
 'use client';
 
+import styles from './PostEditor.module.css';
 import { useState, useRef, useEffect } from 'react';
 import { Upload, Wand2, RefreshCw, Image as ImageIcon, Check, Flame, X, Play, ChevronLeft, ArrowRight, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -49,7 +50,7 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
   const [step, setStep] = useState<'select' | 'configure' | 'generate'>('select');
 
   // ── Image source ──
-  const [imgSource, setImgSource] = useState<'library' | 'upload'>('library');
+  const [imgSource, setImgSource] = useState<'library' | 'upload' | 'instagram'>('library');
   const [library, setLibrary] = useState<LibItem[]>([]);
   const [loadingLib, setLoadingLib] = useState(true);
 
@@ -443,24 +444,17 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
         </div>
 
         {/* Image strip navigation */}
-        <div style={{ display: 'flex', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 1, background: '#fff', border: 'none', marginBottom: 20 }}>
           {slots.map((s, i) => (
             <button key={i} onClick={() => setActiveIdx(i)} style={{
               position: 'relative', flexShrink: 0, width: 72, height: 72,
               padding: 0, border: 'none', cursor: 'pointer',
-              outline: i === activeIdx ? '2px solid var(--accent)' : 'none',
-              outlineOffset: -2,
+              outline: 'none',
+              outlineOffset: 0,
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={s.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: i === activeIdx ? 1 : 0.5 }} />
-              <div style={{
-                position: 'absolute', bottom: 2, left: 2,
-                background: i === activeIdx ? 'var(--accent)' : '#111827', color: '#ffffff',
-                fontFamily: fc, fontSize: 9, fontWeight: 700,
-                width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                {i + 1}
-              </div>
+              <img src={s.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: 1 }} />
+              {/* Removed selection indicator for a clean look */}
               {s.inspiration && (
                 <div style={{ position: 'absolute', top: 2, right: 2 }}>
                   <Flame size={10} style={{ color: 'var(--accent)' }} />
@@ -475,15 +469,15 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
 
         {/* Active image config — 2 columns */}
         {activeSlot && (
-          <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '1px', background: '#fff', border: '1px solid #fff' }}>
             {/* Left: image preview */}
-            <div style={{ background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={activeSlot.url} alt="" style={{ width: '100%', maxHeight: 360, objectFit: 'contain', display: 'block' }} />
+              <img src={activeSlot.url} alt="" style={{ width: '100%', maxHeight: 360, objectFit: 'contain', display: 'block', outline: 'none', border: 'none' }} />
             </div>
 
             {/* Right: config */}
-            <div style={{ background: 'var(--bg)' }}>
+            <div style={{ background: '#fff' }}>
               {/* Context / prompt */}
               <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)' }}>
                 <label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-tertiary)', marginBottom: 8 }}>
@@ -497,7 +491,7 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
                   style={{
                     width: '100%', padding: '12px 14px', border: '1px solid var(--border)',
                     fontFamily: f, fontSize: 13, color: 'var(--text-primary)', outline: 'none',
-                    boxSizing: 'border-box', background: 'var(--bg)', resize: 'vertical', lineHeight: 1.6,
+                    boxSizing: 'border-box', background: '#fff', resize: 'vertical', lineHeight: 1.6,
                   }}
                 />
               </div>
@@ -627,14 +621,7 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
           </div>
         </div>
 
-        {/* Platforms */}
-        <div className="editor-section">
-          <p className="editor-section-title">Plataformas</p>
-          <div className="platform-toggles">
-            <button className={`platform-toggle platform-ig ${platforms.includes('instagram') ? 'active' : ''}`} onClick={() => togglePlatform('instagram')}>Instagram</button>
-            <button className={`platform-toggle platform-fb ${platforms.includes('facebook') ? 'active' : ''}`} onClick={() => togglePlatform('facebook')}>Facebook</button>
-          </div>
-        </div>
+        {/* Platforms section removed as requested */}
 
         {/* Format */}
         <div className="editor-section editor-row">
@@ -671,17 +658,7 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
           </div>
         </div>
 
-        {/* AI Buttons */}
-        <div className="editor-ai-row">
-          <button className="btn-outline" disabled={!activeSlot || analysing} onClick={analyseImage}>
-            {analysing ? <span className="loading-spinner" /> : <Wand2 size={16} />}
-            {analysing ? 'Analizando...' : 'Analizar imagen'}
-          </button>
-          <button className="btn-primary btn-orange" disabled={!editorResult || generating} onClick={generateCopy}>
-            {generating ? <span className="loading-spinner" /> : <RefreshCw size={16} />}
-            {generating ? t('generating') : 'Generar copy'}
-          </button>
-        </div>
+        {/* AI Buttons removed as requested */}
 
         {/* Analysis */}
         {editorResult && (
@@ -712,7 +689,7 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
               ))}
             </div>
           )}
-          <textarea className="editor-textarea caption-textarea" placeholder="Escribe o genera el caption con IA..." value={caption} onChange={(e) => setCaption(e.target.value)} rows={5} />
+          <textarea className={styles['caption-textarea']} placeholder="Escribe o genera el caption con IA..." value={caption} onChange={(e) => setCaption(e.target.value)} rows={5} />
           <div className="caption-meta">
             <span>{caption.length} caracteres</span>
             {copywriterResult?.callToAction && <span>CTA: {copywriterResult.callToAction}</span>}

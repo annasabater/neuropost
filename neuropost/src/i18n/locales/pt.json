@@ -114,8 +114,8 @@
   },
   "dashboard": {
     "title": "Início", "subtitle": "Resumo da sua atividade", "greeting": "Olá, {name}",
-    "metrics": { "published": "Publicados este mês", "scheduled": "Agendados", "pending": "Pendentes de aprovação", "plan": "Plano" },
-    "sections": { "pendingApproval": "{count} publicação pendente|{count} publicações pendentes", "pendingSubtitle": "Reveja e aprove para que a IA publique conforme o calendário", "pendingAction": "Rever publicações →", "upcomingDates": "Próximas datas importantes", "quickActions": "Ações rápidas", "recentPosts": "Publicações recentes", "planUsage": "Utilização do plano este mês" },
+    "metrics": { "published": "Publicados este mês", "scheduled": "Agendados", "pending": "Propostas para rever", "plan": "Plano" },
+    "sections": { "pendingApproval": "{count} proposta da equipa|{count} propostas da equipa", "pendingSubtitle": "A sua equipa processou estes pedidos. Reveja, aceite ou peça outra versão.", "pendingAction": "Ver propostas", "upcomingDates": "Próximas datas importantes", "quickActions": "Ações rápidas", "recentPosts": "Publicações recentes", "planUsage": "Utilização do plano este mês" },
     "planLimit": { "nearLimit": "Quase no limite — {remaining} publicações restantes", "limitReached": "Limite atingido — atualize o plano para continuar", "upgrade": "Atualizar plano" },
     "empty": { "noPosts": "Ainda não tem publicações", "noPostsSub": "Comece a gerar ideias de conteúdo", "generateIdeas": "Gerar ideias" },
     "actions": { "newPost": "Nova publicação", "generateIdeas": "Gerar ideias", "planMonth": "Planear mês", "trends": "Tendências", "community": "Comunidade", "analytics": "Análises" }

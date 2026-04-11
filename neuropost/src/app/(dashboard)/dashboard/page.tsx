@@ -66,7 +66,8 @@ export default async function DashboardPage() {
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
   }).length;
   const scheduled = allPosts.filter((p) => p.status === 'scheduled').length;
-  const pending   = allPosts.filter((p) => p.status === 'pending' || p.status === 'generated').length;
+  // pending = posts the worker has sent back for client review (status 'pending')
+  const pending   = allPosts.filter((p) => p.status === 'pending').length;
 
   const limits = PLAN_LIMITS[brand.plan];
   const planLimit = limits.postsPerMonth;
@@ -475,7 +476,7 @@ export default async function DashboardPage() {
               {t('sections.pendingSubtitle')}
             </p>
           </div>
-          <Link href="/posts" style={{
+          <Link href="/posts?filter=pending" style={{
             fontFamily: fc, fontSize: 12, fontWeight: 700,
             textTransform: 'uppercase', letterSpacing: '0.08em',
               color: 'var(--bg)', background: 'var(--accent)',

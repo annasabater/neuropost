@@ -16,18 +16,20 @@ import { PLAN_LIMITS } from '@/types';
 import type { SubscriptionPlan, PostFormat, Platform, PostStatus } from '@/types';
 
 interface CreatePostBody {
-  brand_id:        string;
-  caption?:        string | null;
-  hashtags?:       string[];
-  image_url?:      string | null;
-  image_urls?:     string[];   // carousel
-  format:          PostFormat;
-  platform?:       Platform[];
-  status?:         PostStatus;
-  scheduled_at?:   string | null;
-  quality_score?:  number | null;
-  is_story?:       boolean;
-  metadata?:       Record<string, unknown>;
+  brand_id:         string;
+  caption?:         string | null;
+  hashtags?:        string[];
+  image_url?:       string | null;
+  image_urls?:      string[];   // carousel
+  format:           PostFormat;
+  platform?:        Platform[];
+  status?:          PostStatus;
+  scheduled_at?:    string | null;
+  quality_score?:   number | null;
+  is_story?:        boolean;
+  metadata?:        Record<string, unknown>;
+  /** If provided, UPDATE this existing request post instead of creating a new one */
+  request_post_id?: string | null;
 }
 
 export async function POST(request: Request) {
@@ -93,46 +95,117 @@ export async function POST(request: Request) {
       }
     }
 
-    // ── Insert ─────────────────────────────────────────────────────────────
-    // Build an ai_explanation marker so the client UI can identify worker-sent
-    // proposals without depending on the optional `metadata` jsonb column
-    // (which may not exist in every environment).
-    const aiExplanation = JSON.stringify({
-      ...(typeof body.ai_explanation === 'string'
-        ? (() => { try { return JSON.parse(body.ai_explanation as string); } catch { return { note: body.ai_explanation }; } })()
-        : (body.ai_explanation ?? {})),
-      from_worker: true,
-    });
-
+    // ── Build ai_explanation ───────────────────────────────────────────────
+    // Merge from_worker marker so the client UI can identify worker proposals.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: post, error } = await (db as any)
-      .from('posts')
-      .insert({
-        brand_id:      body.brand_id,
-        caption:       body.caption ?? null,
-        hashtags:      body.hashtags ?? [],
-        image_url:     body.image_url ?? (body.image_urls?.[0] ?? null),
-        format:        body.format,
-        platform:      body.platform ?? ['instagram', 'facebook'],
-        status:        body.status ?? 'pending',
-        scheduled_at:  body.scheduled_at ?? null,
-        quality_score: body.quality_score ?? null,
-        is_story:      body.is_story ?? false,
-        ai_explanation: aiExplanation,
-        metadata:      { ...body.metadata, created_by_worker: true },
-      })
-      .select()
-      .single();
+    const existingAiExpl: Record<string, unknown> = (() => {
+      const raw = (body as any).ai_explanation;
+      if (!raw) return {};
+      try { return typeof raw === 'string' ? JSON.parse(raw) : raw; } catch { return { note: raw }; }
+    })();
 
-    if (error) throw error;
+    const newImageUrl = body.image_url ?? (body.image_urls?.[0] ?? null);
+    const finalStatus = body.status ?? 'pending';
 
-    // Increment the weekly counter so the next call sees the new total.
-    if (body.is_story) {
-      await incrementStoryCounter(body.brand_id);
-    } else if (body.format === 'reel') {
-      await incrementVideoCounter(body.brand_id);
+    // ── Update existing request post OR insert new ─────────────────────────
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let post: any;
+
+    if (body.request_post_id) {
+      // Fetch the request post to preserve its original ai_explanation data.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: reqPost } = await (db as any)
+        .from('posts')
+        .select('ai_explanation, image_url')
+        .eq('id', body.request_post_id)
+        .eq('brand_id', body.brand_id)
+        .single();
+
+      const origExpl: Record<string, unknown> = (() => {
+        if (!reqPost?.ai_explanation) return {};
+        try { return JSON.parse(reqPost.ai_explanation); } catch { return {}; }
+      })();
+
+      const mergedExpl = JSON.stringify({
+        ...origExpl,
+        ...existingAiExpl,
+        from_worker: true,
+        // Preserve the client's original image so the detail page can compare.
+        original_image_url: origExpl.original_image_url ?? reqPost?.image_url ?? null,
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: updated, error } = await (db as any)
+        .from('posts')
+        .update({
+          caption:        body.caption ?? null,
+          hashtags:       body.hashtags ?? [],
+          image_url:      newImageUrl,
+          format:         body.format,
+          platform:       body.platform ?? ['instagram', 'facebook'],
+          status:         finalStatus,
+          scheduled_at:   body.scheduled_at ?? null,
+          quality_score:  body.quality_score ?? null,
+          ai_explanation: mergedExpl,
+          metadata:       { ...body.metadata, created_by_worker: true },
+        })
+        .eq('id', body.request_post_id)
+        .eq('brand_id', body.brand_id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      post = updated;
     } else {
-      await incrementPostCounter(body.brand_id);
+      const aiExplanation = JSON.stringify({ ...existingAiExpl, from_worker: true });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: inserted, error } = await (db as any)
+        .from('posts')
+        .insert({
+          brand_id:       body.brand_id,
+          caption:        body.caption ?? null,
+          hashtags:       body.hashtags ?? [],
+          image_url:      newImageUrl,
+          format:         body.format,
+          platform:       body.platform ?? ['instagram', 'facebook'],
+          status:         finalStatus,
+          scheduled_at:   body.scheduled_at ?? null,
+          quality_score:  body.quality_score ?? null,
+          is_story:       body.is_story ?? false,
+          ai_explanation: aiExplanation,
+          metadata:       { ...body.metadata, created_by_worker: true },
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      post = inserted;
+    }
+
+    // Increment weekly counters for new posts only (not updates).
+    if (!body.request_post_id) {
+      if (body.is_story) {
+        await incrementStoryCounter(body.brand_id);
+      } else if (body.format === 'reel') {
+        await incrementVideoCounter(body.brand_id);
+      } else {
+        await incrementPostCounter(body.brand_id);
+      }
+    }
+
+    // ── Notify client that their content is ready ──────────────────────────
+    if (finalStatus === 'pending' || finalStatus === 'scheduled') {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (db as any).from('notifications').insert({
+          brand_id: body.brand_id,
+          type:     'content_ready',
+          message:  'Tu contenido ya está listo — revisa la propuesta de tu equipo.',
+          read:     false,
+          metadata: { postId: post?.id ?? null },
+        });
+      } catch { /* non-blocking */ }
     }
 
     return NextResponse.json({ post }, { status: 201 });

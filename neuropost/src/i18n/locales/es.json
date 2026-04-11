@@ -222,14 +222,14 @@
     "metrics": {
       "published": "Publicados este mes",
       "scheduled": "Programados",
-      "pending": "Pendientes de aprobación",
+      "pending": "Propuestas para revisar",
       "plan": "Plan"
     },
     "sections": {
       "contentHub": "Tu contenido",
-      "pendingApproval": "{count} post pendiente de aprobación|{count} posts pendientes de aprobación",
-      "pendingSubtitle": "Revísalos y apruébalos para que se publiquen según el calendario",
-      "pendingAction": "Revisar posts →",
+      "pendingApproval": "{count} propuesta del equipo|{count} propuestas del equipo",
+      "pendingSubtitle": "Tu equipo ha procesado estas solicitudes. Revísalas, acéptalas o pide otra versión.",
+      "pendingAction": "Ver propuestas",
       "upcomingDates": "Próximas fechas importantes",
       "quickActions": "Acciones rápidas",
       "recentPosts": "Posts recientes",

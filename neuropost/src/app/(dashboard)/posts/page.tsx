@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Grid3x3, LayoutList, GripVertical, Pencil, ArrowRight, Calendar, Eye, Upload, Send } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -100,11 +101,13 @@ export default function PostsPage() {
   const brand = useAppStore((s) => s.brand);
   const setPosts = useAppStore((s) => s.setPosts);
   const storePostList = useAppStore((s) => s.posts);
+  const searchParams = useSearchParams();
 
   const [posts, setPosts_] = useState<Post[]>([]);
   // 'proposal' is a synthetic filter: posts the worker team proposed (marked
   // via ai_explanation.from_worker) and that are still awaiting client decision.
-  const [filter, setFilter] = useState<PostStatus | 'all' | 'proposal'>('all');
+  const initialFilter = (searchParams.get('filter') ?? 'all') as PostStatus | 'all' | 'proposal';
+  const [filter, setFilter] = useState<PostStatus | 'all' | 'proposal'>(initialFilter);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<'grid' | 'feed'>('grid');
 
@@ -140,7 +143,7 @@ export default function PostsPage() {
     { value: 'all',       label: t('status.all'),       count: posts.length },
     { value: 'proposal',  label: 'Propuesta automática', count: proposalPosts.length },
     { value: 'request',   label: t('status.request'),   count: posts.filter(p => p.status === 'request').length },
-    { value: 'pending',   label: t('status.pending'),   count: posts.filter(p => p.status === 'pending' || p.status === 'draft').length },
+    { value: 'pending',   label: 'Para revisar',         count: posts.filter(p => p.status === 'pending' || p.status === 'draft').length },
     { value: 'scheduled', label: t('status.scheduled'), count: posts.filter(p => p.status === 'scheduled').length },
     { value: 'published', label: t('status.published'), count: posts.filter(p => p.status === 'published').length },
   ];

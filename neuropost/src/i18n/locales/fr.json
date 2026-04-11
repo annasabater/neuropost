@@ -123,8 +123,8 @@
   },
   "dashboard": {
     "title": "Accueil", "subtitle": "Résumé de votre activité", "greeting": "Bonjour, {name}",
-    "metrics": { "published": "Publiés ce mois", "scheduled": "Programmés", "pending": "En attente d'approbation", "plan": "Plan" },
-    "sections": { "pendingApproval": "{count} post en attente|{count} posts en attente", "pendingSubtitle": "Révisez-les et approuvez-les pour que l'IA les publie", "pendingAction": "Voir les posts →", "upcomingDates": "Prochaines dates importantes", "quickActions": "Actions rapides", "recentPosts": "Posts récents", "planUsage": "Utilisation du plan ce mois" },
+    "metrics": { "published": "Publiés ce mois", "scheduled": "Programmés", "pending": "Propositions à revoir", "plan": "Plan" },
+    "sections": { "pendingApproval": "{count} proposition de l'équipe|{count} propositions de l'équipe", "pendingSubtitle": "Votre équipe a traité ces demandes. Révisez, acceptez ou demandez une autre version.", "pendingAction": "Voir les propositions", "upcomingDates": "Prochaines dates importantes", "quickActions": "Actions rapides", "recentPosts": "Posts récents", "planUsage": "Utilisation du plan ce mois" },
     "planLimit": { "nearLimit": "Presque à la limite — {remaining} posts restants", "limitReached": "Limite atteinte — améliorez votre plan pour continuer", "upgrade": "Améliorer le plan" },
     "empty": { "noPosts": "Vous n'avez pas encore de posts", "noPostsSub": "Commencez par générer des idées de contenu", "generateIdeas": "Générer des idées" },
     "actions": { "newPost": "Nouveau post", "generateIdeas": "Générer des idées", "planMonth": "Planifier le mois", "trends": "Tendances", "community": "Communauté", "analytics": "Analytiques" }

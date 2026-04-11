@@ -121,12 +121,18 @@ export default function NewPostPage() {
     platforms: ('instagram' | 'facebook')[]; format: string; goal: string;
     aiExplanation?: string; qualityScore?: number; isStory?: boolean;
   }) {
+    // Merge from_self_service into ai_explanation so the detail page can show
+    // the original image and the "Regenerar propuesta" action.
+    let aiExpl: Record<string, unknown> = {};
+    try { aiExpl = data.aiExplanation ? JSON.parse(data.aiExplanation) : {}; } catch { /* ignore */ }
+    const aiExplanation = JSON.stringify({ ...aiExpl, from_self_service: true, original_image_url: data.imageUrl });
+
     const res = await fetch('/api/posts', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         image_url: data.imageUrl, caption: data.caption, hashtags: data.hashtags,
-        platform: data.platforms, format: data.format, status: 'generated',
-        ai_explanation: data.aiExplanation ?? null, quality_score: data.qualityScore ?? null,
+        platform: data.platforms, format: data.format, status: 'request',
+        ai_explanation: aiExplanation, quality_score: data.qualityScore ?? null,
         is_story: data.isStory ?? false, story_type: data.isStory ? 'new' : null,
         versions: [], edit_level: 0, client_edit_mode: 'instant',
         client_notes_for_worker: null, requires_worker_validation: false,
@@ -251,15 +257,14 @@ export default function NewPostPage() {
             </p>
             <p style={{
               fontFamily: f, fontSize: 13, color: 'rgba(255,255,255,0.5)',
-              lineHeight: 1.6, marginBottom: 20, flex: 1,
+              lineHeight: 1.6, marginBottom: 8, flex: 1,
             }}>
               Cada semana generamos propuestas de contenido adaptadas a tu negocio. Solo tienes que aprobar.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
               {[
                 `${limits.autoProposalsPerWeek} propuestas/semana`,
                 'Basado en tendencias',
-                'Copy optimizado',
                 limits.autopilot ? 'Piloto automático' : 'Aprueba y publica',
               ].map((feat) => (
                 <div key={feat} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -300,13 +305,13 @@ export default function NewPostPage() {
             </p>
             <p style={{
               fontFamily: f, fontSize: 13, color: 'var(--text-tertiary)',
-              lineHeight: 1.6, marginBottom: 20, flex: 1,
+              lineHeight: 1.6, marginBottom: 8, flex: 1,
             }}>
-              Dinos qué necesitas y nuestro equipo lo prepara: promos, ediciones, carruseles, reels...
+              Dinos qué necesitas y nuestro equipo lo prepara.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
               {[
-                'Sube tus fotos o referencias',
+                'Selecciona tus fotos',
                 'Estrategia adaptada',
                 'Revisión profesional',
                 limits.requestsPerMonth === Infinity ? 'Pedidos ilimitados' : `${limits.requestsPerMonth} pedidos/mes`,
@@ -350,16 +355,15 @@ export default function NewPostPage() {
             </p>
             <p style={{
               fontFamily: f, fontSize: 13, color: 'var(--text-tertiary)',
-              lineHeight: 1.6, marginBottom: 20, flex: 1,
+              lineHeight: 1.6, marginBottom: 8, flex: 1,
             }}>
-              Usa nuestras herramientas de edición, generación de ideas e inspiración para crear contenido.
+              Usa nuestras herramientas de edición para crear y generar fotos y vídeos con IA.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 16 }}>
               {[
-                'Editor completo',
-                'Generación de ideas con IA',
+                'Selecciona tus fotos',
+                'Crea y edita fotos y vídeos con IA totalmente a tu medida.',
                 'Biblioteca de inspiración',
-                'Presets y estilos',
               ].map((feat) => (
                 <div key={feat} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Check size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
