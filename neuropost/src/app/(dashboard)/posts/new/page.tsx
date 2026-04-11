@@ -43,6 +43,10 @@ export default function NewPostPage() {
   const [perMedia, setPerMedia] = useState<Record<string, PerMedia>>({});
   const [expandedMediaId, setExpandedMediaId] = useState<string | null>(null);
 
+  // Global inspiration references (picked from saved inspirations for the whole request)
+  const [globalInspirationIds, setGlobalInspirationIds] = useState<string[]>([]);
+  const [showGlobalInspirationPicker, setShowGlobalInspirationPicker] = useState(false);
+
   // Inspirations catalog (loaded when the per-image inspiration picker opens)
   type InspirationRef = { id: string; title: string; thumbnail_url: string | null };
   const [inspirations, setInspirations] = useState<InspirationRef[]>([]);
@@ -175,6 +179,7 @@ export default function NewPostPage() {
         preferred_date: preferredDate || null,
         extra_notes: extraNotes || null,
         proposed_caption: proposedCaption.trim() || null,
+        global_inspiration_ids: globalInspirationIds.length > 0 ? globalInspirationIds : null,
         per_image: perImageMeta,
       });
 
@@ -456,6 +461,7 @@ export default function NewPostPage() {
                 setProposedCaption(''); setExtraNotes('');
                 setSelectedMedia([]); setPerMedia({}); setExpandedMediaId(null);
                 setExtraGenerated(0); setPreferredDate(''); setTimingPreset(null);
+                setGlobalInspirationIds([]); setShowGlobalInspirationPicker(false);
               }} style={{
                 flex: 1, padding: '14px 24px', border: 'none', background: 'var(--bg)', color: 'var(--text-secondary)',
                 fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer',
@@ -578,6 +584,108 @@ export default function NewPostPage() {
                 <p style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 6 }}>
                   Esta descripción vale para todas las fotos. Luego podrás añadir un contexto específico a cada una.
                 </p>
+              </div>
+
+              {/* Global inspiration references */}
+              <div style={{ borderTop: '1px solid var(--border)', padding: '16px 20px 20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <div>
+                    <label style={{ ...labelStyle, marginBottom: 2 }}>Referencias visuales</label>
+                    <p style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', margin: 0 }}>
+                      Elige imágenes de tu inspiración guardada para guiar al equipo
+                    </p>
+                  </div>
+                  <button type="button"
+                    onClick={() => { void ensureInspirations(); setShowGlobalInspirationPicker(v => !v); }}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                      padding: '7px 14px', cursor: 'pointer', flexShrink: 0,
+                      border: `1px solid ${showGlobalInspirationPicker ? '#0D9488' : 'var(--border)'}`,
+                      background: showGlobalInspirationPicker ? 'rgba(13,148,136,0.08)' : 'var(--bg)',
+                      fontFamily: f, fontSize: 11, fontWeight: 600,
+                      color: showGlobalInspirationPicker ? '#0D9488' : 'var(--text-tertiary)',
+                    }}>
+                    <Flame size={12} />
+                    {globalInspirationIds.length > 0 ? `${globalInspirationIds.length} seleccionada${globalInspirationIds.length === 1 ? '' : 's'}` : 'Elegir referencias'}
+                  </button>
+                </div>
+
+                {/* Selected inspiration thumbnails */}
+                {globalInspirationIds.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: showGlobalInspirationPicker ? 14 : 0 }}>
+                    {globalInspirationIds.map(id => {
+                      const ref = inspirations.find(r => r.id === id);
+                      if (!ref) return null;
+                      return (
+                        <div key={id} style={{ position: 'relative', width: 64, height: 64 }}>
+                          {ref.thumbnail_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={ref.thumbnail_url} alt={ref.title} style={{ width: 64, height: 64, objectFit: 'cover', display: 'block', border: '2px solid #0D9488' }} />
+                          ) : (
+                            <div style={{ width: 64, height: 64, background: 'var(--bg-2)', border: '2px solid #0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Flame size={16} style={{ color: '#0D9488' }} />
+                            </div>
+                          )}
+                          <button type="button"
+                            onClick={() => setGlobalInspirationIds(prev => prev.filter(x => x !== id))}
+                            style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, background: '#111827', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                            <X size={10} style={{ color: '#ffffff' }} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Picker grid */}
+                {showGlobalInspirationPicker && (
+                  <div>
+                    {!inspirationsLoaded ? (
+                      <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>Cargando...</p>
+                    ) : inspirations.length === 0 ? (
+                      <div style={{ padding: '16px', border: '1px solid var(--border)', background: 'var(--bg-1)', textAlign: 'center' }}>
+                        <p style={{ fontFamily: f, fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 8 }}>
+                          No tienes referencias guardadas todavía.
+                        </p>
+                        <a href="/inspiracion" target="_blank" style={{ fontFamily: f, fontSize: 11, fontWeight: 600, color: '#0D9488', textDecoration: 'none' }}>
+                          Ir a Inspiración →
+                        </a>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: 6, maxHeight: 220, overflowY: 'auto', padding: 2 }}>
+                        {inspirations.map(r => {
+                          const selected = globalInspirationIds.includes(r.id);
+                          return (
+                            <button type="button" key={r.id}
+                              onClick={() => setGlobalInspirationIds(prev =>
+                                selected ? prev.filter(x => x !== r.id) : [...prev, r.id]
+                              )}
+                              title={r.title}
+                              style={{
+                                position: 'relative', padding: 0, cursor: 'pointer',
+                                border: `2px solid ${selected ? '#0D9488' : 'var(--border)'}`,
+                                background: '#000', aspectRatio: '1', outline: 'none',
+                              }}>
+                              {r.thumbnail_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={r.thumbnail_url} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: selected ? 1 : 0.75 }} />
+                              ) : (
+                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 9, color: '#9ca3af', padding: 4, textAlign: 'center' }}>
+                                  {r.title}
+                                </div>
+                              )}
+                              {selected && (
+                                <div style={{ position: 'absolute', top: 3, right: 3, width: 16, height: 16, background: '#0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <Check size={10} style={{ color: '#ffffff' }} />
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 

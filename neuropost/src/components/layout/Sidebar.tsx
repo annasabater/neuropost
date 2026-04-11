@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ProgressLink } from '@/components/ui/ProgressLink';
 import {
-  LayoutDashboard, Lightbulb, Calendar, MessageSquare, BarChart3,
+  LayoutDashboard, Calendar, MessageSquare, BarChart3,
   Settings, LogOut, X, Image, Archive,
   Flame, Plus, Upload, ChevronDown, Link2, CreditCard, Palette,
   Sparkles, Send, Paintbrush,
@@ -91,13 +91,12 @@ export function Sidebar() {
         {/* Contenido */}
         <div className="dash-nav-group-label">Contenido</div>
         <NavItem href="/posts" label={t('posts')} icon={Image} />
-        <NavItem href="/ideas" label="Ideas" icon={Lightbulb} />
+        <NavItem href="/inspiracion" label={t('inspiration')} icon={Flame} />
         <NavItem href="/calendar" label={t('calendar')} icon={Calendar} />
 
         {/* Biblioteca */}
         <div className="dash-nav-group-label">Biblioteca</div>
         <NavItem href="/biblioteca" label="Contenido" icon={Upload} />
-        <NavItem href="/inspiracion" label={t('inspiration')} icon={Flame} />
 
         {/* Rendimiento */}
         <div className="dash-nav-group-label">Rendimiento</div>

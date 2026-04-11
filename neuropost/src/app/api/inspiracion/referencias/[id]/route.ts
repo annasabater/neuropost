@@ -33,6 +33,13 @@ export async function DELETE(
       return NextResponse.json({ error: 'Reference not found' }, { status: 404 });
     }
 
+    // Delete any linked recreation_requests first (FK constraint)
+    await db
+      .from('recreation_requests')
+      .delete()
+      .eq('reference_id', id)
+      .eq('brand_id', brand.id);
+
     const { error } = await db
       .from('inspiration_references')
       .delete()
