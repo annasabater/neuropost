@@ -329,7 +329,7 @@ export default function AboutPage() {
             </h2>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 24, marginBottom: 48 }}>
-            <TeamCard initials="AS" name="Anna Sabater Nualart" role="Co-fundadora & CEO" quote="Obsesionado con hacer que las cosas funcionen de verdad." />
+            <TeamCard initials="AS" name="Anna Sabater Nualart" role="Co-fundadora & CEO" quote="Obsesionada con hacer que las cosas funcionen de verdad." />
             <TeamCard initials="SM" name="Samuel Marín Ibarz" role="Co-fundador & CTO" quote="Si no está automatizado, no está terminado." />
             <TeamCard initials="LR" name="[Nombre de Diseño]" role="Diseño de producto" quote="El diseño es la primera capa de confianza." />
           </div>
