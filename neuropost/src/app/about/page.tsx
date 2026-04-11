@@ -312,7 +312,7 @@ export default function AboutPage() {
             </h2>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: '#e5e7eb', border: '1px solid #e5e7eb' }}>
-            <ValueCard icon="✦" title="Simplicidad" desc="Creemos que la tecnología debe simplificar la vida, no complicarla. Si algo no es fácil de usar, lo rediseñamos hasta que lo sea." />
+            <ValueCard icon="✨" title="Simplicidad" desc="Creemos que la tecnología debe simplificar la vida, no complicarla. Si algo no es fácil de usar, lo rediseñamos hasta que lo sea." />
             <ValueCard icon="📈" title="Resultados reales" desc="No medimos funcionalidades. Medimos más clientes, más ventas y más tiempo para lo que de verdad importa." />
             <ValueCard icon="🤝" title="Transparencia" desc="Sin contratos largos, sin letra pequeña, sin sorpresas en la factura. Precio claro, resultado claro, cancela cuando quieras." />
           </div>
