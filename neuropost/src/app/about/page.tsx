@@ -329,8 +329,8 @@ export default function AboutPage() {
             </h2>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: 24, marginBottom: 48 }}>
-            <TeamCard initials="AC" name="[Nombre del CEO]" role="Co-fundador & CEO" quote="Obsesionado con hacer que las cosas funcionen de verdad." />
-            <TeamCard initials="MS" name="[Nombre del CTO]" role="Co-fundador & CTO" quote="Si no está automatizado, no está terminado." />
+            <TeamCard initials="AS" name="Anna Sabater Nualart" role="Co-fundadora & CEO" quote="Obsesionado con hacer que las cosas funcionen de verdad." />
+            <TeamCard initials="SM" name="Samuel Marín Ibarz" role="Co-fundador & CTO" quote="Si no está automatizado, no está terminado." />
             <TeamCard initials="LR" name="[Nombre de Diseño]" role="Diseño de producto" quote="El diseño es la primera capa de confianza." />
           </div>
           <div style={{ background: '#111827', padding: '28px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -338,8 +338,8 @@ export default function AboutPage() {
               <p style={{ fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 18, textTransform: 'uppercase', color: '#ffffff', marginBottom: 4 }}>¿Quieres formar parte del equipo?</p>
               <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 13, color: '#9ca3af' }}>Buscamos personas con ganas de cambiar las reglas del juego</p>
             </div>
-            <a href="mailto:jobs@neuropost.es" style={{ fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#111827', background: '#ffffff', padding: '10px 24px', textDecoration: 'none', flexShrink: 0 }}>
-              jobs@neuropost.es →
+            <a href="mailto:neuropost.team@gmail.com" style={{ fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#111827', background: '#ffffff', padding: '10px 24px', textDecoration: 'none', flexShrink: 0 }}>
+              neuropost.team@gmail.com →
             </a>
           </div>
         </div>
