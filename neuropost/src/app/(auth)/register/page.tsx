@@ -66,6 +66,43 @@ export default function RegisterPage() {
     if (email && emailRef.current) emailRef.current.value = email;
   }, [params]);
 
+  // If Supabase sent the user here from an email confirmation link (either
+  // because the dashboard Site URL is misconfigured or because the template
+  // uses a hard-coded redirect), we forward them to the real callback so the
+  // code gets exchanged for a session, or to /login if it's already a plain
+  // "come back after confirming" redirect.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // 1. Query params: ?code=… means Supabase PKCE flow landed on the wrong
+    //    page. Forward to /auth/callback preserving every parameter.
+    const code       = params.get('code');
+    const tokenHash  = params.get('token_hash');
+    const type       = params.get('type');
+    if (code || tokenHash) {
+      const search = window.location.search; // keeps code/token_hash/type/next
+      router.replace(`/auth/callback${search}`);
+      return;
+    }
+
+    // 2. Implicit-flow hash: #access_token=…&type=signup|recovery. Supabase
+    //    puts the tokens in the URL fragment and the server never sees it.
+    //    Forward to a client-side bridge page that exchanges the hash.
+    const hash = window.location.hash;
+    if (hash && (hash.includes('access_token=') || hash.includes('type=signup') || hash.includes('type=recovery'))) {
+      window.location.replace(`/auth/confirm${hash}`);
+      return;
+    }
+
+    // 3. Plain "email confirmed" query (?type=signup without code) — the user
+    //    already confirmed in Supabase's hosted page, so just send them to
+    //    /login with a friendly toast.
+    if (type === 'signup' || type === 'email_change') {
+      toast.success('Cuenta confirmada. Inicia sesión para continuar.');
+      router.replace('/login');
+    }
+  }, [params, router]);
+
   const passed   = RULES.filter((r) => r.test(password)).length;
   const level    = strengthLevel(passed);
   const allPass  = RULES.every((r) => r.test(password));

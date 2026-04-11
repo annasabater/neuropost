@@ -546,7 +546,10 @@ export default function OnboardingPage() {
   const [name,             setName]             = useState('');
   const [location,         setLocation]         = useState('');
   const [slogan,           setSlogan]           = useState('');
-  const [dynamicAnswers,   setDynamicAnswers]   = useState<Record<string, string>>({});
+  // Each dynamic question can have multiple selected values (e.g. several
+  // star products for a restaurant). The last entry is reserved for free-text
+  // "otro" input and persisted together with the pill selections.
+  const [dynamicAnswers,   setDynamicAnswers]   = useState<Record<string, string[]>>({});
   const [tone,             setTone]             = useState<BrandTone>('cercano');
   const [keywords,         setKeywords]         = useState<string[]>([]);
   const [kwInput,          setKwInput]          = useState('');
@@ -575,8 +578,11 @@ export default function OnboardingPage() {
     setSaving(true);
     try {
       const extraContext = dynamicQuestions
-        .map((q) => `${q.label}: ${dynamicAnswers[q.key] ?? ''}`)
-        .filter((l) => !l.endsWith(': ')).join('. ');
+        .map((q) => {
+          const values = (dynamicAnswers[q.key] ?? []).filter(v => v && v.trim() !== '');
+          return values.length ? `${q.label}: ${values.join(', ')}` : '';
+        })
+        .filter(Boolean).join('. ');
       const styleInstructions: Record<VisualStyle, string> = {
         creative:   'Estilo creativo y colorido: usa emojis, exclamaciones y texto dinámico.',
         elegant:    'Estilo elegante y minimal: sin emojis, frases cortas y muy sofisticadas.',
@@ -669,7 +675,9 @@ export default function OnboardingPage() {
 
   const rightStep3 = (() => {
     // Current specialty from the sector-specific dynamic question.
-    const specialty = Object.values(dynamicAnswers).find((v) => v && v.trim() !== '') ?? '';
+    const specialty = Object.values(dynamicAnswers)
+      .flat()
+      .find((v) => v && v.trim() !== '') ?? '';
     // Location line combines region + country when available.
     const locationLine = location
       ? `${location}, ${country}`
@@ -1053,45 +1061,6 @@ export default function OnboardingPage() {
                 })}
               </div>
 
-              {/* Optional brand palette — shown below the style cards so the
-                  user can override the default accent if their business has
-                  its own identity colors. */}
-              <div style={{ marginTop: 24, paddingTop: 20, borderTop: `1px dashed ${BORDER}` }}>
-                <Label>
-                  ¿Tienes una paleta propia?{' '}
-                  <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400, letterSpacing: 0 }}>
-                    (opcional)
-                  </span>
-                </Label>
-                <div style={{ fontFamily: FONT, fontSize: '0.78rem', color: MUTED, marginBottom: 12, lineHeight: 1.5 }}>
-                  Si tu negocio ya tiene colores de marca, elígelos aquí. Los usaremos en tus publicaciones.
-                </div>
-                <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-                  {[
-                    { label: 'Principal', value: primaryColor, set: setPrimaryColor },
-                    { label: 'Secundario', value: secondaryColor, set: setSecondaryColor },
-                  ].map((c) => {
-                    const colorInputId = `brand-color-${c.label.toLowerCase().replace(/\s+/g, '-')}`;
-                    return (
-                      <div key={c.label} className="brandColorPicker">
-                        <input
-                          id={colorInputId}
-                          type="color"
-                          value={c.value}
-                          onChange={(e) => c.set(e.target.value)}
-                          className="brandColorInput"
-                          title={`Seleccionar color ${c.label.toLowerCase()}`}
-                          aria-label={`Color ${c.label.toLowerCase()}`}
-                        />
-                        <div>
-                          <label htmlFor={colorInputId} className="brandColorLabel">{c.label}</label>
-                          <div className="brandColorValue">{c.value}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
             </div>
 
             <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
@@ -1123,46 +1092,115 @@ export default function OnboardingPage() {
                   />
                 </div>
 
-                {/* Dynamic sector question — as pills if we have suggestions */}
+                {/* Dynamic sector question — multi-select pills + free
+                    "Otro" input. The user can pick several suggestions and
+                    also add custom entries. */}
                 {dynamicQuestions.map((q) => {
-                  const options = SECTOR_SERVICE_OPTIONS[sector];
-                  const current = dynamicAnswers[q.key] ?? '';
-                  if (options) {
-                    return (
-                      <div key={q.key}>
-                        <Label>{q.label} <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(elige una o escribe)</span></Label>
+                  const options = SECTOR_SERVICE_OPTIONS[sector] ?? [];
+                  const currentList = dynamicAnswers[q.key] ?? [];
+                  // Split selected values into those matching suggestions vs.
+                  // custom entries, so we can render custom entries as
+                  // removable chips below the suggestion pills.
+                  const custom = currentList.filter((v) => !options.includes(v));
+                  const togglePill = (opt: string) =>
+                    setDynamicAnswers((prev) => {
+                      const list = prev[q.key] ?? [];
+                      return list.includes(opt)
+                        ? { ...prev, [q.key]: list.filter(x => x !== opt) }
+                        : { ...prev, [q.key]: [...list, opt] };
+                    });
+                  const addCustom = (raw: string) => {
+                    const value = raw.trim();
+                    if (!value) return;
+                    setDynamicAnswers((prev) => {
+                      const list = prev[q.key] ?? [];
+                      if (list.includes(value)) return prev;
+                      return { ...prev, [q.key]: [...list, value] };
+                    });
+                  };
+                  const removeCustom = (value: string) =>
+                    setDynamicAnswers((prev) => ({
+                      ...prev,
+                      [q.key]: (prev[q.key] ?? []).filter(x => x !== value),
+                    }));
+
+                  return (
+                    <div key={q.key}>
+                      <Label>
+                        {q.label}{' '}
+                        <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>
+                          (elige uno o varios)
+                        </span>
+                      </Label>
+
+                      {/* Suggestion pills (only if the sector has suggestions) */}
+                      {options.length > 0 && (
                         <PillGroup>
                           {options.map((opt) => (
                             <PillOption
                               key={opt}
-                              active={current === opt}
-                              onClick={() => setDynamicAnswers((prev) => ({ ...prev, [q.key]: prev[q.key] === opt ? '' : opt }))}
+                              active={currentList.includes(opt)}
+                              onClick={() => togglePill(opt)}
                             >
                               {opt}
                             </PillOption>
                           ))}
                         </PillGroup>
-                        {!options.includes(current) && (
-                          <input
-                            style={{ ...inputStyle, marginTop: 10 }}
-                            type="text"
-                            placeholder={`O escribe: ${q.placeholder}`}
-                            value={current}
-                            onChange={(e) => setDynamicAnswers((prev) => ({ ...prev, [q.key]: e.target.value }))}
-                          />
-                        )}
-                      </div>
-                    );
-                  }
-                  return (
-                    <div key={q.key}>
-                      <Label>{q.label}</Label>
+                      )}
+
+                      {/* Custom entries as removable chips */}
+                      {custom.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                          {custom.map((value) => (
+                            <span
+                              key={value}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                padding: '6px 10px 6px 12px',
+                                background: '#0F766E',
+                                color: '#ffffff',
+                                fontFamily: FONT,
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                              }}
+                            >
+                              {value}
+                              <button
+                                type="button"
+                                onClick={() => removeCustom(value)}
+                                style={{ background: 'transparent', border: 'none', color: '#ffffff', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}
+                                aria-label={`Quitar ${value}`}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Free-text "Otro" input — Enter adds, comma separates */}
                       <input
-                        style={inputStyle}
+                        style={{ ...inputStyle, marginTop: 10 }}
                         type="text"
-                        placeholder={q.placeholder}
-                        value={current}
-                        onChange={(e) => setDynamicAnswers((prev) => ({ ...prev, [q.key]: e.target.value }))}
+                        placeholder={options.length ? `Otro: ${q.placeholder} (pulsa Enter)` : `${q.placeholder} (pulsa Enter)`}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const target = e.target as HTMLInputElement;
+                            // Support comma-separated entries
+                            target.value.split(',').map(s => s.trim()).filter(Boolean).forEach(addCustom);
+                            target.value = '';
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const target = e.target as HTMLInputElement;
+                          if (target.value.trim()) {
+                            target.value.split(',').map(s => s.trim()).filter(Boolean).forEach(addCustom);
+                            target.value = '';
+                          }
+                        }}
                       />
                     </div>
                   );
@@ -1201,6 +1239,41 @@ export default function OnboardingPage() {
                   />
                 </div>
 
+                {/* Optional brand palette — shown here in step 3 so the
+                    preview card on the right reflects the chosen colors. */}
+                <div style={{ paddingTop: 6 }}>
+                  <Label>
+                    ¿Tienes una paleta propia?{' '}
+                    <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400, letterSpacing: 0 }}>
+                      (opcional)
+                    </span>
+                  </Label>
+                  <div style={{ fontFamily: FONT, fontSize: '0.78rem', color: MUTED, marginBottom: 12, lineHeight: 1.5 }}>
+                    Si tu negocio ya tiene colores de marca, elígelos aquí.
+                  </div>
+                  <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+                    {[
+                      { label: 'Principal', value: primaryColor, set: setPrimaryColor },
+                      { label: 'Secundario', value: secondaryColor, set: setSecondaryColor },
+                    ].map((c) => {
+                      const colorInputId = `brand-color-${c.label.toLowerCase().replace(/\s+/g, '-')}`;
+                      return (
+                        <div key={c.label} className="brandColorPicker">
+                          <input
+                            id={colorInputId}
+                            type="color"
+                            value={c.value}
+                            onChange={(e) => c.set(e.target.value)}
+                            className="brandColorInput"
+                            title={`Seleccionar color ${c.label.toLowerCase()}`}
+                            aria-label={`Color ${c.label.toLowerCase()}`}
+                          />
+                          <label htmlFor={colorInputId} className="brandColorLabel">{c.label}</label>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
 
               </div>
             </div>
@@ -1244,29 +1317,102 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <Label>Palabras clave <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(selecciona las que encajan)</span></Label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
-                  {(SECTOR_KEYWORD_SUGGESTIONS[sector] ?? ['artesanal', 'local', 'calidad', 'sostenible', 'profesional', 'exclusivo', 'fresco', 'auténtico']).map((kw) => {
-                    const active = keywords.includes(kw);
-                    return (
-                      <button
-                        key={kw}
-                        type="button"
-                        onClick={() => active ? removeTag(keywords, setKeywords, kw) : addTag(keywords, setKeywords, kw)}
-                        style={{
-                          padding: '7px 14px', borderRadius: 0, cursor: 'pointer',
-                          fontFamily: FONT, fontSize: '0.82rem', fontWeight: 700,
-                          border: `1.5px solid ${active ? ACCENT : '#e5e7eb'}`,
-                          background: active ? ACCENT : '#f3f4f6',
-                          color: active ? 'white' : '#6b7280',
-                          transition: 'all 0.15s', outline: 'none',
+                <Label>
+                  Palabras clave{' '}
+                  <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>
+                    (elige las que encajan o escribe las tuyas)
+                  </span>
+                </Label>
+                {(() => {
+                  const suggestions = SECTOR_KEYWORD_SUGGESTIONS[sector]
+                    ?? ['artesanal', 'local', 'calidad', 'sostenible', 'profesional', 'exclusivo', 'fresco', 'auténtico'];
+                  const customKeywords = keywords.filter((kw) => !suggestions.includes(kw));
+                  return (
+                    <>
+                      {/* Suggestion pills */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
+                        {suggestions.map((kw) => {
+                          const active = keywords.includes(kw);
+                          return (
+                            <button
+                              key={kw}
+                              type="button"
+                              onClick={() => active ? removeTag(keywords, setKeywords, kw) : addTag(keywords, setKeywords, kw)}
+                              style={{
+                                padding: '7px 14px', borderRadius: 0, cursor: 'pointer',
+                                fontFamily: FONT, fontSize: '0.82rem', fontWeight: 700,
+                                border: `1.5px solid ${active ? ACCENT : '#e5e7eb'}`,
+                                background: active ? ACCENT : '#f3f4f6',
+                                color: active ? 'white' : '#6b7280',
+                                transition: 'all 0.15s', outline: 'none',
+                              }}
+                            >
+                              {kw}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Custom keywords added by the user shown as removable chips */}
+                      {customKeywords.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                          {customKeywords.map((kw) => (
+                            <span
+                              key={kw}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                padding: '6px 10px 6px 12px',
+                                background: ACCENT,
+                                color: '#ffffff',
+                                fontFamily: FONT,
+                                fontSize: '0.82rem',
+                                fontWeight: 700,
+                              }}
+                            >
+                              {kw}
+                              <button
+                                type="button"
+                                onClick={() => removeTag(keywords, setKeywords, kw)}
+                                style={{ background: 'transparent', border: 'none', color: '#ffffff', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}
+                                aria-label={`Quitar ${kw}`}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Free-text input — Enter adds, comma/space separates */}
+                      <input
+                        style={{ ...inputStyle, marginTop: 10 }}
+                        type="text"
+                        placeholder="Otra palabra clave (pulsa Enter)"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const target = e.target as HTMLInputElement;
+                            target.value.split(/[\s,]+/).map(s => s.trim()).filter(Boolean).forEach((kw) => {
+                              if (!keywords.includes(kw)) addTag(keywords, setKeywords, kw);
+                            });
+                            target.value = '';
+                          }
                         }}
-                      >
-                        {kw}
-                      </button>
-                    );
-                  })}
-                </div>
+                        onBlur={(e) => {
+                          const target = e.target as HTMLInputElement;
+                          if (target.value.trim()) {
+                            target.value.split(/[\s,]+/).map(s => s.trim()).filter(Boolean).forEach((kw) => {
+                              if (!keywords.includes(kw)) addTag(keywords, setKeywords, kw);
+                            });
+                            target.value = '';
+                          }
+                        }}
+                      />
+                    </>
+                  );
+                })()}
               </div>
 
               {/* Publish mode — moved here from the old step 5. Frequency is
