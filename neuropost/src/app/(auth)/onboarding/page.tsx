@@ -558,8 +558,13 @@ export default function OnboardingPage() {
   const [objective]                             = useState<PostGoal>('engagement');
   const [publishMode,      setPublishMode]      = useState<PublishMode>('semi');
   const [country, setCountry] = useState('España');
-  const [primaryColor,     setPrimaryColor]     = useState('#0F766E');
-  const [secondaryColor,   setSecondaryColor]   = useState('#374151');
+  const INITIAL_PRIMARY_COLOR = '#0F766E';
+  const INITIAL_SECONDARY_COLOR = '#374151';
+  const INITIAL_TERTIARY_COLOR = '#94A3B8';
+  const [primaryColor,     setPrimaryColor]     = useState(INITIAL_PRIMARY_COLOR);
+  const [secondaryColor,   setSecondaryColor]   = useState(INITIAL_SECONDARY_COLOR);
+  const [tertiaryColor,    setTertiaryColor]    = useState(INITIAL_TERTIARY_COLOR);
+  const [hasCustomPalette, setHasCustomPalette] = useState(true);
   const [promoCodeId,      setPromoCodeId]      = useState<string | null>(null);
   const [discountText,     setDiscountText]     = useState('');
   const [selectedPlan,     setSelectedPlan]     = useState<PlanId>('pro');
@@ -577,6 +582,9 @@ export default function OnboardingPage() {
     if (!name.trim()) { toast.error('El nombre del negocio es obligatorio'); return; }
     setSaving(true);
     try {
+      const effectivePrimaryColor = hasCustomPalette ? primaryColor : INITIAL_PRIMARY_COLOR;
+      const effectiveSecondaryColor = hasCustomPalette ? secondaryColor : INITIAL_SECONDARY_COLOR;
+      const effectiveTertiaryColor = hasCustomPalette ? tertiaryColor : INITIAL_TERTIARY_COLOR;
       const extraContext = dynamicQuestions
         .map((q) => {
           const values = (dynamicAnswers[q.key] ?? []).filter(v => v && v.trim() !== '');
@@ -602,7 +610,7 @@ export default function OnboardingPage() {
           publish_mode: publishMode,
           publish_frequency: FREQUENCY_BY_PLAN[selectedPlan],
           plan: selectedPlan,
-          colors: { primary: primaryColor, secondary: secondaryColor, accent: primaryColor },
+          colors: { primary: effectivePrimaryColor, secondary: effectiveSecondaryColor, tertiary: effectiveTertiaryColor, accent: effectivePrimaryColor },
           promo_code_id: promoCodeId ?? undefined,
           rules: { forbiddenWords: forbidden, noPublishDays: [], noEmojis: visualStyle === 'elegant' || visualStyle === 'dark', noAutoReplyNegative: false, forbiddenTopics: [] },
           brand_voice_doc: [
@@ -628,6 +636,9 @@ export default function OnboardingPage() {
   const previewPosts    = sectorPostsFor(sector);
   const previewCaptions = SECTOR_CAPTIONS[sector] ?? DEFAULT_CAPTIONS;
   const selectedStyle   = VISUAL_STYLES.find((s) => s.value === visualStyle)!;
+  const effectivePrimaryColor = hasCustomPalette ? primaryColor : INITIAL_PRIMARY_COLOR;
+  const effectiveSecondaryColor = hasCustomPalette ? secondaryColor : INITIAL_SECONDARY_COLOR;
+  const effectiveTertiaryColor = hasCustomPalette ? tertiaryColor : INITIAL_TERTIARY_COLOR;
   // Right-column preview for step 2 — 9 photos specific to the current
   // (sector, style) pair, so switching style actually changes the images.
   const step2PreviewImgs = getSectorPreviewImages(sector, visualStyle);
@@ -662,14 +673,6 @@ export default function OnboardingPage() {
           <img key={i} src={img} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block', background: '#f3f4f6' }} />
         ))}
       </div>
-      <div style={{ marginTop: 16, display: 'flex', gap: 6 }}>
-        {selectedStyle.palette.map((c) => (
-          <div key={c} style={{ flex: 1, height: 6, borderRadius: 0, background: c }} />
-        ))}
-      </div>
-      <div style={{ marginTop: 8, fontFamily: FONT, fontSize: '0.78rem', color: MUTED }}>
-        Paleta de colores · {selectedStyle.tag}
-      </div>
     </div>
   );
 
@@ -682,10 +685,10 @@ export default function OnboardingPage() {
     const locationLine = location
       ? `${location}, ${country}`
       : country;
-    // Use the user-selected brand colors; fall back to a near-white if the
-    // hex can't be parsed. We don't tint the text — just borders and accents.
-    const primary = primaryColor || ACCENT;
-    const secondary = secondaryColor || '#374151';
+    // If the user has no custom palette, use the style palette as fallback.
+    const primary = effectivePrimaryColor || ACCENT;
+    const secondary = effectiveSecondaryColor || '#374151';
+    const tertiary = effectiveTertiaryColor || secondary;
 
     return (
       <div style={{ padding: '48px 40px', display: 'flex', flexDirection: 'column', gap: 18, height: '100%', overflowY: 'auto' }}>
@@ -699,6 +702,7 @@ export default function OnboardingPage() {
           <div style={{ display: 'flex', height: 6 }}>
             <div style={{ flex: 2, background: primary }} />
             <div style={{ flex: 1, background: secondary }} />
+            <div style={{ flex: 1, background: tertiary }} />
           </div>
           <div style={{ padding: '24px 28px', display: 'flex', gap: 16, alignItems: 'flex-start' }}>
             <div style={{
@@ -719,7 +723,7 @@ export default function OnboardingPage() {
                 </div>
               )}
               <div style={{ fontFamily: FONT, fontSize: '0.78rem', color: MUTED, marginTop: 3, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ display: 'inline-block', width: 8, height: 8, background: secondary }} />
+                <span style={{ display: 'inline-block', width: 8, height: 8, background: tertiary }} />
                 {locationLine}
               </div>
             </div>
@@ -746,19 +750,6 @@ export default function OnboardingPage() {
                 }}
               />
             ))}
-          </div>
-        </div>
-
-        {/* Brand color chips */}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '14px 16px', background: '#ffffff', border: `1px solid ${BORDER}` }}>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <div style={{ width: 22, height: 22, background: primary, border: '1px solid rgba(0,0,0,0.08)' }} title={`Principal ${primary}`} />
-            <div style={{ width: 22, height: 22, background: secondary, border: '1px solid rgba(0,0,0,0.08)' }} title={`Secundario ${secondary}`} />
-          </div>
-          <div style={{ fontFamily: FONT, fontSize: '0.74rem', color: MUTED }}>
-            Paleta de marca · <span style={{ color: INK, fontWeight: 700 }}>{primary}</span>
-            {' · '}
-            <span style={{ color: INK, fontWeight: 700 }}>{secondary}</span>
           </div>
         </div>
       </div>
@@ -1255,16 +1246,18 @@ export default function OnboardingPage() {
                     {[
                       { label: 'Principal', value: primaryColor, set: setPrimaryColor },
                       { label: 'Secundario', value: secondaryColor, set: setSecondaryColor },
+                      { label: 'Terciario', value: tertiaryColor, set: setTertiaryColor },
                     ].map((c) => {
                       const colorInputId = `brand-color-${c.label.toLowerCase().replace(/\s+/g, '-')}`;
                       return (
-                        <div key={c.label} className="brandColorPicker">
+                        <div key={c.label} className="brandColorPicker" style={{ opacity: hasCustomPalette ? 1 : 0.45 }}>
                           <input
                             id={colorInputId}
                             type="color"
                             value={c.value}
                             onChange={(e) => c.set(e.target.value)}
                             className="brandColorInput"
+                            disabled={!hasCustomPalette}
                             title={`Seleccionar color ${c.label.toLowerCase()}`}
                             aria-label={`Color ${c.label.toLowerCase()}`}
                           />
@@ -1272,7 +1265,31 @@ export default function OnboardingPage() {
                         </div>
                       );
                     })}
+                    <label
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        fontFamily: FONT,
+                        fontSize: '0.78rem',
+                        color: MUTED,
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!hasCustomPalette}
+                        onChange={(e) => setHasCustomPalette(!e.target.checked)}
+                      />
+                      Sin paleta propia
+                    </label>
                   </div>
+                  {!hasCustomPalette && (
+                    <div style={{ fontFamily: FONT, fontSize: '0.74rem', color: MUTED, marginTop: 10 }}>
+                      Se aplicará tu paleta inicial: {INITIAL_PRIMARY_COLOR} · {INITIAL_SECONDARY_COLOR} · {INITIAL_TERTIARY_COLOR}
+                    </div>
+                  )}
                 </div>
 
               </div>
