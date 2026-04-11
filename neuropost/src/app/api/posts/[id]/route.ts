@@ -57,19 +57,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (error) throw error;
     await syncPostIntoFeedQueue(createAdminClient(), data as Post);
 
-    // Notify brand when content transitions to pending (worker processed it).
-    if (body.status === 'pending' && current?.status === 'request') {
-      try {
-        await supabase.from('notifications').insert({
-          brand_id: brand.id,
-          type:     'content_ready',
-          message:  'Tu contenido ya está listo — revisa la propuesta de tu equipo.',
-          read:     false,
-          metadata: { postId: id },
-        });
-      } catch { /* non-blocking */ }
-    }
-
     return NextResponse.json({ post: data as Post });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

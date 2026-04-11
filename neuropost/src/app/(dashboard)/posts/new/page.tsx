@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight, Check, Sparkles, Send, Paintbrush, Flame, X } from 'lucide-react';
+import { ArrowRight, Check, Sparkles, Send, Paintbrush, Flame, X, Maximize2, ExternalLink, Film, Images } from 'lucide-react';
 import { PostEditor } from '@/components/posts/PostEditor';
 import { MediaPicker, type SelectedMedia } from '@/components/posts/MediaPicker';
 import { useAppStore } from '@/store/useAppStore';
@@ -48,9 +48,15 @@ export default function NewPostPage() {
   const [showGlobalInspirationPicker, setShowGlobalInspirationPicker] = useState(false);
 
   // Inspirations catalog (loaded when the per-image inspiration picker opens)
-  type InspirationRef = { id: string; title: string; thumbnail_url: string | null };
+  type InspirationRef = {
+    id: string; title: string; thumbnail_url: string | null;
+    format: string | null; source_url: string | null; notes: string | null;
+    type: string;
+  };
   const [inspirations, setInspirations] = useState<InspirationRef[]>([]);
   const [inspirationsLoaded, setInspirationsLoaded] = useState(false);
+  // Lightbox
+  const [lightboxRef, setLightboxRef] = useState<InspirationRef | null>(null);
 
   const [requestSent, setRequestSent] = useState(false);
   const [sending, setSending] = useState(false);
@@ -96,8 +102,10 @@ export default function NewPostPage() {
       const res = await fetch('/api/inspiracion/referencias');
       if (res.ok) {
         const d = await res.json();
-        const refs: InspirationRef[] = (d.references ?? []).map((r: { id: string; title: string | null; thumbnail_url: string | null }) => ({
+        const refs: InspirationRef[] = (d.references ?? []).map((r: { id: string; title: string | null; thumbnail_url: string | null; format: string | null; source_url: string | null; notes: string | null; type: string }) => ({
           id: r.id, title: r.title ?? 'Referencia', thumbnail_url: r.thumbnail_url,
+          format: r.format ?? null, source_url: r.source_url ?? null,
+          notes: r.notes ?? null, type: r.type ?? 'image',
         }));
         setInspirations(refs);
       }
@@ -512,6 +520,106 @@ export default function NewPostPage() {
 
     return (
       <div className="page-content" style={{ maxWidth: 900 }}>
+
+        {/* ── Lightbox modal ── */}
+        {lightboxRef && (
+          <div
+            onClick={() => setLightboxRef(null)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 1000,
+              background: 'rgba(0,0,0,0.88)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              padding: 24,
+            }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                background: '#111', maxWidth: 680, width: '100%',
+                display: 'flex', flexDirection: 'column', maxHeight: '90vh',
+              }}
+            >
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid #333' }}>
+                <div style={{ background: ({ image: '#3B82F6', reel: '#EF4444', carousel: '#F59E0B', video: '#8B5CF6' } as Record<string,string>)[lightboxRef.format ?? lightboxRef.type] ?? '#6b7280', padding: '2px 7px' }}>
+                  <span style={{ fontFamily: f, fontSize: 9, fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    {({ image: 'Imagen', reel: 'Reel', carousel: 'Carrusel', video: 'Vídeo' } as Record<string,string>)[lightboxRef.format ?? lightboxRef.type] ?? (lightboxRef.format ?? lightboxRef.type)}
+                  </span>
+                </div>
+                <span style={{ fontFamily: fc, fontWeight: 700, fontSize: 15, color: '#fff', flex: 1 }}>{lightboxRef.title}</span>
+                <button
+                  type="button"
+                  onClick={() => setLightboxRef(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', display: 'flex', padding: 4 }}
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* Image / media area */}
+              <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000', minHeight: 300 }}>
+                {lightboxRef.thumbnail_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={lightboxRef.thumbnail_url}
+                    alt={lightboxRef.title}
+                    style={{ maxWidth: '100%', maxHeight: '60vh', objectFit: 'contain', display: 'block' }}
+                  />
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, color: '#6b7280' }}>
+                    {(lightboxRef.format === 'reel' || lightboxRef.format === 'video') ? <Film size={48} /> : lightboxRef.format === 'carousel' ? <Images size={48} /> : <Flame size={48} />}
+                    <span style={{ fontFamily: f, fontSize: 12 }}>Sin imagen de vista previa</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer: notes + source link + select button */}
+              <div style={{ padding: '14px 16px', borderTop: '1px solid #333', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {lightboxRef.notes && (
+                  <p style={{ fontFamily: f, fontSize: 12, color: '#d1d5db', margin: 0, lineHeight: 1.6 }}>{lightboxRef.notes}</p>
+                )}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {lightboxRef.source_url && (
+                    <a
+                      href={lightboxRef.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: f, fontSize: 11, fontWeight: 600, color: '#60a5fa', textDecoration: 'none' }}
+                    >
+                      <ExternalLink size={12} />
+                      Ver original{(lightboxRef.format === 'carousel') ? ' (todas las fotos)' : (lightboxRef.format === 'reel' || lightboxRef.format === 'video') ? ' (vídeo completo)' : ''}
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGlobalInspirationIds(prev =>
+                        prev.includes(lightboxRef.id) ? prev.filter(x => x !== lightboxRef.id) : [...prev, lightboxRef.id]
+                      );
+                      setLightboxRef(null);
+                    }}
+                    style={{
+                      marginLeft: 'auto',
+                      padding: '9px 20px',
+                      background: globalInspirationIds.includes(lightboxRef.id) ? '#065f46' : '#0D9488',
+                      border: 'none', cursor: 'pointer',
+                      fontFamily: fc, fontSize: 12, fontWeight: 700,
+                      textTransform: 'uppercase', letterSpacing: '0.05em',
+                      color: '#fff', display: 'inline-flex', alignItems: 'center', gap: 6,
+                    }}
+                  >
+                    {globalInspirationIds.includes(lightboxRef.id) ? (
+                      <><Check size={13} /> Seleccionada</>
+                    ) : (
+                      <><Check size={13} /> Seleccionar como referencia</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Header ── */}
         <div style={{ padding: '48px 0 32px' }}>
           <button onClick={() => setMode(null)} style={{
@@ -578,7 +686,7 @@ export default function NewPostPage() {
                   value={clientNote}
                   onChange={(e) => setClientNote(e.target.value)}
                   placeholder="Ej: Promo del menú de otoño todos los viernes: 2x1 en entrantes. Tono cercano, invita a reservar."
-                  rows={4}
+                  rows={3}
                   style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.7 }}
                 />
                 <p style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 6 }}>
@@ -647,39 +755,70 @@ export default function NewPostPage() {
                         <p style={{ fontFamily: f, fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 8 }}>
                           No tienes referencias guardadas todavía.
                         </p>
-                        <a href="/inspiracion" target="_blank" style={{ fontFamily: f, fontSize: 11, fontWeight: 600, color: '#0D9488', textDecoration: 'none' }}>
-                          Ir a Inspiración →
+                        <a href="/inspiracion?tab=referencias" target="_blank" style={{ fontFamily: f, fontSize: 11, fontWeight: 600, color: '#0D9488', textDecoration: 'none' }}>
+                          Ir a Referencias →
                         </a>
                       </div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(72px, 1fr))', gap: 6, maxHeight: 220, overflowY: 'auto', padding: 2 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8, maxHeight: 340, overflowY: 'auto', padding: 2 }}>
                         {inspirations.map(r => {
                           const selected = globalInspirationIds.includes(r.id);
+                          const fmtColor: Record<string, string> = { image: '#3B82F6', reel: '#EF4444', carousel: '#F59E0B', video: '#8B5CF6' };
+                          const fmtLabel: Record<string, string> = { image: 'Imagen', reel: 'Reel', carousel: 'Carrusel', video: 'Vídeo' };
+                          const fmt = r.format ?? r.type ?? 'image';
+                          const isVideo = fmt === 'reel' || fmt === 'video';
+                          const isCarousel = fmt === 'carousel';
                           return (
-                            <button type="button" key={r.id}
-                              onClick={() => setGlobalInspirationIds(prev =>
-                                selected ? prev.filter(x => x !== r.id) : [...prev, r.id]
-                              )}
-                              title={r.title}
-                              style={{
-                                position: 'relative', padding: 0, cursor: 'pointer',
-                                border: `2px solid ${selected ? '#0D9488' : 'var(--border)'}`,
-                                background: '#000', aspectRatio: '1', outline: 'none',
-                              }}>
-                              {r.thumbnail_url ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={r.thumbnail_url} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: selected ? 1 : 0.75 }} />
-                              ) : (
-                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 9, color: '#9ca3af', padding: 4, textAlign: 'center' }}>
+                            <div key={r.id} style={{ position: 'relative', border: `2px solid ${selected ? '#0D9488' : 'var(--border)'}`, background: '#000', display: 'flex', flexDirection: 'column' }}>
+                              {/* Image area — click to SELECT */}
+                              <button type="button"
+                                onClick={() => setGlobalInspirationIds(prev =>
+                                  selected ? prev.filter(x => x !== r.id) : [...prev, r.id]
+                                )}
+                                style={{ padding: 0, cursor: 'pointer', border: 'none', background: 'transparent', display: 'block', position: 'relative', aspectRatio: '1' }}
+                              >
+                                {r.thumbnail_url ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={r.thumbnail_url} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: selected ? 1 : 0.8 }} />
+                                ) : (
+                                  <div style={{ width: '100%', height: '100%', minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111', padding: 6 }}>
+                                    {isVideo ? <Film size={24} color="#6b7280" /> : isCarousel ? <Images size={24} color="#6b7280" /> : <Flame size={24} color="#6b7280" />}
+                                  </div>
+                                )}
+                                {/* Format badge */}
+                                <div style={{ position: 'absolute', top: 4, left: 4, background: fmtColor[fmt] ?? '#6b7280', padding: '2px 5px' }}>
+                                  <span style={{ fontFamily: f, fontSize: 8, fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                    {fmtLabel[fmt] ?? fmt}
+                                  </span>
+                                </div>
+                                {/* Type icon for carousel/video */}
+                                {(isVideo || isCarousel) && (
+                                  <div style={{ position: 'absolute', bottom: 4, left: 4, color: 'rgba(255,255,255,0.9)' }}>
+                                    {isVideo ? <Film size={12} /> : <Images size={12} />}
+                                  </div>
+                                )}
+                                {/* Selected check */}
+                                {selected && (
+                                  <div style={{ position: 'absolute', top: 4, right: 4, width: 18, height: 18, background: '#0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Check size={11} style={{ color: '#ffffff' }} />
+                                  </div>
+                                )}
+                              </button>
+                              {/* Footer: title + expand button */}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 6px', background: '#111', minHeight: 28 }}>
+                                <span style={{ fontFamily: f, fontSize: 9, color: '#d1d5db', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.title}>
                                   {r.title}
-                                </div>
-                              )}
-                              {selected && (
-                                <div style={{ position: 'absolute', top: 3, right: 3, width: 16, height: 16, background: '#0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                  <Check size={10} style={{ color: '#ffffff' }} />
-                                </div>
-                              )}
-                            </button>
+                                </span>
+                                {/* Expand / lightbox button */}
+                                <button type="button"
+                                  onClick={(e) => { e.stopPropagation(); setLightboxRef(r); }}
+                                  style={{ padding: 3, background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0, color: '#9ca3af', display: 'flex', alignItems: 'center' }}
+                                  title="Ver en grande"
+                                >
+                                  <Maximize2 size={11} />
+                                </button>
+                              </div>
+                            </div>
                           );
                         })}
                       </div>

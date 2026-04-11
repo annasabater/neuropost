@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { X, Plus, Trash2, Send, Zap, Flame } from 'lucide-react';
+import { X, Plus, Trash2, Send, Zap, Flame, Heart } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MediaPicker, type SelectedMedia } from '@/components/posts/MediaPicker';
 import { useAppStore } from '@/store/useAppStore';
@@ -105,10 +105,29 @@ function getFallbackImage(format: string | null | undefined, seed: string) {
   return `https://images.unsplash.com/photo-${arr[seed.charCodeAt(0) % arr.length]}?w=600&q=85&auto=format&fit=crop`;
 }
 
-function InspirationCard({ image, title, description, format, onSave, onRecreate, extraAction }: {
+function HeartBtn({ active, onClick }: { active: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      title={active ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+      style={{
+        width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: active ? '#e11d48' : 'rgba(0,0,0,0.55)',
+        border: 'none', cursor: 'pointer', flexShrink: 0,
+        transition: 'background 0.15s',
+      }}
+    >
+      <Heart size={15} style={{ color: '#fff', fill: active ? '#fff' : 'none' }} />
+    </button>
+  );
+}
+
+function InspirationCard({ image, title, description, format, onSave, onRecreate, extraAction, onFavorite, isFavorited }: {
   image: string | null; title: string; description?: string; format?: string;
   tags?: string[]; onSave?: () => void; onRecreate?: () => void;
   extraAction?: React.ReactNode;
+  onFavorite?: () => void; isFavorited?: boolean;
 }) {
   const fallback = getFallbackImage(format, title);
   const imgSrc = image ?? fallback;
@@ -127,7 +146,10 @@ function InspirationCard({ image, title, description, format, onSave, onRecreate
             {FORMAT_LABEL[format] ?? format}
           </div>
         )}
-        {extraAction && <div style={{ position: 'absolute', top: 8, right: 8 }}>{extraAction}</div>}
+        <div style={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 4 }}>
+          {onFavorite && <HeartBtn active={!!isFavorited} onClick={onFavorite} />}
+          {extraAction}
+        </div>
       </div>
       <div style={{ padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 14, textTransform: 'uppercase', color: 'var(--text-primary)', letterSpacing: '0.01em', lineHeight: 1.2 }}>{title}</p>
@@ -153,9 +175,28 @@ function InspirationCard({ image, title, description, format, onSave, onRecreate
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
-const TABS = ['ideas', 'campanas', 'plantillas', 'referencias'] as const;
+const TABS = ['ideas', 'campanas', 'plantillas', 'referencias', 'favoritos'] as const;
 type Tab = typeof TABS[number];
-const TAB_LABEL: Record<Tab, string> = { ideas: 'Ideas', campanas: 'Campañas', plantillas: 'Plantillas', referencias: 'Mis referencias' };
+const TAB_LABEL: Record<Tab, string> = { ideas: 'Ideas', campanas: 'Campañas', plantillas: 'Plantillas', referencias: 'Mis referencias', favoritos: 'Favoritos' };
+
+// ─── Favorites helpers (localStorage) ────────────────────────────────────────
+
+type FavoriteItem = {
+  id: string; title: string; image: string | null; format: string | null;
+  description: string | null; source: 'idea' | 'campaign' | 'template' | 'reference';
+  savedAt: string;
+};
+
+const FAV_KEY = 'neuropost.inspiracion.favorites.v1';
+
+function loadFavorites(): FavoriteItem[] {
+  if (typeof window === 'undefined') return [];
+  try { const raw = localStorage.getItem(FAV_KEY); return raw ? JSON.parse(raw) : []; } catch { return []; }
+}
+
+function saveFavorites(list: FavoriteItem[]) {
+  try { localStorage.setItem(FAV_KEY, JSON.stringify(list)); } catch { /* ignore */ }
+}
 
 export default function InspiracionPage() {
   const searchParams  = useSearchParams();
@@ -167,7 +208,7 @@ export default function InspiracionPage() {
 
   // ── Tab ────────────────────────────────────────────────────────────────────
   const initialTab = (searchParams.get('tab') ?? 'ideas') as Tab;
-  const [tab, setTab] = useState<Tab>(TABS.includes(initialTab) ? initialTab : 'ideas');
+  const [tab, setTab] = useState<Tab>((TABS as readonly string[]).includes(initialTab) ? initialTab : 'ideas');
   function switchTab(t: Tab) { setTab(t); router.replace(`/inspiracion?tab=${t}`, { scroll: false }); }
 
   // ── Templates + references ─────────────────────────────────────────────────
@@ -389,6 +430,20 @@ export default function InspiracionPage() {
     if (res.ok) { const d = await res.json(); setReferences(p => [d.reference, ...p]); toast.success('Guardado en Mis referencias'); } else toast.error('Error');
   }
 
+  // ── Favorites ──────────────────────────────────────────────────────────────
+  const [favorites, setFavorites] = useState<FavoriteItem[]>(() => loadFavorites());
+
+  function isFav(id: string) { return favorites.some(f => f.id === id); }
+
+  function toggleFav(item: FavoriteItem) {
+    setFavorites(prev => {
+      const exists = prev.some(f => f.id === item.id);
+      const next = exists ? prev.filter(f => f.id !== item.id) : [{ ...item, savedAt: new Date().toISOString() }, ...prev];
+      saveFavorites(next);
+      return next;
+    });
+  }
+
   const inputStyle: React.CSSProperties = { width: '100%', padding: '12px 14px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: f, fontSize: 14, outline: 'none', boxSizing: 'border-box' };
   const labelSm: React.CSSProperties = { display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 8 };
 
@@ -425,6 +480,11 @@ export default function InspiracionPage() {
                 {references.length}
               </span>
             )}
+            {t === 'favoritos' && favorites.length > 0 && (
+              <span style={{ marginLeft: 6, fontFamily: f, fontSize: 10, fontWeight: 600, background: '#fce7f3', color: '#e11d48', padding: '2px 6px' }}>
+                {favorites.length}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -456,28 +516,34 @@ export default function InspiracionPage() {
                 Ideas generadas
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 1, background: 'var(--border)' }}>
-                {aiIdeas.map((idea, i) => (
-                  <div key={i} style={{ background: 'var(--bg)', padding: '20px 20px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 14, textTransform: 'uppercase', color: 'var(--text-primary)', lineHeight: 1.2 }}>{idea.title}</p>
-                      <span style={{ background: FORMAT_COLOR[idea.format] ?? 'var(--bg-3)', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', padding: '2px 7px', flexShrink: 0, marginLeft: 8 }}>{idea.format}</span>
+                {aiIdeas.map((idea, i) => {
+                  const favId = `ai-idea-${idea.title.slice(0,20)}-${idea.format}`;
+                  return (
+                    <div key={i} style={{ background: 'var(--bg)', padding: '20px 20px', position: 'relative' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                        <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 14, textTransform: 'uppercase', color: 'var(--text-primary)', lineHeight: 1.2 }}>{idea.title}</p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 8 }}>
+                          <span style={{ background: FORMAT_COLOR[idea.format] ?? 'var(--bg-3)', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', padding: '2px 7px' }}>{idea.format}</span>
+                          <HeartBtn active={isFav(favId)} onClick={() => toggleFav({ id: favId, title: idea.title, image: null, format: idea.format, description: idea.caption, source: 'idea', savedAt: '' })} />
+                        </div>
+                      </div>
+                      <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 14 }}>{idea.caption}</p>
+                      {idea.hashtags?.length > 0 && (
+                        <p style={{ fontFamily: f, fontSize: 11, color: 'var(--accent)', marginBottom: 14 }}>{idea.hashtags.map(h => `#${h}`).join(' ')}</p>
+                      )}
+                      <div style={{ display: 'flex', gap: 1 }}>
+                        <button type="button" onClick={() => saveIdeaAsRef({ id: `ai-${i}`, title: idea.title, caption: idea.caption, format: idea.format, hashtags: idea.hashtags ?? [] }, 'idea')}
+                          style={{ flex: 1, padding: '8px 0', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', cursor: 'pointer' }}>
+                          Guardar
+                        </button>
+                        <button type="button" onClick={() => recreateIdea({ id: `ai-${i}`, title: idea.title, caption: idea.caption, format: idea.format, hashtags: idea.hashtags ?? [] }, 'idea')}
+                          style={{ flex: 2, padding: '8px 0', border: 'none', background: '#0D9488', color: '#ffffff', fontFamily: fc, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', cursor: 'pointer' }}>
+                          Solicitar →
+                        </button>
+                      </div>
                     </div>
-                    <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 14 }}>{idea.caption}</p>
-                    {idea.hashtags?.length > 0 && (
-                      <p style={{ fontFamily: f, fontSize: 11, color: 'var(--accent)', marginBottom: 14 }}>{idea.hashtags.map(h => `#${h}`).join(' ')}</p>
-                    )}
-                    <div style={{ display: 'flex', gap: 1 }}>
-                      <button type="button" onClick={() => saveIdeaAsRef({ id: `ai-${i}`, title: idea.title, caption: idea.caption, format: idea.format, hashtags: idea.hashtags ?? [] }, 'idea')}
-                        style={{ flex: 1, padding: '8px 0', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', cursor: 'pointer' }}>
-                        Guardar
-                      </button>
-                      <button type="button" onClick={() => recreateIdea({ id: `ai-${i}`, title: idea.title, caption: idea.caption, format: idea.format, hashtags: idea.hashtags ?? [] }, 'idea')}
-                        style={{ flex: 2, padding: '8px 0', border: 'none', background: '#0D9488', color: '#ffffff', fontFamily: fc, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', cursor: 'pointer' }}>
-                        Solicitar →
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -511,7 +577,10 @@ export default function InspiracionPage() {
                   <div key={idea.id} style={{ background: 'var(--bg)', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                       <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 13, textTransform: 'uppercase', color: 'var(--text-primary)', lineHeight: 1.3, flex: 1 }}>{idea.title}</p>
-                      <span style={{ background: FORMAT_COLOR[idea.format] ?? 'var(--bg-3)', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '3px 7px', flexShrink: 0 }}>{FORMAT_LABEL[idea.format] ?? idea.format}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                        <span style={{ background: FORMAT_COLOR[idea.format] ?? 'var(--bg-3)', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '3px 7px' }}>{FORMAT_LABEL[idea.format] ?? idea.format}</span>
+                        <HeartBtn active={isFav(idea.id)} onClick={() => toggleFav({ id: idea.id, title: idea.title, image: null, format: idea.format, description: idea.caption, source: 'idea', savedAt: '' })} />
+                      </div>
                     </div>
                     <p style={{ fontFamily: f, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{idea.caption}</p>
                     <p style={{ fontFamily: f, fontSize: 11, color: 'var(--accent)' }}>{idea.hashtags.map(h => `#${h}`).join(' ')}</p>
@@ -571,6 +640,9 @@ export default function InspiracionPage() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={c.img} alt={CAMPAIGN_LABELS[c.key]} style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }} />
                     <div style={{ position: 'absolute', top: 8, left: 8, background: FORMAT_COLOR[c.format] ?? 'rgba(0,0,0,0.6)', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', padding: '3px 8px' }}>{FORMAT_LABEL[c.format]}</div>
+                    <div style={{ position: 'absolute', top: 8, right: 8 }}>
+                      <HeartBtn active={isFav(`campaign-${c.key}`)} onClick={() => toggleFav({ id: `campaign-${c.key}`, title: CAMPAIGN_LABELS[c.key], image: c.img, format: c.format, description: c.prompt, source: 'campaign', savedAt: '' })} />
+                    </div>
                   </div>
                   <div style={{ padding: '16px 18px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 15, textTransform: 'uppercase', color: 'var(--text-primary)', letterSpacing: '0.01em' }}>{CAMPAIGN_LABELS[c.key]}</p>
@@ -643,7 +715,7 @@ export default function InspiracionPage() {
                         🔥 Tendencia
                       </div>
                     )}
-                    <InspirationCard image={t.thumbnail_url} title={t.title} description={t.description} format={t.format} tags={t.tags} onSave={() => saveTemplate(t)} onRecreate={() => openRecreateForTemplate(t)} />
+                    <InspirationCard image={t.thumbnail_url} title={t.title} description={t.description} format={t.format} tags={t.tags} onSave={() => saveTemplate(t)} onRecreate={() => openRecreateForTemplate(t)} isFavorited={isFav(`template-${t.id}`)} onFavorite={() => toggleFav({ id: `template-${t.id}`, title: t.title, image: t.thumbnail_url, format: t.format, description: t.description, source: 'template', savedAt: '' })} />
                   </div>
                 ))}
               </div>
@@ -689,13 +761,73 @@ export default function InspiracionPage() {
               <div className="inspiration-gallery-grid" style={{ display: 'flex', flexWrap: 'wrap', gap: 2, background: 'transparent', padding: 0 }}>
                 {references.map(ref => (
                   <div key={ref.id} style={{ position: 'relative', flex: '1 1 260px', minWidth: 0 }}>
-                    <InspirationCard image={ref.thumbnail_url} title={ref.title} description={ref.notes ?? ''} format={ref.format ?? undefined} onRecreate={ref.recreation ? undefined : () => openRecreateForRef(ref)} />
+                    <InspirationCard image={ref.thumbnail_url} title={ref.title} description={ref.notes ?? ''} format={ref.format ?? undefined} onRecreate={ref.recreation ? undefined : () => openRecreateForRef(ref)} isFavorited={isFav(`ref-${ref.id}`)} onFavorite={() => toggleFav({ id: `ref-${ref.id}`, title: ref.title, image: ref.thumbnail_url, format: ref.format, description: ref.notes, source: 'reference', savedAt: '' })} />
                     <button onClick={() => handleDeleteRef(ref.id)} title="Eliminar" style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', padding: '4px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: f, fontSize: 10, fontWeight: 600 }}><Trash2 size={11} /> Eliminar</button>
                     {ref.recreation && (
                       <div style={{ position: 'absolute', top: 8, left: 8, background: ref.recreation.status === 'completed' ? 'var(--accent)' : 'rgba(0,0,0,0.6)', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 600, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                         {ref.recreation.status === 'completed' ? '✓ Recreado' : 'En preparación'}
                       </div>
                     )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+           TAB 5: FAVORITOS
+         ═══════════════════════════════════════════════════════════════════ */}
+      {tab === 'favoritos' && (
+        <div>
+          {favorites.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+              <div style={{ width: 56, height: 56, background: '#fce7f3', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <Heart size={26} style={{ color: '#e11d48' }} />
+              </div>
+              <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 24, textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 8 }}>Sin favoritos todavía</p>
+              <p style={{ fontSize: 14, color: 'var(--text-tertiary)', fontFamily: f, marginBottom: 32 }}>
+                Pulsa el ❤️ en cualquier idea, campaña, plantilla o referencia para guardarla aquí
+              </p>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+                {(['ideas','campanas','plantillas','referencias'] as const).map(t => (
+                  <button key={t} onClick={() => switchTab(t)} style={{ background: 'var(--bg)', border: '1px solid var(--border)', padding: '10px 20px', fontFamily: fc, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                    {TAB_LABEL[t]}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                <p style={{ fontFamily: f, fontSize: 12, color: 'var(--text-secondary)' }}>
+                  {favorites.length} elemento{favorites.length !== 1 ? 's' : ''} guardado{favorites.length !== 1 ? 's' : ''}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setFavorites([]); saveFavorites([]); }}
+                  style={{ background: 'none', border: '1px solid var(--border)', padding: '6px 14px', fontFamily: f, fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.06em' }}
+                >
+                  Limpiar todo
+                </button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 1, background: 'var(--border)' }}>
+                {favorites.map(fav => (
+                  <div key={fav.id} style={{ position: 'relative' }}>
+                    <InspirationCard
+                      image={fav.image}
+                      title={fav.title}
+                      description={fav.description ?? ''}
+                      format={fav.format ?? undefined}
+                      isFavorited={true}
+                      onFavorite={() => toggleFav(fav)}
+                    />
+                    <div style={{ position: 'absolute', bottom: 54, left: 8 }}>
+                      <span style={{ background: 'rgba(0,0,0,0.6)', color: '#d1d5db', fontFamily: f, fontSize: 9, fontWeight: 600, padding: '2px 7px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                        {fav.source === 'idea' ? 'Idea' : fav.source === 'campaign' ? 'Campaña' : fav.source === 'template' ? 'Plantilla' : 'Referencia'}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>

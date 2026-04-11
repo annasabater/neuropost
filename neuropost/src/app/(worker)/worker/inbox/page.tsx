@@ -793,6 +793,15 @@ export default function InboxPage() {
 
   function setTab(t: Tab) { router.push(`/worker/inbox?tab=${t}`); }
 
+  // Mark all worker_notifications as read on inbox open
+  useEffect(() => {
+    fetch('/api/worker/notifications', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ all: true }),
+    }).catch(() => null);
+  }, []);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: C.bg }}>
       {/* Header */}

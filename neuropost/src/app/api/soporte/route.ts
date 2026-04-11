@@ -56,18 +56,15 @@ export async function POST(request: Request) {
       });
     }
 
-    // Notify worker team of new support ticket
-    try {
-      await db.from('notifications').insert({
-        brand_id: brand.id,
-        type: 'support_ticket',
-        message: `Nueva solicitud de soporte: "${subject.trim()}"`,
-        read: false,
-        metadata: { ticketId: ticket.id, category, priority },
-      });
-    } catch (notifErr) {
-      console.error('[soporte] Failed to insert notification:', notifErr);
-    }
+    // Notify worker team of new support ticket (fire-and-forget)
+    db.from('worker_notifications').insert({
+      type: 'support_ticket',
+      message: `Nuevo ticket de soporte de ${brand.name}: "${subject.trim()}"`,
+      brand_id: brand.id,
+      brand_name: brand.name ?? null,
+      read: false,
+      metadata: { ticketId: ticket.id, category, priority },
+    }).then(() => null).catch(() => null);
 
     return NextResponse.json({ ticket });
   } catch (err) {

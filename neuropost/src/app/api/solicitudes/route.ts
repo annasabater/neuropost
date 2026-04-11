@@ -46,13 +46,14 @@ export async function POST(request: Request) {
     }).select().single();
     if (error) throw error;
 
-    // Notify workers (fire and forget)
-    void db.from('notifications').insert({
-      brand_id: brand.id,
+    // Notify worker team (fire and forget)
+    void db.from('worker_notifications').insert({
       type: 'new_request',
       message: `Nueva solicitud especial de ${brand.name}: "${title}"`,
+      brand_id: brand.id,
+      brand_name: brand.name ?? null,
       read: false,
-      metadata: { request_id: req.id },
+      metadata: { request_id: req.id, type },
     }).then(() => {});
 
     return NextResponse.json({ request: req });

@@ -113,7 +113,7 @@ export default function PromoCouponInput({ planId }: { planId: string }) {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') validateCoupon();
               }}
-              placeholder="CODIGO2025"
+              placeholder="CODIGO2026"
               disabled={loading}
               style={{
                 flex: 1,

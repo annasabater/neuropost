@@ -93,23 +93,23 @@
   --shadow-lg: 0 4px 20px rgba(0,0,0,0.12);
 }
 
-/* Mode fosc del dashboard */
+/* Mode fosc del dashboard — paleta teal-tinted professional */
 [data-theme="dark"] .dash-root {
-  --bg:          #111111;
-  --bg-1:        #1a1a1a;
-  --bg-2:        #222222;
-  --bg-3:        #2a2a2a;
-  --bg-4:        #333333;
-  --text-primary:   #f5f5f5;
-  --text-secondary: #aaaaaa;
-  --text-tertiary:  #666666;
-  --text-inv:       #111111;
-  --border:      #2a2a2a;
-  --border-dark: #444444;
-  --border-hover:#444444;
-  --accent-bg:   rgba(15,118,110,0.1);
-  --success-dim: rgba(45,125,50,0.15);
-  --error-dim:   rgba(198,40,40,0.15);
+  --bg:          #0d1117;
+  --bg-1:        #161b22;
+  --bg-2:        #1c2128;
+  --bg-3:        #21262d;
+  --bg-4:        #2d333b;
+  --text-primary:   #e6edf3;
+  --text-secondary: #8b949e;
+  --text-tertiary:  #484f58;
+  --text-inv:       #0d1117;
+  --border:      #21262d;
+  --border-dark: #30363d;
+  --border-hover:#3d444d;
+  --accent-bg:   rgba(15,118,110,0.14);
+  --success-dim: rgba(45,125,50,0.18);
+  --error-dim:   rgba(198,40,40,0.18);
   --surface:     var(--bg-1);
   --surface-2:   var(--bg-2);
   --surface-3:   var(--bg-3);

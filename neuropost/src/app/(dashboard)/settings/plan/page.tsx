@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { ExternalLink } from 'lucide-react';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
-import type { SubscriptionPlan } from '@/types';
+import type { Brand, SubscriptionPlan } from '@/types';
+import { PLAN_META } from '@/types';
 import CouponInput from '@/components/billing/CouponInput';
 
 type BillingCycle = 'monthly' | 'annual';
@@ -51,7 +52,7 @@ function ApplyCouponForm() {
           value={code}
           onChange={(e) => { setCode(e.target.value.toUpperCase()); setMessage(''); setError(''); }}
           onKeyDown={(e) => { if (e.key === 'Enter') handleApply(); }}
-          placeholder="CODIGO2025"
+          placeholder="CODIGO2026"
           style={{
             border:      `1px solid ${error ? '#ef4444' : message ? 'var(--accent)' : 'var(--border)'}`,
             borderRadius: 0,
@@ -97,66 +98,87 @@ function ApplyCouponForm() {
 }
 
 const PLANS: {
-  id:      SubscriptionPlan;
-  name:    string;
+  id:           SubscriptionPlan;
+  name:         string;
   monthlyPrice: number;
-  desc: string;
-  perks:   string[];
-  featured: boolean;
-  badge?: string;
+  annualPrice:  number;  // price per month when billed annually
+  annualSavings: number; // total annual savings vs monthly
+  desc:         string;
+  perks:        string[];
+  featured:     boolean;
+  badge?:       string;
 }[] = [
   {
-    id:      'starter',
-    name:    'Starter',
-    monthlyPrice:   29,
+    id:           'starter',
+    name:         'Starter',
+    monthlyPrice:  25,
+    annualPrice:   21,
+    annualSavings: 48,
     desc: 'Para empezar con presencia constante en redes',
-    perks:   ['2 posts/semana', 'Instagram o Facebook', 'Generación con IA', 'Planificador de contenido', 'Aprobación manual'],
+    perks: [
+      '2 posts de foto por semana',
+      'Carruseles hasta 3 fotos',
+      'Publicación programada',
+      'Edición y creación de contenido',
+      'Solicitudes de contenido personalizadas',
+      'Generación con IA integrada',
+      'Calendario de contenido básico',
+    ],
     featured: false,
   },
   {
-    id:      'pro',
-    name:    'Pro',
-    monthlyPrice:   69,
-    desc: 'Para crecer con foto, vídeo y automatización',
-    perks:   ['5 posts + 3 historias/semana', 'Instagram + Facebook', 'Publicación automática', 'Análisis de métricas', '14 días de prueba gratis'],
+    id:           'pro',
+    name:         'Pro',
+    monthlyPrice:  76,
+    annualPrice:   63,
+    annualSavings: 156,
+    desc: 'Para crecer con contenido, IA y optimización',
+    perks: [
+      '4 fotos + 2 vídeos por semana',
+      'Carruseles hasta 8 fotos',
+      'Publicación programada y calendario avanzado',
+      'Ideas de contenido + creación a medida',
+      'Mejores horas para publicar',
+      'Solicitudes de contenido personalizadas',
+      'Análisis de rendimiento y mejoras',
+      'Generación con IA integrada',
+      'Soporte prioritario',
+    ],
     featured: true,
     badge: '⚡ Más popular',
   },
   {
-    id:      'total',
-    name:    'Total',
-    monthlyPrice:   129,
-    desc: 'Para escalar volumen con soporte y operación avanzada',
-    perks:   ['7 posts + 7 historias/semana', 'Agente competencia', 'Detección de tendencias', 'Analytics avanzado', 'Estilos visuales IA'],
+    id:           'total',
+    name:         'Total',
+    monthlyPrice:  161,
+    annualPrice:   133,
+    annualSavings: 336,
+    desc: 'Para escalar con volumen, datos y optimización continua',
+    perks: [
+      'Hasta 20 fotos + 10 vídeos por semana',
+      'Carruseles hasta 20 fotos',
+      'Publicación programada y calendario avanzado',
+      'Ideas + contenido basado en tendencias',
+      'Solicitudes de contenido personalizadas',
+      'Análisis de rendimiento y mejoras continuas',
+      'Generación con IA integrada',
+      'Soporte prioritario 24h',
+    ],
     featured: false,
     badge: '🚀 Completo',
   },
-  {
-    id:      'agency',
-    name:    'Agency',
-    monthlyPrice:   199,
-    desc: 'Para agencias y gestión de múltiples marcas',
-    perks:   ['Todo lo de Total', 'Hasta 10 marcas', 'Panel multicliente', 'Soporte prioritario 24 h'],
-    featured: false,
-  },
 ];
-
-function annualPrice(monthly: number): number {
-  return Math.round(monthly * 0.8);
-}
-
-function annualSavings(monthly: number): number {
-  return Math.round((monthly - annualPrice(monthly)) * 12);
-}
 
 export default function PlanPage() {
   const brand       = useAppStore((s) => s.brand);
+  const setBrand    = useAppStore((s) => s.setBrand);
   const params      = useSearchParams();
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('annual');
   const [billing,   setBilling]   = useState(false);
   const [upgrading, setUpgrading] = useState<SubscriptionPlan | null>(null);
   const [promoCodeId, setPromoCodeId] = useState<string | null>(null);
   const [, setDiscountText] = useState('');
+  const refreshedRef = useRef(false);
 
   const [subStatus, setSubStatus] = useState<{
     status: string;
@@ -171,9 +193,37 @@ export default function PlanPage() {
     } | null;
   } | null>(null);
 
+  // After returning from Stripe checkout, refresh the brand in the global store
+  // so the new plan propagates to the whole app immediately.
   useEffect(() => {
-    if (params.get('success') === 'true')    toast.success('🎉 Plan activado correctamente');
-    if (params.get('cancelled') === 'true')  toast.error('Pago cancelado');
+    if (params.get('success') !== 'true' || refreshedRef.current) return;
+    refreshedRef.current = true;
+    toast.success('Plan activado correctamente');
+
+    // Webhook may have a few seconds delay — poll up to 8s until plan changes
+    const startPlan = brand?.plan;
+    let attempts = 0;
+    const interval = setInterval(async () => {
+      attempts++;
+      try {
+        const res  = await fetch('/api/brands');
+        const data = await res.json() as { brand?: Brand };
+        if (data.brand) {
+          setBrand(data.brand);
+          if (data.brand.plan !== startPlan || attempts >= 4) {
+            clearInterval(interval);
+          }
+        }
+      } catch { /* non-blocking */ }
+      if (attempts >= 4) clearInterval(interval);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
+
+  useEffect(() => {
+    if (params.get('cancelled') === 'true') toast.error('Pago cancelado');
   }, [params]);
 
   useEffect(() => {
@@ -217,15 +267,40 @@ export default function PlanPage() {
 
   const currentPlan = brand?.plan ?? 'starter';
 
+  const f  = "var(--font-barlow), 'Barlow', sans-serif";
+  const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
+
   return (
     <div className="page-content">
+      {/* Back link */}
+      <a
+        href="/settings#plan"
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 20,
+          fontFamily: f, fontSize: 13, color: 'var(--text-secondary)', textDecoration: 'none',
+          padding: '7px 14px', border: '1px solid var(--border)', background: 'var(--bg-1)',
+        }}
+      >
+        <ArrowLeft size={14} /> Volver a Ajustes
+      </a>
+
       <div className="page-header">
         <div className="page-header-text">
-          <h1 className="page-title">Plan y facturación</h1>
-          <p className="page-sub">Plan actual: <strong style={{ textTransform: 'capitalize' }}>{currentPlan}</strong>
+          <h1 className="page-title">Elige tu plan</h1>
+          <p className="page-sub">
+            Plan activo:{' '}
+            <strong style={{ fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {PLAN_META[currentPlan].label}
+            </strong>
             {brand?.trial_ends_at && new Date(brand.trial_ends_at) > new Date() && (
-              <span style={{ marginLeft: 8, background: '#e6f9f0', color: '#1a7a45', padding: '2px 8px', borderRadius: 0, fontSize: 12 }}>
-                Prueba gratis activa
+              <span style={{ marginLeft: 8, background: '#e6f9f0', color: '#1a7a45', padding: '2px 8px', fontSize: 12, fontWeight: 700 }}>
+                Prueba gratis activa hasta el{' '}
+                {new Date(brand.trial_ends_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+              </span>
+            )}
+            {brand?.plan_cancels_at && (
+              <span style={{ marginLeft: 8, background: '#fff3e0', color: '#e65100', padding: '2px 8px', fontSize: 12, fontWeight: 700 }}>
+                Cancela el {new Date(brand.plan_cancels_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
               </span>
             )}
           </p>
@@ -292,7 +367,7 @@ export default function PlanPage() {
                     fontWeight: 800,
                   }}
                 >
-                  −20%
+                  −15%
                 </span>
               )}
             </button>
@@ -302,11 +377,11 @@ export default function PlanPage() {
 
       {/* Plans grid */}
       <div style={{ overflowX: 'auto', overflowY: 'visible', paddingTop: 10, paddingBottom: 4, marginBottom: 32 }}>
-      <div className="pricing-grid" style={{ minWidth: 1040, display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 12, alignItems: 'stretch' }}>
+      <div className="pricing-grid" style={{ minWidth: 720, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, alignItems: 'stretch' }}>
         {PLANS.map((plan) => {
           const isCurrent = plan.id === currentPlan;
-          const displayPrice = billingCycle === 'annual' ? annualPrice(plan.monthlyPrice) : plan.monthlyPrice;
-          const savings = annualSavings(plan.monthlyPrice);
+          const displayPrice = billingCycle === 'annual' ? plan.annualPrice : plan.monthlyPrice;
+          const savings = plan.annualSavings;
 
           return (
             <div

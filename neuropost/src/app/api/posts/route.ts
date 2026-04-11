@@ -95,25 +95,6 @@ export async function POST(request: Request) {
       } catch { /* non-blocking — post is already approved in DB */ }
     }
 
-    // Notification
-    if (canAutoPublish) {
-      await supabase.from('notifications').insert({
-        brand_id: brand.id,
-        type:     'published',
-        message:  'Post creado y publicado automáticamente.',
-        read:     false,
-        metadata: { postId: insertedPost.id },
-      });
-    } else if (insertedPost.status === 'pending') {
-      await supabase.from('notifications').insert({
-        brand_id: brand.id,
-        type:     'approval_needed',
-        message:  'Un nuevo post requiere tu aprobación.',
-        read:     false,
-        metadata: { postId: insertedPost.id },
-      });
-    }
-
     return NextResponse.json({ post: insertedPost }, { status: 201 });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

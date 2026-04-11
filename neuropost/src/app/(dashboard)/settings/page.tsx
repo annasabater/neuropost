@@ -8,6 +8,7 @@ import { useAppStore } from '@/store/useAppStore';
 import { createBrowserClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { locales, localeNames, defaultLocale, type Locale } from '@/i18n/config';
+import { PLAN_META } from '@/types';
 
 export default function SettingsPage() {
   const brand        = useAppStore((s) => s.brand);
@@ -25,6 +26,12 @@ export default function SettingsPage() {
   const [profileTimezone,    setProfileTimezone]    = useState('Europe/Madrid');
   const [uploadingLogo,      setUploadingLogo]      = useState(false);
   const [savingProfile,      setSavingProfile]      = useState(false);
+
+  // Personal profile — editable name fields from Supabase auth metadata
+  const [firstName,     setFirstName]     = useState('');
+  const [lastName,      setLastName]      = useState('');
+  const [showName,      setShowName]      = useState(true);
+  const [savingPersonal, setSavingPersonal] = useState(false);
 
   // Notifications
   const [notifyPublish,  setNotifyPublish]  = useState(false);
@@ -59,13 +66,37 @@ export default function SettingsPage() {
 
   const confirmWord = t('account.deleteConfirmWord');
 
-  // Load user email from Supabase on mount
+  // Load user email + personal profile from Supabase on mount
   useEffect(() => {
     const supabase = createBrowserClient();
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user?.email) setUserEmail(user.email);
+      const meta = user?.user_metadata ?? {};
+      if (meta.first_name) setFirstName(meta.first_name as string);
+      if (meta.last_name)  setLastName(meta.last_name as string);
+      if (typeof meta.show_name === 'boolean') setShowName(meta.show_name);
     });
   }, []);
+
+  async function savePersonalProfile() {
+    setSavingPersonal(true);
+    try {
+      const supabase = createBrowserClient();
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          first_name: firstName.trim() || null,
+          last_name:  lastName.trim()  || null,
+          show_name: showName,
+        },
+      });
+      if (error) throw error;
+      toast.success(t('account.saved'));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error');
+    } finally {
+      setSavingPersonal(false);
+    }
+  }
 
   // Fallback: fetch brand directly from API if store doesn't have it
   useEffect(() => {
@@ -406,8 +437,73 @@ export default function SettingsPage() {
         {/* Right content */}
         <div style={{ flex: 1, minWidth: 0 }}>
 
-          {/* ── Perfil del negocio ── */}
+          {/* ── Perfil personal ── */}
           <div id="perfil" className="settings-section">
+            <h2 className="settings-section-title">Perfil personal</h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: 20 }}>
+              Tu nombre y preferencias de visibilidad en mensajes y comentarios.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--muted)', marginBottom: 6 }}>
+                  Nombre
+                </label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="Tu nombre"
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 14, outline: 'none', boxSizing: 'border-box', background: 'var(--bg)', color: 'var(--text-primary)' }}
+                />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--muted)', marginBottom: 6 }}>
+                  Apellidos
+                </label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Tus apellidos"
+                  style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 14, outline: 'none', boxSizing: 'border-box', background: 'var(--bg)', color: 'var(--text-primary)' }}
+                />
+              </div>
+            </div>
+
+            {/* Show name toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', border: '1px solid var(--border)', background: '#ffffff', marginBottom: 20 }}>
+              <div>
+                <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 600, fontSize: '0.88rem', margin: 0 }}>
+                  Mostrar mi nombre en mensajes y comentarios
+                </p>
+                <p style={{ fontSize: '0.78rem', color: 'var(--muted)', margin: '3px 0 0' }}>
+                  {showName
+                    ? `Aparecerás como "${[firstName, lastName].filter(Boolean).join(' ') || 'Tu nombre'} · ${brand?.name ?? ''}"`
+                    : `Aparecerás solo como "${brand?.name ?? 'Tu negocio'}"`}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowName((v) => !v)}
+                className={`notif-switch${showName ? ' is-on' : ''}`}
+              >
+                <span className="notif-switch-thumb" />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={savePersonalProfile}
+              disabled={savingPersonal}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 22px', background: 'var(--accent)', color: '#ffffff', border: 'none', fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif", fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: savingPersonal ? 'wait' : 'pointer', opacity: savingPersonal ? 0.6 : 1 }}
+            >
+              <Save size={14} />{savingPersonal ? 'Guardando...' : 'Guardar perfil'}
+            </button>
+          </div>
+
+          {/* ── Perfil del negocio ── */}
+          <div className="settings-section">
             <h2 className="settings-section-title">Perfil del negocio</h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: 20 }}>
               La información que tu audiencia ve. El nombre y la ubicación se editan en el{' '}
@@ -498,36 +594,50 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="form-group" style={{ margin: 0 }}>
-                  <label htmlFor="profile-tz">Zona horaria</label>
-                  <select
-                    id="profile-tz"
-                    value={profileTimezone}
-                    onChange={(e) => setProfileTimezone(e.target.value)}
-                    style={{ width: '100%' }}
-                  >
-                    {TIMEZONES.includes(profileTimezone) ? null : (
-                      <option value={profileTimezone}>{profileTimezone}</option>
-                    )}
-                    {TIMEZONES.map((tz) => (
-                      <option key={tz} value={tz}>{tz}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div style={{ padding: '12px 14px', background: 'var(--bg-1)', border: '1px solid var(--border)' }}>
-                  <p style={{
+                <div style={{ margin: 0 }}>
+                  <label style={{
+                    display: 'block', fontSize: '0.75rem', fontWeight: 600, textTransform: 'uppercase',
+                    letterSpacing: '0.08em', color: 'var(--muted)', marginBottom: 6,
                     fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif",
-                    fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                    color: 'var(--muted)', marginBottom: 4,
                   }}>
-                    Datos del brand kit
-                  </p>
-                  <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 13, color: 'var(--ink)' }}>
-                    {brand.name || 'Sin nombre'}
-                    {brand.location && <> · <span style={{ color: 'var(--muted)' }}>{brand.location}</span></>}
-                    {brand.sector && <> · <span style={{ color: 'var(--muted)', textTransform: 'capitalize' }}>{brand.sector}</span></>}
-                  </p>
+                    Zona horaria
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <select
+                      id="profile-tz"
+                      value={profileTimezone}
+                      onChange={(e) => setProfileTimezone(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '11px 44px 11px 14px',
+                        border: '1px solid var(--border)',
+                        background: 'var(--bg)',
+                        color: 'var(--text-primary)',
+                        fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                        fontSize: 13,
+                        fontWeight: 500,
+                        appearance: 'none',
+                        cursor: 'pointer',
+                        outline: 'none',
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%236b7280' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 14px center',
+                        backgroundSize: '14px',
+                        transition: 'border-color 0.15s',
+                      }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = 'var(--accent)')}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = 'var(--border)')}
+                    >
+                      {TIMEZONES.includes(profileTimezone) ? null : (
+                        <option value={profileTimezone}>{profileTimezone}</option>
+                      )}
+                      {TIMEZONES.map((tz) => {
+                        const [continent, city] = tz.split('/');
+                        const label = city ? `${city.replace(/_/g, ' ')} (${continent})` : tz;
+                        return <option key={tz} value={tz}>{label}</option>;
+                      })}
+                    </select>
+                  </div>
                 </div>
 
                 <div>
@@ -809,39 +919,84 @@ export default function SettingsPage() {
               <CreditCard size={18} style={{ verticalAlign: 'middle', marginRight: 8 }} />
               {t('billing.title')}
             </h2>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-              <div>
-                <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 700 }}>
-                  {t('plan.current')}: <span style={{ textTransform: 'capitalize' }}>{brand.plan}</span>
-                </p>
-                <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginTop: 4 }}>
-                  {brand.plan === 'starter' ? '12 posts/mes · Instagram y Facebook' :
-                   brand.plan === 'pro'     ? 'Posts ilimitados · Publicación automática' :
-                                              'Todo incluido · Multi-marca · Soporte prioritario'}
-                </p>
-              </div>
-              <button className="btn-outline" onClick={openBillingPortal} disabled={billing}>
-                {billing ? <span className="loading-spinner" /> : <ExternalLink size={14} />}
-                {t('billing.manageSubscription')}
-              </button>
-            </div>
-            {brand.plan === 'starter' && (
-              <div style={{ marginTop: 20, padding: '16px 20px', background: 'var(--accent-light)', borderRadius: 0, border: '1px solid var(--accent)' }}>
-                <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 700, color: 'var(--accent)', marginBottom: 4 }}>
-                  {t('billing.upgradeTitle')}
-                </p>
-                <p style={{ fontSize: '0.85rem', color: 'var(--ink)', marginBottom: 12 }}>
-                  {t('billing.upgradeDesc')}
-                </p>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button className="btn-primary" onClick={() => handleUpgrade('pro')}>
-                    {t('billing.upgradeCTA')}
-                  </button>
-                  <button className="btn-outline" onClick={() => handleUpgrade('agency')}>
-                    {t('billing.agencyCTA')}
-                  </button>
+
+            {/* Current plan card */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16,
+              border: '1px solid var(--border)', padding: '16px 20px', marginBottom: 12,
+              background: 'var(--bg)',
+            }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
+                  <span style={{
+                    fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif",
+                    fontWeight: 900, fontSize: 18, textTransform: 'uppercase', letterSpacing: '0.02em',
+                    color: 'var(--text-primary)',
+                  }}>
+                    {PLAN_META[brand.plan].label}
+                  </span>
+                  <span style={{
+                    fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                    fontSize: 12, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                    padding: '3px 10px', background: 'var(--accent)', color: '#fff',
+                  }}>
+                    ACTIVO
+                  </span>
+                  {brand.trial_ends_at && new Date(brand.trial_ends_at) > new Date() && (
+                    <span style={{
+                      fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                      fontSize: 11, fontWeight: 700, padding: '3px 10px',
+                      background: '#e6f9f0', color: '#1a7a45', letterSpacing: '0.04em',
+                    }}>
+                      Prueba gratis
+                    </span>
+                  )}
+                  {brand.plan_cancels_at && (
+                    <span style={{
+                      fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                      fontSize: 11, fontWeight: 700, padding: '3px 10px',
+                      background: '#fff3e0', color: '#e65100',
+                    }}>
+                      Cancela el {new Date(brand.plan_cancels_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                    </span>
+                  )}
                 </div>
+                <p style={{
+                  fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                  fontSize: '0.84rem', color: 'var(--text-secondary)',
+                }}>
+                  {PLAN_META[brand.plan].tagline}
+                </p>
               </div>
+              <a
+                href="/settings/plan"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
+                  padding: '9px 18px', border: '1px solid var(--border)', background: 'var(--bg)',
+                  fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 13, fontWeight: 600,
+                  color: 'var(--text-primary)', textDecoration: 'none', cursor: 'pointer',
+                }}
+              >
+                Cambiar plan →
+              </a>
+            </div>
+
+            {/* Billing portal — only for existing Stripe subscribers */}
+            {brand.stripe_customer_id && (
+              <button
+                type="button"
+                onClick={openBillingPortal}
+                disabled={billing}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '8px 16px', border: '1px solid var(--border)', background: 'transparent',
+                  fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 12, fontWeight: 600,
+                  color: 'var(--text-secondary)', cursor: 'pointer',
+                }}
+              >
+                {billing ? <span className="loading-spinner" /> : <ExternalLink size={13} />}
+                Facturas y método de pago
+              </button>
             )}
           </div>
 
@@ -1008,11 +1163,16 @@ function ThemeSection() {
     setDark(saved ? saved === 'dark' : prefersDark);
   }, []);
 
-  function setTheme(isDark: boolean) {
+  async function setTheme(isDark: boolean) {
     setDark(isDark);
     const theme = isDark ? 'dark' : 'light';
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('theme', theme);
+    try {
+      const supabase = createBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) await supabase.auth.updateUser({ data: { theme } });
+    } catch { /* non-blocking */ }
   }
 
   return (
@@ -1062,9 +1222,14 @@ function LanguageSection() {
     setCurrentLocale(getStoredLocale());
   }, []);
 
-  function changeLocale(loc: Locale) {
+  async function changeLocale(loc: Locale) {
     document.cookie = `NEXT_LOCALE=${loc}; path=/; max-age=31536000; SameSite=Lax`;
     setCurrentLocale(loc);
+    try {
+      const supabase = createBrowserClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) await supabase.auth.updateUser({ data: { locale: loc } });
+    } catch { /* non-blocking */ }
     router.refresh();
   }
 

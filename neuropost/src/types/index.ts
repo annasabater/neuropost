@@ -91,6 +91,8 @@ export interface BrandRules {
   preferences?:           BrandPreferences;
   /** Structured voice preset, used to regenerate brand_voice_doc on save. */
   voicePreset?:           BrandVoicePreset;
+  /** Custom sector description when sector === 'otro'. */
+  sectorOther?:           string;
 }
 
 export interface Brand {
@@ -707,10 +709,10 @@ export const PLAN_META: Record<SubscriptionPlan, {
   price:    number;
   tagline:  string;
 }> = {
-  starter: { label: 'Starter', price: 29,  tagline: 'Para empezar con presencia constante' },
-  pro:     { label: 'Pro',     price: 89,  tagline: 'Para crecer con IA y análisis' },
-  total:   { label: 'Total',   price: 189, tagline: 'Para escalar con volumen y datos' },
-  agency:  { label: 'Agency',  price: 449, tagline: 'Para gestionar varias marcas' },
+  starter: { label: 'Starter', price: 25,  tagline: '2 posts de foto por semana · Generación con IA' },
+  pro:     { label: 'Pro',     price: 76,  tagline: '4 fotos + 2 vídeos por semana · Soporte prioritario' },
+  total:   { label: 'Total',   price: 161, tagline: 'Hasta 20 fotos + 10 vídeos por semana · 24h' },
+  agency:  { label: 'Agency',  price: 199, tagline: 'Todo de Total · Hasta 10 marcas' },
 };
 
 // ─── Content mode type ───────────────────────────────────────────────────────

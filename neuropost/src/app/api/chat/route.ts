@@ -39,7 +39,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Message or attachment required' }, { status: 400 });
     }
 
-    const { data: brand } = await db.from('brands').select('id').eq('user_id', user.id).single();
+    const { data: brand } = await db.from('brands').select('id, name').eq('user_id', user.id).single();
     if (!brand) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
     const brandId = bodyBrandId ?? brand.id;
 
@@ -52,11 +52,12 @@ export async function POST(request: Request) {
     }).select().single();
     if (error) throw error;
 
-    // Fire-and-forget: notify (ignore all errors)
-    db.from('notifications').insert({
-      brand_id: brandId,
+    // Notify worker team of new client message (fire-and-forget)
+    db.from('worker_notifications').insert({
       type: 'chat_message',
-      message: 'Nuevo mensaje de tu cliente',
+      message: `Nuevo mensaje de ${brand.name ?? 'cliente'}`,
+      brand_id: brandId,
+      brand_name: brand.name ?? null,
       read: false,
       metadata: { msg_id: msg.id },
     }).then(() => null).catch(() => null);

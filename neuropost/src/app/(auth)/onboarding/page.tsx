@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { createBrowserClient } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import type { SocialSector, BrandTone, PublishMode, PostGoal, VisualStyle } from '@/types';
 import { TONE_OPTIONS, PUBLISH_MODE_OPTIONS } from '@/lib/brand-options';
@@ -540,6 +541,10 @@ export default function OnboardingPage() {
   const [step,   setStep]   = useState<Step>(1);
   const [saving, setSaving] = useState(false);
 
+  // User personal info
+  const [firstName, setFirstName] = useState('');
+  const [lastName,  setLastName]  = useState('');
+
   const [sector,           setSector]           = useState<SocialSector>('restaurante');
   const [secondarySectors, setSecondarySectors] = useState<SocialSector[]>([]);
   const [visualStyle,      setVisualStyle]      = useState<VisualStyle>('warm');
@@ -582,6 +587,17 @@ export default function OnboardingPage() {
     if (!name.trim()) { toast.error('El nombre del negocio es obligatorio'); return; }
     setSaving(true);
     try {
+      // Save user name to Supabase auth metadata
+      if (firstName.trim() || lastName.trim()) {
+        const supabase = createBrowserClient();
+        await supabase.auth.updateUser({
+          data: {
+            first_name: firstName.trim() || null,
+            last_name:  lastName.trim()  || null,
+            show_name:  true,
+          },
+        });
+      }
       const effectivePrimaryColor = hasCustomPalette ? primaryColor : INITIAL_PRIMARY_COLOR;
       const effectiveSecondaryColor = hasCustomPalette ? secondaryColor : INITIAL_SECONDARY_COLOR;
       const effectiveTertiaryColor = hasCustomPalette ? tertiaryColor : INITIAL_TERTIARY_COLOR;
@@ -1070,6 +1086,31 @@ export default function OnboardingPage() {
             <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4, marginBottom: 20 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
 
+                {/* Personal name */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <Label>Tu nombre *</Label>
+                    <input
+                      style={inputStyle}
+                      type="text"
+                      placeholder="Ej: Ana"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <Label>Apellidos</Label>
+                    <input
+                      style={inputStyle}
+                      type="text"
+                      placeholder="Ej: García López"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                    />
+                  </div>
+                </div>
+
                 {/* Business name (free text input — required) */}
                 <div>
                   <Label>Nombre del negocio *</Label>
@@ -1079,7 +1120,6 @@ export default function OnboardingPage() {
                     placeholder="Ej: Heladería La Nube"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    autoFocus
                   />
                 </div>
 

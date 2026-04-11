@@ -1018,23 +1018,23 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
               ) : chat.map((m) => {
                 const isClient = m.sender_type === 'client';
                 return (
-                  <div key={m.id} style={{ display: 'flex', justifyContent: isClient ? 'flex-end' : 'flex-start' }}>
+                  <div key={m.id} style={{ display: 'flex', justifyContent: isClient ? 'flex-start' : 'flex-end' }}>
                     <div
                       style={{
                         maxWidth: '78%',
                         padding: '10px 14px',
-                        background: isClient ? '#d1fae5' : '#e5e7eb',
-                        color: C.text,
+                        background: isClient ? '#e5e7eb' : C.accent,
+                        color: isClient ? C.text : '#ffffff',
                         fontSize: 13,
                         lineHeight: 1.5,
-                        border: `1px solid ${isClient ? '#a7f3d0' : '#d1d5db'}`,
+                        border: `1px solid ${isClient ? '#d1d5db' : C.accent}`,
                       }}
                     >
-                      <div style={{ fontSize: 10, fontWeight: 800, color: C.muted, marginBottom: 4, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      <div style={{ fontSize: 10, fontWeight: 800, color: isClient ? C.muted : 'rgba(255,255,255,0.7)', marginBottom: 4, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         {isClient ? (brand.name ?? 'Cliente') : 'Tú'}
                       </div>
                       <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.message}</div>
-                      <div style={{ fontSize: 10, color: C.muted, marginTop: 4, textAlign: 'right' }}>
+                      <div style={{ fontSize: 10, color: isClient ? C.muted : 'rgba(255,255,255,0.6)', marginTop: 4, textAlign: 'right' }}>
                         {new Date(m.created_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>

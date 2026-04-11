@@ -104,7 +104,10 @@ export function getTestimonialsSnapshot(): SiteTestimonial[] {
   return snapshot;
 }
 
-/** Server snapshot — no data available during SSR. */
+/** Server snapshot — no data available during SSR.
+ *  Must return a stable (cached) reference to avoid the infinite-loop warning
+ *  React raises when getServerSnapshot returns a new object on every call. */
+const EMPTY_TESTIMONIALS: SiteTestimonial[] = [];
 export function getTestimonialsServerSnapshot(): SiteTestimonial[] {
-  return [];
+  return EMPTY_TESTIMONIALS;
 }

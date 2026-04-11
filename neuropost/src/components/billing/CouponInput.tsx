@@ -76,7 +76,7 @@ export default function CouponInput({ onValidCoupon, onClearCoupon, appliedCode 
             if (status !== 'idle') { setStatus('idle'); setError(''); }
           }}
           onKeyDown={handleKeyDown}
-          placeholder="CODIGO2025"
+          placeholder="CODIGO2026"
           disabled={status === 'valid'}
           style={{
             border:      `1px solid ${borderColor}`,

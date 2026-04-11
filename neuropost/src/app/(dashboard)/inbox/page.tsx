@@ -65,6 +65,27 @@ function InboxInner() {
   const searchParams = useSearchParams();
   const tab = (searchParams.get('tab') as Tab) || 'comentarios';
   const brand = useAppStore((s) => s.brand);
+
+  // Personal profile from Supabase auth metadata
+  const [operatorFirstName, setOperatorFirstName] = useState('');
+  const [operatorLastName,  setOperatorLastName]  = useState('');
+  const [operatorShowName,  setOperatorShowName]  = useState(true);
+  useEffect(() => {
+    const supabase = createBrowserClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const meta = user?.user_metadata ?? {};
+      if (meta.first_name) setOperatorFirstName(meta.first_name as string);
+      if (meta.last_name)  setOperatorLastName(meta.last_name as string);
+      if (typeof meta.show_name === 'boolean') setOperatorShowName(meta.show_name);
+    });
+  }, []);
+  const operatorDisplayName = (() => {
+    const fullName = [operatorFirstName, operatorLastName].filter(Boolean).join(' ');
+    const bName = brand?.name ?? '';
+    if (operatorShowName && fullName) return `${fullName} · ${bName}`;
+    return bName;
+  })();
+
   const unreadComments = useAppStore((s) => s.unreadComments);
   const unreadNotifications = useAppStore((s) => s.unreadNotifications);
   const notifications = useAppStore((s) => s.notifications);
@@ -338,7 +359,14 @@ function InboxInner() {
               Deja tu comentario
             </h3>
             <p style={{ fontFamily: f, fontSize: 12, color: '#6b7280', marginBottom: 14 }}>
-              Publicarás como <strong style={{ color: '#111827' }}>{brand?.name ?? 'Cliente'}</strong>. Cuéntanos qué te parece la web — tu comentario será revisado por el equipo antes de publicarse.
+              {(() => {
+                const fullName = [operatorFirstName, operatorLastName].filter(Boolean).join(' ');
+                const bName = brand?.name || 'Cliente';
+                if (operatorShowName && fullName) {
+                  return <>Publicarás como <strong style={{ color: '#111827' }}>{fullName}</strong> de la empresa <strong style={{ color: '#111827' }}>{bName}</strong>.</>;
+                }
+                return <>Publicarás como <strong style={{ color: '#111827' }}>{bName}</strong>.</>;
+              })()}{' '}Cuéntanos qué te parece la web — tu comentario será revisado por el equipo antes de publicarse.
             </p>
             <textarea
               value={testimonialMessage}
@@ -402,7 +430,10 @@ function InboxInner() {
                 </div>
               ) : (
                 messages.map((msg) => (
-                  <div key={msg.id} style={{ display: 'flex', justifyContent: msg.sender_type === 'client' ? 'flex-end' : 'flex-start', marginBottom: 8 }}>
+                  <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: msg.sender_type === 'client' ? 'flex-end' : 'flex-start', marginBottom: 8 }}>
+                    {msg.sender_type === 'client' && operatorDisplayName && (
+                      <span style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', marginBottom: 2, paddingRight: 2 }}>{operatorDisplayName}</span>
+                    )}
                     <div style={{ maxWidth: '65%', background: msg.sender_type === 'client' ? '#f3f4f6' : '#e6f6f3', border: `1px solid ${msg.sender_type === 'client' ? '#d1d5db' : '#6fb7aa'}`, padding: '10px 14px' }}>
                       <p style={{ fontFamily: f, fontSize: 13, color: '#111827', lineHeight: 1.5, whiteSpace: 'pre-wrap', margin: 0 }}>{msg.message}</p>
                       <p style={{ fontFamily: f, fontSize: 10, color: '#d1d5db', marginTop: 4, textAlign: 'right' }}>{new Date(msg.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>

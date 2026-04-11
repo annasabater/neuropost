@@ -158,7 +158,10 @@ export default function BrandPage() {
   // Basics (moved from /settings)
   const [name, setName] = useState(brand?.name ?? '');
   const [sector, setSector] = useState<SocialSector>(brand?.sector ?? 'otro');
-  const [location, setLocation] = useState(brand?.location ?? '');
+  const [otherSector, setOtherSector] = useState((brand?.rules as BrandRules | null)?.sectorOther ?? '');
+  // Location is split into region (comunidad autónoma) + country for UX, combined on save
+  const [region, setRegion] = useState('');
+  const [country, setCountry] = useState('España');
   // Identity
   const [visualStyle, setVisualStyle] = useState<VisualStyle>(brand?.visual_style ?? 'warm');
   const [tone, setTone] = useState<BrandTone>(brand?.tone ?? 'cercano');
@@ -193,7 +196,17 @@ export default function BrandPage() {
     if (!brand) return;
     setName(brand.name ?? '');
     setSector(brand.sector ?? 'otro');
-    setLocation(brand.location ?? '');
+    setOtherSector((brand.rules as BrandRules | null)?.sectorOther ?? '');
+    // Parse location into region + country
+    const rawLoc = brand.location ?? '';
+    const locParts = rawLoc.split(',').map((s) => s.trim());
+    if (locParts.length >= 2) {
+      setRegion(locParts[0]);
+      setCountry(locParts.slice(1).join(', '));
+    } else {
+      setRegion(rawLoc);
+      setCountry('España');
+    }
     setVisualStyle(brand.visual_style ?? 'warm');
     setTone(brand.tone ?? 'cercano');
     setPrimaryColor(brand.colors?.primary ?? '#0F766E');
@@ -223,7 +236,24 @@ export default function BrandPage() {
       if (!name.trim()) { toast.error('El nombre es obligatorio'); setSaving(false); return; }
       patch.name = name.trim();
       patch.sector = sector;
-      patch.location = location || null;
+      // Combine comunidad autónoma + país into a single location string
+      const combinedLocation = [region.trim(), country.trim()].filter(Boolean).join(', ');
+      patch.location = combinedLocation || null;
+      // Auto-regenerate voice doc so it reflects the updated name/sector
+      const existingPreset = (brand?.rules as BrandRules | null)?.voicePreset ?? voicePreset;
+      const effectiveSector = sector === 'otro' ? (otherSector.trim() || null) : sector;
+      patch.brand_voice_doc = composeVoiceDoc(existingPreset, {
+        name:   name.trim(),
+        sector: effectiveSector,
+        tone:   brand?.tone ?? tone,
+      });
+      // Store sectorOther and preserve existing rules
+      patch.rules = {
+        noPublishDays, noEmojis, noAutoReplyNegative, forbiddenWords, forbiddenTopics,
+        preferences: normalizePreferences(currentPlan, preferences),
+        voicePreset,
+        ...(sector === 'otro' ? { sectorOther: otherSector.trim() || undefined } : {}),
+      } satisfies BrandRules;
     }
     if (editing === 'visual') patch.visual_style = visualStyle;
     if (editing === 'tone') patch.tone = tone;
@@ -338,7 +368,9 @@ export default function BrandPage() {
               </p>
               <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: f, fontSize: 12, color: '#9ca3af' }}>
-                  {SECTOR_OPTIONS.find((s) => s.value === brand?.sector)?.label ?? brand?.sector ?? '—'}
+                  {brand?.sector === 'otro'
+                    ? ((brand?.rules as BrandRules | null)?.sectorOther || 'Otro negocio')
+                    : (SECTOR_OPTIONS.find((s) => s.value === brand?.sector)?.label ?? brand?.sector ?? '—')}
                 </span>
                 <span style={{ fontFamily: f, fontSize: 12, color: '#9ca3af' }}>{brand?.location ?? '—'}</span>
                 <span style={{ fontFamily: f, fontSize: 12, color: '#9ca3af', textTransform: 'capitalize' }}>
@@ -553,12 +585,36 @@ export default function BrandPage() {
                         ))}
                       </select>
                     </div>
+                    {sector === 'otro' && (
+                      <div>
+                        <label style={labelStyle}>¿Qué tipo de negocio? *</label>
+                        <input
+                          value={otherSector}
+                          onChange={(e) => setOtherSector(e.target.value)}
+                          placeholder="Ej: Floristería, Estudio de yoga, Consultoría..."
+                          style={niceInputStyle}
+                          onFocus={(e) => (e.currentTarget.style.borderColor = '#0F766E')}
+                          onBlur={(e) => (e.currentTarget.style.borderColor = '#e5e7eb')}
+                        />
+                      </div>
+                    )}
                     <div>
-                      <label style={labelStyle}>Ubicación</label>
+                      <label style={labelStyle}>País</label>
                       <input
-                        value={location}
-                        onChange={(e) => setLocation(e.target.value)}
-                        placeholder="Ej: Cataluña, España"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        placeholder="Ej: España"
+                        style={niceInputStyle}
+                        onFocus={(e) => (e.currentTarget.style.borderColor = '#0F766E')}
+                        onBlur={(e) => (e.currentTarget.style.borderColor = '#e5e7eb')}
+                      />
+                    </div>
+                    <div>
+                      <label style={labelStyle}>Comunidad autónoma</label>
+                      <input
+                        value={region}
+                        onChange={(e) => setRegion(e.target.value)}
+                        placeholder="Ej: Cataluña, Madrid, Valencia..."
                         style={niceInputStyle}
                         onFocus={(e) => (e.currentTarget.style.borderColor = '#0F766E')}
                         onBlur={(e) => (e.currentTarget.style.borderColor = '#e5e7eb')}
