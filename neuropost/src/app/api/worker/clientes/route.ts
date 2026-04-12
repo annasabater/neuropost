@@ -22,7 +22,7 @@ export async function GET() {
     if (error) throw error;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const brandIds = (brands ?? []).map((b: any) => b.id);
+    const brandIds: string[] = (brands ?? []).map((b: any) => b.id);
 
     // Queue counts
     const { data: queueCounts } = await db
@@ -37,14 +37,15 @@ export async function GET() {
     }
 
     // Emails desde auth.users (a través de user_id de cada brand)
-    const emailByBrand: Record<string, string> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const emailByBrand: any = {};
     try {
       const { data: authList } = await db.auth.admin.listUsers();
-      const emailMap = new Map((authList?.users ?? []).map((u: { id: string; email?: string | null }) => [u.id, u.email ?? '']));
-      for (const b of brands ?? []) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const bAny = b as any;
-        if (bAny.user_id) emailByBrand[bAny.id] = emailMap.get(bAny.user_id) ?? '';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const emailMap = new Map((authList?.users ?? []).map((u: any) => [u.id, u.email ?? '']));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const b of brands as any) {
+        if (b.user_id) emailByBrand[b.id] = emailMap.get(b.user_id) ?? '';
       }
     } catch {
       // Si falla el listUsers seguimos sin emails

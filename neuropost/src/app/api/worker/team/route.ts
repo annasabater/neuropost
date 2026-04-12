@@ -26,7 +26,8 @@ export async function GET() {
       .select('id, email, full_name, role, is_active, joined_at, added_by')
       .order('joined_at', { ascending: false });
 
-    const workers = (rows ?? []).map((w) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const workers = (rows ?? []).map((w: any) => ({
       id: w.id,
       email: w.email,
       name: w.full_name ?? null,
@@ -76,7 +77,8 @@ export async function POST(request: Request) {
     // Busca en auth.users
     const { data: authList, error: authErr } = await db.auth.admin.listUsers();
     if (authErr) throw authErr;
-    const target = authList.users.find((u) => (u.email ?? '').toLowerCase() === email);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const target = authList.users.find((u: any) => (u.email ?? '').toLowerCase() === email);
 
     if (!target) {
       return NextResponse.json(
