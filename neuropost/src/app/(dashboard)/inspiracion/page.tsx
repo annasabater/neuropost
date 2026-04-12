@@ -871,8 +871,8 @@ export default function InspiracionPage() {
                     ))}
                   </div>
                   {addRefSource === 'url'
-                    ? <input value={addRefUrl} onChange={(e) => setAddRefUrl(e.target.value)} placeholder="https://instagram.com/p/..." style={inputStyle} />
-                    : <input ref={fileInputRef} type="file" accept="image/*,video/*" onChange={(e) => setAddRefFile(e.target.files?.[0] ?? null)} style={inputStyle} />
+                    ? <input key="ref-url" value={addRefUrl} onChange={(e) => setAddRefUrl(e.target.value)} placeholder="https://instagram.com/p/..." style={inputStyle} />
+                    : <input key="ref-file" ref={fileInputRef} type="file" accept="image/*,video/*" onChange={(e) => setAddRefFile(e.target.files?.[0] ?? null)} style={inputStyle} />
                   }
                 </div>
                 <div style={{ marginBottom: 22 }}>
