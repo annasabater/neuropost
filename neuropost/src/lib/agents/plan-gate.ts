@@ -24,6 +24,8 @@ import type { AgentType } from './types';
 const POST_QUOTA_ACTIONS: ReadonlySet<string> = new Set([
   'content:generate_image',
   'content:apply_edit',
+  // F7: safe_publish goes all the way through Meta → consumes the slot.
+  'content:safe_publish',
 ]);
 
 // Actions that consume videos-per-week quota AND require the video feature.
@@ -59,6 +61,26 @@ const FREE_ACTIONS: ReadonlySet<string> = new Set([
   // cheap enough to be free across plans. Only plan_week (fan-out) is gated.
   'strategy:build_taxonomy',
   'strategy:generate_ideas',
+  // F5: rule-based recompute, zero LLM cost.
+  'analytics:recompute_weights',
+  // F8: advanced features that don't themselves burn a lot.
+  // - ab_test just emits two caption sub-jobs (each free)
+  // - repurpose looks up one post and emits a caption sub-job
+  // - predict_engagement uses Haiku (cheap)
+  // - churn_risk_scan is pure DB
+  'content:ab_test_captions',
+  'content:repurpose_top_post',
+  'analytics:predict_engagement',
+  'growth:churn_risk_scan',
+  // F7: safe_publish itself is composition; each piece gates individually if needed
+  'scheduling:auto_schedule_week',
+  // Sync + materialize: internal ops, no direct user cost
+  'analytics:sync_post_metrics',
+  'content:materialize_post',
+  // Trends scanning: shared intelligence, no per-brand cost
+  'analytics:scan_trends',
+  // Media tagging: uses cheap Haiku, always allowed
+  'content:tag_media',
 ]);
 
 function keyOf(agent_type: AgentType, action: string): string {

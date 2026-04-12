@@ -1,26 +1,15 @@
 {
   "crons": [
-    {
-      "path": "/api/cron/publish-scheduled",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/sync-comments",
-      "schedule": "0 * * * *"
-    },
-    {
-      "path": "/api/cron/refresh-tokens",
-      "schedule": "0 9 * * 1"
-    },
-    {
-      "path": "/api/cron/weekly-report",
-      "schedule": "0 9 * * 1"
-    },
-    { "path": "/api/cron/detect-trends",       "schedule": "0 7 * * 1"  },
-    { "path": "/api/cron/seasonal-planner",    "schedule": "0 8 1 * *"  },
-    { "path": "/api/cron/competitor-analysis", "schedule": "30 8 * * 1" },
-    { "path": "/api/cron/churn-analysis",      "schedule": "0 9 * * *"  },
-    { "path": "/api/cron/health-check",         "schedule": "*/5 * * * *" },
-    { "path": "/api/cron/agent-queue-runner",   "schedule": "* * * * *"  }
+    { "path": "/api/cron/agent-queue-runner",   "schedule": "* * * * *"     },
+    { "path": "/api/cron/health-check",         "schedule": "*/5 * * * *"   },
+    { "path": "/api/cron/publish-scheduled",    "schedule": "0 * * * *"     },
+    { "path": "/api/cron/sync-comments",        "schedule": "0 * * * *"     },
+    { "path": "/api/cron/refresh-tokens",       "schedule": "0 9 * * 1"     },
+    { "path": "/api/cron/weekly-report",        "schedule": "0 9 * * 1"     },
+    { "path": "/api/cron/seasonal-planner",     "schedule": "0 8 1 * *"     },
+
+    { "path": "/api/cron/global-trends",        "schedule": "0 23 * * 0"    },
+    { "path": "/api/cron/monday-brain",         "schedule": "0 0 * * 1"     },
+    { "path": "/api/cron/churn-proactive",      "schedule": "0 9 * * *"     }
   ]
 }

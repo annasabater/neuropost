@@ -14,9 +14,14 @@
 // (agent_type, action) and there are no collisions between backend and
 // local handler files.
 
-import { registerBackendAgentHandlers } from './backend';
-import { registerLocalAgentHandlers   } from './local';
-import { registerStrategyHandlers     } from './strategy';
+import { registerBackendAgentHandlers       } from './backend';
+import { registerLocalAgentHandlers         } from './local';
+import { registerStrategyHandlers           } from './strategy';
+import { registerAnalyticsRecomputeHandlers } from './analytics';
+import { registerPublishingHandlers         } from './publishing';
+import { registerAdvancedHandlers           } from './advanced';
+import { registerMaterializeHandler         } from './materialize';
+import { registerMediaHandlers              } from './media';
 
 let registered = false;
 
@@ -25,6 +30,11 @@ export function registerAllHandlers(): void {
   registerBackendAgentHandlers();
   registerLocalAgentHandlers();
   registerStrategyHandlers();
+  registerAnalyticsRecomputeHandlers();
+  registerPublishingHandlers();
+  registerAdvancedHandlers();
+  registerMaterializeHandler();
+  registerMediaHandlers();
   registered = true;
 }
 
