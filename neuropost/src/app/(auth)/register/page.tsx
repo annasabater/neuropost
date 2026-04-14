@@ -122,6 +122,18 @@ export default function RegisterPage() {
     setLoading(false);
     if (error) { toast.error(error.message); return; }
 
+    // Supabase returns a "fake" user with empty identities when the email
+    // is already registered (to prevent enumeration). Detect this and show
+    // a friendly message instead of silently failing.
+    if (data.user && data.user.identities && data.user.identities.length === 0) {
+      toast.error(
+        'Este correo ya está registrado. ¿Quieres iniciar sesión?',
+        { duration: 5000 },
+      );
+      router.push(`/login?email=${encodeURIComponent(emailRef.current!.value)}`);
+      return;
+    }
+
     // If session exists, user is auto-confirmed → go straight to onboarding
     if (data.session) {
       router.push('/onboarding');

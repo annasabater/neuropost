@@ -34,7 +34,7 @@ const PLANS: Plan[] = [
   {
     name: 'Starter',
     monthlyPrice: 29,
-    desc: 'Para empezar con presencia constante en redes',
+    desc: 'Para tener una presencia activa y profesional en redes',
     featured: false,
     features: [
       '2 posts de foto por semana',
@@ -49,7 +49,7 @@ const PLANS: Plan[] = [
   {
     name: 'Pro',
     monthlyPrice: 89,
-    desc: 'Para crecer con contenido, IA y optimización',
+    desc: 'Para convertir tus redes en una máquina de ventas',
     featured: true,
     badge: '⚡ Más popular',
     features: [
@@ -67,7 +67,7 @@ const PLANS: Plan[] = [
   {
     name: 'Total',
     monthlyPrice: 189,
-    desc: 'Para escalar con volumen, datos y optimización continua',
+    desc: 'Para convertir tus redes en tu principal canal de captación de clientes',
     featured: false,
     badge: '🚀 Completo',
     features: [

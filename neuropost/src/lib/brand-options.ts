@@ -20,7 +20,6 @@ export const TONE_OPTIONS: { value: BrandTone; label: string; desc: string }[] =
 ];
 
 export const PUBLISH_MODE_OPTIONS: { value: PublishMode; label: string; desc: string; emoji: string }[] = [
-  { value: 'manual', label: 'Manual',          desc: 'Te hacemos propuestas y tú decides todo',              emoji: '👋' },
   { value: 'semi',   label: 'Supervisado',     desc: 'Tú apruebas cada post antes de que lo publiquemos',   emoji: '⚡' },
   { value: 'auto',   label: 'Automático',      desc: 'Publicamos sin que tengas que aprobar cada post',      emoji: '🤖' },
 ];

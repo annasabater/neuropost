@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, Suspense } from 'react';
+import { useEffect, useRef, useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -36,6 +36,12 @@ function LoginForm() {
   const router                  = useRouter();
   const searchParams            = useSearchParams();
   const t                       = useTranslations('auth.login');
+
+  // Pre-fill email if redirected from /register with ?email=...
+  useEffect(() => {
+    const email = searchParams.get('email');
+    if (email && emailRef.current) emailRef.current.value = email;
+  }, [searchParams]);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();

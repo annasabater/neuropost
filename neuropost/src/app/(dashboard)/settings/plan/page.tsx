@@ -114,7 +114,7 @@ const PLANS: {
     monthlyPrice:  25,
     annualPrice:   21,
     annualSavings: 48,
-    desc: 'Para empezar con presencia constante en redes',
+    desc: 'Para tener una presencia activa y profesional en redes',
     perks: [
       '2 posts de foto por semana',
       'Carruseles hasta 3 fotos',
@@ -132,7 +132,7 @@ const PLANS: {
     monthlyPrice:  76,
     annualPrice:   63,
     annualSavings: 156,
-    desc: 'Para crecer con contenido, IA y optimización',
+    desc: 'Para convertir tus redes en una máquina de ventas',
     perks: [
       '4 fotos + 2 vídeos por semana',
       'Carruseles hasta 8 fotos',
@@ -153,7 +153,7 @@ const PLANS: {
     monthlyPrice:  161,
     annualPrice:   133,
     annualSavings: 336,
-    desc: 'Para escalar con volumen, datos y optimización continua',
+    desc: 'Para convertir tus redes en tu principal canal de captación de clientes',
     perks: [
       'Hasta 20 fotos + 10 vídeos por semana',
       'Carruseles hasta 20 fotos',

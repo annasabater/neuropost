@@ -494,28 +494,33 @@ const ONBOARDING_PLANS: {
     id: 'starter',
     name: 'Starter',
     price: 29,
-    desc: 'Para empezar con presencia constante en redes',
+    desc: 'Para tener una presencia activa y profesional en redes',
     features: [
       '2 posts de foto por semana',
       'Carruseles hasta 3 fotos',
       'Publicación programada',
       'Edición y creación de contenido',
+      'Solicitudes de contenido personalizadas',
       'Generación con IA integrada',
+      'Calendario de contenido básico',
     ],
   },
   {
     id: 'pro',
     name: 'Pro',
     price: 89,
-    desc: 'Para crecer con contenido, IA y optimización',
+    desc: 'Para convertir tus redes en una máquina de ventas',
     featured: true,
     badge: 'Más popular',
     features: [
       '4 fotos + 2 vídeos por semana',
       'Carruseles hasta 8 fotos',
-      'Calendario avanzado',
+      'Publicación programada y calendario avanzado',
+      'Ideas de contenido + creación a medida',
       'Mejores horas para publicar',
-      'Análisis de rendimiento',
+      'Solicitudes de contenido personalizadas',
+      'Análisis de rendimiento y mejoras',
+      'Generación con IA integrada',
       'Soporte prioritario',
     ],
   },
@@ -523,13 +528,16 @@ const ONBOARDING_PLANS: {
     id: 'total',
     name: 'Total',
     price: 189,
-    desc: 'Para escalar con volumen, datos y optimización continua',
+    desc: 'Para convertir tus redes en tu principal canal de captación de clientes',
     badge: 'Completo',
     features: [
       'Hasta 20 fotos + 10 vídeos por semana',
       'Carruseles hasta 20 fotos',
-      'Ideas basadas en tendencias',
-      'Análisis continuo y mejoras',
+      'Publicación programada y calendario avanzado',
+      'Ideas + contenido basado en tendencias',
+      'Solicitudes de contenido personalizadas',
+      'Análisis de rendimiento y mejoras continuas',
+      'Generación con IA integrada',
       'Soporte prioritario 24h',
     ],
   },
@@ -1480,7 +1488,7 @@ export default function OnboardingPage() {
                 <div style={{ fontFamily: FONT, fontSize: '0.78rem', color: MUTED, marginBottom: 10, lineHeight: 1.5 }}>
                   ¿Cómo quieres que gestionemos tu contenido?
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
                   {PUBLISH_MODE_OPTIONS.map((m) => {
                     const active = publishMode === m.value;
                     return (

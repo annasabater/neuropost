@@ -193,7 +193,7 @@ export default function LandingPage() {
     {
       name: 'Starter',
       monthlyPrice: 29,
-      desc: 'Para empezar con presencia constante en redes',
+      desc: 'Para tener una presencia activa y profesional en redes',
       features: [
         '2 posts de foto por semana',
         'Carruseles hasta 3 fotos',
@@ -207,7 +207,7 @@ export default function LandingPage() {
     {
       name: 'Pro',
       monthlyPrice: 89,
-      desc: 'Para crecer con contenido, IA y optimización',
+      desc: 'Para convertir tus redes en una máquina de ventas',
       featured: true,
       badge: '⚡ Más popular',
       features: [
@@ -225,7 +225,7 @@ export default function LandingPage() {
     {
       name: 'Total',
       monthlyPrice: 189,
-      desc: 'Para escalar con volumen, datos y optimización continua',
+      desc: 'Para convertir tus redes en tu principal canal de captación de clientes',
       badge: '🚀 Completo',
       features: [
         'Hasta 20 fotos + 10 vídeos por semana',
