@@ -99,9 +99,8 @@ export async function POST(request: Request) {
     const replicatePrompt = `${refTitle}${refNotes}${refFormat}${refTags}${styleInfo}${notesInfo}. High quality, Instagram-ready, professional photography or graphic design, vibrant colors, clean composition.`;
 
     // Start async Replicate prediction
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+      ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
     const webhookUrl = `${baseUrl}/api/webhooks/replicate?secret=${process.env.REPLICATE_WEBHOOK_SECRET ?? ''}`;
 
     // Use reference thumbnail as img2img source if available
