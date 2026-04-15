@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
+import { queueJob } from '@/lib/agents/queue';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -78,23 +79,49 @@ export async function POST(request: Request) {
       .single();
     if (!brand) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
 
+    const { data: brandFull } = await db
+      .from('brands')
+      .select('id, name, sector, visual_style, brand_voice_doc')
+      .eq('id', brand.id)
+      .single();
+
     const { data: reference, error } = await db
       .from('inspiration_references')
       .insert({
-        brand_id:      brand.id,
-        type:          body.type.trim(),
-        source_url:    body.source_url    ?? null,
-        thumbnail_url: body.thumbnail_url ?? null,
-        title:         body.title         ?? null,
-        notes:         body.notes         ?? null,
-        sector:        body.sector        ?? null,
-        style_tags:    body.style_tags    ?? null,
-        format:        body.format        ?? null,
-        is_saved:      true,
+        brand_id:        brand.id,
+        type:            body.type.trim(),
+        source_url:      body.source_url    ?? null,
+        thumbnail_url:   body.thumbnail_url ?? null,
+        title:           body.title         ?? null,
+        notes:           body.notes         ?? null,
+        sector:          body.sector        ?? null,
+        style_tags:      body.style_tags    ?? null,
+        format:          body.format        ?? null,
+        is_saved:        true,
+        analysis_status: body.thumbnail_url ? 'pending' : 'done',
       })
       .select()
       .single();
     if (error) throw error;
+
+    // Auto-queue analysis when there's an image URL to analyze
+    if (body.thumbnail_url && brandFull) {
+      queueJob({
+        brand_id:     brand.id,
+        agent_type:   'content',
+        action:       'analyze_inspiration',
+        input: {
+          referenceImageUrl: body.thumbnail_url,
+          clientNotes:       body.notes         ?? '',
+          brandContext:      `${brandFull.name} — sector ${brandFull.sector ?? 'otro'}, estilo ${brandFull.visual_style ?? 'natural'}`,
+          sector:            brandFull.sector    ?? 'otro',
+          visualStyle:       brandFull.visual_style ?? undefined,
+          _reference_id:     (reference as { id: string }).id,
+        },
+        priority:     60,
+        requested_by: 'client',
+      }).catch(() => null);
+    }
 
     return NextResponse.json({ reference }, { status: 201 });
   } catch (err) {

@@ -219,12 +219,53 @@ const adaptTrendHandler: AgentHandler = async (job) => {
 // -----------------------------------------------------------------------------
 // content:analyze_inspiration → analyzeReference
 // -----------------------------------------------------------------------------
+// Extended behaviour: when the caller includes `_reference_id` in the input,
+// the handler saves the analysis back to inspiration_references so the prompt
+// is immediately available for Replicate recreations without re-running Claude.
 const inspirationHandler: AgentHandler = async (job) => {
-  return runPlain(
-    () => analyzeReference(job.input as unknown as AnalyzeReferenceInput),
-    'analysis',
-    { model: 'inspiration-agent' },
-  );
+  const guard = requireBrandId(job);
+  if (typeof guard !== 'string') return guard;
+
+  const rawInput = job.input as AnalyzeReferenceInput & { _reference_id?: string };
+  const { _reference_id, ...agentInput } = rawInput;
+
+  let result: import('@/agents/InspirationAgent').InspirationAnalysisResult;
+  try {
+    result = await analyzeReference(agentInput);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const transient = /timeout|rate.?limit|overloaded|503|504|ECONN/i.test(msg);
+    return transient ? { type: 'retry', error: msg } : { type: 'fail', error: msg };
+  }
+
+  // Persist analysis back to inspiration_references when reference_id provided
+  if (_reference_id) {
+    try {
+      const { createAdminClient } = await import('@/lib/supabase');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = createAdminClient() as any;
+      await db.from('inspiration_references').update({
+        recreation_prompt:   result.recreationPrompt,
+        style_analysis:      result.styleAnalysis,
+        worker_instructions: result.workerInstructions,
+        suggested_caption:   result.suggestedCaption,
+        suggested_hashtags:  result.suggestedHashtags,
+        analysis_status:     'done',
+      }).eq('id', _reference_id);
+    } catch (saveErr) {
+      console.error('[inspirationHandler] Failed to persist analysis:', saveErr);
+      // Non-fatal: result still returned as agent output
+    }
+  }
+
+  return {
+    type: 'ok',
+    outputs: [{
+      kind:    'analysis',
+      payload: result as unknown as Record<string, unknown>,
+      model:   'claude-haiku-4-5-20251001',
+    }],
+  };
 };
 
 // -----------------------------------------------------------------------------

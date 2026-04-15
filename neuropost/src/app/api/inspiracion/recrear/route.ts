@@ -67,10 +67,10 @@ export async function POST(request: Request) {
       ? `${baseNotes}${baseNotes ? '\n\n' : ''}[FOTOS_REFERENCIA]\n${mediaUrls.join('\n')}`
       : (baseNotes || null);
 
-    // Fetch reference details to build a rich prompt
+    // Fetch reference details — including pre-generated recreation_prompt from InspirationAgent
     const { data: reference } = await db
       .from('inspiration_references')
-      .select('title, notes, style_tags, format, source_url, thumbnail_url')
+      .select('title, notes, style_tags, format, source_url, thumbnail_url, recreation_prompt')
       .eq('id', body.reference_id.trim())
       .single();
 
@@ -88,16 +88,30 @@ export async function POST(request: Request) {
       .single();
     if (error) throw error;
 
-    // Build Replicate prompt from reference + client notes + styles
-    const styles = body.style_to_adapt ?? [];
-    const styleInfo = styles.length > 0 ? `, style: ${styles.join(', ')}` : '';
-    const notesInfo = baseNotes ? `, additional notes: ${baseNotes}` : '';
-    const refTitle = reference?.title ? `Recreate content inspired by "${reference.title}"` : 'Recreate social media content';
-    const refNotes = reference?.notes ? `, reference context: ${reference.notes}` : '';
-    const refFormat = reference?.format ? `, format: ${reference.format}` : '';
-    const refTags = reference?.style_tags?.length ? `, visual style: ${reference.style_tags.join(', ')}` : '';
-
-    const replicatePrompt = `${refTitle}${refNotes}${refFormat}${refTags}${styleInfo}${notesInfo}. High quality, Instagram-ready, professional photography or graphic design, vibrant colors, clean composition.`;
+    // Use pre-analyzed recreation_prompt from InspirationAgent when available.
+    // It's richer (includes composition, lighting, color palette, mood, key elements)
+    // than the basic prompt built from tags. Fall back to building from scratch.
+    let replicatePrompt: string;
+    if ((reference as { recreation_prompt?: string } | null)?.recreation_prompt) {
+      const base = (reference as { recreation_prompt: string }).recreation_prompt;
+      const styles = body.style_to_adapt ?? [];
+      const extra = [
+        styles.length > 0 ? `Style adaptations: ${styles.join(', ')}` : '',
+        baseNotes ? `Additional notes: ${baseNotes}` : '',
+      ].filter(Boolean).join('. ');
+      replicatePrompt = extra ? `${base}. ${extra}` : base;
+    } else {
+      // Fallback: build from reference metadata
+      const styles = body.style_to_adapt ?? [];
+      const styleInfo = styles.length > 0 ? `, style: ${styles.join(', ')}` : '';
+      const notesInfo = baseNotes ? `, additional notes: ${baseNotes}` : '';
+      const refTitle = reference?.title ? `Recreate content inspired by "${reference.title}"` : 'Recreate social media content';
+      const refNotes = (reference as { notes?: string } | null)?.notes ? `, reference context: ${(reference as { notes: string }).notes}` : '';
+      const refFormat = (reference as { format?: string } | null)?.format ? `, format: ${(reference as { format: string }).format}` : '';
+      const refTags = (reference as { style_tags?: string[] } | null)?.style_tags?.length
+        ? `, visual style: ${(reference as { style_tags: string[] }).style_tags.join(', ')}` : '';
+      replicatePrompt = `${refTitle}${refNotes}${refFormat}${refTags}${styleInfo}${notesInfo}. High quality, Instagram-ready, professional photography or graphic design, vibrant colors, clean composition.`;
+    }
 
     // Start async Replicate prediction
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL
