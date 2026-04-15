@@ -16,6 +16,7 @@
 // If Redis is unavailable, the cron falls back to claimJobs() (Supabase poll).
 
 import type { Job as BullJob } from 'bullmq';
+import * as Sentry from '@sentry/nextjs';
 import { createAgentWorker, type AgentBullJob } from '@/lib/bullmq';
 import { createAdminClient } from '@/lib/supabase';
 import {
@@ -219,6 +220,7 @@ export async function runOnce(batchSize = DEFAULT_BATCH_SIZE): Promise<RunnerRes
 
       worker.on('error', (err) => {
         console.error('[runner] BullMQ worker error:', err.message);
+        Sentry.captureException(err, { tags: { component: 'agent-runner' } });
       });
 
       worker.on('closed', () => {
@@ -235,6 +237,7 @@ export async function runOnce(batchSize = DEFAULT_BATCH_SIZE): Promise<RunnerRes
       await runSupabaseFallback(batchSize);
     } else {
       console.error('[runner] Unexpected runner error:', msg);
+      Sentry.captureException(err, { tags: { component: 'agent-runner', phase: 'unexpected' } });
     }
   }
 

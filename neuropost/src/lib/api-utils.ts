@@ -4,6 +4,7 @@
 // Every API route should use these instead of raw error handling.
 
 import { NextResponse } from 'next/server';
+import * as Sentry from '@sentry/nextjs';
 
 // ─── Error sanitization ──────────────────────────────────────────────────────
 // Internal errors (Supabase, Anthropic, Stripe) must never leak to the client.
@@ -43,8 +44,14 @@ export function apiError(err: unknown, context?: string): NextResponse {
     }
   }
 
-  // 2. Log the FULL error server-side (for debugging)
+  // 2. Log the FULL error server-side + report to Sentry
   console.error(`[${context ?? 'API'}]`, err);
+  try {
+    Sentry.captureException(err, {
+      tags: { api_route: context ?? 'unknown' },
+      extra: { errMsg },
+    });
+  } catch { /* Sentry not available — don't break the response */ }
 
   // 3. Check for transient errors → 503
   if (/timeout|rate.?limit|overloaded|503|504|ECONN/i.test(errMsg)) {

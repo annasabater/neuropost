@@ -123,6 +123,8 @@ export async function GET(request: Request) {
           await processSupportInteraction(db, job, outputs[0] as AgentOutput);
         } else if (agentType === 'content' && action === 'generate_ideas') {
           await processContentIdeas(db, job, outputs[0] as AgentOutput);
+        } else if (agentType === 'content' && action === 'generate_caption' && job.input?._ab_test_id) {
+          await processAbTestVariant(db, job, outputs[0] as AgentOutput);
         }
 
         // Mark job as delivered
@@ -307,4 +309,35 @@ async function processContentIdeas(db: DB, job: AgentJob, output: AgentOutput) {
 
     await db.from('recreation_requests').update({ worker_notes: workerResponse }).eq('id', recreationId);
   }
+}
+
+// ─── A/B test variant B handler ──────────────────────────────────────────────
+
+async function processAbTestVariant(db: DB, job: AgentJob, output: AgentOutput) {
+  const abTestId = job.input?._ab_test_id as string;
+  if (!abTestId) return;
+
+  const payload = output.payload as {
+    copies?: Record<string, { caption?: string }>;
+    hashtags?: { branded?: string[]; niche?: string[]; broad?: string[] };
+  };
+
+  // Extract caption from copywriter output
+  const copies = payload.copies ?? {};
+  const platform = Object.keys(copies)[0] ?? 'instagram';
+  const caption = copies[platform]?.caption ?? '';
+  const hashtags = [
+    ...(payload.hashtags?.branded ?? []),
+    ...(payload.hashtags?.niche ?? []),
+    ...(payload.hashtags?.broad ?? []).slice(0, 3),
+  ];
+
+  if (!caption) return;
+
+  await db.from('ab_tests').update({
+    caption_b:  caption,
+    hashtags_b: hashtags,
+  }).eq('id', abTestId);
+
+  console.log(`[process-agent-replies] A/B test ${abTestId}: variant B caption saved`);
 }
