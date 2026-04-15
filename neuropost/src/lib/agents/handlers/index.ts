@@ -22,6 +22,7 @@ import { registerPublishingHandlers         } from './publishing';
 import { registerAdvancedHandlers           } from './advanced';
 import { registerMaterializeHandler         } from './materialize';
 import { registerMediaHandlers              } from './media';
+import { registerValidatorHandlers          } from './validator';
 
 let registered = false;
 
@@ -35,6 +36,7 @@ export function registerAllHandlers(): void {
   registerAdvancedHandlers();
   registerMaterializeHandler();
   registerMediaHandlers();
+  registerValidatorHandlers();
   registered = true;
 }
 

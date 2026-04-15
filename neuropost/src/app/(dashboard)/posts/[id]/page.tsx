@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Edit2, Trash2, Calendar, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Edit2, Trash2, Calendar, RefreshCw, AlertTriangle, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { VersionsPanel } from '@/components/posts/VersionsPanel';
 import { AssetVersions } from '@/components/posts/AssetVersions';
@@ -79,11 +79,26 @@ export default function PostDetailPage() {
   }
 
   // ── Shared state (must be before early returns to respect Rules of Hooks) ──
-  const [deleting, setDeleting]         = useState(false);
+  const [deleting, setDeleting]           = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
-  const [scheduleDate, setScheduleDate] = useState('');
-  const [scheduleTime, setScheduleTime] = useState('10:00');
+  const [regenerating, setRegenerating]   = useState(false);
+  const [scheduleDate, setScheduleDate]   = useState('');
+  const [scheduleTime, setScheduleTime]   = useState('10:00');
+
+  // ── Quota & regeneration state ──────────────────────────────────────────────
+  interface QuotaInfo {
+    photoPostsRemaining: number; videoPostsRemaining: number;
+    photoPostsLimit: number;     videoPostsLimit: number;
+    plan: string;
+  }
+  interface RegenCheck {
+    allowed: boolean; willCostQuota: boolean;
+    quotaAfter?: number; regenerationCount: number;
+    reason?: string; upgradeUrl?: string;
+  }
+  const [quota,       setQuota]       = useState<QuotaInfo | null>(null);
+  const [regenCheck,  setRegenCheck]  = useState<RegenCheck | null>(null);
+  const [regenConfirm, setRegenConfirm] = useState(false);
 
   // Sync schedule state when post loads
   useEffect(() => {
@@ -93,6 +108,14 @@ export default function PostDetailPage() {
       setScheduleTime(post.scheduled_at.slice(11, 16) || '10:00');
     }
   }, [post]);
+
+  // Fetch weekly quota once on mount
+  useEffect(() => {
+    fetch('/api/quota')
+      .then((r) => r.json())
+      .then((json) => { if (!json.error) setQuota(json); })
+      .catch(() => {});
+  }, []);
 
   if (loading) return <div className="page-content"><span className="loading-spinner" /></div>;
   if (!post)   return <div className="page-content"><p>Post no encontrado.</p></div>;
@@ -147,21 +170,48 @@ export default function PostDetailPage() {
   async function changeRequestStatus(newStatus: string) {
     if (!post) return;
 
-    // Handle regeneration separately
+    // Handle regeneration separately — enforce quota limits
     if (newStatus === 'regenerate') {
+      // Step 1: check if allowed
+      const checkRes  = await fetch(`/api/posts/${post.id}/can-regenerate`);
+      const check     = await checkRes.json() as { allowed: boolean; willCostQuota: boolean; quotaAfter?: number; regenerationCount: number; reason?: string; upgradeUrl?: string };
+      setRegenCheck(check);
+
+      if (!check.allowed) {
+        toast.error(check.reason ?? 'Has alcanzado el límite de tu plan');
+        return;
+      }
+
+      // Step 2: if it costs quota, require confirmation first
+      if (check.willCostQuota && !regenConfirm) {
+        setRegenConfirm(true);
+        return;
+      }
+
+      // Step 3: proceed
+      setRegenConfirm(false);
       setRegenerating(true);
       try {
-        // Move post back to preparation and trigger new generation
-        const res = await fetch(`/api/posts/${post.id}`, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'request' }),
+        const res = await fetch(`/api/posts/${post.id}/regenerate`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'full' }),
         });
-        if (!res.ok) { toast.error('Error al regenerar'); return; }
         const json = await res.json();
+        if (!res.ok) {
+          if (json.limitReached) {
+            toast.error(json.error ?? 'Has alcanzado el límite de tu plan');
+          } else {
+            toast.error(json.error ?? 'Error al regenerar');
+          }
+          return;
+        }
         updatePost(post.id, json.post);
         setPost(json.post);
-        toast.success('Regenerando contenido — recibirás una nueva propuesta');
-      } catch { toast.error('Error'); }
+        setRegenCheck(null);
+        // Refresh quota
+        fetch('/api/quota').then((r) => r.json()).then((q) => { if (!q.error) setQuota(q); }).catch(() => {});
+        toast.success('Contenido regenerado correctamente');
+      } catch { toast.error('Error al regenerar'); }
       finally { setRegenerating(false); }
       return;
     }
@@ -621,19 +671,133 @@ export default function PostDetailPage() {
           </div>
         )}
 
+        {/* Weekly quota bar */}
+        {quota && (
+          <div style={{ padding: '16px 28px', borderBottom: '1px solid var(--border)', background: 'var(--bg-1)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+              <TrendingUp size={12} style={{ color: 'var(--accent)' }} />
+              <p style={{ ...labelStyle, margin: 0 }}>
+                Cuota semanal — plan {quota.plan.charAt(0).toUpperCase() + quota.plan.slice(1)}
+              </p>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* Photo posts bar */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ fontFamily: f, fontSize: 11, color: 'var(--text-secondary)' }}>Posts de foto</span>
+                  <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, color: quota.photoPostsRemaining === 0 ? '#dc2626' : 'var(--accent)' }}>
+                    {quota.photoPostsRemaining} / {quota.photoPostsLimit} restantes
+                  </span>
+                </div>
+                <div style={{ height: 4, background: 'var(--border)', position: 'relative' }}>
+                  <div style={{
+                    height: '100%', background: quota.photoPostsRemaining === 0 ? '#dc2626' : 'var(--accent)',
+                    width: `${Math.min(100, ((quota.photoPostsLimit - quota.photoPostsRemaining) / quota.photoPostsLimit) * 100)}%`,
+                    transition: 'width 0.3s',
+                  }} />
+                </div>
+              </div>
+              {/* Video posts bar (only if plan allows) */}
+              {quota.videoPostsLimit > 0 && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <span style={{ fontFamily: f, fontSize: 11, color: 'var(--text-secondary)' }}>Vídeos / Reels</span>
+                    <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, color: quota.videoPostsRemaining === 0 ? '#dc2626' : 'var(--accent)' }}>
+                      {quota.videoPostsRemaining} / {quota.videoPostsLimit} restantes
+                    </span>
+                  </div>
+                  <div style={{ height: 4, background: 'var(--border)', position: 'relative' }}>
+                    <div style={{
+                      height: '100%', background: quota.videoPostsRemaining === 0 ? '#dc2626' : 'var(--accent)',
+                      width: `${Math.min(100, ((quota.videoPostsLimit - quota.videoPostsRemaining) / quota.videoPostsLimit) * 100)}%`,
+                      transition: 'width 0.3s',
+                    }} />
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Status actions */}
         {STATUS_ACTIONS.length > 0 && (
           <div style={{ padding: '20px 28px', borderBottom: '1px solid var(--border)' }}>
             <p style={labelStyle}>Acciones</p>
+
+            {/* Regeneration blocked — no quota */}
+            {regenCheck && !regenCheck.allowed && (
+              <div style={{
+                display: 'flex', alignItems: 'flex-start', gap: 10,
+                background: '#fef2f2', border: '1px solid #fca5a5', padding: '12px 16px', marginBottom: 12,
+              }}>
+                <AlertTriangle size={16} style={{ color: '#dc2626', flexShrink: 0, marginTop: 1 }} />
+                <div>
+                  <p style={{ fontFamily: f, fontSize: 13, fontWeight: 700, color: '#991b1b', marginBottom: 4 }}>
+                    Límite semanal alcanzado
+                  </p>
+                  <p style={{ fontFamily: f, fontSize: 12, color: '#6b7280', lineHeight: 1.5 }}>
+                    {regenCheck.reason}
+                  </p>
+                  {regenCheck.upgradeUrl && (
+                    <a href={regenCheck.upgradeUrl} style={{ fontFamily: f, fontSize: 12, color: 'var(--accent)', fontWeight: 600, marginTop: 6, display: 'inline-block' }}>
+                      Actualizar plan →
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Regeneration confirmation — will cost quota */}
+            {regenConfirm && regenCheck?.willCostQuota && (
+              <div style={{
+                display: 'flex', alignItems: 'flex-start', gap: 10,
+                background: '#fffbeb', border: '1px solid #fbbf24', padding: '12px 16px', marginBottom: 12,
+              }}>
+                <AlertTriangle size={16} style={{ color: '#d97706', flexShrink: 0, marginTop: 1 }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontFamily: f, fontSize: 13, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>
+                    Esta regeneración consume 1 post de tu cuota
+                  </p>
+                  <p style={{ fontFamily: f, fontSize: 12, color: '#6b7280', lineHeight: 1.5, marginBottom: 10 }}>
+                    Ya has usado las 3 regeneraciones gratuitas de este post. Continuar descontará 1 post de tu cupo semanal
+                    {regenCheck.quotaAfter !== undefined ? ` (te quedarán ${regenCheck.quotaAfter} posts esta semana)` : ''}.
+                  </p>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" onClick={() => changeRequestStatus('regenerate')} disabled={regenerating} style={{
+                      padding: '7px 16px', background: '#d97706', color: '#fff', border: 'none',
+                      fontFamily: f, fontSize: 12, fontWeight: 700, cursor: regenerating ? 'wait' : 'pointer',
+                      opacity: regenerating ? 0.6 : 1,
+                    }}>
+                      {regenerating ? 'Regenerando…' : 'Sí, continuar'}
+                    </button>
+                    <button type="button" onClick={() => { setRegenConfirm(false); setRegenCheck(null); }} style={{
+                      padding: '7px 14px', background: 'var(--bg)', border: '1px solid var(--border)',
+                      fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer', color: 'var(--text-secondary)',
+                    }}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {STATUS_ACTIONS.filter(a => a.status !== 'scheduled').map(({ status, label, bg, color, border }) => (
-                <button key={status} onClick={() => changeRequestStatus(status)} style={{
-                  padding: '8px 18px', background: bg, color,
-                  borderTop: `1px solid ${border}`, borderBottom: `1px solid ${border}`,
-                  borderLeft: `1px solid ${border}`, borderRight: `1px solid ${border}`,
-                  fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                }}>
-                  {label}
+                <button key={status} onClick={() => changeRequestStatus(status)}
+                  disabled={status === 'regenerate' && regenerating}
+                  style={{
+                    padding: '8px 18px', background: bg, color,
+                    borderTop: `1px solid ${border}`, borderBottom: `1px solid ${border}`,
+                    borderLeft: `1px solid ${border}`, borderRight: `1px solid ${border}`,
+                    fontFamily: f, fontSize: 12, fontWeight: 600,
+                    cursor: (status === 'regenerate' && regenerating) ? 'wait' : 'pointer',
+                    opacity: (status === 'regenerate' && regenerating) ? 0.6 : 1,
+                    display: 'flex', alignItems: 'center', gap: 6,
+                  }}>
+                  {status === 'regenerate' && regenerating
+                    ? <><RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} /> Regenerando…</>
+                    : label
+                  }
                 </button>
               ))}
             </div>

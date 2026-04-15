@@ -10,12 +10,16 @@ import { SiteFooter } from '@/components/layout/SiteFooter';
 type BillingCycle = 'monthly' | 'annual';
 
 interface Plan {
-  name: string;
-  monthlyPrice: number;
-  desc: string;
-  features: string[];
-  featured: boolean;
-  badge?: string;
+  name:          string;
+  monthlyPrice:  number;
+  annualPrice:   number;
+  annualSavings: number;
+  desc:          string;
+  content:       string[];
+  highlight:     string;
+  features:      string[];
+  featured:      boolean;
+  badge?:        string;
 }
 
 interface ComparisonRow {
@@ -32,73 +36,79 @@ const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 const PLANS: Plan[] = [
   {
-    name: 'Starter',
-    monthlyPrice: 29,
-    desc: 'Para tener una presencia activa y profesional en redes',
+    name:          'Starter',
+    monthlyPrice:   25,
+    annualPrice:    21,
+    annualSavings:  48,
+    desc:          'Para presencia activa',
+    content:       ['📷  2 fotos/semana', '🎬  Carruseles hasta 3', '◯  Sin vídeo/reel'],
+    highlight:     'Ideal para empezar con redes',
     featured: false,
     features: [
-      '2 posts de foto por semana',
-      'Carruseles hasta 3 fotos',
       'Publicación programada',
-      'Edición y creación de contenido',
-      'Solicitudes de contenido personalizadas',
-      'Generación con IA integrada',
-      'Calendario de contenido básico',
+      'Calendario avanzado',
+      'Edición de contenido',
+      'Solicitudes personalizadas',
+      'Análisis de rendimiento',
+      'IA integrada',
+      'Soporte por email',
     ],
   },
   {
-    name: 'Pro',
-    monthlyPrice: 89,
-    desc: 'Para convertir tus redes en una máquina de ventas',
+    name:          'Pro',
+    monthlyPrice:   76,
+    annualPrice:    63,
+    annualSavings:  158,
+    desc:          'Máximo alcance',
+    content:       ['📷  4 fotos/semana', '🎬  2 vídeo/reel ≤90s/semana', '⭐  Carruseles hasta 8'],
+    highlight:     'Vídeo/reel optimizados a ≤90s para máximo alcance en Instagram',
     featured: true,
     badge: '⚡ Más popular',
     features: [
-      '4 fotos + 2 vídeos por semana',
-      'Carruseles hasta 8 fotos',
-      'Publicación programada y calendario avanzado',
-      'Ideas de contenido + creación a medida',
+      'Publicación programada',
+      'Ideas basadas en tendencias y tu contenido',
       'Mejores horas para publicar',
-      'Solicitudes de contenido personalizadas',
-      'Análisis de rendimiento y mejoras',
-      'Generación con IA integrada',
+      'Solicitudes personalizadas',
+      'Análisis de rendimiento',
+      'IA integrada',
       'Soporte prioritario',
     ],
   },
   {
-    name: 'Total',
-    monthlyPrice: 189,
-    desc: 'Para convertir tus redes en tu principal canal de captación de clientes',
+    name:          'Total',
+    monthlyPrice:   161,
+    annualPrice:    133,
+    annualSavings:  336,
+    desc:          'Control completo',
+    content:       ['📷  Hasta 20 fotos/semana', '🎬  10 vídeo/reel ≤90s/semana', '⭐  Carruseles hasta 20'],
+    highlight:     'Conversión máxima de leads a ventas',
     featured: false,
     badge: '🚀 Completo',
     features: [
-      'Hasta 20 fotos + 10 vídeos por semana',
-      'Carruseles hasta 20 fotos',
-      'Publicación programada y calendario avanzado',
-      'Ideas + contenido basado en tendencias',
-      'Solicitudes de contenido personalizadas',
-      'Análisis de rendimiento y mejoras continuas',
-      'Generación con IA integrada',
-      'Soporte prioritario 24h',
+      'Publicación programada',
+      'Ideas basadas en tendencias y tu contenido',
+      'Mejores horas para publicar',
+      'Solicitudes personalizadas',
+      'Análisis de rendimiento',
+      'IA integrada',
+      'Soporte 24h',
     ],
   },
 ];
 
 const COMPARISON_ROWS: ComparisonRow[] = [
-  { feature: 'Contenido semanal*', starter: '2 fotos', pro: '4 fotos + 2 vídeos', total: 'Hasta 20 fotos + 10 vídeos' },
-  { feature: 'Carruseles (nº de fotos)', starter: 'Hasta 3', pro: 'Hasta 8', total: 'Hasta 20' },
-  { feature: 'Plataformas conectadas', starter: 'Instagram + Facebook', pro: 'Instagram + Facebook', total: 'Instagram + Facebook' },
-  { feature: 'Publicación programada (tú decides cuándo)', starter: '✓', pro: '✓', total: '✓' },
-  { feature: 'Calendario de contenido', starter: 'Básico', pro: 'Avanzado', total: 'Avanzado' },
-  { feature: 'Edición y creacion de contenido', starter: 'Avanzado', pro: 'Avanzado', total: 'Avanzado' },
-  { feature: 'Solicitudes de contenido personalizadas', starter: '✓', pro: '✓', total: '✓' },
-  { feature: 'Generación con IA integrada', starter: '✓', pro: '✓', total: '✓' },
-  { feature: 'Ideas de contenido + creación a medida', starter: '—', pro: '✓', total: '✓' },
-  { feature: 'Mejores horas para publicar', starter: '—', pro: '✓', total: '✓' },
-  { feature: 'Análisis de rendimiento y mejoras', starter: '—', pro: '✓', total: '✓' },
-  { feature: 'Contenido en tendencia', starter: '—', pro: '—', total: '✓' },
-  { feature: 'Aprobación de contenido', starter: '✓', pro: '✓', total: '✓' },
-  { feature: 'Análisis de rendimiento', starter: 'Avanzado', pro: 'Avanzado', total: 'Avanzado' },
-  { feature: 'Soporte', starter: 'Prioritario', pro: 'Prioritario', total: '24h prioritario' },
+  { feature: 'Fotos por semana',              starter: '2',       pro: '4',               total: 'Hasta 20' },
+  { feature: 'Vídeo/reel por semana',         starter: '—',       pro: '2 (≤90s)',         total: '10 (≤90s)' },
+  { feature: 'Carruseles (máx. fotos)',        starter: 'Hasta 3', pro: 'Hasta 8',          total: 'Hasta 20' },
+  { feature: 'Publicación programada',         starter: '✓',       pro: '✓',               total: '✓' },
+  { feature: 'Calendario avanzado',            starter: '✓',       pro: '✓',               total: '✓' },
+  { feature: 'Edición de contenido',           starter: '✓',       pro: '✓',               total: '✓' },
+  { feature: 'Solicitudes personalizadas',     starter: '✓',       pro: '✓',               total: '✓' },
+  { feature: 'IA integrada',                  starter: '✓',       pro: '✓',               total: '✓' },
+  { feature: 'Ideas basadas en tendencias',    starter: '—',       pro: '✓',               total: '✓' },
+  { feature: 'Mejores horas para publicar',    starter: '—',       pro: '✓',               total: '✓' },
+  { feature: 'Análisis de rendimiento',        starter: '✓',       pro: '✓',               total: '✓' },
+  { feature: 'Soporte',                        starter: 'Email',   pro: 'Prioritario',     total: '24h' },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -634,7 +644,7 @@ export default function PricingPage() {
   const isAnnual = billing === 'annual';
 
   function displayPrice(plan: Plan): number {
-    return isAnnual ? annualPrice(plan.monthlyPrice) : plan.monthlyPrice;
+    return isAnnual ? plan.annualPrice : plan.monthlyPrice;
   }
 
   return (
@@ -757,7 +767,6 @@ export default function PricingPage() {
             <div className="pricing-grid" style={{ minWidth: 780, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, alignItems: 'stretch' }}>
               {PLANS.map((plan) => {
                 const price = displayPrice(plan);
-                const savings = annualSavings(plan.monthlyPrice);
 
                 return (
                   <div key={plan.name} className={`plan${plan.featured ? ' featured' : ''}`}>
@@ -769,35 +778,55 @@ export default function PricingPage() {
                       <span>/mes</span>
                     </div>
 
-                    {/* Annual savings badge */}
                     {isAnnual && (
-                      <div
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          background: plan.featured ? 'rgba(255,92,26,0.2)' : 'var(--orange-light)',
-                          color: plan.featured ? '#ffb899' : 'var(--orange)',
-                          fontFamily: f,
-                          fontSize: '0.78rem',
-                          fontWeight: 800,
-                          padding: '4px 12px',
-                          borderRadius: '0',
-                          marginBottom: '8px',
-                        }}
-                      >
-                        Ahorras €{savings}/año
+                      <div style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '6px',
+                        background: plan.featured ? 'rgba(15,118,110,0.22)' : 'var(--accent-light)',
+                        color: plan.featured ? '#7cf5ea' : 'var(--accent)',
+                        fontFamily: f, fontSize: '0.78rem', fontWeight: 800,
+                        padding: '4px 12px', borderRadius: '0', marginBottom: '8px',
+                      }}>
+                        Ahorras €{plan.annualSavings}/año
                       </div>
                     )}
 
                     <div className="plan-desc">{plan.desc}</div>
+
+                    {/* Content block */}
+                    <div style={{
+                      border: `1px solid ${plan.featured ? 'rgba(255,255,255,0.2)' : 'var(--border)'}`,
+                      padding: '10px 12px', marginBottom: 12,
+                    }}>
+                      <div style={{
+                        fontSize: 10, fontWeight: 800, textTransform: 'uppercase' as const,
+                        letterSpacing: '0.08em', marginBottom: 8, fontFamily: fc,
+                        color: plan.featured ? 'rgba(255,255,255,0.6)' : 'var(--muted)',
+                      }}>
+                        Contenido incluido
+                      </div>
+                      {plan.content.map((item) => (
+                        <div key={item} style={{
+                          fontSize: 13, fontWeight: 600, marginBottom: 4, fontFamily: f,
+                          color: plan.featured ? '#ffffff' : 'var(--ink)',
+                        }}>
+                          {item}
+                        </div>
+                      ))}
+                      <div style={{
+                        fontSize: 11, marginTop: 8, fontStyle: 'italic', fontFamily: f,
+                        color: plan.featured ? 'rgba(255,255,255,0.6)' : 'var(--muted)',
+                      }}>
+                        {plan.highlight}
+                      </div>
+                    </div>
+
                     <ul className="plan-features">
-                      {plan.features.map((f) => (
-                        <li key={f}>{f}</li>
+                      {plan.features.map((feat) => (
+                        <li key={feat}>{feat}</li>
                       ))}
                     </ul>
                     <Link href="/register" className="plan-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
-                      👉 Empezar gratis →
+                      Empezar gratis →
                     </Link>
                   </div>
                 );

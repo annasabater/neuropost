@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase';
@@ -9,6 +9,14 @@ import type { SocialSector, BrandTone, PublishMode, PostGoal, VisualStyle } from
 import { TONE_OPTIONS, PUBLISH_MODE_OPTIONS } from '@/lib/brand-options';
 import { useTagInput } from '@/hooks/useTagInput';
 import CouponInput from '@/components/billing/CouponInput';
+import { getTemplateForSector } from '@/lib/industry-templates';
+
+interface ContentCategoryDraft {
+  category_key: string;
+  name:         string;
+  source:       'template' | 'user' | 'ai_suggested';
+  active:       boolean;
+}
 
 // ─── Themed image helper ──────────────────────────────────────────────────────
 // We use loremflickr, which returns a real Flickr photo matching one or more
@@ -491,54 +499,54 @@ const ONBOARDING_PLANS: {
   badge?: string;
 }[] = [
   {
-    id: 'starter',
-    name: 'Starter',
-    price: 29,
-    desc: 'Para tener una presencia activa y profesional en redes',
+    id:       'starter',
+    name:     'Starter',
+    price:     25,
+    desc:     'Para presencia activa',
     features: [
-      '2 posts de foto por semana',
-      'Carruseles hasta 3 fotos',
+      '📷  2 fotos/semana · 🎬  Carruseles hasta 3 · Sin vídeo/reel',
       'Publicación programada',
-      'Edición y creación de contenido',
-      'Solicitudes de contenido personalizadas',
-      'Generación con IA integrada',
-      'Calendario de contenido básico',
+      'Calendario avanzado',
+      'Edición de contenido',
+      'Solicitudes personalizadas',
+      'Análisis de rendimiento',
+      'IA integrada',
+      'Soporte por email',
     ],
   },
   {
-    id: 'pro',
-    name: 'Pro',
-    price: 89,
-    desc: 'Para convertir tus redes en una máquina de ventas',
+    id:       'pro',
+    name:     'Pro',
+    price:     76,
+    desc:     'Máximo alcance',
     featured: true,
-    badge: 'Más popular',
+    badge:    'Más popular',
     features: [
-      '4 fotos + 2 vídeos por semana',
-      'Carruseles hasta 8 fotos',
-      'Publicación programada y calendario avanzado',
-      'Ideas de contenido + creación a medida',
+      '📷  4 fotos/semana · 🎬  2 vídeo/reel ≤90s · ⭐  Carruseles hasta 8',
+      'Publicación programada',
+      'Ideas basadas en tendencias y tu contenido',
       'Mejores horas para publicar',
-      'Solicitudes de contenido personalizadas',
-      'Análisis de rendimiento y mejoras',
-      'Generación con IA integrada',
+      'Solicitudes personalizadas',
+      'Análisis de rendimiento',
+      'IA integrada',
       'Soporte prioritario',
     ],
   },
   {
-    id: 'total',
-    name: 'Total',
-    price: 189,
-    desc: 'Para convertir tus redes en tu principal canal de captación de clientes',
+    id:    'total',
+    name:  'Total',
+    price:  161,
+    desc:  'Control completo',
     badge: 'Completo',
     features: [
-      'Hasta 20 fotos + 10 vídeos por semana',
-      'Carruseles hasta 20 fotos',
-      'Publicación programada y calendario avanzado',
-      'Ideas + contenido basado en tendencias',
-      'Solicitudes de contenido personalizadas',
-      'Análisis de rendimiento y mejoras continuas',
-      'Generación con IA integrada',
-      'Soporte prioritario 24h',
+      '📷  Hasta 20 fotos/semana · 🎬  10 vídeo/reel ≤90s · ⭐  Carruseles hasta 20',
+      'Publicación programada',
+      'Ideas basadas en tendencias y tu contenido',
+      'Mejores horas para publicar',
+      'Solicitudes personalizadas',
+      'Análisis de rendimiento',
+      'IA integrada',
+      'Soporte 24h',
     ],
   },
 ];
@@ -581,6 +589,72 @@ export default function OnboardingPage() {
   const [promoCodeId,      setPromoCodeId]      = useState<string | null>(null);
   const [discountText,     setDiscountText]     = useState('');
   const [selectedPlan,     setSelectedPlan]     = useState<PlanId>('pro');
+
+  // ── Content categories ────────────────────────────────────────────────────────
+  const [contentCategories, setContentCategories] = useState<ContentCategoryDraft[]>([]);
+  const [catInput,           setCatInput]          = useState('');
+  const [catSuggestions,     setCatSuggestions]    = useState<string[]>([]);
+  const [catSugLoading,      setCatSugLoading]     = useState(false);
+  const catDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load template categories when sector changes
+  useEffect(() => {
+    const template = getTemplateForSector(sector);
+    if (template) {
+      setContentCategories(
+        template.default_categories.map((c) => ({
+          category_key: c.key,
+          name:         c.name,
+          source:       'template' as const,
+          active:       true,
+        })),
+      );
+    } else {
+      setContentCategories([]);
+    }
+  }, [sector]);
+
+  const toggleCategory = useCallback((key: string) => {
+    setContentCategories((prev) =>
+      prev.map((c) => c.category_key === key ? { ...c, active: !c.active } : c),
+    );
+  }, []);
+
+  const addCustomCategory = useCallback((label: string, source: 'user' | 'ai_suggested' = 'user') => {
+    const key = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    setContentCategories((prev) => {
+      if (prev.some((c) => c.category_key === key || c.name.toLowerCase() === label.toLowerCase())) return prev;
+      return [...prev, { category_key: key, name: label, source, active: true }];
+    });
+  }, []);
+
+  const fetchCatSuggestions = useCallback(async (value: string) => {
+    if (value.trim().length < 2) { setCatSuggestions([]); return; }
+    setCatSugLoading(true);
+    try {
+      const res = await fetch('/api/ai/suggest-categories', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          sector,
+          current_categories: contentCategories.map((c) => c.name),
+          input:              value,
+        }),
+      });
+      const json = await res.json();
+      setCatSuggestions(Array.isArray(json.suggestions) ? json.suggestions : []);
+    } catch {
+      setCatSuggestions([]);
+    } finally {
+      setCatSugLoading(false);
+    }
+  }, [sector, contentCategories]);
+
+  const handleCatInputChange = useCallback((value: string) => {
+    setCatInput(value);
+    if (catDebounceRef.current) clearTimeout(catDebounceRef.current);
+    catDebounceRef.current = setTimeout(() => { void fetchCatSuggestions(value); }, 500);
+  }, [fetchCatSuggestions]);
 
   const dynamicQuestions = getDynamicQuestions(sector);
 
@@ -637,6 +711,7 @@ export default function OnboardingPage() {
           colors: { primary: effectivePrimaryColor, secondary: effectiveSecondaryColor, tertiary: effectiveTertiaryColor, accent: effectivePrimaryColor },
           promo_code_id: promoCodeId ?? undefined,
           rules: { forbiddenWords: forbidden, noPublishDays: [], noEmojis: visualStyle === 'elegant' || visualStyle === 'dark', noAutoReplyNegative: false, forbiddenTopics: [] },
+          content_categories: contentCategories.filter((c) => c.active),
           brand_voice_doc: [
             `Negocio: ${name}. Sector: ${sector}.`,
             `Estilo visual: ${visualStyle}. ${styleInstructions[visualStyle]}`,
@@ -1244,6 +1319,124 @@ export default function OnboardingPage() {
                     </div>
                   );
                 })}
+
+                {/* ── Content categories ── */}
+                <div>
+                  <Label>
+                    Categorías de contenido{' '}
+                    <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>
+                      (activa las que quieras publicar)
+                    </span>
+                  </Label>
+                  <p style={{ fontFamily: FONT, fontSize: 12, color: MUTED, marginBottom: 12, lineHeight: 1.5 }}>
+                    {contentCategories.length > 0
+                      ? 'Estas son las categorías recomendadas para tu sector. Desactiva las que no te interesen.'
+                      : 'Añade las categorías de contenido que quieras publicar.'}
+                  </p>
+
+                  {/* Template + custom chips */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                    {contentCategories.map((cat) => (
+                      <button
+                        key={cat.category_key}
+                        type="button"
+                        onClick={() => toggleCategory(cat.category_key)}
+                        style={{
+                          padding:     '7px 12px',
+                          background:  cat.active ? ACCENT : '#ffffff',
+                          color:       cat.active ? '#ffffff' : '#374151',
+                          border:      `1.5px solid ${cat.active ? ACCENT : BORDER}`,
+                          cursor:      'pointer',
+                          fontFamily:  FONT,
+                          fontSize:    '0.78rem',
+                          fontWeight:  700,
+                          borderRadius: 0,
+                          display:     'inline-flex',
+                          alignItems:  'center',
+                          gap:         5,
+                          opacity:     cat.active ? 1 : 0.55,
+                          transition:  'all 0.15s',
+                        }}
+                      >
+                        {cat.name}
+                        {cat.source === 'ai_suggested' && (
+                          <span style={{ fontSize: 9, opacity: 0.8, fontWeight: 400, color: cat.active ? 'rgba(255,255,255,0.8)' : ACCENT }}>
+                            ✦ IA
+                          </span>
+                        )}
+                        {cat.source === 'user' && (
+                          <span
+                            role="button"
+                            onClick={(e) => { e.stopPropagation(); setContentCategories((prev) => prev.filter((c) => c.category_key !== cat.category_key)); }}
+                            style={{ cursor: 'pointer', fontSize: 12, lineHeight: 1, color: cat.active ? 'rgba(255,255,255,0.7)' : MUTED }}
+                            aria-label={`Eliminar ${cat.name}`}
+                          >
+                            ×
+                          </span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Free-text input + AI autocomplete */}
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      style={inputStyle}
+                      type="text"
+                      placeholder="Añadir categoría… (ej: sorteos, behind the scenes, UGC)"
+                      value={catInput}
+                      onChange={(e) => handleCatInputChange(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && catInput.trim()) {
+                          e.preventDefault();
+                          addCustomCategory(catInput.trim(), 'user');
+                          setCatInput('');
+                          setCatSuggestions([]);
+                        }
+                        if (e.key === 'Escape') { setCatSuggestions([]); }
+                      }}
+                    />
+                    {/* AI suggestions dropdown */}
+                    {(catSuggestions.length > 0 || catSugLoading) && (
+                      <div style={{
+                        position:   'absolute', top: '100%', left: 0, right: 0,
+                        background: '#ffffff', border: `1px solid ${BORDER}`,
+                        borderTop:  'none', zIndex: 20,
+                        boxShadow:  '0 4px 12px rgba(0,0,0,0.08)',
+                      }}>
+                        {catSugLoading && (
+                          <div style={{ padding: '10px 14px', fontFamily: FONT, fontSize: 12, color: MUTED }}>
+                            Buscando sugerencias…
+                          </div>
+                        )}
+                        {catSuggestions.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            onClick={() => {
+                              addCustomCategory(s, 'ai_suggested');
+                              setCatInput('');
+                              setCatSuggestions([]);
+                            }}
+                            style={{
+                              display:    'flex', alignItems: 'center', justifyContent: 'space-between',
+                              width:      '100%', padding: '9px 14px',
+                              background: 'transparent', border: 'none',
+                              cursor:     'pointer', fontFamily: FONT,
+                              fontSize:   13, color: INK, textAlign: 'left',
+                              borderBottom: `1px solid #f3f4f6`,
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = '#f0fdfa')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            <span>{s}</span>
+                            <span style={{ fontSize: 10, color: ACCENT, fontWeight: 700 }}>✦ IA</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 {/* Country — native dropdown grouped by region */}
                 <div>

@@ -42,7 +42,6 @@ export async function POST(request: Request) {
       ok:          result.ok,
       publishedAt: result.publishedAt,
       igPostId:    result.igPostId,
-      fbPostId:    result.fbPostId,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

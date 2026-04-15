@@ -91,7 +91,7 @@ export async function scanTrendsHandler(job: AgentJob): Promise<HandlerResult> {
       : 'para Instagram en España (todas las industrias)';
 
     const message = await client.messages.create({
-      model:      'claude-sonnet-4-6',
+      model:      'claude-haiku-4-5-20251001',
       max_tokens: 2500,
       system:     SYSTEM,
       messages: [{ role: 'user', content: `Analiza las tendencias de Instagram de esta semana (${week}) ${sectorLabel}. Devuelve el JSON.` }],
@@ -110,7 +110,7 @@ export async function scanTrendsHandler(job: AgentJob): Promise<HandlerResult> {
       week,
       trends:       parsed.trends,
       summary:      parsed.summary ?? null,
-      source_model: 'claude-sonnet-4-6',
+      source_model: 'claude-haiku-4-5-20251001',
     }, { onConflict: 'sector_key,week' });
     if (upsertErr) throw new Error(`upsert trends: ${upsertErr.message}`);
 
@@ -119,7 +119,7 @@ export async function scanTrendsHandler(job: AgentJob): Promise<HandlerResult> {
       outputs: [{
         kind:    'analysis',
         payload: { week, sector_key: sectorKey, trends_count: parsed.trends.length, summary: parsed.summary } as unknown as Record<string, unknown>,
-        model:   'claude-sonnet-4-6',
+        model:   'claude-haiku-4-5-20251001',
       }],
     };
   } catch (err) {

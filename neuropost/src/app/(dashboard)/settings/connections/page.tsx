@@ -18,7 +18,7 @@ interface AccountStatus {
 
 interface ConnectionStatus {
   instagram: AccountStatus | null;
-  facebook:  AccountStatus | null;
+  // TODO [FASE 2]: Facebook — add facebook: AccountStatus | null
 }
 
 function StatusBadge({ status }: { status: AccountStatus['tokenStatus'] }) {
@@ -58,9 +58,23 @@ export default function ConnectionsPage() {
 
   useEffect(() => { fetchStatus(); }, []);
 
-  async function connectMeta(source: 'instagram' | 'facebook') {
+  /** Flujo directo con Instagram (sin Facebook) */
+  async function connectInstagram() {
     try {
-      const res  = await fetch(`/api/meta/oauth-url?source=${source}`);
+      const res  = await fetch('/api/meta/instagram-auth-url');
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? 'No se pudo iniciar la conexión con Instagram');
+      if (!json.url) throw new Error('Instagram no devolvió una URL de autorización');
+      window.location.href = json.url;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo iniciar la conexión con Instagram');
+    }
+  }
+
+  /** Flujo via Facebook (requiere Página de Facebook vinculada) */
+  async function connectMeta() {
+    try {
+      const res  = await fetch('/api/meta/oauth-url?source=instagram');
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'No se pudo iniciar la conexión con Meta');
       if (!json.url) throw new Error('Meta no devolvió una URL de autorización');
@@ -96,7 +110,7 @@ export default function ConnectionsPage() {
       const json = await res.json();
       if (!res.ok) { toast.error(json.error ?? 'Error al conectar'); return; }
       toast.success(
-        `Conectado: ${json.facebook?.pageName ?? 'Facebook'}${json.instagram ? ` + @${json.instagram.username}` : ''}`
+        json.instagram ? `Conectado: @${json.instagram.username}` : 'Instagram conectado correctamente'
       );
       setManualToken('');
       setShowManual(false);
@@ -108,14 +122,14 @@ export default function ConnectionsPage() {
     }
   }
 
-  const anyConnected = status?.instagram || status?.facebook;
+  const anyConnected = status?.instagram;
 
   return (
     <div className="page-content">
       <div className="page-header">
         <div className="page-header-text">
           <h1 className="page-title">Conexiones</h1>
-          <p className="page-sub">Conecta tus cuentas de Instagram y Facebook</p>
+          <p className="page-sub">Conecta tu Instagram para publicar fotos, vídeos, reels, carruseles e historias</p>
         </div>
       </div>
 
@@ -128,7 +142,7 @@ export default function ConnectionsPage() {
           <div className="settings-section" style={{ marginBottom: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: status?.instagram ? 16 : 0 }}>
               <span style={{ fontSize: 20, lineHeight: 1 }}>📷</span>
-              <h2 className="settings-section-title" style={{ margin: 0 }}>Instagram Business</h2>
+              <h2 className="settings-section-title" style={{ margin: 0 }}>Instagram</h2>
               {status?.instagram && <StatusBadge status={status.instagram.tokenStatus} />}
             </div>
 
@@ -136,14 +150,19 @@ export default function ConnectionsPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <p style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600 }}>
                   {status.instagram.username
-                    ? `Cuenta: @${status.instagram.username}`
-                    : `Cuenta: @${status.instagram.accountId}`}
+                    ? `@${status.instagram.username}`
+                    : `ID: ${status.instagram.accountId}`}
                 </p>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+                  {['Fotos', 'Vídeos', 'Reels', 'Carruseles'].map((t) => (
+                    <span key={t} style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', background: '#e6f9f0', color: '#1a7a45' }}>{t}</span>
+                  ))}
+                </div>
                 {status.instagram.daysLeft !== null && (
                   <p style={{ fontSize: 13, color: 'var(--muted)' }}>
                     Token válido {status.instagram.daysLeft > 0
                       ? `${status.instagram.daysLeft} días más`
-                      : '(expirado)'}
+                      : '(expirado — reconecta)'}
                   </p>
                 )}
                 {status.instagram.tokenRefreshedAt && (
@@ -151,71 +170,59 @@ export default function ConnectionsPage() {
                     Última actualización: {new Date(status.instagram.tokenRefreshedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </p>
                 )}
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button type="button" className="btn-outline" onClick={() => connectMeta('instagram')} style={{ alignSelf: 'flex-start' }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                  <button type="button" className="btn-outline" onClick={() => connectInstagram()} style={{ alignSelf: 'flex-start' }}>
                     <RefreshCw size={14} /> Reconectar
                   </button>
-                  <button type="button" className="btn-primary" onClick={() => connectMeta('instagram')} style={{ alignSelf: 'flex-start' }}>
-                    <ExternalLink size={14} /> Conectar otra cuenta
+                  <button type="button" className="btn-primary" onClick={() => connectInstagram()} style={{ alignSelf: 'flex-start' }}>
+                    <ExternalLink size={14} /> Cambiar cuenta
                   </button>
                 </div>
               </div>
             ) : (
               <div style={{ marginTop: 8 }}>
-                <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
-                  Necesitas una cuenta de Instagram Business o Creator vinculada a una página de Facebook.
+                <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 6 }}>
+                  Conecta tu cuenta para que NeuroPost pueda publicar en tu nombre:
                 </p>
-                <button type="button" className="btn-primary" onClick={() => connectMeta('instagram')}>
-                  <ExternalLink size={14} /> Conectar Instagram
-                </button>
-              </div>
-            )}
-          </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
+                  {['Fotos', 'Vídeos', 'Reels', 'Carruseles'].map((t) => (
+                    <span key={t} style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', background: 'var(--bg-1)', color: 'var(--ink)', border: '1px solid var(--border)' }}>{t}</span>
+                  ))}
+                </div>
 
-          {/* Facebook */}
-          <div className="settings-section" style={{ marginBottom: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: status?.facebook ? 16 : 0 }}>
-              <span style={{ fontSize: 20, lineHeight: 1 }}>👍</span>
-              <h2 className="settings-section-title" style={{ margin: 0 }}>Facebook Page</h2>
-              {status?.facebook && <StatusBadge status={status.facebook.tokenStatus} />}
-            </div>
-
-            {status?.facebook ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <p style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600 }}>
-                  {status.facebook.pageName
-                    ? `Página: ${status.facebook.pageName}`
-                    : `Página ID: ${status.facebook.pageId}`}
-                </p>
-                {status.facebook.daysLeft !== null && (
-                  <p style={{ fontSize: 13, color: 'var(--muted)' }}>
-                    Token válido {status.facebook.daysLeft > 0
-                      ? `${status.facebook.daysLeft} días más`
-                      : '(expirado)'}
+                {/* Opción principal: Instagram Login directo */}
+                <div style={{
+                  border: '2px solid var(--accent, #0D9488)',
+                  padding: '16px 20px',
+                  marginBottom: 12,
+                }}>
+                  <p style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginBottom: 4 }}>
+                    Conectar con Instagram
                   </p>
-                )}
-                {status.facebook.tokenRefreshedAt && (
-                  <p style={{ fontSize: 12, color: 'var(--muted)' }}>
-                    Última actualización: {new Date(status.facebook.tokenRefreshedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                  <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 12, lineHeight: 1.5 }}>
+                    Solo necesitas tu cuenta de Instagram. Debe ser Business o Creator — puedes cambiarlo gratis desde la app de Instagram.
                   </p>
-                )}
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button type="button" className="btn-outline" onClick={() => connectMeta('facebook')} style={{ alignSelf: 'flex-start' }}>
-                    <RefreshCw size={14} /> Reconectar
-                  </button>
-                  <button type="button" className="btn-primary" onClick={() => connectMeta('facebook')} style={{ alignSelf: 'flex-start' }}>
-                    <ExternalLink size={14} /> Conectar otra página
+                  <button type="button" className="btn-primary" onClick={() => connectInstagram()}>
+                    <ExternalLink size={14} /> Conectar con Instagram
                   </button>
                 </div>
-              </div>
-            ) : (
-              <div style={{ marginTop: 8 }}>
-                <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
-                  Conecta con el mismo botón de Instagram — ambas cuentas se conectan juntas a través de Facebook Login.
-                </p>
-                <button type="button" className="btn-outline" onClick={() => connectMeta('facebook')}>
-                  <ExternalLink size={14} /> Conectar mediante Facebook
-                </button>
+
+                {/* Opción alternativa: via Facebook */}
+                <div style={{
+                  border: '1px solid var(--border)',
+                  padding: '14px 16px',
+                  background: 'var(--bg-1)',
+                }}>
+                  <p style={{ fontWeight: 700, fontSize: 12, color: 'var(--muted)', marginBottom: 4 }}>
+                    Conectar via Facebook
+                  </p>
+                  <p style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 10, lineHeight: 1.5 }}>
+                    Si gestionas tu Instagram desde una Página de Facebook.
+                  </p>
+                  <button type="button" className="btn-outline" onClick={() => connectMeta()} style={{ fontSize: 12 }}>
+                    <ExternalLink size={13} /> Conectar con Facebook
+                  </button>
+                </div>
               </div>
             )}
           </div>
@@ -293,7 +300,7 @@ export default function ConnectionsPage() {
                 }}>
                   <div>
                     <p style={{ fontWeight: 700, fontSize: 14, color: '#991b1b', marginBottom: 4 }}>
-                      ¿Desconectar Instagram y Facebook?
+                      ¿Desconectar Instagram?
                     </p>
                     <p style={{ fontSize: 13, color: '#6b7280', lineHeight: 1.5 }}>
                       Las publicaciones programadas quedarán pendientes y no se publicarán automáticamente hasta que vuelvas a conectar.

@@ -139,7 +139,7 @@ async function callLLM(
   knownKeys: Set<string>,
 ): Promise<ContentIdea[]> {
   const message = await client.messages.create({
-    model:      'claude-opus-4-6',
+    model:      'claude-haiku-4-5-20251001',
     max_tokens: 2500,
     system:     SYSTEM_PROMPT,
     messages:   [{
@@ -223,7 +223,7 @@ export async function generateIdeasHandler(job: AgentJob): Promise<HandlerResult
       outputs: [{
         kind:    'strategy',
         payload: { ideas } as unknown as Record<string, unknown>,
-        model:   'claude-opus-4-6',
+        model:   'claude-haiku-4-5-20251001',
       }],
     };
   } catch (err) {

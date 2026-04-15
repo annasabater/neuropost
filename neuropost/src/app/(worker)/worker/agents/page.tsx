@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bot, Play, Pause, RefreshCw, Edit2, Save, X } from 'lucide-react';
+import { Bot, Play, Pause, RefreshCw, Edit2, Save, X, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createBrowserClient } from '@/lib/supabase';
 
@@ -50,6 +50,7 @@ export default function AgentsMonitorPage() {
   const [editing, setEditing] = useState<string | null>(null);
   const [promptDraft, setPromptDraft] = useState('');
   const [loading, setLoading] = useState(true);
+  const [triggering, setTriggering] = useState(false);
 
   useEffect(() => { load(); }, []);
 
@@ -110,17 +111,52 @@ export default function AgentsMonitorPage() {
     toast.success('Prompt actualizado');
   }
 
+  async function triggerQueue() {
+    setTriggering(true);
+    try {
+      const res = await fetch('/api/worker/trigger-queue', { method: 'POST' });
+      const data = await res.json();
+      if (data.ok) {
+        toast.success(`Cola ejecutada: ${data.processed ?? 0} jobs procesados`);
+        load();
+      } else {
+        toast.error(data.error ?? 'Error al ejecutar la cola');
+      }
+    } catch {
+      toast.error('Error de red');
+    } finally {
+      setTriggering(false);
+    }
+  }
+
   if (loading) return <div style={{ padding: 40, color: C.muted }}>Cargando agentes...</div>;
 
   return (
     <div style={{ padding: 28, color: C.text }}>
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Bot size={22} style={{ color: C.accent2 }} /> Monitor de agentes
-        </h1>
-        <p style={{ color: C.muted, fontSize: 13, margin: '4px 0 0' }}>
-          Estado, configuración y logs de los agentes IA
-        </p>
+      <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Bot size={22} style={{ color: C.accent2 }} /> Monitor de agentes
+          </h1>
+          <p style={{ color: C.muted, fontSize: 13, margin: '4px 0 0' }}>
+            Estado, configuración y logs de los agentes IA
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={triggerQueue}
+          disabled={triggering}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            padding: '10px 18px', background: C.accent, color: '#fff',
+            border: 'none', borderRadius: 0, fontWeight: 700, fontSize: 13,
+            cursor: triggering ? 'not-allowed' : 'pointer',
+            opacity: triggering ? 0.6 : 1,
+          }}
+        >
+          <Zap size={14} />
+          {triggering ? 'Ejecutando...' : 'Ejecutar cola ahora'}
+        </button>
       </div>
 
       <div style={{ display: 'grid', gap: 16 }}>

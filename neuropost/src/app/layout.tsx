@@ -33,16 +33,16 @@ const barlowCondensed = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: 'NeuroPost — Gestión de redes sociales con IA para negocios locales',
+  title: 'NeuroPost — Gestión de Instagram con IA para negocios locales',
   description:
-    'Llevamos Instagram y Facebook de tu negocio. La IA publica, responde comentarios y hace crecer tu cuenta. 14 días gratis, sin tarjeta.',
+    'Llevamos tu Instagram mientras tú te centras en tu negocio. La IA publica, responde comentarios y hace crecer tu cuenta. 14 días gratis, sin tarjeta.',
   icons: {
     apple: '/icon.svg',
   },
-  keywords: ['gestión redes sociales', 'instagram para negocios', 'community manager ia', 'marketing negocios locales', 'automatizar instagram', 'facebook negocios'],
+  keywords: ['gestión instagram', 'instagram para negocios', 'community manager ia', 'marketing negocios locales', 'automatizar instagram', 'instagram negocios locales'],
   openGraph: {
-    title: 'NeuroPost — Tu negocio en redes, sin esfuerzo',
-    description: 'Creamos y publicamos contenido para Instagram y Facebook de tu negocio local con IA.',
+    title: 'NeuroPost — Tu Instagram, sin esfuerzo',
+    description: 'Creamos y publicamos contenido para el Instagram de tu negocio local con IA.',
     url: 'https://neuropost.es',
     siteName: 'NeuroPost',
     locale: 'es_ES',

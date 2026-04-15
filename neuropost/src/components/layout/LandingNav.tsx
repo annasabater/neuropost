@@ -49,7 +49,8 @@ export function LandingNav() {
             <Link href="/#funciones" style={navDropdownItemStyle}>Portfolio</Link>
             <Link href="/#sectores" style={navDropdownItemStyle}>Sectores</Link>
             <Link href="/#como-funciona" style={navDropdownItemStyle}>Cómo funciona</Link>
-            <Link href="/#demo" style={{ ...navDropdownItemStyle, borderBottom: 'none' }}>Demo app</Link>
+            <Link href="/#demo" style={navDropdownItemStyle}>Demo app</Link>
+            <Link href="/que-incluye" style={{ ...navDropdownItemStyle, borderBottom: 'none' }}>Qué incluye</Link>
           </div>
         </li>
         <li style={{ position: 'relative' }} onMouseEnter={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'block'; }} onMouseLeave={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'none'; }}>

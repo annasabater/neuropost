@@ -114,7 +114,7 @@ export async function analyzeCompetitor(input: {
   }
 
   const message = await client.messages.create({
-    model:      'claude-opus-4-6',
+    model:      'claude-haiku-4-5-20251001',
     max_tokens: 2500,
     system: `Analiza la estrategia de contenido de este competidor en Instagram.
 Tu objetivo es identificar qué está funcionando para INSPIRAR al cliente, NO para copiar.

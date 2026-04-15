@@ -98,74 +98,79 @@ function ApplyCouponForm() {
 }
 
 const PLANS: {
-  id:           SubscriptionPlan;
-  name:         string;
-  monthlyPrice: number;
-  annualPrice:  number;  // price per month when billed annually
-  annualSavings: number; // total annual savings vs monthly
-  desc:         string;
-  perks:        string[];
-  featured:     boolean;
-  badge?:       string;
+  id:            SubscriptionPlan;
+  name:          string;
+  monthlyPrice:  number;
+  annualPrice:   number;
+  annualSavings: number;
+  desc:          string;
+  content:       string[];
+  highlight:     string;
+  perks:         string[];
+  featured:      boolean;
+  badge?:        string;
 }[] = [
   {
-    id:           'starter',
-    name:         'Starter',
-    monthlyPrice:  25,
-    annualPrice:   21,
-    annualSavings: 48,
-    desc: 'Para tener una presencia activa y profesional en redes',
+    id:            'starter',
+    name:          'Starter',
+    monthlyPrice:   25,
+    annualPrice:    21,
+    annualSavings:  48,
+    desc:          'Para presencia activa',
+    content:       ['📷  2 fotos/semana', '🎬  Carruseles hasta 3', '◯  Sin vídeo/reel'],
+    highlight:     'Ideal para empezar con redes',
     perks: [
-      '2 posts de foto por semana',
-      'Carruseles hasta 3 fotos',
       'Publicación programada',
-      'Edición y creación de contenido',
-      'Solicitudes de contenido personalizadas',
-      'Generación con IA integrada',
-      'Calendario de contenido básico',
+      'Calendario avanzado',
+      'Edición de contenido',
+      'Solicitudes personalizadas',
+      'Análisis de rendimiento',
+      'IA integrada',
+      'Soporte por email',
     ],
     featured: false,
   },
   {
-    id:           'pro',
-    name:         'Pro',
-    monthlyPrice:  76,
-    annualPrice:   63,
-    annualSavings: 156,
-    desc: 'Para convertir tus redes en una máquina de ventas',
+    id:            'pro',
+    name:          'Pro',
+    monthlyPrice:   76,
+    annualPrice:    63,
+    annualSavings:  158,
+    desc:          'Máximo alcance',
+    content:       ['📷  4 fotos/semana', '🎬  2 vídeo/reel ≤90s/semana', '⭐  Carruseles hasta 8'],
+    highlight:     'Vídeo/reel optimizados a ≤90s para máximo alcance en Instagram',
     perks: [
-      '4 fotos + 2 vídeos por semana',
-      'Carruseles hasta 8 fotos',
-      'Publicación programada y calendario avanzado',
-      'Ideas de contenido + creación a medida',
+      'Publicación programada',
+      'Ideas basadas en tendencias y tu contenido',
       'Mejores horas para publicar',
-      'Solicitudes de contenido personalizadas',
-      'Análisis de rendimiento y mejoras',
-      'Generación con IA integrada',
+      'Solicitudes personalizadas',
+      'Análisis de rendimiento',
+      'IA integrada',
       'Soporte prioritario',
     ],
     featured: true,
-    badge: '⚡ Más popular',
+    badge:    '⚡ Más popular',
   },
   {
-    id:           'total',
-    name:         'Total',
-    monthlyPrice:  161,
-    annualPrice:   133,
-    annualSavings: 336,
-    desc: 'Para convertir tus redes en tu principal canal de captación de clientes',
+    id:            'total',
+    name:          'Total',
+    monthlyPrice:   161,
+    annualPrice:    133,
+    annualSavings:  336,
+    desc:          'Control completo',
+    content:       ['📷  Hasta 20 fotos/semana', '🎬  10 vídeo/reel ≤90s/semana', '⭐  Carruseles hasta 20'],
+    highlight:     'Conversión máxima de leads a ventas',
     perks: [
-      'Hasta 20 fotos + 10 vídeos por semana',
-      'Carruseles hasta 20 fotos',
-      'Publicación programada y calendario avanzado',
-      'Ideas + contenido basado en tendencias',
-      'Solicitudes de contenido personalizadas',
-      'Análisis de rendimiento y mejoras continuas',
-      'Generación con IA integrada',
-      'Soporte prioritario 24h',
+      'Publicación programada',
+      'Ideas basadas en tendencias y tu contenido',
+      'Mejores horas para publicar',
+      'Solicitudes personalizadas',
+      'Análisis de rendimiento',
+      'IA integrada',
+      'Soporte 24h',
     ],
     featured: false,
-    badge: '🚀 Completo',
+    badge:    '🚀 Completo',
   },
 ];
 
@@ -430,6 +435,38 @@ export default function PlanPage() {
               )}
 
               <div className="plan-desc">{plan.desc}</div>
+
+              {/* Content block */}
+              <div style={{
+                border: `1px solid ${plan.featured ? 'rgba(255,255,255,0.2)' : 'var(--border)'}`,
+                padding: '10px 12px',
+                marginBottom: 12,
+              }}>
+                <div style={{
+                  fontSize: 10, fontWeight: 800, textTransform: 'uppercase',
+                  letterSpacing: '0.08em', marginBottom: 8,
+                  color: plan.featured ? 'rgba(255,255,255,0.6)' : 'var(--muted)',
+                  fontFamily: fc,
+                }}>
+                  Contenido incluido
+                </div>
+                {plan.content.map((item) => (
+                  <div key={item} style={{
+                    fontSize: 13, fontWeight: 600, marginBottom: 4,
+                    color: plan.featured ? '#ffffff' : 'var(--ink)',
+                    fontFamily: f,
+                  }}>
+                    {item}
+                  </div>
+                ))}
+                <div style={{
+                  fontSize: 11, marginTop: 8, fontStyle: 'italic',
+                  color: plan.featured ? 'rgba(255,255,255,0.6)' : 'var(--muted)',
+                  fontFamily: f,
+                }}>
+                  {plan.highlight}
+                </div>
+              </div>
 
               <ul className="plan-features">
                 {plan.perks.map((perk) => (

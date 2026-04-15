@@ -19,14 +19,15 @@ export async function POST(request: Request) {
       month:         body.month         ?? new Date().getMonth() + 1,
       year:          body.year          ?? new Date().getFullYear(),
       postsPerWeek:  body.postsPerWeek  ?? 3,
-      platforms:     body.platforms     ?? ['instagram', 'facebook'],
+      platforms:     body.platforms     ?? ['instagram'],
       country:       body.country       ?? 'ES',
       blackoutDates: body.blackoutDates ?? [],
       contentPieces: body.contentPieces ?? [
-        { id: 'auto-1', goal: 'engagement', platforms: ['instagram', 'facebook'], visualTags: ['producto', 'marca'] },
-        { id: 'auto-2', goal: 'awareness',  platforms: ['instagram'],              visualTags: ['equipo', 'historia'] },
-        { id: 'auto-3', goal: 'promotion',  platforms: ['instagram', 'facebook'], visualTags: ['oferta', 'promo'] },
+        { id: 'auto-1', goal: 'engagement', platforms: ['instagram'], visualTags: ['producto', 'marca'] },
+        { id: 'auto-2', goal: 'awareness',  platforms: ['instagram'], visualTags: ['equipo', 'historia'] },
+        { id: 'auto-3', goal: 'promotion',  platforms: ['instagram'], visualTags: ['oferta', 'promo'] },
       ],
+      // TODO [FASE 2]: Facebook — add facebook to platforms and contentPieces
     };
 
     const result = await runPlannerAgent(input, brandToAgentContext(brand as Brand));

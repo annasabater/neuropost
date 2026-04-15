@@ -1,6 +1,6 @@
 // Shared publish logic — called directly by both /api/publish and auto-publish in /api/posts
 import { createAdminClient } from '@/lib/supabase';
-import { publishToInstagram, publishToFacebook, publishStoryToInstagram, publishReelToInstagram } from '@/lib/meta';
+import { publishToInstagram, publishStoryToInstagram, publishReelToInstagram } from '@/lib/meta';
 import { incrementPostCounter, incrementStoryCounter } from '@/lib/plan-limits';
 import { markPostAsPublishedInFeedQueue } from '@/lib/feedQueue';
 import type { Post, Brand } from '@/types';
@@ -8,7 +8,6 @@ import type { Post, Brand } from '@/types';
 export interface PublishResult {
   ok:          boolean;
   igPostId?:   string;
-  fbPostId?:   string;
   publishedAt: string;
   errors:      string[];
 }
@@ -81,24 +80,9 @@ export async function publishPostById(postId: string, userId: string): Promise<P
     errors.push('Instagram no está conectado. Conecta tu cuenta en Ajustes.');
   }
 
-  // ── Facebook ─────────────────────────────────────────────────────────────────
-  if (typedPost.platform.includes('facebook') && typedBrand.fb_page_id && typedBrand.fb_access_token) {
-    try {
-      const result = await publishToFacebook({
-        pageId:      typedBrand.fb_page_id,
-        imageUrl:    mediaUrl,
-        caption,
-        accessToken: typedBrand.fb_access_token,
-      });
-      updates.fb_post_id = result.postId;
-    } catch (err) {
-      errors.push(`Facebook: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  } else if (typedPost.platform.includes('facebook')) {
-    errors.push('Facebook no está conectado. Conecta tu página en Ajustes.');
-  }
+  // TODO [FASE 2]: Facebook — republicar con adaptación automática de formato
 
-  const anySuccess = updates.ig_post_id || updates.fb_post_id;
+  const anySuccess = updates.ig_post_id;
   if (!anySuccess && errors.length > 0) {
     await supabase.from('posts').update({ status: 'failed' }).eq('id', postId);
     await supabase.from('notifications').insert({
@@ -120,7 +104,7 @@ export async function publishPostById(postId: string, userId: string): Promise<P
     action:      'post_published',
     entity_type: 'post',
     entity_id:   postId,
-    details:     { ig_post_id: updates.ig_post_id, fb_post_id: updates.fb_post_id, errors },
+    details:     { ig_post_id: updates.ig_post_id, errors },
   });
 
   await supabase.from('notifications').insert({
@@ -136,7 +120,6 @@ export async function publishPostById(postId: string, userId: string): Promise<P
   return {
     ok:          true,
     igPostId:    updates.ig_post_id ?? undefined,
-    fbPostId:    updates.fb_post_id ?? undefined,
     publishedAt: now,
     errors,
   };

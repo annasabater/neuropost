@@ -198,7 +198,52 @@ export async function sendTeamInviteEmail(
   await send(to, `${inviterName} te ha invitado a gestionar ${brandName}`, html);
 }
 
-// ─── 8. Subscription cancelled ────────────────────────────────────────────────
+// ─── 8. Urgent support ticket ────────────────────────────────────────────────
+
+export async function sendUrgentTicketEmail(opts: {
+  to:          string;
+  brandName:   string;
+  subject:     string;
+  description: string;
+  category:    string;
+  ticketId:    string;
+  clientEmail: string;
+}): Promise<void> {
+  const html = layout(`
+    <h1 style="font-size:22px;font-weight:800;margin:24px 0 8px;color:#e53e3e">🚨 Ticket urgente — acción requerida</h1>
+    <p style="color:#555;line-height:1.6">
+      Un cliente ha abierto un ticket marcado como <strong>urgente</strong> y requiere tu atención directa.
+    </p>
+    <table style="width:100%;border-collapse:collapse;margin:20px 0;font-size:13px">
+      <tr style="background:#fdf8f3">
+        <td style="padding:10px 14px;font-weight:700;width:120px;border-bottom:1px solid #eee">Cliente</td>
+        <td style="padding:10px 14px;border-bottom:1px solid #eee">${opts.brandName}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 14px;font-weight:700;border-bottom:1px solid #eee">Email</td>
+        <td style="padding:10px 14px;border-bottom:1px solid #eee"><a href="mailto:${opts.clientEmail}" style="color:#ff6b35">${opts.clientEmail}</a></td>
+      </tr>
+      <tr style="background:#fdf8f3">
+        <td style="padding:10px 14px;font-weight:700;border-bottom:1px solid #eee">Categoría</td>
+        <td style="padding:10px 14px;border-bottom:1px solid #eee;text-transform:capitalize">${opts.category}</td>
+      </tr>
+      <tr>
+        <td style="padding:10px 14px;font-weight:700">Asunto</td>
+        <td style="padding:10px 14px">${opts.subject}</td>
+      </tr>
+    </table>
+    ${opts.description ? `
+    <div style="background:#fdf8f3;border-left:3px solid #e53e3e;padding:14px 16px;margin:16px 0;border-radius:0 6px 6px 0">
+      <p style="font-size:13px;color:#333;line-height:1.7;margin:0">${opts.description.replace(/\n/g, '<br>')}</p>
+    </div>` : ''}
+    <a href="${APP()}/worker/inbox?ticket=${opts.ticketId}" style="${BTN};background:#e53e3e">
+      Ver ticket en el panel →
+    </a>
+  `);
+  await send(opts.to, `🚨 Ticket urgente: ${opts.subject} — ${opts.brandName}`, html);
+}
+
+// ─── 9. Subscription cancelled ────────────────────────────────────────────────
 
 export async function sendSubscriptionCancelledEmail(to: string): Promise<void> {
   const html = layout(`

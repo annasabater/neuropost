@@ -8,7 +8,7 @@ import {
   LayoutDashboard, Calendar, MessageSquare, BarChart3,
   Settings, LogOut, X, Image, Archive,
   Flame, Plus, Upload, ChevronDown, Link2, CreditCard, Palette,
-  Sparkles, Send, Paintbrush,
+  Sparkles, Send, Paintbrush, Camera,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { createBrowserClient } from '@/lib/supabase';
@@ -97,6 +97,7 @@ export function Sidebar() {
         {/* Biblioteca */}
         <div className="dash-nav-group-label">Biblioteca</div>
         <NavItem href="/biblioteca" label="Contenido" icon={Upload} />
+        <NavItem href="/instagram" label="Feed Instagram" icon={Camera} />
 
         {/* Rendimiento */}
         <div className="dash-nav-group-label">Rendimiento</div>

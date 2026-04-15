@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
+import { queueJob } from '@/lib/agents/queue';
 
 export async function POST(
   request: Request,
@@ -26,6 +27,21 @@ export async function POST(
       message: message.trim(),
     }).select().single();
     if (error) throw error;
+
+    // Queue agent to reply to the new ticket message (fire-and-forget)
+    queueJob({
+      brand_id:     brand.id,
+      agent_type:   'support',
+      action:       'handle_interactions',
+      input:        {
+        source:     'ticket_message',
+        ticket_id:  id,
+        message_id: msg.id,
+        message:    message.trim(),
+      },
+      priority:     75,
+      requested_by: 'client',
+    }).catch(() => null);
 
     return NextResponse.json({ message: msg });
   } catch (err) {

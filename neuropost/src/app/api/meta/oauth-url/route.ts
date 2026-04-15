@@ -6,10 +6,9 @@ import { getOAuthUrl, signMetaState } from '@/lib/meta';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const source = searchParams.get('source') === 'facebook' ? 'facebook' : 'instagram';
-    const user     = await requireServerUser();
-
-    const state = await signMetaState(user.id, source);
+    // TODO [FASE 2]: Facebook — pass source='facebook' to signMetaState
+    const user  = await requireServerUser();
+    const state = await signMetaState(user.id, 'instagram');
     const url   = getOAuthUrl(state);
     return NextResponse.json({ url });
   } catch (err) {

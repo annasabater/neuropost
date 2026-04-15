@@ -20,11 +20,9 @@ export async function GET(request: Request) {
   }
 
   let userId: string;
-  let source: 'instagram' | 'facebook' = 'instagram';
   try {
     const verified = await verifyMetaState(state);
     userId = verified.userId;
-    source = verified.source;
   } catch {
     return NextResponse.redirect(new URL('/settings?meta_error=invalid_state', origin));
   }
@@ -56,17 +54,13 @@ export async function GET(request: Request) {
       meta_token_expires_at: expiresAt,
     };
 
-    if (source === 'facebook') {
-      update.fb_page_id      = page.id;
-      update.fb_page_name    = page.name;
-      update.fb_access_token = page.access_token;
-    }
-
     if (igAccount) {
       update.ig_account_id   = igAccount.id;
       update.ig_username     = igAccount.username ?? null;
       update.ig_access_token = page.access_token; // page token works for IG Business
     }
+
+    // TODO [FASE 2]: Facebook — store fb_page_id, fb_page_name, fb_access_token when source === 'facebook'
 
     await supabase
       .from('brands')
@@ -87,7 +81,7 @@ export async function GET(request: Request) {
       user_id:     userId,
       action:      'meta_connected',
       entity_type: 'brand',
-      details:     { fb_page_id: source === 'facebook' ? page.id : null, ig_account_id: igAccount?.id, source },
+      details:     { ig_account_id: igAccount?.id },
     });
 
     // 7 — Notification
@@ -95,11 +89,9 @@ export async function GET(request: Request) {
       await supabase.from('notifications').insert({
         brand_id: brandRow.id,
         type:     'meta_connected',
-        message:  igAccount && source === 'instagram'
+        message:  igAccount
           ? `Instagram @${igAccount.username ?? igAccount.id} conectado correctamente.`
-          : igAccount
-          ? `Instagram @${igAccount.username ?? igAccount.id} conectado correctamente.`
-          : `Facebook "${page.name}" conectado correctamente.`,
+          : `Cuenta de Instagram conectada correctamente.`,
         read:     false,
       });
     }

@@ -4,7 +4,7 @@
 
 // ─── Primitive Unions ─────────────────────────────────────────────────────────
 
-export type Platform        = 'instagram' | 'facebook';
+export type Platform        = 'instagram'; // FASE 2: | 'facebook' | 'tiktok'
 export type SocialSector    = 'heladeria' | 'restaurante' | 'cafeteria' | 'gym' | 'clinica' | 'barberia' | 'boutique' | 'inmobiliaria'
   | 'panaderia' | 'cocteleria' | 'street_food' | 'vinoteca'
   | 'nail_art' | 'estetica' | 'maquillaje'
@@ -19,7 +19,8 @@ export type BrandTone       = 'cercano' | 'profesional' | 'divertido' | 'premium
 export type PublishMode     = 'manual' | 'semi' | 'auto';
 export type SubscriptionPlan = 'starter' | 'pro' | 'total' | 'agency';
 export type VisualStyle     = 'creative' | 'elegant' | 'warm' | 'dynamic' | 'editorial' | 'dark' | 'fresh' | 'vintage';
-export type PostStatus      = 'request' | 'draft' | 'generated' | 'pending' | 'approved' | 'scheduled' | 'published' | 'failed' | 'cancelled';
+export type PostStatus      = 'request' | 'draft' | 'generated' | 'pending' | 'approved' | 'scheduled' | 'published' | 'failed' | 'cancelled' | 'needs_human_review';
+export type CategorySource  = 'template' | 'user' | 'ai_suggested';
 export type PostFormat      = 'image' | 'reel' | 'carousel' | 'story';
 export type CommentStatus   = 'pending' | 'replied' | 'ignored' | 'escalated';
 export type Sentiment       = 'positive' | 'neutral' | 'negative';
@@ -181,29 +182,35 @@ export interface PostVersion {
 export type StoryType = 'repost' | 'new' | 'auto';
 
 export interface Post {
-  id:               string;
-  brand_id:         string;
-  image_url:        string | null;
-  edited_image_url: string | null;
-  caption:          string | null;
-  hashtags:         string[];
-  edit_level:       EditingLevel;
-  format:           PostFormat;
-  platform:         Platform[];
-  status:           PostStatus;
-  scheduled_at:     string | null;
-  published_at:     string | null;
-  ig_post_id:       string | null;
-  fb_post_id:       string | null;
-  ai_explanation:   string | null;
-  quality_score:    number | null;
-  versions:         PostVersion[];
-  created_by:       string | null;
-  approved_by:      string | null;
-  metrics:          Record<string, number> | null;
-  is_story:         boolean;
-  story_type:       StoryType | null;
-  created_at:       string;
+  id:                 string;
+  brand_id:           string;
+  image_url:          string | null;
+  edited_image_url:   string | null;
+  caption:            string | null;
+  hashtags:           string[];
+  edit_level:         EditingLevel;
+  format:             PostFormat;
+  platform:           Platform[];
+  status:             PostStatus;
+  scheduled_at:       string | null;
+  published_at:       string | null;
+  ig_post_id:         string | null;
+  fb_post_id:         string | null;
+  ai_explanation:     string | null;
+  quality_score:      number | null;
+  versions:           PostVersion[];
+  created_by:         string | null;
+  approved_by:        string | null;
+  metrics:            Record<string, number> | null;
+  is_story:           boolean;
+  story_type:         StoryType | null;
+  created_at:         string;
+  /** ISO date of the Monday of the week this post was created (UTC). */
+  week_start:         string | null;
+  /** Number of photos in this post (1 for single photo, N for carousel). */
+  photo_count:        number;
+  /** Number of times this post has been regenerated. 0–3 are free. */
+  regeneration_count: number;
 }
 
 // ─── Database: Comment ────────────────────────────────────────────────────────
@@ -245,6 +252,33 @@ export interface ActivityLog {
   entity_id:   string | null;
   details:     Record<string, unknown> | null;
   created_at:  string;
+}
+
+// ─── Content Categories ───────────────────────────────────────────────────────
+
+export interface ContentCategory {
+  id?:          string;
+  brand_id?:    string;
+  category_key: string;
+  name:         string;          // human-readable label
+  source:       CategorySource;
+  active:       boolean;
+  created_at?:  string;
+}
+
+// ─── Image Validations ────────────────────────────────────────────────────────
+
+export interface ImageValidation {
+  id:                    string;
+  post_id:               string;
+  attempt_number:        1 | 2 | 3;
+  image_url:             string;
+  approved:              boolean;
+  confidence:            number;
+  issues:                string[];
+  suggested_prompt_fix:  string | null;
+  original_prompt:       string;
+  created_at:            string;
 }
 
 // ─── Agent Shared Types ───────────────────────────────────────────────────────
@@ -709,10 +743,10 @@ export const PLAN_META: Record<SubscriptionPlan, {
   price:    number;
   tagline:  string;
 }> = {
-  starter: { label: 'Starter', price: 25,  tagline: '2 posts de foto por semana · Generación con IA' },
-  pro:     { label: 'Pro',     price: 76,  tagline: '4 fotos + 2 vídeos por semana · Soporte prioritario' },
-  total:   { label: 'Total',   price: 161, tagline: 'Hasta 20 fotos + 10 vídeos por semana · 24h' },
-  agency:  { label: 'Agency',  price: 199, tagline: 'Todo de Total · Hasta 10 marcas' },
+  starter: { label: 'Starter', price: 21,  tagline: '2 posts de foto por semana · Generación con IA' },
+  pro:     { label: 'Pro',     price: 63,  tagline: '4 fotos + 2 vídeos por semana · Soporte prioritario' },
+  total:   { label: 'Total',   price: 133, tagline: 'Hasta 20 fotos + 10 vídeos por semana · 24h' },
+  agency:  { label: 'Agency',  price: 159, tagline: 'Todo de Total · Hasta 10 marcas' },
 };
 
 // ─── Content mode type ───────────────────────────────────────────────────────

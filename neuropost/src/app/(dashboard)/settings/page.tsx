@@ -9,6 +9,7 @@ import { createBrowserClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { locales, localeNames, defaultLocale, type Locale } from '@/i18n/config';
 import { PLAN_META } from '@/types';
+import type { ContentCategory } from '@/types';
 
 export default function SettingsPage() {
   const brand        = useAppStore((s) => s.brand);
@@ -660,6 +661,9 @@ export default function SettingsPage() {
           {/* ── Idioma ── */}
           <LanguageSection />
 
+          {/* ── Categorías de contenido ── */}
+          <ContentCategoriesSection brandId={brand?.id} />
+
           {/* ── Notificaciones ── */}
           <div id="notificaciones" className="settings-section">
             <h2 className="settings-section-title notif-title-row">
@@ -841,22 +845,12 @@ export default function SettingsPage() {
                   <Card
                     platform="instagram"
                     emoji="📷"
-                    typeLabel="Instagram Business"
+                    typeLabel="Instagram"
                     name={igConnected ? `@${brand.ig_username ?? brand.ig_account_id}` : 'Instagram'}
                     detail={igConnected ? null : 'No hay ninguna cuenta vinculada todavía'}
                     connected={igConnected}
                     onConnect={() => connectMeta('instagram')}
-                    body="Necesitas una cuenta de Instagram Business o Creator vinculada a una página de Facebook. Si aún no la tienes, cámbiala desde la app móvil de Instagram en Configuración → Cuenta."
-                  />
-                  <Card
-                    platform="facebook"
-                    emoji="👍"
-                    typeLabel="Facebook Page"
-                    name={fbConnected ? (brand.fb_page_name ?? `Página ${brand.fb_page_id}`) : 'Facebook'}
-                    detail={fbConnected ? null : 'No hay ninguna página vinculada todavía'}
-                    connected={fbConnected}
-                    onConnect={() => connectMeta('facebook')}
-                    body="Conecta con el mismo botón de Instagram — ambas cuentas se enlazan juntas a través de Facebook Login. Si solo quieres Facebook, usa el botón de la derecha."
+                    body="Conecta tu cuenta de Instagram para publicar fotos, vídeos, reels, carruseles e historias directamente desde NeuroPost."
                   />
                 </>
               );
@@ -1146,6 +1140,185 @@ export default function SettingsPage() {
 
         </div>{/* end right content */}
       </div>{/* end two-column layout */}
+    </div>
+  );
+}
+
+// ─── Content categories section ──────────────────────────────────────────────
+
+function ContentCategoriesSection({ brandId }: { brandId?: string }) {
+  const [categories,  setCategories]  = useState<ContentCategory[]>([]);
+  const [loading,     setLoading]     = useState(true);
+  const [saving,      setSaving]      = useState(false);
+  const [catInput,    setCatInput]    = useState('');
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [sugLoading,  setSugLoading]  = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const brandRef    = useRef<string | undefined>(brandId);
+  brandRef.current  = brandId;
+
+  // Load from API on mount
+  useEffect(() => {
+    if (!brandId) { setLoading(false); return; }
+    setLoading(true);
+    fetch('/api/brands/categories')
+      .then((r) => r.json())
+      .then((j) => { setCategories(j.categories ?? []); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [brandId]);
+
+  const toggleActive = useCallback((key: string) => {
+    setCategories((prev) => prev.map((c) => c.category_key === key ? { ...c, active: !c.active } : c));
+  }, []);
+
+  const removeCategory = useCallback((key: string) => {
+    setCategories((prev) => prev.filter((c) => c.category_key !== key));
+  }, []);
+
+  const addCategory = useCallback((label: string, source: 'user' | 'ai_suggested' = 'user') => {
+    const key = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    setCategories((prev) => {
+      if (prev.some((c) => c.category_key === key)) return prev;
+      return [...prev, { category_key: key, name: label, source, active: true }];
+    });
+  }, []);
+
+  const fetchSuggestions = useCallback(async (value: string) => {
+    if (value.trim().length < 2) { setSuggestions([]); return; }
+    setSugLoading(true);
+    try {
+      const res  = await fetch('/api/ai/suggest-categories', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          sector:             '', // not required for refinement
+          current_categories: categories.map((c) => c.name),
+          input:              value,
+        }),
+      });
+      const json = await res.json();
+      setSuggestions(Array.isArray(json.suggestions) ? json.suggestions : []);
+    } catch { setSuggestions([]); }
+    finally { setSugLoading(false); }
+  }, [categories]);
+
+  const handleInputChange = useCallback((value: string) => {
+    setCatInput(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => { void fetchSuggestions(value); }, 500);
+  }, [fetchSuggestions]);
+
+  async function save() {
+    setSaving(true);
+    try {
+      const res = await fetch('/api/brands/categories', {
+        method:  'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ categories }),
+      });
+      if (!res.ok) throw new Error('Error al guardar');
+      toast.success('Categorías guardadas');
+    } catch { toast.error('No se pudieron guardar las categorías'); }
+    finally { setSaving(false); }
+  }
+
+  if (loading) return null;
+
+  return (
+    <div id="categorias" className="settings-section">
+      <h2 className="settings-section-title">Categorías de contenido</h2>
+      <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: 20, lineHeight: 1.6 }}>
+        Define qué tipos de contenido publica NeuroPost para tu negocio. El agente validador de imágenes usa estas categorías para asegurarse de que cada imagen encaja con lo que quieres publicar.
+      </p>
+
+      {/* Chips */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+        {categories.length === 0 && (
+          <p style={{ fontSize: 13, color: 'var(--muted)' }}>No hay categorías. Añade la primera abajo.</p>
+        )}
+        {categories.map((cat) => (
+          <div
+            key={cat.category_key}
+            style={{
+              display:    'inline-flex', alignItems: 'center', gap: 6,
+              padding:    '6px 10px',
+              background: cat.active ? 'var(--accent)' : 'var(--bg-0, #f5f5f5)',
+              color:      cat.active ? '#ffffff' : 'var(--ink)',
+              border:     `1.5px solid ${cat.active ? 'var(--accent)' : 'var(--border)'}`,
+              opacity:    cat.active ? 1 : 0.55,
+              fontSize:   13, fontWeight: 700, cursor: 'default',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => toggleActive(cat.category_key)}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', fontWeight: 700, fontSize: 13 }}
+            >
+              {cat.name}
+            </button>
+            {cat.source === 'ai_suggested' && (
+              <span style={{ fontSize: 9, opacity: 0.7 }}>✦ IA</span>
+            )}
+            <button
+              type="button"
+              onClick={() => removeCategory(cat.category_key)}
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', fontSize: 14, lineHeight: 1, opacity: 0.6 }}
+              aria-label={`Eliminar ${cat.name}`}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Add new category input */}
+      <div style={{ position: 'relative', maxWidth: 400 }}>
+        <input
+          className="form-input"
+          type="text"
+          placeholder="Añadir categoría… (pulsa Enter)"
+          value={catInput}
+          onChange={(e) => handleInputChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && catInput.trim()) {
+              e.preventDefault();
+              addCategory(catInput.trim(), 'user');
+              setCatInput('');
+              setSuggestions([]);
+            }
+            if (e.key === 'Escape') setSuggestions([]);
+          }}
+        />
+        {(suggestions.length > 0 || sugLoading) && (
+          <div style={{
+            position: 'absolute', top: '100%', left: 0, right: 0,
+            background: 'var(--bg-0, #fff)', border: '1px solid var(--border)',
+            borderTop: 'none', zIndex: 20, boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          }}>
+            {sugLoading && <div style={{ padding: '10px 14px', fontSize: 12, color: 'var(--muted)' }}>Buscando…</div>}
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                onClick={() => { addCategory(s, 'ai_suggested'); setCatInput(''); setSuggestions([]); }}
+                className="cat-suggest-item"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '9px 14px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink)', textAlign: 'left', borderBottom: '1px solid var(--border)' }}
+              >
+                <span>{s}</span>
+                <span style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 700 }}>✦ IA</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginTop: 20 }}>
+        <button type="button" className="btn-primary" onClick={save} disabled={saving}>
+          <Save size={16} />
+          {saving ? 'Guardando…' : 'Guardar categorías'}
+        </button>
+      </div>
     </div>
   );
 }

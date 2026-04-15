@@ -308,7 +308,7 @@ export function SiteFooter() {
                   Novedades<span style={S.newBadge}>New</span>
                 </Link>
               </li>
-              <li><Link href="/#integraciones" style={S.link}>Integraciones</Link></li>
+              <li><Link href="/que-incluye" style={S.link}>Qué incluye</Link></li>
             </ul>
           </div>
 

@@ -71,7 +71,7 @@ export async function POST(request: Request) {
           return {
             postId:         p.id,
             contentPieceId: p.id,
-            platform:       (Array.isArray(p.platform) ? p.platform[0] : p.platform) as 'instagram' | 'facebook',
+            platform:       'instagram' as const,
             publishedAt:    p.published_at ?? p.created_at,
             reach,
             impressions,
@@ -86,9 +86,7 @@ export async function POST(request: Request) {
     );
 
     // ── Account-level metrics from stored posts (approximated from post data) ─
-    const igPosts = postMetrics.filter((pm) => pm.platform === 'instagram');
-    const fbPosts = postMetrics.filter((pm) => pm.platform === 'facebook');
-
+    // TODO [FASE 2]: Facebook — add facebook account metrics when fb_page_id is present
     const accountMetrics: AccountMetrics[] = [
       ...(typedBrand.ig_account_id ? [{
         platform:         'instagram' as const,
@@ -97,18 +95,8 @@ export async function POST(request: Request) {
         followersGained:  0,
         profileVisits:    0,
         websiteClicks:    0,
-        totalReach:       igPosts.reduce((s, p) => s + p.reach, 0),
-        totalImpressions: igPosts.reduce((s, p) => s + p.impressions, 0),
-      }] : []),
-      ...(typedBrand.fb_page_id ? [{
-        platform:         'facebook' as const,
-        followersStart:   0,
-        followersEnd:     0,
-        followersGained:  0,
-        profileVisits:    0,
-        websiteClicks:    0,
-        totalReach:       fbPosts.reduce((s, p) => s + p.reach, 0),
-        totalImpressions: fbPosts.reduce((s, p) => s + p.impressions, 0),
+        totalReach:       postMetrics.reduce((s, p) => s + p.reach, 0),
+        totalImpressions: postMetrics.reduce((s, p) => s + p.impressions, 0),
       }] : []),
     ];
 

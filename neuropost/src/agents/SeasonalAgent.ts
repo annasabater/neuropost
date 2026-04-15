@@ -102,7 +102,7 @@ export async function generateSeasonalContent(input: {
   }
 
   const message = await client.messages.create({
-    model:      'claude-opus-4-6',
+    model:      'claude-haiku-4-5-20251001',
     max_tokens: 1200,
     system: `Eres el creador de contenido de ${input.brandName}, una ${input.sector}.
 Genera el contenido para ${input.fecha} que cae en ${input.diasRestantes} días.

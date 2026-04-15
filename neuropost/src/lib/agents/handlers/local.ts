@@ -4,19 +4,22 @@
 // These return plain objects instead of the backend package's
 // `{ success, data }` shape, so we wrap each one manually.
 //
-// Covered agents (9 handlers):
-//   content:generate_image       → runImageGenerateAgent    (NanoBanana)
-//   content:generate_video       → runVideoGenerateAgent    (RunwayML)
-//   content:apply_edit           → runImageEditAgent        (NanoBanana img2img)
-//   content:seasonal_content     → generateSeasonalContent
-//   content:adapt_trend          → adaptTrendToBrand
-//   content:analyze_inspiration  → analyzeReference         (style analysis)
-//   analytics:detect_trends      → detectTrendsBySector
-//   analytics:analyze_competitor → analyzeCompetitor
-//   growth:retention_email       → generateRetentionEmail
+// Covered agents (11 handlers):
+//   content:generate_image           → runImageGenerateAgent    (NanoBanana)
+//   content:generate_video           → runVideoGenerateAgent    (RunwayML)
+//   content:generate_human_photo     → runHiggsFieldAgent       (Higgsfield — foto con personas)
+//   content:generate_human_video     → runHiggsFieldAgent       (Higgsfield — vídeo con personas)
+//   content:apply_edit               → runImageEditAgent        (NanoBanana img2img)
+//   content:seasonal_content         → generateSeasonalContent
+//   content:adapt_trend              → adaptTrendToBrand
+//   content:analyze_inspiration      → analyzeReference         (style analysis)
+//   analytics:detect_trends          → detectTrendsBySector
+//   analytics:analyze_competitor     → analyzeCompetitor
+//   growth:retention_email           → generateRetentionEmail
 
 import { runImageGenerateAgent, type ImageGenerateInput } from '@/agents/ImageGenerateAgent';
 import { runVideoGenerateAgent, type VideoGenerateInput } from '@/agents/VideoGenerateAgent';
+import { runHiggsFieldAgent,    type HiggsFieldInput    } from '@/agents/HiggsFieldAgent';
 import { runImageEditAgent,     type ImageEditInput     } from '@/agents/ImageEditAgent';
 import {
   detectTrendsBySector,
@@ -94,6 +97,48 @@ const videoGenerateHandler: AgentHandler = async (job) => {
     {
       model: 'runway-gen4-turbo',
       preview_url: (out) => out.videoUrl as string,
+    },
+  );
+};
+
+// -----------------------------------------------------------------------------
+// content:generate_human_photo → HiggsFieldAgent (foto con personas)
+// -----------------------------------------------------------------------------
+// Se activa cuando la solicitud requiere personas/sujetos humanos en una foto.
+// Usa Higgsfield AI cloud en lugar de NanoBanana.
+const higgsPhotoHandler: AgentHandler = async (job) => {
+  const input: HiggsFieldInput = {
+    ...(job.input as unknown as HiggsFieldInput),
+    format:  'photo',
+    brandId: job.brand_id ?? undefined,
+  };
+  return runPlain(
+    () => runHiggsFieldAgent(input),
+    'image',
+    {
+      model:       'higgsfield-photo',
+      preview_url: (out) => out.mediaUrl as string,
+    },
+  );
+};
+
+// -----------------------------------------------------------------------------
+// content:generate_human_video → HiggsFieldAgent (vídeo con personas)
+// -----------------------------------------------------------------------------
+// Se activa cuando la solicitud requiere personas en un vídeo/reel.
+// Usa Higgsfield AI cloud en lugar de RunwayML.
+const higgsVideoHandler: AgentHandler = async (job) => {
+  const input: HiggsFieldInput = {
+    ...(job.input as unknown as HiggsFieldInput),
+    format:  'video',
+    brandId: job.brand_id ?? undefined,
+  };
+  return runPlain(
+    () => runHiggsFieldAgent(input),
+    'video',
+    {
+      model:       'higgsfield-video',
+      preview_url: (out) => out.mediaUrl as string,
     },
   );
 };
@@ -198,9 +243,11 @@ const retentionEmailHandler: AgentHandler = async (job) => {
 // Register all local handlers
 // -----------------------------------------------------------------------------
 export function registerLocalAgentHandlers(): void {
-  registerHandler({ agent_type: 'content',   action: 'generate_image'      }, imageGenerateHandler);
-  registerHandler({ agent_type: 'content',   action: 'generate_video'      }, videoGenerateHandler);
-  registerHandler({ agent_type: 'content',   action: 'apply_edit'          }, imageEditHandler);
+  registerHandler({ agent_type: 'content',   action: 'generate_image'        }, imageGenerateHandler);
+  registerHandler({ agent_type: 'content',   action: 'generate_video'        }, videoGenerateHandler);
+  registerHandler({ agent_type: 'content',   action: 'generate_human_photo'  }, higgsPhotoHandler);
+  registerHandler({ agent_type: 'content',   action: 'generate_human_video'  }, higgsVideoHandler);
+  registerHandler({ agent_type: 'content',   action: 'apply_edit'            }, imageEditHandler);
   registerHandler({ agent_type: 'content',   action: 'seasonal_content'    }, seasonalHandler);
   registerHandler({ agent_type: 'content',   action: 'adapt_trend'         }, adaptTrendHandler);
   registerHandler({ agent_type: 'content',   action: 'analyze_inspiration' }, inspirationHandler);

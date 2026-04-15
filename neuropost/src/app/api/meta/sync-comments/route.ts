@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getIGComments } from '@/lib/meta';
 import { createAdminClient } from '@/lib/supabase';
+import { queueJob } from '@/lib/agents/queue';
 
 // Called by Vercel Cron: GET /api/meta/sync-comments
 export async function GET(request: Request) {
@@ -69,6 +70,23 @@ export async function GET(request: Request) {
           read:     false,
           metadata: { post_id: post.id, external_id: c.id },
         });
+
+        // Queue moderation agent for the synced comment (fire-and-forget)
+        queueJob({
+          brand_id:     brand.id,
+          agent_type:   'moderation',
+          action:       'check_brand_safety',
+          input:        {
+            source:      'ig_sync',
+            external_id: c.id,
+            author:      c.username,
+            content:     c.text,
+            platform:    'instagram',
+            post_id:     post.id,
+          },
+          priority:     55,
+          requested_by: 'cron',
+        }).catch(() => null);
 
         total++;
       }

@@ -82,7 +82,7 @@ Devuelve SOLO JSON válido con ESTA estructura exacta:
 
 async function callLLM(brandBlock: string): Promise<BuildTaxonomyOutput> {
   const message = await client.messages.create({
-    model:      'claude-opus-4-6',
+    model:      'claude-haiku-4-5-20251001',
     max_tokens: 3000,
     system:     SYSTEM_PROMPT,
     messages:   [{
@@ -258,7 +258,7 @@ export async function buildTaxonomyHandler(job: AgentJob): Promise<HandlerResult
       outputs: [{
         kind:    'strategy',
         payload: taxonomy as unknown as Record<string, unknown>,
-        model:   'claude-opus-4-6',
+        model:   'claude-haiku-4-5-20251001',
       }],
     };
   } catch (err) {

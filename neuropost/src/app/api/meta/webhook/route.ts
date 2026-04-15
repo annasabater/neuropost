@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyMetaWebhookSignature } from '@/lib/meta';
 import { createAdminClient } from '@/lib/supabase';
+import { queueJob } from '@/lib/agents/queue';
 
 // ─── Webhook verification (GET) ────────────────────────────────────────────────
 
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
 
         await supabase.from('comments').insert({
           brand_id:    brand.id,
-          platform:    body.object === 'instagram' ? 'instagram' : 'facebook',
+          platform:    'instagram', // TODO [FASE 2]: Facebook — body.object === 'facebook'
           external_id: externalId,
           author:      val.from?.name ?? 'Unknown',
           content:     val.text ?? '',
@@ -94,6 +95,22 @@ export async function POST(request: Request) {
           read:     false,
           metadata: { external_id: externalId },
         });
+
+        // Queue moderation agent for the new comment (fire-and-forget)
+        queueJob({
+          brand_id:     brand.id,
+          agent_type:   'moderation',
+          action:       'check_brand_safety',
+          input:        {
+            source:      'ig_webhook',
+            external_id: externalId,
+            author:      val.from?.name ?? 'Unknown',
+            content:     val.text ?? '',
+            platform:    'instagram',
+          },
+          priority:     60,
+          requested_by: 'cron',
+        }).catch(() => null);
       }
     }
   }

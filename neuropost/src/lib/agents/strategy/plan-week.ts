@@ -119,7 +119,7 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
         executed_ideas:  executable.length,
         deferred_ideas:  ideas.length - executable.length,
       } as unknown as Record<string, unknown>,
-      model:   'claude-opus-4-6',
+      model:   'claude-haiku-4-5-20251001',
     }],
     sub_jobs: subJobs,
   };

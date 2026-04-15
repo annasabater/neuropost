@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
-import { publishToInstagram, publishToFacebook } from '@/lib/meta';
+import { publishToInstagram } from '@/lib/meta';
 import { markPostAsPublishedInFeedQueue } from '@/lib/feedQueue';
 import type { Post, Brand } from '@/types';
 
@@ -59,19 +59,7 @@ export async function GET(request: Request) {
       }
     }
 
-    if (post.platform.includes('facebook') && brand.fb_page_id && brand.fb_access_token) {
-      try {
-        const result = await publishToFacebook({
-          pageId:      brand.fb_page_id,
-          imageUrl,
-          caption,
-          accessToken: brand.fb_access_token,
-        });
-        updates.fb_post_id = result.postId;
-      } catch (err) {
-        console.error(`FB publish failed for post ${post.id}:`, err);
-      }
-    }
+    // TODO [FASE 2]: Facebook — republicar con adaptación automática de formato
 
     await supabase.from('posts').update(updates).eq('id', post.id);
     if (updates.status !== 'failed') {

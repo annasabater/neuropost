@@ -7,7 +7,7 @@ import { createHmac } from 'crypto';
 
 const GRAPH_BASE = 'https://graph.facebook.com/v19.0';
 
-function getRequiredEnv(name: 'META_APP_ID' | 'META_APP_SECRET' | 'META_REDIRECT_URI' | 'NEXTAUTH_SECRET'): string {
+function getRequiredEnv(name: 'META_APP_ID' | 'META_APP_SECRET' | 'META_REDIRECT_URI' | 'META_IG_REDIRECT_URI' | 'NEXTAUTH_SECRET'): string {
   const value = process.env[name]?.trim();
   if (!value) throw new Error(`Missing ${name} environment variable`);
   return value;
@@ -345,32 +345,130 @@ export async function publishStoryToInstagram({
   return { postId: published.id, permalink: '', publishedAt: new Date().toISOString() };
 }
 
-// ─── Facebook Publishing ──────────────────────────────────────────────────────
+// TODO [FASE 2]: Facebook — republicar con adaptación automática de formato
+// export async function publishToFacebook({ pageId, imageUrl, caption, accessToken }: {
+//   pageId: string; imageUrl: string; caption: string; accessToken: string;
+// }): Promise<MetaPublishResult> { ... }
 
-export async function publishToFacebook({
-  pageId,
-  imageUrl,
-  caption,
-  accessToken,
-}: {
-  pageId:      string;
-  imageUrl:    string;
-  caption:     string;
-  accessToken: string;
-}): Promise<MetaPublishResult> {
-  const result = await graphFetch<{ id: string; post_id?: string }>(
-    `${pageId}/photos`,
-    {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ url: imageUrl, message: caption, access_token: accessToken, published: true }),
-    },
-  );
+// =============================================================================
+// Instagram Login (sin Facebook)
+// Docs: https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login
+// =============================================================================
+// Flujo alternativo que no requiere Página de Facebook.
+// El usuario solo necesita una cuenta de Instagram Business o Creator.
+//
+// Base URLs distintas al flujo de Facebook:
+//   Auth:   https://api.instagram.com/oauth/authorize
+//   Token:  https://api.instagram.com/oauth/access_token  (short-lived)
+//   LL tok: https://graph.instagram.com/access_token      (long-lived, 60 días)
+//   Graph:  https://graph.instagram.com/v19.0
+// =============================================================================
 
-  const postId    = result.post_id ?? result.id;
-  const permalink = `https://www.facebook.com/${postId.replace('_', '/posts/')}`;
+const IG_AUTH_BASE  = 'https://api.instagram.com';
+const IG_GRAPH_BASE = 'https://graph.instagram.com/v19.0';
 
-  return { postId, permalink, publishedAt: new Date().toISOString() };
+/** Builds the Instagram direct OAuth URL (no Facebook required). */
+export function getInstagramLoginUrl(state: string): string {
+  const appId       = getRequiredEnv('META_APP_ID');
+  const redirectUri = getRequiredEnv('META_IG_REDIRECT_URI');
+
+  const params = new URLSearchParams({
+    client_id:     appId,
+    redirect_uri:  redirectUri,
+    scope:         [
+      'instagram_business_basic',
+      'instagram_business_content_publish',
+      'instagram_business_manage_comments',
+      'instagram_business_manage_messages',
+    ].join(','),
+    response_type: 'code',
+    state,
+  });
+
+  return `${IG_AUTH_BASE}/oauth/authorize?${params}`;
+}
+
+/** Exchanges the authorization code for a short-lived Instagram user token. */
+export async function exchangeInstagramCode(
+  code: string,
+): Promise<{ accessToken: string; userId: string }> {
+  const appId       = getRequiredEnv('META_APP_ID');
+  const appSecret   = getRequiredEnv('META_APP_SECRET');
+  const redirectUri = getRequiredEnv('META_IG_REDIRECT_URI');
+
+  const body = new URLSearchParams({
+    client_id:     appId,
+    client_secret: appSecret,
+    grant_type:    'authorization_code',
+    redirect_uri:  redirectUri,
+    code,
+  });
+
+  const res = await fetch(`${IG_AUTH_BASE}/oauth/access_token`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body:    body.toString(),
+  });
+  const data = await res.json() as { access_token?: string; user_id?: string; error_message?: string };
+  if (!res.ok || !data.access_token) {
+    throw new Error(`Instagram token exchange failed: ${data.error_message ?? res.statusText}`);
+  }
+  return { accessToken: data.access_token, userId: String(data.user_id ?? '') };
+}
+
+/** Exchanges a short-lived Instagram token for a long-lived one (60 days). */
+export async function getInstagramLongLivedToken(
+  shortToken: string,
+): Promise<{ accessToken: string; expiresIn: number }> {
+  const appSecret = getRequiredEnv('META_APP_SECRET');
+
+  const params = new URLSearchParams({
+    grant_type:        'ig_exchange_token',
+    client_secret:     appSecret,
+    access_token:      shortToken,
+  });
+
+  const res = await fetch(`${IG_GRAPH_BASE}/access_token?${params}`);
+  const data = await res.json() as { access_token?: string; expires_in?: number; error?: { message: string } };
+  if (!res.ok || !data.access_token) {
+    throw new Error(`Instagram long-lived token failed: ${data.error?.message ?? res.statusText}`);
+  }
+  return { accessToken: data.access_token, expiresIn: data.expires_in ?? 5_184_000 };
+}
+
+/** Refreshes an existing long-lived Instagram token (call before it expires). */
+export async function refreshInstagramLongLivedToken(
+  token: string,
+): Promise<{ accessToken: string; expiresIn: number }> {
+  const params = new URLSearchParams({
+    grant_type:   'ig_refresh_token',
+    access_token: token,
+  });
+
+  const res = await fetch(`${IG_GRAPH_BASE}/refresh_access_token?${params}`);
+  const data = await res.json() as { access_token?: string; expires_in?: number; error?: { message: string } };
+  if (!res.ok || !data.access_token) {
+    throw new Error(`Instagram token refresh failed: ${data.error?.message ?? res.statusText}`);
+  }
+  return { accessToken: data.access_token, expiresIn: data.expires_in ?? 5_184_000 };
+}
+
+export interface InstagramProfile {
+  id:        string;
+  username?: string;
+  name?:     string;
+}
+
+/** Fetches the Instagram user profile (id, username) with the given token. */
+export async function getInstagramProfile(accessToken: string): Promise<InstagramProfile> {
+  const params = new URLSearchParams({
+    fields:       'id,username,name',
+    access_token: accessToken,
+  });
+  const res  = await fetch(`${IG_GRAPH_BASE}/me?${params}`);
+  const data = await res.json() as InstagramProfile & { error?: { message: string } };
+  if (!res.ok) throw new Error(`Instagram profile fetch failed: ${data.error?.message ?? res.statusText}`);
+  return { id: data.id, username: data.username, name: data.name };
 }
 
 // ─── Comments ─────────────────────────────────────────────────────────────────

@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
-import { useRouter } from 'next/navigation';
+
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 
@@ -50,7 +50,7 @@ const RESULTS = [
 
 const STEPS = [
   { n: '01', title: 'Cuéntanos tu negocio', desc: 'Responde unas preguntas sobre tu negocio y tu estilo. Preparamos tu perfil de marca.' },
-  { n: '02', title: 'Conecta tus redes', desc: 'Vincula Instagram y Facebook con un clic. Proceso seguro y rápido.' },
+  { n: '02', title: 'Conecta tu Instagram', desc: 'Vincula tu cuenta de Instagram Business con un clic. Proceso seguro y rápido.' },
   { n: '03', title: 'Nosotros creamos el contenido', desc: 'Cada semana preparamos posts profesionales con tus fotos. Editamos, escribimos y programamos.' },
   { n: '04', title: 'Tú apruebas, nosotros publicamos', desc: 'Revisa con un clic o déjanos publicar automáticamente según tu calendario.' },
 ];
@@ -110,7 +110,7 @@ const FAQ_DATA: FaqCategory[] = [
   ]},
   { category: 'Plataforma', items: [
     { q: '¿Qué tipo de negocios pueden usar NeuroPost?', a: 'Trabajamos con negocios locales como restaurantes, gimnasios, centros de estética, inmobiliarias y más. Cualquier negocio que quiera mejorar su presencia en redes.' },
-    { q: '¿En qué redes sociales publicáis?', a: 'Actualmente nos centramos en Instagram y Facebook, donde los negocios locales obtienen mejores resultados. Estamos trabajando para ampliar a otras plataformas.' },
+    { q: '¿En qué redes sociales publicáis?', a: 'Actualmente nos centramos en Instagram, donde los negocios locales obtienen los mejores resultados. Facebook y otras plataformas llegarán próximamente — mientras tanto, puedes reaprovechar las fotos y vídeos que publicamos en Instagram y subirlos tú mismo a las otras plataformas.' },
     { q: '¿Se puede generar contenido con IA?', a: 'Sí. Puedes generar contenido tú mismo desde la plataforma o solicitarlo a nuestro equipo para que lo prepare por ti. Nos adaptamos a cómo prefieras trabajar.' },
   ]},
   { category: 'Planes y condiciones', items: [
@@ -133,14 +133,12 @@ const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function LandingPage() {
-  const router = useRouter();
   const [navShadow, setNavShadow] = useState(false);
   const [demoMode, setDemoMode] = useState<'videos' | 'fotos'>('videos');
   const [homeBilling, setHomeBilling] = useState<'monthly' | 'annual'>('annual');
   const [activeFaqCategory, setActiveFaqCategory] = useState(0);
   const [activeFaqQuestion, setActiveFaqQuestion] = useState<number | null>(0);
-  const heroEmailRef = useRef<HTMLInputElement>(null);
-  const ctaEmailRef  = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     const onScroll = () => setNavShadow(window.scrollY > 20);
@@ -157,11 +155,6 @@ export default function LandingPage() {
     return () => observer.disconnect();
   }, []);
 
-  const goToRegister = useCallback((ref: React.RefObject<HTMLInputElement | null>) => {
-    const email = ref.current?.value.trim() ?? '';
-    if (!email) { ref.current?.focus(); return; }
-    router.push(`/register?email=${encodeURIComponent(email)}`);
-  }, [router]);
 
   const navDropdownPanelStyle: React.CSSProperties = {
     display: 'none',
@@ -191,60 +184,68 @@ export default function LandingPage() {
 
   const homePlans = [
     {
-      name: 'Starter',
-      monthlyPrice: 29,
-      desc: 'Para tener una presencia activa y profesional en redes',
+      name:          'Starter',
+      monthlyPrice:   25,
+      annualPrice:    21,
+      annualSavings:  48,
+      desc:          'Para presencia activa',
+      content:       ['📷  2 fotos/semana', '🎬  Carruseles hasta 3', '◯  Sin vídeo/reel'],
+      highlight:     'Ideal para empezar con redes',
       features: [
-        '2 posts de foto por semana',
-        'Carruseles hasta 3 fotos',
         'Publicación programada',
-        'Edición y creación de contenido',
-        'Solicitudes de contenido personalizadas',
-        'Generación con IA integrada',
-        'Calendario de contenido básico',
+        'Calendario avanzado',
+        'Edición de contenido',
+        'Solicitudes personalizadas',
+        'Análisis de rendimiento',
+        'IA integrada',
+        'Soporte por email',
       ],
     },
     {
-      name: 'Pro',
-      monthlyPrice: 89,
-      desc: 'Para convertir tus redes en una máquina de ventas',
-      featured: true,
-      badge: '⚡ Más popular',
+      name:          'Pro',
+      monthlyPrice:   76,
+      annualPrice:    63,
+      annualSavings:  158,
+      desc:          'Máximo alcance',
+      featured:      true,
+      badge:         '⚡ Más popular',
+      content:       ['📷  4 fotos/semana', '🎬  2 vídeo/reel ≤90s/semana', '⭐  Carruseles hasta 8'],
+      highlight:     'Vídeo/reel optimizados a ≤90s para máximo alcance en Instagram',
       features: [
-        '4 fotos + 2 vídeos por semana',
-        'Carruseles hasta 8 fotos',
-        'Publicación programada y calendario avanzado',
-        'Ideas de contenido + creación a medida',
+        'Publicación programada',
+        'Ideas basadas en tendencias y tu contenido',
         'Mejores horas para publicar',
-        'Solicitudes de contenido personalizadas',
-        'Análisis de rendimiento y mejoras',
-        'Generación con IA integrada',
+        'Solicitudes personalizadas',
+        'Análisis de rendimiento',
+        'IA integrada',
         'Soporte prioritario',
       ],
     },
     {
-      name: 'Total',
-      monthlyPrice: 189,
-      desc: 'Para convertir tus redes en tu principal canal de captación de clientes',
-      badge: '🚀 Completo',
+      name:          'Total',
+      monthlyPrice:   161,
+      annualPrice:    133,
+      annualSavings:  336,
+      desc:          'Control completo',
+      badge:         '🚀 Completo',
+      content:       ['📷  Hasta 20 fotos/semana', '🎬  10 vídeo/reel ≤90s/semana', '⭐  Carruseles hasta 20'],
+      highlight:     'Conversión máxima de leads a ventas',
       features: [
-        'Hasta 20 fotos + 10 vídeos por semana',
-        'Carruseles hasta 20 fotos',
-        'Publicación programada y calendario avanzado',
-        'Ideas + contenido basado en tendencias',
-        'Solicitudes de contenido personalizadas',
-        'Análisis de rendimiento y mejoras continuas',
-        'Generación con IA integrada',
-        'Soporte prioritario 24h',
+        'Publicación programada',
+        'Ideas basadas en tendencias y tu contenido',
+        'Mejores horas para publicar',
+        'Solicitudes personalizadas',
+        'Análisis de rendimiento',
+        'IA integrada',
+        'Soporte 24h',
       ],
     },
   ];
 
-  const homeDisplayPrice = (monthlyPrice: number) =>
-    homeBilling === 'annual' ? Math.round(monthlyPrice * 0.85) : monthlyPrice;
+  const homeDisplayPrice = (plan: typeof homePlans[0]) =>
+    homeBilling === 'annual' ? plan.annualPrice : plan.monthlyPrice;
 
-  const homeSavings = (monthlyPrice: number) =>
-    Math.round((monthlyPrice - Math.round(monthlyPrice * 0.85)) * 12);
+  const homeSavings = (plan: typeof homePlans[0]) => plan.annualSavings;
 
   const faqSchema = {
     '@context': 'https://schema.org',
@@ -275,7 +276,8 @@ export default function LandingPage() {
               <a href="#funciones" style={navDropdownItemStyle}>Portfolio</a>
               <a href="#sectores" style={navDropdownItemStyle}>Sectores</a>
               <a href="#como-funciona" style={navDropdownItemStyle}>Cómo funciona</a>
-              <a href="#demo" style={{ ...navDropdownItemStyle, borderBottom: 'none' }}>Demo app</a>
+              <a href="#demo" style={navDropdownItemStyle}>Demo app</a>
+              <Link href="/que-incluye" style={{ ...navDropdownItemStyle, borderBottom: 'none' }}>Qué incluye</Link>
             </div>
           </li>
           <li style={{ position: 'relative' }} onMouseEnter={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'block'; }} onMouseLeave={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'none'; }}>
@@ -315,15 +317,13 @@ export default function LandingPage() {
           <p style={{ fontFamily: f, fontSize: 17, color: '#6b7280', lineHeight: 1.7, maxWidth: 560, margin: '0 auto 32px' }}>
             Creamos contenido que hace que la gente te vea, te recuerde y termine entrando por la puerta.
           </p>
-          <div style={{ display: 'flex', gap: 0, justifyContent: 'center', maxWidth: 420, margin: '0 auto 16px' }}>
-            <input ref={heroEmailRef} type="email" placeholder="tu@email.com" onKeyDown={(e) => e.key === 'Enter' && goToRegister(heroEmailRef)}
-              style={{ flex: 1, padding: '14px 18px', border: '1px solid #e5e7eb', borderRight: 'none', fontFamily: f, fontSize: 15, outline: 'none', color: '#111111' }} />
-            <button onClick={() => goToRegister(heroEmailRef)}
-              style={{ padding: '14px 28px', background: '#0F766E', color: '#ffffff', border: 'none', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <Link href="/register"
+              style={{ display: 'inline-block', padding: '16px 40px', background: '#0F766E', color: '#ffffff', textDecoration: 'none', fontFamily: fc, fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
               Empezar gratis →
-            </button>
+            </Link>
           </div>
-          <p style={{ fontFamily: f, fontSize: 12, color: '#9ca3af' }}>5 días gratis · Cancela cuando quieras</p>
+          
         </div>
 
         {/* Hero carousel — auto-scrolling posts */}
@@ -581,7 +581,9 @@ export default function LandingPage() {
         <div className="container">
           <div style={{ overflowX: 'auto', overflowY: 'visible', paddingTop: 10, paddingBottom: 4 }}>
             <div className="pricing-home-grid" style={{ minWidth: 780, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, alignItems: 'stretch' }}>
-            {homePlans.map(({ name, monthlyPrice, desc, featured, badge, features }) => (
+            {homePlans.map((plan) => {
+              const { name, desc, featured, badge, features, content, highlight } = plan;
+              return (
               <div key={name} className="pricing-home-card" style={{ background: featured ? '#111111' : '#ffffff', border: featured ? 'none' : '1px solid #e5e7eb', padding: '40px 24px', display: 'flex', flexDirection: 'column' }}>
                 {(badge || featured) && (
                   <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#0F766E', background: '#f0fdf4', padding: '3px 10px', alignSelf: 'flex-start', marginBottom: 16 }}>
@@ -590,14 +592,24 @@ export default function LandingPage() {
                 )}
                 <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: featured ? '#ffffff' : '#111111', marginBottom: 4 }}>{name}</p>
                 <p style={{ fontFamily: fc, fontWeight: 900, fontSize: '3rem', color: featured ? '#ffffff' : '#111111', lineHeight: 1, marginBottom: 4 }}>
-                  <span style={{ fontSize: 18, verticalAlign: 'top' }}>€</span>{homeDisplayPrice(monthlyPrice)}<span style={{ fontSize: 14, fontWeight: 400, color: '#9ca3af' }}>/mes</span>
+                  <span style={{ fontSize: 18, verticalAlign: 'top' }}>€</span>{homeDisplayPrice(plan)}<span style={{ fontSize: 14, fontWeight: 400, color: '#9ca3af' }}>/mes</span>
                 </p>
                 {homeBilling === 'annual' && (
                   <p style={{ fontFamily: f, fontSize: 12, fontWeight: 700, color: featured ? '#d1d5db' : '#0F766E', marginBottom: 10 }}>
-                    {`Ahorras €${homeSavings(monthlyPrice)}/año`}
+                    {`Ahorras €${homeSavings(plan)}/año`}
                   </p>
                 )}
-                <p style={{ fontFamily: f, fontSize: 13, color: featured ? '#9ca3af' : '#6b7280', marginBottom: 24 }}>{desc}</p>
+                <p style={{ fontFamily: f, fontSize: 13, color: featured ? '#9ca3af' : '#6b7280', marginBottom: 16 }}>{desc}</p>
+
+                {/* Content block */}
+                <div style={{ border: `1px solid ${featured ? 'rgba(255,255,255,0.15)' : '#e5e7eb'}`, padding: '10px 12px', marginBottom: 16 }}>
+                  <p style={{ fontFamily: fc, fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: featured ? 'rgba(255,255,255,0.5)' : '#9ca3af', marginBottom: 8 }}>Contenido incluido</p>
+                  {content.map((item) => (
+                    <p key={item} style={{ fontFamily: f, fontSize: 13, fontWeight: 600, color: featured ? '#ffffff' : '#111111', marginBottom: 3 }}>{item}</p>
+                  ))}
+                  <p style={{ fontFamily: f, fontSize: 11, fontStyle: 'italic', color: featured ? 'rgba(255,255,255,0.5)' : '#9ca3af', marginTop: 6 }}>{highlight}</p>
+                </div>
+
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
                   {features.map((feat) => (
                     <li key={feat} style={{ fontFamily: f, fontSize: 13, color: featured ? '#d1d5db' : '#374151', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -610,10 +622,11 @@ export default function LandingPage() {
                   background: featured ? '#ffffff' : '#111111', color: featured ? '#111111' : '#ffffff',
                   fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
                 }}>
-                  👉 Empezar gratis →
+                  Empezar gratis →
                 </Link>
               </div>
-            ))}
+              );
+            })}
             </div>
           </div>
         </div>
@@ -853,16 +866,14 @@ export default function LandingPage() {
           <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', color: '#ffffff', lineHeight: 0.95, marginBottom: 12 }}>
             Tu competencia ya tiene<br />a alguien que <span style={{ color: '#0F766E' }}>lleva sus redes</span>
           </h2>
-          <p style={{ fontFamily: f, fontSize: 15, color: '#9ca3af', marginBottom: 32 }}>Empieza hoy. 5 días de prueba gratuita.</p>
-          <div style={{ display: 'flex', gap: 0, justifyContent: 'center', maxWidth: 420, margin: '0 auto 16px' }}>
-            <input ref={ctaEmailRef} type="email" placeholder="tu@email.com" onKeyDown={(e) => e.key === 'Enter' && goToRegister(ctaEmailRef)}
-              style={{ flex: 1, padding: '14px 18px', border: '1px solid #333333', background: '#1a1a1a', color: '#ffffff', fontFamily: f, fontSize: 15, outline: 'none' }} />
-            <button onClick={() => goToRegister(ctaEmailRef)}
-              style={{ padding: '14px 28px', background: '#ffffff', color: '#111111', border: 'none', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          
+          <div style={{ display: 'flex', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <Link href="/register"
+              style={{ display: 'inline-block', padding: '16px 40px', background: '#ffffff', color: '#111111', textDecoration: 'none', fontFamily: fc, fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
               Crear cuenta gratis
-            </button>
+            </Link>
           </div>
-          <p style={{ fontFamily: f, fontSize: 11, color: '#6b7280' }}>✓ Cancela cuando quieras · ✓ Sin permanencia · ✓ GDPR · ✓ 5 días gratis</p>
+          
         </div>
       </section>
 

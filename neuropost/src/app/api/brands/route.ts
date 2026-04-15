@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     const supabase = await createServerClient() as DB;
 
     // Remove fields that don't exist as columns in the brands table
-    const { publish_frequency: _pf, promo_code_id: _pc, ...brandFields } = body;
+    const { publish_frequency: _pf, promo_code_id: _pc, content_categories: incomingCategories, ...brandFields } = body;
 
     // Guard against duplicate brands per user
     const { data: existing } = await supabase
@@ -46,6 +46,14 @@ export async function POST(request: Request) {
       console.error('[POST /api/brands] Supabase error:', JSON.stringify(error));
       return NextResponse.json({ error: error.message ?? error.details ?? JSON.stringify(error) }, { status: 500 });
     }
+
+    // Seed content_categories if provided by onboarding
+    if (Array.isArray(incomingCategories) && incomingCategories.length > 0 && data?.id) {
+      const rows = (incomingCategories as { category_key: string; name: string; source: string; active: boolean }[])
+        .map((c) => ({ brand_id: data.id, category_key: c.category_key, name: c.name, source: c.source ?? 'template', active: c.active ?? true }));
+      await supabase.from('content_categories').insert(rows).then(() => void 0);
+    }
+
     return NextResponse.json({ brand: data as Brand }, { status: 201 });
   } catch (err: unknown) {
     console.error('[POST /api/brands] CATCH:', JSON.stringify(err, Object.getOwnPropertyNames(err as object)));

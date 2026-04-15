@@ -58,7 +58,7 @@ export async function detectTrendsBySector(
   semanaActual: string,
 ): Promise<TrendsDetectionResult> {
   const message = await client.messages.create({
-    model:      'claude-opus-4-6',
+    model:      'claude-haiku-4-5-20251001',
     max_tokens: 2000,
     system: `Eres un experto en tendencias de redes sociales.
 Busca qué tipo de contenido está siendo viral esta semana en Instagram para negocios de tipo ${sector} en España.
@@ -120,7 +120,7 @@ export async function adaptTrendToBrand(input: TrendsAdaptInput): Promise<Adapte
   }
 
   const message = await client.messages.create({
-    model:      'claude-opus-4-6',
+    model:      'claude-haiku-4-5-20251001',
     max_tokens: 1000,
     system: `Tienes una tendencia viral de Instagram y el perfil de un negocio local.
 Adapta la tendencia al estilo específico de este negocio.
