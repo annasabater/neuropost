@@ -22,6 +22,10 @@ const CSP = [
 const nextConfig = {
   transpilePackages: ['@neuropost/agents'],
 
+  // ioredis and bullmq use native Node.js modules (net, tls, crypto).
+  // Exclude them from Next.js bundling so they run as-is in the Node runtime.
+  serverExternalPackages: ['ioredis', 'bullmq'],
+
   // Raíz del monorepo npm workspaces — Next 16 lo necesita explícito cuando el
   // package.json raíz declara workspaces y el lockfile vive un nivel arriba.
   turbopack: {
