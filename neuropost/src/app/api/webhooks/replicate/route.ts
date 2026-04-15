@@ -48,6 +48,13 @@ export async function POST(request: Request) {
 
   const db: DB = createAdminClient();
 
+  // ── Route to post handler if target=post ──────────────────────────────────
+  const target = url.searchParams.get('target');
+  const postId = url.searchParams.get('post_id');
+  if (target === 'post' && postId) {
+    return handlePostWebhook(db, postId, status, output, error);
+  }
+
   // Find the recreation request for this prediction
   const { data: recreation, error: fetchError } = await db
     .from('recreation_requests')
@@ -107,6 +114,44 @@ export async function POST(request: Request) {
       .eq('id', recreation.id);
 
     console.warn(`[replicate-webhook] Prediction ${predictionId} ${status}: ${error ?? 'unknown'}`);
+  }
+
+  return NextResponse.json({ ok: true });
+}
+
+// ─── Post image handler ────────────────────────────────────────────────────────
+
+async function handlePostWebhook(
+  db: DB,
+  postId: string,
+  status: string,
+  output: string | string[] | null | undefined,
+  error: string | null | undefined,
+): Promise<Response> {
+  const { data: post } = await db.from('posts').select('id, brand_id, ai_explanation').eq('id', postId).single();
+  if (!post) return NextResponse.json({ ok: true, message: 'Post not found' });
+
+  if (status === 'succeeded' && output) {
+    const images: string[] = Array.isArray(output) ? output : [output];
+    const generatedUrl = images[0];
+
+    await db.from('posts').update({
+      edited_image_url: generatedUrl,
+      status: 'pending',
+    }).eq('id', postId);
+
+    // Notify client
+    await db.from('notifications').insert({
+      brand_id: post.brand_id,
+      type: 'approval_needed',
+      message: 'Tu imagen ya está lista. ¡Échale un vistazo! 🎨',
+      read: false,
+      metadata: { post_id: postId },
+    }).then(() => null);
+
+    console.log(`[replicate-webhook] ✅ Post ${postId} image generated → ${generatedUrl}`);
+  } else {
+    console.warn(`[replicate-webhook] Post ${postId} prediction ${status}: ${error ?? 'unknown'}`);
   }
 
   return NextResponse.json({ ok: true });
