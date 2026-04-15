@@ -96,17 +96,25 @@ export async function POST(request: Request) {
           metadata: { external_id: externalId },
         });
 
-        // Queue moderation agent for the new comment (fire-and-forget)
+        // Queue agent to generate reply for the comment (fire-and-forget)
         queueJob({
           brand_id:     brand.id,
-          agent_type:   'moderation',
-          action:       'check_brand_safety',
+          agent_type:   'support',
+          action:       'handle_interactions',
           input:        {
-            source:      'ig_webhook',
+            source:       'comment',
+            interactions: [{
+              id:         externalId,
+              type:       'comment',
+              platform:   'instagram',
+              authorId:   val.from?.id ?? 'unknown',
+              authorName: val.from?.name ?? 'Unknown',
+              text:       val.text ?? '',
+              timestamp:  new Date().toISOString(),
+              postId:     val.media_id ?? val.post_id ?? undefined,
+            }],
+            autoPostReplies: false,
             external_id: externalId,
-            author:      val.from?.name ?? 'Unknown',
-            content:     val.text ?? '',
-            platform:    'instagram',
           },
           priority:     60,
           requested_by: 'cron',

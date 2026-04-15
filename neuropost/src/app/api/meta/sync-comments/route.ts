@@ -71,18 +71,25 @@ export async function GET(request: Request) {
           metadata: { post_id: post.id, external_id: c.id },
         });
 
-        // Queue moderation agent for the synced comment (fire-and-forget)
+        // Queue agent to generate reply for the synced comment (fire-and-forget)
         queueJob({
           brand_id:     brand.id,
-          agent_type:   'moderation',
-          action:       'check_brand_safety',
+          agent_type:   'support',
+          action:       'handle_interactions',
           input:        {
-            source:      'ig_sync',
+            source:       'comment',
+            interactions: [{
+              id:         c.id,
+              type:       'comment',
+              platform:   'instagram',
+              authorId:   c.username,
+              authorName: c.username,
+              text:       c.text,
+              timestamp:  new Date().toISOString(),
+              postId:     post.ig_post_id,
+            }],
+            autoPostReplies: false,
             external_id: c.id,
-            author:      c.username,
-            content:     c.text,
-            platform:    'instagram',
-            post_id:     post.id,
           },
           priority:     55,
           requested_by: 'cron',

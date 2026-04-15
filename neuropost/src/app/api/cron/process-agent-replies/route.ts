@@ -1,23 +1,19 @@
 // =============================================================================
-// Cron: process agent replies and save as chat messages
+// Cron: process agent replies and save to appropriate destination tables
 // =============================================================================
-// Runs every minute. Finds jobs with status = 'done' and agent_type = 'support',
-// extracts generated replies from agent_outputs, and saves them as worker
-// messages in chat_messages so both client and worker see the conversation.
+// Runs every minute. Finds jobs with status = 'done' and output_delivered = false.
+// For each job, extracts the generated output and saves it to the correct table:
+// - support:handle_interactions → chat_messages, support_ticket_messages, or comments
+// - content:generate_ideas → special_requests or recreation_requests
+//
+// Includes fallback response generation for professional UX when agents don't
+// generate replies (e.g., ignoring casual greetings) but clients still need responses.
 
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
-
-interface AgentOutput {
-  id: string;
-  job_id: string;
-  brand_id: string | null;
-  kind: string;
-  payload: Record<string, unknown>;
-}
 
 interface AgentJob {
   id: string;
@@ -27,6 +23,48 @@ interface AgentJob {
   input: Record<string, unknown>;
   status: string;
   finished_at: string | null;
+}
+
+interface AgentOutput {
+  payload: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+// Fallback replies by category and language (for when agent decides to ignore)
+const FALLBACK_REPLIES: Record<string, Record<string, string>> = {
+  general: {
+    es: '¡Hola! 👋 Gracias por escribirnos. ¿En qué podemos ayudarte?',
+    en: 'Hi! 👋 Thanks for reaching out. How can we help you?',
+    fr: 'Bonjour! 👋 Merci de nous contacter. Comment pouvons-nous vous aider?',
+    pt: 'Olá! 👋 Obrigado por nos contatar. Como podemos ajudá-lo?',
+    ca: 'Hola! 👋 Gràcies per escriure\'ns. Com podem ajudar-te?',
+  },
+  question: {
+    es: '¡Hola! Gracias por tu pregunta. El equipo te responderá pronto. 📧',
+    en: 'Hi! Thanks for your question. Our team will get back to you soon. 📧',
+    fr: 'Bonjour! Merci pour ta question. Notre équipe te répondra bientôt. 📧',
+    pt: 'Olá! Obrigado pela sua pergunta. Nossa equipe responderá em breve. 📧',
+    ca: 'Hola! Gràcies per la teva pregunta. L\'equip et respon aviat. 📧',
+  },
+  compliment: {
+    es: '¡Gracias! Significa mucho para nosotros. 😊',
+    en: 'Thank you! It means a lot to us. 😊',
+    fr: 'Merci! Cela signifie beaucoup pour nous. 😊',
+    pt: 'Obrigado! Significa muito para nós. 😊',
+    ca: 'Gràcies! Significa molt per a nosaltres. 😊',
+  },
+  complaint: {
+    es: 'Sentimos oír eso. Nuestro equipo se pondrá en contacto contigo para resolverlo. 🤝',
+    en: 'We\'re sorry to hear that. Our team will get in touch with you to resolve this. 🤝',
+    fr: 'Nous sommes désolés d\'entendre cela. Notre équipe te contactera pour résoudre ce problème. 🤝',
+    pt: 'Desculpa ouvir isso. Nossa equipe entrará em contato para resolver. 🤝',
+    ca: 'Sentim sentir això. L\'equip es posarà en contacte per resoldre-ho. 🤝',
+  },
+};
+
+function getFallbackReply(category: string, language: string): string {
+  const replies = FALLBACK_REPLIES[category] || FALLBACK_REPLIES['general'];
+  return replies[language] || replies['es'];
 }
 
 export async function GET(request: Request) {
@@ -39,12 +77,12 @@ export async function GET(request: Request) {
   let processed = 0;
 
   try {
-    // Get all support jobs that finished recently and haven't been processed yet
+    // Query all done jobs that haven't had their outputs saved yet
     const { data: jobs, error: jobsError } = await db
       .from('agent_jobs')
       .select('*')
-      .eq('agent_type', 'support')
       .eq('status', 'done')
+      .eq('output_delivered', false)
       .not('finished_at', 'is', null)
       .order('finished_at', { ascending: false })
       .limit(50);
@@ -54,65 +92,40 @@ export async function GET(request: Request) {
       return NextResponse.json({ processed: 0, message: 'No jobs to process' });
     }
 
-    for (const job of jobs) {
+    for (const job of jobs as AgentJob[]) {
       try {
         // Get the outputs for this job
         const { data: outputs, error: outputsError } = await db
           .from('agent_outputs')
           .select('*')
           .eq('job_id', job.id)
-          .eq('kind', 'reply');
+          .order('created_at', { ascending: true });
 
         if (outputsError) {
           console.error(`[process-agent-replies] Error fetching outputs for job ${job.id}:`, outputsError);
           continue;
         }
 
-        if (!outputs?.length) continue;
-
-        // Extract the reply text from the first output
-        const output = outputs[0] as AgentOutput;
-        const payload = output.payload as {
-          generatedReply?: string;
-          reply?: string;
-          message?: string;
-          text?: string;
-        };
-
-        const replyText = payload.generatedReply
-          || payload.reply
-          || payload.message
-          || payload.text
-          || JSON.stringify(payload);
-
-        if (!replyText || !job.brand_id) continue;
-
-        // Check if a worker message for this job already exists to avoid duplicates
-        const { data: existing } = await db
-          .from('chat_messages')
-          .select('id')
-          .eq('brand_id', job.brand_id)
-          .eq('sender_type', 'worker')
-          .eq('metadata', JSON.stringify({ job_id: job.id }))
-          .maybeSingle();
-
-        if (existing) continue;
-
-        // Save the reply as a worker message in chat_messages
-        const { error: insertError } = await db.from('chat_messages').insert({
-          brand_id: job.brand_id,
-          sender_id: null, // System/agent-generated
-          sender_type: 'worker',
-          message: typeof replyText === 'string' ? replyText : JSON.stringify(replyText),
-          attachments: [],
-          metadata: { job_id: job.id, agent_output_id: output.id },
-        });
-
-        if (insertError) {
-          console.error(`[process-agent-replies] Error inserting message for job ${job.id}:`, insertError);
+        if (!outputs?.length) {
+          // Mark as delivered even if no outputs (job might have had no result to save)
+          await db.from('agent_jobs').update({ output_delivered: true }).eq('id', job.id);
+          processed++;
           continue;
         }
 
+        // Dispatch by agent type + action + source
+        const agentType = job.agent_type as string;
+        const action = job.action as string;
+        const source = job.input?.source as string;
+
+        if (agentType === 'support' && action === 'handle_interactions') {
+          await processSupportInteraction(db, job, outputs[0] as AgentOutput);
+        } else if (agentType === 'content' && action === 'generate_ideas') {
+          await processContentIdeas(db, job, outputs[0] as AgentOutput);
+        }
+
+        // Mark job as delivered
+        await db.from('agent_jobs').update({ output_delivered: true }).eq('id', job.id);
         processed++;
       } catch (err) {
         console.error(`[process-agent-replies] Error processing job ${job.id}:`, err);
@@ -123,11 +136,124 @@ export async function GET(request: Request) {
     return NextResponse.json({
       ok: true,
       processed,
-      message: `Processed ${processed} agent replies`,
+      message: `Processed ${processed} agent outputs`,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error('[process-agent-replies]', err);
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  }
+}
+
+// ─── Handlers by job type ──────────────────────────────────────────────────
+
+async function processSupportInteraction(db: DB, job: AgentJob, output: AgentOutput) {
+  const source = job.input?.source as string;
+  const payload = output.payload as {
+    responses?: Array<{ generatedReply?: string; analysis?: { decision?: string; detectedLanguage?: string } }>;
+  };
+
+  const responses = payload.responses || [];
+  const response = responses[0];
+  if (!response) return;
+
+  const generatedReply = response.generatedReply || '';
+  const decision = response.analysis?.decision || 'auto_respond';
+  const detectedLanguage = response.analysis?.detectedLanguage || 'es';
+
+  // Generate fallback reply if agent didn't generate one
+  let finalReply = generatedReply;
+  if (!finalReply && source === 'comment') {
+    const category = (response.analysis as any)?.category || 'general';
+    finalReply = getFallbackReply(category, detectedLanguage);
+  }
+
+  if (!finalReply) return; // Don't save empty replies unless it's a fallback
+
+  if (source === 'chat') {
+    // Save to chat_messages
+    const { data: existing } = await db
+      .from('chat_messages')
+      .select('id')
+      .eq('brand_id', job.brand_id)
+      .eq('sender_type', 'worker')
+      .eq('metadata', JSON.stringify({ job_id: job.id }))
+      .maybeSingle();
+
+    if (!existing) {
+      await db.from('chat_messages').insert({
+        brand_id: job.brand_id,
+        sender_id: null,
+        sender_type: 'worker',
+        message: finalReply,
+        attachments: [],
+        metadata: { job_id: job.id },
+      });
+    }
+  } else if (source === 'ticket' || source === 'ticket_message') {
+    // Save to support_ticket_messages
+    const ticketId = job.input?.ticket_id as string;
+    if (!ticketId) return;
+
+    const { data: existing } = await db
+      .from('support_ticket_messages')
+      .select('id')
+      .eq('ticket_id', ticketId)
+      .eq('sender_type', 'worker')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    // Only insert if there's no recent worker message for this ticket from this job
+    if (!existing || (existing as any)?.metadata?.job_id !== job.id) {
+      await db.from('support_ticket_messages').insert({
+        ticket_id: ticketId,
+        sender_id: null,
+        sender_type: 'worker',
+        message: finalReply,
+        metadata: { job_id: job.id },
+      });
+    }
+  } else if (source === 'comment') {
+    // Save to comments.ai_reply and update status
+    const externalId = job.input?.external_id as string;
+    if (!externalId) return;
+
+    const newStatus = decision === 'escalate' ? 'escalated' : 'replied';
+    await db
+      .from('comments')
+      .update({ ai_reply: finalReply, status: newStatus })
+      .eq('external_id', externalId);
+  }
+}
+
+async function processContentIdeas(db: DB, job: AgentJob, output: AgentOutput) {
+  const source = job.input?.source as string;
+  const payload = output.payload as { ideas?: Array<{ title: string; caption?: string; hashtags?: string[]; format?: string }> };
+
+  const ideas = payload.ideas || [];
+  if (!ideas.length) return;
+
+  // Format top 3 ideas as worker response
+  const workerResponse = ideas
+    .slice(0, 3)
+    .map((idea, i) => {
+      const format = idea.format ? ` (${idea.format})` : '';
+      const caption = idea.caption ? `\n${idea.caption}` : '';
+      const hashtags = idea.hashtags?.length ? `\nHashtags: ${idea.hashtags.join(' ')}` : '';
+      return `**Idea ${i + 1}: ${idea.title}**${format}${caption}${hashtags}`;
+    })
+    .join('\n\n---\n\n');
+
+  if (source === 'special_request') {
+    const requestId = job.input?.request_id as string;
+    if (!requestId) return;
+
+    await db.from('special_requests').update({ worker_response: workerResponse }).eq('id', requestId);
+  } else if (source === 'recreation_request') {
+    const recreationId = job.input?.recreation_id as string;
+    if (!recreationId) return;
+
+    await db.from('recreation_requests').update({ worker_notes: workerResponse }).eq('id', recreationId);
   }
 }

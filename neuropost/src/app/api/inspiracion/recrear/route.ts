@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
+import { queueJob } from '@/lib/agents/queue';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -92,6 +93,24 @@ export async function POST(request: Request) {
     } catch (notifErr) {
       console.warn('[POST /api/inspiracion/recrear] notifications insert failed', notifErr);
     }
+
+    // Queue agent to generate content ideas for the recreation request (fire-and-forget)
+    queueJob({
+      brand_id:     brand.id,
+      agent_type:   'content',
+      action:       'generate_ideas',
+      input:        {
+        source:           'recreation_request',
+        recreation_id:    recreation.id,
+        reference_id:     body.reference_id,
+        client_notes:     body.client_notes ?? '',
+        style_to_adapt:   body.style_to_adapt ?? [],
+        description:      body.client_notes ?? 'Recreación de contenido',
+        type:             'custom',
+      },
+      priority:     70,
+      requested_by: 'client',
+    }).catch(() => null);
 
     // Optionally increment times_used on linked template if reference type = 'template'
     const { data: reference } = await db
