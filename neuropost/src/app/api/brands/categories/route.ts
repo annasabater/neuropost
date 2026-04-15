@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient, createAdminClient } from '@/lib/supabase';
 import type { ContentCategory } from '@/types';
 
@@ -24,9 +25,7 @@ export async function GET() {
     if (error) throw error;
     return NextResponse.json({ categories: (data ?? []) as ContentCategory[] });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'brands/categories');
   }
 }
 
@@ -71,8 +70,6 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ categories: (data ?? []) as ContentCategory[] });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'brands/categories');
   }
 }

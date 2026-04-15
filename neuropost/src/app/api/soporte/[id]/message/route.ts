@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
 import { queueJob } from '@/lib/agents/queue';
 
@@ -53,8 +54,6 @@ export async function POST(
 
     return NextResponse.json({ message: msg });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'soporte/[id]/message');
   }
 }

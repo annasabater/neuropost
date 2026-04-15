@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { getStripeClient } from '@/lib/stripe';
 
@@ -57,10 +58,9 @@ export async function GET() {
       cancelAtPeriodEnd: sub.cancel_at_period_end,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
     if (message === 'UNAUTHENTICATED') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'stripe/subscription-status');
   }
 }

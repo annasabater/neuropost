@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { rateLimitAgents } from '@/lib/ratelimit';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { generateSeasonalContent } from '@/agents/SeasonalAgent';
 import { normalizePreferences } from '@/lib/plan-features';
@@ -6,6 +8,8 @@ import type { Brand, BrandRules } from '@/types';
 
 export async function POST(request: Request) {
   try {
+    const rl = await rateLimitAgents(request);
+    if (rl) return rl;
     const user = await requireServerUser();
     const { seasonalDateId } = await request.json() as { seasonalDateId: string };
 
@@ -88,8 +92,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ post, content });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'POST /api/agents/seasonal/generate');
   }
 }

@@ -2,6 +2,7 @@
 // DELETE /api/tiktok/status — disconnects TikTok
 
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
 
 export async function GET() {
@@ -31,9 +32,7 @@ export async function GET() {
       tokenStatus,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'tiktok/status');
   }
 }
 
@@ -54,8 +53,6 @@ export async function DELETE() {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'tiktok/status');
   }
 }

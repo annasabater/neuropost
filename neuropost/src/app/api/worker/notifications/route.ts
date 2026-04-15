@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireWorker } from '@/lib/worker';
 import { createAdminClient } from '@/lib/supabase';
 
@@ -18,7 +19,7 @@ export async function GET() {
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     if (message === 'FORBIDDEN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'worker/notifications');
   }
 }
 
@@ -36,8 +37,7 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
     if (message === 'FORBIDDEN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'worker/notifications');
   }
 }

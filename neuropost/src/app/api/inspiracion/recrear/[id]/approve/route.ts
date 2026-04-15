@@ -2,6 +2,7 @@
 // Client approves the generated images — moves status to 'completed'.
 
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -33,9 +34,7 @@ export async function POST(
 
     return NextResponse.json({ ok: true, status: 'completed' });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     console.error('[POST /api/inspiracion/recrear/[id]/approve]', err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'inspiracion/recrear/[id]/approve');
   }
 }

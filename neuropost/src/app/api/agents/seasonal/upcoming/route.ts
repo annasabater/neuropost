@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { rateLimitAgents } from '@/lib/ratelimit';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { getUpcomingDatesForBrand } from '@/agents/SeasonalAgent';
 import type { Brand } from '@/types';
@@ -43,8 +45,6 @@ export async function GET() {
 
     return NextResponse.json({ upcoming: upcomingWithStatus });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'POST /api/agents/seasonal/upcoming');
   }
 }

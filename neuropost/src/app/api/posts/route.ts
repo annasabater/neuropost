@@ -4,6 +4,8 @@ import { checkPostLimit } from '@/lib/plan-limits';
 import { requirePermission } from '@/lib/rbac';
 import { syncPostIntoFeedQueue } from '@/lib/feedQueue';
 import { queueJob } from '@/lib/agents/queue';
+import { apiError } from '@/lib/api-utils';
+import { rateLimitWrite } from '@/lib/ratelimit';
 import type { Post, Brand } from '@/types';
 import { PLAN_LIMITS } from '@/types';
 
@@ -33,9 +35,7 @@ export async function GET(request: Request) {
     if (error) throw error;
     return NextResponse.json({ posts: (data as Post[]) ?? [] });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'GET /api/posts');
   }
 }
 
@@ -107,9 +107,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ post: insertedPost }, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'POST /api/posts');
   }
 }
 

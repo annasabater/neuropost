@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { queueJob } from '@/lib/agents/queue';
 import type { Brand } from '@/types';
@@ -18,9 +19,7 @@ export async function GET() {
     if (error && error.code !== 'PGRST116') throw error;
     return NextResponse.json({ brand: (data as Brand | null) ?? null });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'brands');
   }
 }
 
@@ -76,8 +75,7 @@ export async function POST(request: Request) {
     const message = err instanceof Error ? err.message
       : (typeof err === 'object' && err !== null && 'message' in err) ? String((err as Record<string, unknown>).message)
       : JSON.stringify(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'brands');
   }
 }
 
@@ -113,8 +111,6 @@ export async function PATCH(request: Request) {
     if (error) throw error;
     return NextResponse.json({ brand: data as Brand });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'brands');
   }
 }

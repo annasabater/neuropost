@@ -11,6 +11,7 @@
 // =============================================================================
 
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { createAdminClient }  from '@/lib/supabase';
 import { requireWorker }       from '@/lib/worker';
 import { queueJob }            from '@/lib/agents/queue';
@@ -119,9 +120,7 @@ export async function POST(
       job_ids:    jobs.map((j) => j.id),
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     console.error('[generate-image]', err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'posts/[id]/generate-image');
   }
 }

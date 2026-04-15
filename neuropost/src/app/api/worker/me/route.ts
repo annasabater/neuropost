@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { getWorker } from '@/lib/worker';
 
 export async function GET() {
@@ -7,7 +8,6 @@ export async function GET() {
     if (!worker) return NextResponse.json({ error: 'Not a worker' }, { status: 403 });
     return NextResponse.json({ worker });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'worker/me');
   }
 }

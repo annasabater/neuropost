@@ -2,6 +2,7 @@
 // Returns the TikTok OAuth authorization URL for the current user.
 
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser } from '@/lib/supabase';
 import { signTikTokState, getTikTokAuthUrl } from '@/lib/tiktok';
 
@@ -12,8 +13,6 @@ export async function GET() {
     const url   = getTikTokAuthUrl(state);
     return NextResponse.json({ url });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'tiktok/auth-url');
   }
 }

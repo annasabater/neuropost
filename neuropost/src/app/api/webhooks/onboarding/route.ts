@@ -9,6 +9,7 @@
 // Requires authentication (brand owner or CRON_SECRET for webhooks).
 
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
 import { queueOnboardingPipeline } from '@/lib/agents/pipelines/onboarding';
 
@@ -63,11 +64,10 @@ export async function POST(request: Request) {
     const result = await queueOnboardingPipeline(brandId);
     return NextResponse.json({ ok: true, ...result }, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
     if (message === 'UNAUTHENTICATED') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     console.error('[POST /api/webhooks/onboarding]', err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'webhooks/onboarding');
   }
 }

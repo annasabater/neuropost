@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser } from '@/lib/supabase';
 import { requirePermission } from '@/lib/rbac';
 import { createAdminClient } from '@/lib/supabase';
@@ -44,8 +45,6 @@ export async function POST(request: Request) {
       igPostId:    result.igPostId,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'publish');
   }
 }

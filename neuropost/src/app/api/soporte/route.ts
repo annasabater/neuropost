@@ -2,11 +2,14 @@ import { NextResponse } from 'next/server';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
 import { sendUrgentTicketEmail } from '@/lib/email';
 import { queueJob } from '@/lib/agents/queue';
+import { apiError, parsePagination } from '@/lib/api-utils';
+import { rateLimitWrite } from '@/lib/ratelimit';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const user = await requireServerUser();
     const db = createAdminClient();
+    const { limit, offset } = parsePagination(request, 100, 50);
 
     const { data: brand } = await db.from('brands').select('id').eq('user_id', user.id).single();
     if (!brand) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
@@ -15,19 +18,21 @@ export async function GET() {
       .from('support_tickets')
       .select('*')
       .eq('brand_id', brand.id)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
     if (error) throw error;
 
     return NextResponse.json({ tickets: tickets ?? [] });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'GET /api/soporte');
   }
 }
 
 export async function POST(request: Request) {
   try {
+    const rl = await rateLimitWrite(request);
+    if (rl) return rl;
+
     const user = await requireServerUser();
     const db = createAdminClient();
     const body = await request.json();
@@ -104,14 +109,12 @@ export async function POST(request: Request) {
           category,
           ticketId:    ticket.id,
           clientEmail: user.email ?? '',
-        }).catch((err) => console.error('[soporte] urgent email failed:', err));
+        }).catch((emailErr) => console.error('[soporte] urgent email failed:', emailErr));
       }
     }
 
     return NextResponse.json({ ticket });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'POST /api/soporte');
   }
 }

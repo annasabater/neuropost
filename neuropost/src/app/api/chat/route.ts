@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
 import { queueJob } from '@/lib/agents/queue';
+import { apiError, parsePagination } from '@/lib/api-utils';
+import { rateLimitWrite } from '@/lib/ratelimit';
 
 export async function GET(request: Request) {
   try {
@@ -8,6 +10,7 @@ export async function GET(request: Request) {
     const db = createAdminClient();
     const { searchParams } = new URL(request.url);
     const brandId = searchParams.get('brandId');
+    const { limit, offset } = parsePagination(request, 200, 100);
 
     const { data: brand } = await db.from('brands').select('id').eq('user_id', user.id).single();
     if (!brand) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
@@ -17,20 +20,22 @@ export async function GET(request: Request) {
       .from('chat_messages')
       .select('*')
       .eq('brand_id', resolvedBrandId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1);
     if (error) throw error;
 
-    return NextResponse.json({ messages: messages ?? [] });
+    // Reverse so oldest-first for display, but we fetched newest-first for pagination
+    return NextResponse.json({ messages: (messages ?? []).reverse() });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    console.error('[GET /api/chat]', err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'GET /api/chat');
   }
 }
 
 export async function POST(request: Request) {
   try {
+    const rl = await rateLimitWrite(request);
+    if (rl) return rl;
+
     const user = await requireServerUser();
     const db = createAdminClient();
     const body = await request.json();
@@ -86,16 +91,7 @@ export async function POST(request: Request) {
     }).catch(() => null);
 
     return NextResponse.json({ message: msg });
-  } catch (err: unknown) {
-    const isPostgrest = err && typeof err === 'object' && 'code' in err;
-    if (isPostgrest) {
-      const e = err as { message?: string; details?: string; hint?: string; code?: string };
-      console.error('[POST /api/chat] PostgREST', e);
-      return NextResponse.json({ error: e.message, details: e.details, hint: e.hint, code: e.code }, { status: 500 });
-    }
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    console.error('[POST /api/chat]', err);
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch (err) {
+    return apiError(err, 'POST /api/chat');
   }
 }

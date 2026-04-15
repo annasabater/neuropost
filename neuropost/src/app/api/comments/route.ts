@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
 import { queueJob } from '@/lib/agents/queue';
+import { apiError, parsePagination } from '@/lib/api-utils';
+import { rateLimitWrite } from '@/lib/ratelimit';
 
-// GET /api/comments — returns all comments for the user's brand
-export async function GET() {
+// GET /api/comments — returns comments for the user's brand (paginated)
+export async function GET(request: Request) {
   try {
     const user = await requireServerUser();
     const db = createAdminClient();
+    const { limit, offset } = parsePagination(request, 200, 100);
 
     const { data: brand } = await db
       .from('brands')
@@ -20,15 +23,13 @@ export async function GET() {
       .select('*')
       .eq('brand_id', brand.id)
       .order('created_at', { ascending: false })
-      .limit(100);
+      .range(offset, offset + limit - 1);
 
     if (error) throw error;
 
     return NextResponse.json({ comments: comments ?? [] });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'GET /api/comments');
   }
 }
 
@@ -94,8 +95,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ comment }, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'POST /api/comments');
   }
 }
