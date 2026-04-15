@@ -11,6 +11,7 @@
 
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
+import { handleEscalation } from '@/lib/soporte/escalation';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -228,6 +229,25 @@ async function processSupportInteraction(db: DB, job: AgentJob, output: AgentOut
 
   } else {
     console.warn(`[process-agent-replies] Job ${job.id}: unknown source '${source}', skipping`);
+  }
+
+  // Escalation: if agent decided to escalate, create incident + send email
+  if (decision === 'escalate') {
+    const interactions = (job.input?.interactions as Array<{ text?: string; authorId?: string }>) ?? [];
+    const mensajeOriginal = interactions[0]?.text ?? '';
+    const category = (response.analysis as Record<string, unknown>)?.category as string ?? 'general';
+    const sentiment = (response.analysis as Record<string, unknown>)?.sentiment as string ?? 'negative';
+
+    handleEscalation({
+      brandId: job.brand_id ?? '',
+      jobId: job.id,
+      userId: interactions[0]?.authorId,
+      source: source ?? 'unknown',
+      mensajeOriginal,
+      respuestaAgente: finalReply,
+      category,
+      sentiment,
+    }).catch(err => console.error(`[process-agent-replies] Escalation failed for job ${job.id}:`, err));
   }
 }
 
