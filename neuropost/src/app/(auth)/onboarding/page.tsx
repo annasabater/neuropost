@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import type { SocialSector, BrandTone, PublishMode, PostGoal, VisualStyle } from '@/types';
@@ -684,6 +684,8 @@ const ONBOARDING_PLANS: {
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isRedo = searchParams.get('redo') === '1';
   const { addTag, removeTag, handleTagKeyDown } = useTagInput();
   const [step,   setStep]   = useState<Step>(1);
   const [saving, setSaving] = useState(false);
@@ -731,6 +733,28 @@ export default function OnboardingPage() {
   const catDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load template categories when sector changes
+  // Prefill from existing brand when redoing onboarding
+  useEffect(() => {
+    if (!isRedo) return;
+    fetch('/api/brands').then(r => r.json()).then(({ brand }) => {
+      if (!brand) return;
+      if (brand.name)         setName(brand.name);
+      if (brand.sector)       setSector(brand.sector as SocialSector);
+      if (brand.visual_style) setVisualStyle(brand.visual_style as VisualStyle);
+      if (brand.tone)         setTone(brand.tone as BrandTone);
+      if (brand.hashtags?.length) setKeywords(brand.hashtags);
+      if (brand.location)     setLocation(brand.location);
+      if (brand.city)         setCity(brand.city);
+      if (brand.publish_mode) setPublishMode(brand.publish_mode as PublishMode);
+      if (brand.slogans?.[0]) setSlogan(brand.slogans[0]);
+      if (brand.colors?.primary)   setPrimaryColor(brand.colors.primary);
+      if (brand.colors?.secondary) setSecondaryColor(brand.colors.secondary);
+      if (brand.colors?.tertiary)  setTertiaryColor(brand.colors.tertiary);
+      if (brand.colors?.primary || brand.colors?.secondary) setHasCustomPalette(true);
+    }).catch(() => null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRedo]);
+
   useEffect(() => {
     const template = getTemplateForSector(sector);
     if (template) {
@@ -833,7 +857,7 @@ export default function OnboardingPage() {
         vintage:    'Estilo vintage y artesanal: lenguaje cálido, nostálgico, valorando el oficio.',
       };
       const res = await fetch('/api/brands', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: isRedo ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name, sector, secondary_sectors: secondarySectors,
           visual_style: visualStyle, tone, hashtags: keywords,
@@ -859,9 +883,9 @@ export default function OnboardingPage() {
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? 'Error al crear el negocio');
-      toast.success('¡Negocio configurado correctamente!');
-      router.push('/dashboard');
+      if (!res.ok) throw new Error(json.error ?? (isRedo ? 'Error al actualizar el negocio' : 'Error al crear el negocio'));
+      toast.success(isRedo ? '¡Marca actualizada correctamente!' : '¡Negocio configurado correctamente!');
+      router.push(isRedo ? '/brand' : '/dashboard');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error inesperado');
     } finally { setSaving(false); }
@@ -1902,7 +1926,7 @@ export default function OnboardingPage() {
 
             <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
               <BtnBack onClick={() => setStep(3)} />
-              <BtnPrimary onClick={() => setStep(5)}>Siguiente →</BtnPrimary>
+              <BtnPrimary onClick={() => isRedo ? handleSubmit() : setStep(5)}>{isRedo ? (saving ? 'Guardando…' : 'Guardar cambios →') : 'Siguiente →'}</BtnPrimary>
             </div>
           </div>
         )}

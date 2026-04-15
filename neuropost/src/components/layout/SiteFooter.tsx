@@ -300,15 +300,10 @@ export function SiteFooter() {
           <div>
             <div style={S.colTitle}>Producto</div>
             <ul style={S.linkList}>
-              <li><Link href="/#resultados" style={S.link}>Resultados</Link></li>
+              <li><Link href="/que-incluye" style={S.link}>Qué incluye</Link></li>
               <li><Link href="/#como-funciona" style={S.link}>Cómo funciona</Link></li>
               <li><Link href="/pricing" style={S.link}>Precios</Link></li>
-              <li>
-                <Link href="/novedades" style={S.link}>
-                  Novedades<span style={S.newBadge}>New</span>
-                </Link>
-              </li>
-              <li><Link href="/que-incluye" style={S.link}>Qué incluye</Link></li>
+              <li><Link href="/novedades" style={S.link}>Novedades</Link></li>
             </ul>
           </div>
 
@@ -343,7 +338,7 @@ export function SiteFooter() {
 
           {/* Label */}
           <p style={S.newsletterLabel}>
-            Novedades y consejos<br />para tu negocio, cada semana
+            ¿Tienes alguna duda?<br />Escríbenos y te ayudamos
           </p>
 
           {/* Input + button */}

@@ -120,7 +120,6 @@ const FAQ_DATA: FaqCategory[] = [
     { q: '¿Se puede generar contenido con IA?', a: 'Sí. Puedes generar contenido tú mismo desde la plataforma o solicitarlo a nuestro equipo para que lo prepare por ti. Nos adaptamos a cómo prefieras trabajar.' },
   ]},
   { category: 'Planes y condiciones', items: [
-    { q: '¿Mis fotos y contenido son privados?', a: 'Sí. Todo tu contenido es privado y solo tú tienes acceso. Cumplimos con GDPR.' },
     { q: '¿Puedo cancelar cuando quiera?', a: 'Sí. Puedes cancelar en cualquier momento sin permanencias. Sin trampas ni letra pequeña.' },
   ]},
 ];
@@ -267,8 +266,7 @@ export default function LandingPage() {
       { '@type': 'Question', name: '¿Tengo que aprobar el contenido?', acceptedAnswer: { '@type': 'Answer', text: 'Tú decides. Antes de publicar, puedes revisar y aprobar el contenido. Si lo prefieres, también podemos gestionarlo automáticamente.' } },
       { '@type': 'Question', name: '¿Cuánto tiempo tengo que dedicarle?', acceptedAnswer: { '@type': 'Answer', text: 'Muy poco o ninguno. Puedes delegarlo completamente en nuestro equipo o usar la plataforma cuando lo necesites.' } },
       { '@type': 'Question', name: '¿Qué tipo de negocios pueden usar NeuroPost?', acceptedAnswer: { '@type': 'Answer', text: 'Trabajamos con negocios locales como restaurantes, gimnasios, centros de estética, inmobiliarias y más. Cualquier negocio que quiera mejorar su presencia en redes.' } },
-      { '@type': 'Question', name: '¿En qué redes sociales publicáis?', acceptedAnswer: { '@type': 'Answer', text: 'Actualmente nos centramos en Instagram y Facebook, donde los negocios locales obtienen mejores resultados.' } },
-      { '@type': 'Question', name: '¿Mis fotos y contenido son privados?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. Todo tu contenido es privado y solo tú tienes acceso. Cumplimos con GDPR.' } },
+      { '@type': 'Question', name: '¿En qué redes sociales publicáis?', acceptedAnswer: { '@type': 'Answer', text: 'Publicamos en Instagram, Facebook y TikTok. Cada plataforma tiene su propio formato y algoritmo — nos adaptamos a cada una para maximizar el alcance de tu negocio.' } },
       { '@type': 'Question', name: '¿Puedo cancelar cuando quiera?', acceptedAnswer: { '@type': 'Answer', text: 'Sí. Puedes cancelar en cualquier momento sin permanencias. Sin trampas ni letra pequeña.' } },
     ],
   };
@@ -319,26 +317,14 @@ export default function LandingPage() {
       <section style={{ padding: '140px 0 80px', background: '#ffffff' }}>
         <div className="container" style={{ textAlign: 'center', maxWidth: 800 }}>
           <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 20 }}>
-            Gestión multiplataforma con IA
+            Tu equipo de redes sociales
           </div>
           <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.8rem, 6vw, 4.5rem)', textTransform: 'uppercase', letterSpacing: '-0.01em', lineHeight: 0.95, color: '#111111', marginBottom: 24 }}>
-            Gestionamos <span style={{ color: '#0F766E' }}>tus redes sociales</span> mientras tú te centras en tu negocio
+            Nos encargamos de <span style={{ color: '#0F766E' }}>tus redes</span> para que tú te encargues de tu negocio
           </h1>
           <p style={{ fontFamily: f, fontSize: 17, color: '#6b7280', lineHeight: 1.7, maxWidth: 560, margin: '0 auto 24px' }}>
-            Contenido optimizado para cada plataforma. Estrategia adaptada a cada canal. Publicación automática.
+            Creamos contenido que hace que la gente te vea, te recuerde y termine entrando por la puerta.
           </p>
-          {/* Platform badges */}
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 32, flexWrap: 'wrap' }}>
-            {[
-              { label: 'Instagram', color: '#E1306C' },
-              { label: 'TikTok',    color: '#010101' },
-              { label: 'Facebook',  color: '#1877F2' },
-            ].map(({ label, color }) => (
-              <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: `1.5px solid ${color}`, fontFamily: f, fontSize: 12, fontWeight: 700, color, letterSpacing: '0.04em' }}>
-                {label}
-              </span>
-            ))}
-          </div>
           <div style={{ display: 'flex', justifyContent: 'center', margin: '0 auto 16px' }}>
             <Link href="/register"
               style={{ display: 'inline-block', padding: '16px 40px', background: '#0F766E', color: '#ffffff', textDecoration: 'none', fontFamily: fc, fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
@@ -477,7 +463,7 @@ export default function LandingPage() {
                 por dentro
               </h2>
               <p style={{ fontFamily: f, fontSize: 15, color: '#9ca3af', lineHeight: 1.7, marginBottom: 20 }}>
-                Visualiza cómo se usa NeuroPost con demos reales en vídeo y capturas de cada flujo.
+                Explora cada pantalla y flujo antes de registrarte.
               </p>
 
               <div style={{ display: 'inline-flex', border: '1px solid #374151', marginBottom: 16 }}>
@@ -520,9 +506,6 @@ export default function LandingPage() {
                 </button>
               </div>
 
-              <p style={{ fontFamily: f, fontSize: 12, color: '#6b7280', lineHeight: 1.6 }}>
-                Consejo: empieza por videos para ver el flujo completo y luego revisa las capturas en detalle.
-              </p>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
@@ -560,7 +543,6 @@ export default function LandingPage() {
           <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
             Sin sorpresas. Cancela cuando quieras.
           </h2>
-          <p style={{ fontFamily: f, fontSize: 15, color: '#6b7280', marginTop: 12 }}>5 días de prueba gratuita en todos los planes.</p>
           <div style={{ display: 'inline-flex', background: '#ffffff', border: '1px solid var(--border)', borderRadius: '0', padding: '4px', gap: '4px', marginTop: 24 }}>
             {(['monthly', 'annual'] as const).map((cycle) => (
               <button
