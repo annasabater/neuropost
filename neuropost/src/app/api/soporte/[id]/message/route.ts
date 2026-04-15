@@ -34,6 +34,8 @@ export async function POST(
       agent_type:   'support',
       action:       'handle_interactions',
       input:        {
+        source:       'ticket',
+        ticket_id:    id,
         interactions: [{
           id:         msg.id,
           type:       'dm',

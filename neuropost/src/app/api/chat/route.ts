@@ -6,7 +6,7 @@ export async function GET(request: Request) {
   try {
     const user = await requireServerUser();
     const db = createAdminClient();
-    const { searchParams } = new URL(request.url);
+    const searchParams = await request.nextUrl.searchParams;
     const brandId = searchParams.get('brandId');
 
     const { data: brand } = await db.from('brands').select('id').eq('user_id', user.id).single();
@@ -69,6 +69,7 @@ export async function POST(request: Request) {
       agent_type:   'support',
       action:       'handle_interactions',
       input:        {
+        source:       'chat',
         interactions: [{
           id:         msg.id,
           type:       'dm',

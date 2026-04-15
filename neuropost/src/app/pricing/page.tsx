@@ -687,17 +687,6 @@ export default function PricingPage() {
           >
             Precios claros.<br />Cancela cuando quieras.
           </h2>
-          <p
-            style={{
-              color: 'var(--muted)',
-              fontSize: '1.05rem',
-              lineHeight: 1.7,
-              maxWidth: '480px',
-              margin: '0 auto 40px',
-            }}
-          >
-            14 días gratis en todos los planes. Sin tarjeta de crédito. Sin permanencia.
-          </p>
 
         </div>
       </section>
