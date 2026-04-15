@@ -172,12 +172,13 @@ async function processSupportInteraction(db: DB, job: AgentJob, output: AgentOut
 
   if (source === 'chat') {
     // Save to chat_messages
+    // Use raw SQL to check JSONB contains to avoid JSON string comparison issues
     const { data: existing } = await db
       .from('chat_messages')
       .select('id')
       .eq('brand_id', job.brand_id)
       .eq('sender_type', 'worker')
-      .eq('metadata', JSON.stringify({ job_id: job.id }))
+      .filter('metadata->job_id', 'eq', job.id)
       .maybeSingle();
 
     if (!existing) {
