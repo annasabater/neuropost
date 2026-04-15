@@ -190,6 +190,15 @@ async function processSupportInteraction(db: DB, job: AgentJob, output: AgentOut
     }
     console.log(`[process-agent-replies] ✅ Saved chat reply for job ${job.id}`);
 
+    // Notify client of new agent message
+    await db.from('notifications').insert({
+      brand_id: job.brand_id,
+      type: 'chat_message',
+      message: `Nuevo mensaje de tu equipo: "${finalReply.slice(0, 60)}${finalReply.length > 60 ? '...' : ''}"`,
+      read: false,
+      metadata: { job_id: job.id },
+    }).then(() => null);
+
   } else if (source === 'ticket' || source === 'ticket_message') {
     const ticketId = job.input?.ticket_id as string;
     if (!ticketId) {
@@ -210,6 +219,15 @@ async function processSupportInteraction(db: DB, job: AgentJob, output: AgentOut
       throw new Error(`ticket_messages insert failed: ${insertError.message}`);
     }
     console.log(`[process-agent-replies] ✅ Saved ticket reply for job ${job.id}`);
+
+    // Notify client of ticket reply
+    await db.from('notifications').insert({
+      brand_id: job.brand_id,
+      type: 'ticket_reply',
+      message: `Respuesta en tu ticket de soporte: "${finalReply.slice(0, 60)}${finalReply.length > 60 ? '...' : ''}"`,
+      read: false,
+      metadata: { job_id: job.id, ticket_id: ticketId },
+    }).then(() => null);
 
   } else if (source === 'comment') {
     const externalId = job.input?.external_id as string;

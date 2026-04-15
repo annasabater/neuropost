@@ -86,6 +86,7 @@ function InboxInner() {
   const notifications = useAppStore((s) => s.notifications);
   const setNotifications = useAppStore((s) => s.setNotifications);
   const markAllNotificationsRead = useAppStore((s) => s.markAllNotificationsRead);
+  const markNotificationRead = useAppStore((s) => s.markNotificationRead);
 
   // Soporte state
   const SUBJECT_OPTIONS = [
@@ -824,6 +825,8 @@ function InboxInner() {
               meta_connected: '/settings#redes', token_expired: '/settings#redes',
               payment_failed: '/settings/plan', plan_activated: '/settings/plan',
               team_invite: '/settings/team', trend_detected: '/tendencias',
+              chat_message: '/inbox?tab=mensajes',
+              ticket_reply: '/inbox?tab=soporte',
             };
 
             return (
@@ -837,6 +840,16 @@ function InboxInner() {
                       <div
                         key={n.id}
                         onClick={() => {
+                          // Mark as read
+                          if (!n.read) {
+                            markNotificationRead(n.id);
+                            fetch('/api/notifications', {
+                              method: 'PATCH',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ ids: [n.id] }),
+                            }).catch(() => null);
+                          }
+                          // Navigate to the right section
                           const link = NOTIF_LINK[n.type] ?? '/dashboard';
                           if (link.startsWith('/inbox')) setTab(link.split('tab=')[1] as Tab);
                           else router.push(link);
