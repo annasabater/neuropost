@@ -11,6 +11,7 @@
 
     { "path": "/api/cron/global-trends",        "schedule": "0 23 * * 0"    },
     { "path": "/api/cron/monday-brain",         "schedule": "0 0 * * 1"     },
-    { "path": "/api/cron/churn-proactive",      "schedule": "0 9 * * *"     }
+    { "path": "/api/cron/churn-proactive",      "schedule": "0 9 * * *"     },
+    { "path": "/api/cron/detect-holidays",      "schedule": "0 6 1 * *"     }
   ]
 }

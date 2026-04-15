@@ -130,7 +130,7 @@ export default function NewPostPage() {
 
   async function handleSave(data: {
     imageUrl: string | null; caption: string; hashtags: string[];
-    platforms: ('instagram' | 'facebook')[]; format: string; goal: string;
+    platforms: ('instagram' | 'facebook' | 'tiktok')[]; format: string; goal: string;
     aiExplanation?: string; qualityScore?: number; isStory?: boolean;
   }) {
     // Merge from_self_service into ai_explanation so the detail page can show

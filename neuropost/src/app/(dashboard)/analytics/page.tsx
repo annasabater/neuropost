@@ -1,23 +1,120 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslations } from 'next-intl';
-import { Zap, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Zap, TrendingUp, TrendingDown, AlertCircle, CheckCircle2, ArrowRight, Clock } from 'lucide-react';
 import type { AnalystOutput } from '@/types';
 import { MetricsDashboard } from '@/components/analytics/MetricsDashboard';
+import { useAppStore } from '@/store/useAppStore';
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
+// ── Optimal posting times per platform ────────────────────────────────────────
+// Based on global engagement research (HubSpot / Sprout Social / Later 2024-2025).
+// Days: 0=Mon … 6=Sun. Times in LOCAL hours (browser timezone).
+const PLATFORM_TIMES: Record<string, {
+  color: string;
+  slots: Array<{ days: string; hours: string; note: string }>;
+}> = {
+  Instagram: {
+    color: '#E1306C',
+    slots: [
+      { days: 'Mar – Vie', hours: '09:00 – 11:00', note: 'Pico de mañana' },
+      { days: 'Mar – Vie', hours: '18:00 – 21:00', note: 'Pico de tarde' },
+      { days: 'Sáb',       hours: '10:00 – 13:00', note: 'Mejor día del fin de semana' },
+    ],
+  },
+  TikTok: {
+    color: '#010101',
+    slots: [
+      { days: 'Lun – Vie', hours: '07:00 – 09:00', note: 'Scroll matutino' },
+      { days: 'Lun – Vie', hours: '19:00 – 23:00', note: 'Prime time' },
+      { days: 'Sáb – Dom', hours: '09:00 – 11:00', note: 'Fin de semana' },
+    ],
+  },
+  Facebook: {
+    color: '#1877F2',
+    slots: [
+      { days: 'Mar – Jue', hours: '09:00 – 13:00', note: 'Horario laboral' },
+      { days: 'Vie',       hours: '10:00 – 12:00', note: 'Viernes a media mañana' },
+      { days: 'Mié',       hours: '11:00 – 13:00', note: 'Mejor día global' },
+    ],
+  },
+};
+
+function BestTimesSection({ connectedPlatforms }: { connectedPlatforms: string[] }) {
+  const platforms = connectedPlatforms.length > 0
+    ? connectedPlatforms.filter((p) => p in PLATFORM_TIMES)
+    : Object.keys(PLATFORM_TIMES);
+
+  if (platforms.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 48 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid #d4d4d8' }}>
+        <Clock size={14} color="#9ca3af" />
+        <h2 style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#9ca3af', margin: 0 }}>
+          Mejores horas para publicar
+        </h2>
+      </div>
+      <p style={{ fontFamily: f, fontSize: 13, color: '#6b7280', marginBottom: 20 }}>
+        Franjas horarias con mayor engagement según estudios globales 2024-2025. Cuando acumules posts publicados, este análisis se personalizará con tus propios datos.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${platforms.length}, 1fr)`, gap: '1px', background: '#d4d4d8', border: '1px solid #d4d4d8' }}>
+        {platforms.map((platform) => {
+          const data = PLATFORM_TIMES[platform];
+          if (!data) return null;
+          return (
+            <div key={platform} style={{ background: '#ffffff', padding: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: data.color, flexShrink: 0 }} />
+                <span style={{ fontFamily: fc, fontWeight: 700, fontSize: 14, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#111827' }}>
+                  {platform}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {data.slots.map((slot, i) => (
+                  <div key={i} style={{ borderLeft: `3px solid ${data.color}`, paddingLeft: 10 }}>
+                    <p style={{ fontFamily: f, fontSize: 13, fontWeight: 700, color: '#111827', marginBottom: 2 }}>{slot.hours}</p>
+                    <p style={{ fontFamily: f, fontSize: 11, color: '#6b7280' }}>{slot.days} · {slot.note}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <p style={{ fontFamily: f, fontSize: 11, color: '#9ca3af', marginTop: 10 }}>
+        Solo se muestran las plataformas que tienes conectadas. Conecta más en Ajustes → Conexiones.
+      </p>
+    </div>
+  );
+}
+
 export default function AnalyticsPage() {
   const t = useTranslations('analytics');
   const tCal = useTranslations('calendar');
+  const brand = useAppStore((s) => s.brand);
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [data, setData] = useState<AnalystOutput | null>(null);
   const [loading, setLoading] = useState(false);
+  const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
+
+  // Detect which platforms are connected
+  useEffect(() => {
+    if (!brand) return;
+    const platforms: string[] = [];
+    // instagram/facebook share the same meta token
+    const b = brand as unknown as Record<string, unknown>;
+    if (b.ig_access_token) platforms.push('Instagram');
+    if (b.fb_access_token) platforms.push('Facebook');
+    if (b.tt_access_token) platforms.push('TikTok');
+    setConnectedPlatforms(platforms);
+  }, [brand]);
 
   async function runReport() {
     setLoading(true);
@@ -204,6 +301,7 @@ export default function AnalyticsPage() {
           })()}
 
           <MetricsDashboard data={data} />
+          <BestTimesSection connectedPlatforms={connectedPlatforms} />
         </>
       ) : (
         /* ── Empty state — preview skeleton ── */
@@ -250,6 +348,8 @@ export default function AnalyticsPage() {
               <Zap size={16} /> {loading ? t('generating') : t('generate')} <ArrowRight size={14} />
             </button>
           </div>
+
+          <BestTimesSection connectedPlatforms={connectedPlatforms} />
         </div>
       )}
       </div>

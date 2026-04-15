@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
+import { queueJob } from '@/lib/agents/queue';
 import type { Brand } from '@/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,6 +53,21 @@ export async function POST(request: Request) {
       const rows = (incomingCategories as { category_key: string; name: string; source: string; active: boolean }[])
         .map((c) => ({ brand_id: data.id, category_key: c.category_key, name: c.name, source: c.source ?? 'template', active: c.active ?? true }));
       await supabase.from('content_categories').insert(rows).then(() => void 0);
+    }
+
+    // Fire holiday detection agent for the current + next year (fire-and-forget)
+    if (data?.id) {
+      const currentYear = new Date().getFullYear();
+      for (const yr of [currentYear, currentYear + 1]) {
+        queueJob({
+          brand_id: data.id,
+          agent_type: 'scheduling',
+          action: 'detect_holidays',
+          input: { year: yr },
+          priority: 40,
+          requested_by: 'cron',
+        }).catch(() => null);
+      }
     }
 
     return NextResponse.json({ brand: data as Brand }, { status: 201 });

@@ -7,13 +7,19 @@
 export type SocialSector =
   | 'heladeria' | 'restaurante' | 'cafeteria' | 'gym' | 'clinica' | 'barberia' | 'boutique' | 'inmobiliaria'
   | 'panaderia' | 'cocteleria' | 'street_food' | 'vinoteca'
-  | 'nail_art' | 'estetica' | 'maquillaje'
+  | 'nail_art' | 'estetica' | 'maquillaje' | 'peluqueria' | 'tattoo'
   | 'moda_hombre' | 'zapateria' | 'skincare'
-  | 'yoga' | 'dental' | 'clinica_estetica' | 'nutricion'
-  | 'decoracion' | 'jardineria' | 'reformas' | 'inmobiliaria_lujo'
-  | 'fotografia' | 'academia' | 'abogado' | 'veterinario' | 'mecanica'
+  | 'yoga' | 'dental' | 'clinica_estetica' | 'nutricion' | 'psicologia' | 'fisioterapia'
+  | 'decoracion' | 'jardineria' | 'reformas' | 'inmobiliaria_lujo' | 'arquitectura'
+  | 'fotografia' | 'academia' | 'abogado' | 'veterinario' | 'mecanica' | 'consultoria'
   | 'teatro' | 'arte' | 'libreria' | 'gaming' | 'viajes' | 'hotel'
-  | 'floristeria' | 'regalos' | 'tecnologia'
+  | 'floristeria' | 'regalos' | 'tecnologia' | 'ecommerce' | 'agencia_marketing'
+  | 'hostal' | 'casa_rural' | 'camping' | 'agencia_viajes'
+  | 'museo' | 'galeria' | 'sala_conciertos' | 'cine' | 'escape_room'
+  | 'escuela' | 'guarderia' | 'academia_idiomas' | 'academia_musica' | 'academia_deporte'
+  | 'centro_deportivo' | 'parque_acuatico' | 'aventura' | 'club_deportivo' | 'padel'
+  | 'centro_ludico' | 'parque_infantil' | 'zoo' | 'acuario'
+  | 'organizacion_eventos' | 'catering' | 'ong' | 'coworking'
   | 'otro';
 
 export type SubscriptionPlan = 'starter' | 'pro' | 'total' | 'agency';

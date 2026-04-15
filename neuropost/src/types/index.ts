@@ -7,13 +7,25 @@
 export type Platform        = 'instagram' | 'facebook' | 'tiktok';
 export type SocialSector    = 'heladeria' | 'restaurante' | 'cafeteria' | 'gym' | 'clinica' | 'barberia' | 'boutique' | 'inmobiliaria'
   | 'panaderia' | 'cocteleria' | 'street_food' | 'vinoteca'
-  | 'nail_art' | 'estetica' | 'maquillaje'
+  | 'nail_art' | 'estetica' | 'maquillaje' | 'peluqueria' | 'tattoo'
   | 'moda_hombre' | 'zapateria' | 'skincare'
-  | 'yoga' | 'dental' | 'clinica_estetica' | 'nutricion'
-  | 'decoracion' | 'jardineria' | 'reformas' | 'inmobiliaria_lujo'
-  | 'fotografia' | 'academia' | 'abogado' | 'veterinario' | 'mecanica'
+  | 'yoga' | 'dental' | 'clinica_estetica' | 'nutricion' | 'psicologia' | 'fisioterapia'
+  | 'decoracion' | 'jardineria' | 'reformas' | 'inmobiliaria_lujo' | 'arquitectura'
+  | 'fotografia' | 'academia' | 'abogado' | 'veterinario' | 'mecanica' | 'consultoria'
   | 'teatro' | 'arte' | 'libreria' | 'gaming' | 'viajes' | 'hotel'
-  | 'floristeria' | 'regalos' | 'tecnologia'
+  | 'floristeria' | 'regalos' | 'tecnologia' | 'ecommerce' | 'agencia_marketing'
+  // Turismo y alojamiento
+  | 'hostal' | 'casa_rural' | 'camping' | 'agencia_viajes'
+  // Cultura y ocio
+  | 'museo' | 'galeria' | 'sala_conciertos' | 'cine' | 'escape_room'
+  // Educación y formación
+  | 'escuela' | 'guarderia' | 'academia_idiomas' | 'academia_musica' | 'academia_deporte'
+  // Deporte y aventura
+  | 'centro_deportivo' | 'parque_acuatico' | 'aventura' | 'club_deportivo' | 'padel'
+  // Ocio y familia
+  | 'centro_ludico' | 'parque_infantil' | 'zoo' | 'acuario'
+  // Eventos y servicios
+  | 'organizacion_eventos' | 'catering' | 'ong' | 'coworking'
   | 'otro';
 export type BrandTone       = 'cercano' | 'profesional' | 'divertido' | 'premium';
 export type PublishMode     = 'manual' | 'semi' | 'auto';
