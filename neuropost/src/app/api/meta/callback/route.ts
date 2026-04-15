@@ -97,6 +97,11 @@ export async function GET(request: Request) {
           : `Cuenta de Instagram conectada correctamente.`,
         read:     false,
       });
+
+      // 8 — Trigger first-content generation (onboarding auto-content)
+      import('@/lib/onboarding-content')
+        .then(({ triggerOnboardingContent }) => triggerOnboardingContent(brandRow.id, 'instagram_connect'))
+        .catch((e) => console.error('[meta/callback] onboarding content trigger failed:', e));
     }
 
     return NextResponse.redirect(new URL('/settings?meta_connected=1', origin));
