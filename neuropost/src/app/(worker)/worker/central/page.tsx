@@ -94,7 +94,7 @@ function PostCard({ post, onGenerateImage }: { post: any; onGenerateImage?: (pos
             disabled={generating}
             style={{ width: '100%', padding: '8px', background: generating ? C.bg1 : C.accent, color: generating ? C.muted : '#fff', border: 'none', cursor: generating ? 'not-allowed' : 'pointer', fontSize: 12, fontFamily: f, fontWeight: 700, letterSpacing: '0.03em' }}
           >
-            {generating ? 'Generando…' : '🎨 Generar imagen con IA'}
+            {generating ? 'Generando…' : 'Generar imagen con IA'}
           </button>
         </div>
       )}
@@ -248,7 +248,7 @@ export default function WorkerDashboardPage() {
     const recChannel = supabase
       .channel('worker-recreation-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'recreation_requests' }, () => {
-        toast.success('🎨 Nueva solicitud de recreación');
+        toast.success('Nueva solicitud de recreación');
         fetch('/api/worker/dashboard')
           .then((r) => r.json())
           .then((newData) => {
@@ -697,7 +697,7 @@ export default function WorkerDashboardPage() {
           {/* Recreation Requests */}
           <div>
             <h2 style={{ fontSize: 16, fontFamily: fc, fontWeight: 700, margin: '0 0 16px', color: C.text }}>
-              🎨 Solicitudes de recreación ({filteredData.recreationRequests.length})
+              Solicitudes de recreación ({filteredData.recreationRequests.length})
             </h2>
             {filteredData.recreationRequests.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: C.border }}>

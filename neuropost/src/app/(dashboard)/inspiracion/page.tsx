@@ -321,7 +321,7 @@ export default function InspiracionPage() {
             ),
           );
           if (updated.status === 'revisar') {
-            toast.success('¡Tu recreación está lista para revisar! 🎨');
+            toast.success('¡Tu recreación está lista para revisar!');
           }
         },
       )

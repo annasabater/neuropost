@@ -97,7 +97,7 @@ export async function POST(request: Request) {
     await db.from('notifications').insert({
       brand_id: recreation.brand_id,
       type: 'recreation_ready',
-      message: 'Tu recreación de contenido está lista para revisar 🎨',
+      message: 'Tu recreación de contenido está lista para revisar',
       read: false,
       metadata: { recreation_id: recreation.id },
     }).then(() => null);
@@ -144,7 +144,7 @@ async function handlePostWebhook(
     await db.from('notifications').insert({
       brand_id: post.brand_id,
       type: 'approval_needed',
-      message: 'Tu imagen ya está lista. ¡Échale un vistazo! 🎨',
+      message: 'Tu imagen ya está lista. ¡Échale un vistazo!',
       read: false,
       metadata: { post_id: postId },
     }).then(() => null);

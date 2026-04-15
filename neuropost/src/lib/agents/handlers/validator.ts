@@ -206,7 +206,7 @@ const validateImageHandler: AgentHandler = async (job: AgentJob): Promise<Handle
           await db.from('notifications').insert({
             brand_id: postRow.brand_id ?? job.brand_id,
             type:     'approval_needed',
-            message:  `Tu contenido está listo para revisar${total > 1 ? ` (${total} imágenes)` : ''} 🎨`,
+            message:  `Tu contenido está listo para revisar${total > 1 ? ` (${total} imágenes)` : ''}`,
             read:     false,
             metadata: { post_id: input.post_id, image_count: total },
           }).then(() => null);
