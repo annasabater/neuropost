@@ -34,6 +34,7 @@ export async function POST(request: Request) {
     const { subject, description, category = 'other', priority = 'normal' } = body;
 
     if (!subject?.trim()) return NextResponse.json({ error: 'Subject required' }, { status: 400 });
+    if (!description?.trim()) return NextResponse.json({ error: 'Description required' }, { status: 400 });
 
     const { data: brand } = await db.from('brands').select('id, name').eq('user_id', user.id).single();
     if (!brand) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
@@ -64,13 +65,15 @@ export async function POST(request: Request) {
       agent_type:   'support',
       action:       'handle_interactions',
       input:        {
+        source:       'ticket',
+        ticket_id:    ticket.id,
         interactions: [{
           id:         ticket.id,
           type:       'dm',
           platform:   'instagram',
           authorId:   user.id,
           authorName: brand.name ?? 'Cliente',
-          text:       `[Ticket] ${subject.trim()}${description?.trim() ? `: ${description.trim()}` : ''}`,
+          text:       `[Ticket: ${subject.trim()}] ${description.trim()}`,
           timestamp:  new Date().toISOString(),
         }],
         autoPostReplies: false,

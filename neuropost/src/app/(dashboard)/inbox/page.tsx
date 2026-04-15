@@ -87,12 +87,31 @@ function InboxInner() {
   const setNotifications = useAppStore((s) => s.setNotifications);
   const markAllNotificationsRead = useAppStore((s) => s.markAllNotificationsRead);
 
-  // Soporte state — loading arranca en true; solo se baja dentro del .then() del fetch
+  // Soporte state
+  const SUBJECT_OPTIONS = [
+    'Problema con publicaciones',
+    'Error en la plataforma',
+    'Problema con mi cuenta',
+    'Facturación y pagos',
+    'Cambio de plan',
+    'Solicitud de funcionalidad',
+    'Problema con Instagram/Facebook',
+    'No recibo respuestas del equipo',
+    'Otro',
+  ];
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [ticketsLoading, setTicketsLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [ticketForm, setTicketForm] = useState({ subject: '', description: '', category: 'technical', priority: 'normal' });
+  const [ticketForm, setTicketForm] = useState({ subject: '', customSubject: '', description: '', category: 'technical', priority: 'normal' });
   const [saving, setSaving] = useState(false);
+  // Ticket detail view
+  type TicketMsg = { id: string; sender_type: 'client' | 'worker'; message: string; created_at: string };
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [ticketMessages, setTicketMessages] = useState<TicketMsg[]>([]);
+  const [ticketMsgLoading, setTicketMsgLoading] = useState(false);
+  const [ticketReply, setTicketReply] = useState('');
+  const [ticketReplySending, setTicketReplySending] = useState(false);
+  const ticketMsgBottom = useRef<HTMLDivElement>(null);
 
   // Comment form state
   const [commentText, setCommentText] = useState('');
@@ -308,14 +327,51 @@ function InboxInner() {
   useEffect(() => { chatBottom.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   async function createTicket() {
-    if (!ticketForm.subject.trim()) { toast.error('Añade un asunto'); return; }
+    const finalSubject = ticketForm.subject === 'Otro' ? ticketForm.customSubject.trim() : ticketForm.subject;
+    if (!finalSubject) { toast.error('Selecciona un asunto'); return; }
+    if (!ticketForm.description.trim()) { toast.error('La descripción es obligatoria'); return; }
     setSaving(true);
-    const res = await fetch('/api/soporte', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ticketForm) });
+    const res = await fetch('/api/soporte', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...ticketForm, subject: finalSubject }),
+    });
     const d = await res.json();
-    if (res.ok) { setTickets(p => [d.ticket, ...p]); setCreating(false); setTicketForm({ subject: '', description: '', category: 'technical', priority: 'normal' }); toast.success('Ticket abierto'); }
-    else toast.error(d.error ?? 'Error');
+    if (res.ok) {
+      setTickets(p => [d.ticket, ...p]);
+      setCreating(false);
+      setTicketForm({ subject: '', customSubject: '', description: '', category: 'technical', priority: 'normal' });
+      toast.success('Ticket abierto — el agente te responderá en breve');
+    } else toast.error(d.error ?? 'Error');
     setSaving(false);
   }
+
+  async function openTicketDetail(ticket: Ticket) {
+    setSelectedTicket(ticket);
+    setTicketMsgLoading(true);
+    try {
+      const res = await fetch(`/api/soporte/${ticket.id}`);
+      const d = await res.json();
+      setTicketMessages(d.messages ?? []);
+    } catch { setTicketMessages([]); }
+    setTicketMsgLoading(false);
+  }
+
+  async function sendTicketReply() {
+    if (!ticketReply.trim() || ticketReplySending || !selectedTicket) return;
+    setTicketReplySending(true);
+    const res = await fetch(`/api/soporte/${selectedTicket.id}/message`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: ticketReply.trim() }),
+    });
+    if (res.ok) {
+      const d = await res.json();
+      setTicketMessages(p => [...p, d.message]);
+      setTicketReply('');
+    } else toast.error('Error al enviar');
+    setTicketReplySending(false);
+  }
+
+  useEffect(() => { ticketMsgBottom.current?.scrollIntoView({ behavior: 'smooth' }); }, [ticketMessages]);
 
   async function sendComment() {
     if (!commentText.trim() || commentSending) return;
@@ -518,36 +574,59 @@ function InboxInner() {
         </div>
       )}
 
-      {/* ── SOPORTE — inline tickets ── */}
+      {/* ── SOPORTE — tickets con detalle ── */}
       {tab === 'soporte' && (
         <div>
+          {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: '#111827' }}>Soporte</h2>
-            <button onClick={() => setCreating(true)} style={{
-              background: 'var(--accent)', color: '#ffffff', border: 'none', padding: '8px 20px',
-              fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
-              cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
-            }}>
-              <Plus size={14} /> Nuevo ticket
-            </button>
+            <div>
+              <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: '#111827', marginBottom: 2 }}>Soporte</h2>
+              {selectedTicket && (
+                <button onClick={() => setSelectedTicket(null)} style={{ background: 'none', border: 'none', fontFamily: f, fontSize: 12, color: 'var(--accent)', cursor: 'pointer', padding: 0 }}>
+                  ← Volver a tickets
+                </button>
+              )}
+            </div>
+            {!selectedTicket && (
+              <button onClick={() => setCreating(true)} style={{
+                background: 'var(--accent)', color: '#ffffff', border: 'none', padding: '8px 20px',
+                fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                <Plus size={14} /> Nuevo ticket
+              </button>
+            )}
           </div>
 
-          {/* Create ticket form */}
-          {creating && (
+          {/* ── Create ticket form ── */}
+          {creating && !selectedTicket && (
             <div style={{ border: '1px solid #e5e7eb', padding: '24px', marginBottom: 24, background: '#ffffff' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <h3 style={{ fontFamily: fc, fontSize: 16, fontWeight: 800, textTransform: 'uppercase', color: '#111827' }}>Nuevo ticket</h3>
                 <button onClick={() => setCreating(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}><X size={16} /></button>
               </div>
+              {/* Asunto — dropdown */}
               <div style={{ marginBottom: 14 }}>
                 <label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af', marginBottom: 6 }}>Asunto *</label>
-                <input value={ticketForm.subject} onChange={(e) => setTicketForm(p => ({ ...p, subject: e.target.value }))} placeholder="Describe el problema"
-                  style={{ width: '100%', padding: '12px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', boxSizing: 'border-box', color: '#111827' }} />
+                <select value={ticketForm.subject} onChange={(e) => setTicketForm(p => ({ ...p, subject: e.target.value, customSubject: '' }))}
+                  style={{ width: '100%', padding: '12px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', boxSizing: 'border-box', color: ticketForm.subject ? '#111827' : '#9ca3af', background: '#ffffff', appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%239ca3af\' stroke-width=\'2\'%3E%3Cpath d=\'M6 9l6 6 6-6\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 14px center' }}>
+                  <option value="" disabled>Selecciona el tipo de problema</option>
+                  {SUBJECT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                </select>
               </div>
+              {/* Custom subject — solo si selecciona "Otro" */}
+              {ticketForm.subject === 'Otro' && (
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af', marginBottom: 6 }}>Especifica el asunto *</label>
+                  <input value={ticketForm.customSubject} onChange={(e) => setTicketForm(p => ({ ...p, customSubject: e.target.value }))} placeholder="Describe brevemente tu problema"
+                    style={{ width: '100%', padding: '12px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', boxSizing: 'border-box', color: '#111827' }} />
+                </div>
+              )}
+              {/* Descripción — obligatoria */}
               <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af', marginBottom: 6 }}>Descripción</label>
-                <textarea value={ticketForm.description} onChange={(e) => setTicketForm(p => ({ ...p, description: e.target.value }))} placeholder="Detalla el problema..."
-                  rows={3} style={{ width: '100%', padding: '12px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', boxSizing: 'border-box', resize: 'vertical', color: '#111827' }} />
+                <label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af', marginBottom: 6 }}>Descripción *</label>
+                <textarea value={ticketForm.description} onChange={(e) => setTicketForm(p => ({ ...p, description: e.target.value }))} placeholder="Explica con detalle lo que ha pasado para que podamos ayudarte mejor..."
+                  rows={4} style={{ width: '100%', padding: '12px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', boxSizing: 'border-box', resize: 'vertical', color: '#111827' }} />
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => setCreating(false)} style={{ padding: '10px 20px', border: '1px solid #e5e7eb', background: '#ffffff', fontFamily: f, fontSize: 13, fontWeight: 600, color: '#6b7280', cursor: 'pointer' }}>Cancelar</button>
@@ -559,35 +638,107 @@ function InboxInner() {
             </div>
           )}
 
-          {/* Tickets list */}
-          {ticketsLoading ? (
-            <div style={{ border: '1px solid #e5e7eb' }}>
-              {[1,2,3].map(i => <div key={i} style={{ padding: '16px 20px', borderBottom: i < 3 ? '1px solid #f3f4f6' : 'none' }}><div style={{ width: '40%', height: 12, background: '#f3f4f6' }} /></div>)}
-            </div>
-          ) : tickets.length === 0 && !creating ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', border: '1px solid #e5e7eb' }}>
-              <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 20, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Todo en orden</p>
-              <p style={{ fontFamily: f, fontSize: 14, color: '#9ca3af', marginBottom: 24 }}>Si necesitas ayuda, abre un ticket</p>
-              <button onClick={() => setCreating(true)} style={{
-                background: 'var(--accent)', color: '#ffffff', border: 'none', padding: '12px 28px',
-                fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer',
-              }}>Abrir ticket</button>
-            </div>
-          ) : tickets.length > 0 && (
-            <div style={{ border: '1px solid #e5e7eb' }}>
-              {tickets.map((t, i) => {
-                const st = STATUS_STYLE[t.status] ?? STATUS_STYLE.open;
-                return (
-                  <div key={t.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: i < tickets.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
-                    <div>
-                      <p style={{ fontFamily: f, fontSize: 14, fontWeight: 600, color: '#111827', marginBottom: 2 }}>{t.subject}</p>
-                      <p style={{ fontFamily: f, fontSize: 11, color: '#9ca3af' }}>{new Date(t.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</p>
+          {/* ── Ticket detail view ── */}
+          {selectedTicket && (
+            <div>
+              {/* Ticket info */}
+              <div style={{ border: '1px solid #e5e7eb', padding: '20px', marginBottom: 16, background: '#ffffff' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <h3 style={{ fontFamily: f, fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>{selectedTicket.subject}</h3>
+                  <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, padding: '2px 8px', color: (STATUS_STYLE[selectedTicket.status] ?? STATUS_STYLE.open).color, background: (STATUS_STYLE[selectedTicket.status] ?? STATUS_STYLE.open).bg, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {(STATUS_STYLE[selectedTicket.status] ?? STATUS_STYLE.open).label}
+                  </span>
+                </div>
+                <p style={{ fontFamily: f, fontSize: 12, color: '#9ca3af' }}>
+                  Creado el {new Date(selectedTicket.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+
+              {/* Messages thread */}
+              <div style={{ border: '1px solid #e5e7eb', height: 350, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+                  {ticketMsgLoading ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
+                      {[180, 140, 200].map((w, i) => <div key={i} style={{ width: w, height: 28, background: '#f3f4f6', alignSelf: i % 2 ? 'flex-start' : 'flex-end' }} />)}
                     </div>
-                    <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, padding: '2px 8px', color: st.color, background: st.bg, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{st.label}</span>
-                  </div>
-                );
-              })}
+                  ) : ticketMessages.length === 0 ? (
+                    <div style={{ textAlign: 'center', marginTop: 60 }}>
+                      <p style={{ fontFamily: f, fontSize: 13, color: '#9ca3af' }}>No hay mensajes en este ticket</p>
+                    </div>
+                  ) : (
+                    ticketMessages.map((msg) => (
+                      <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: msg.sender_type === 'client' ? 'flex-end' : 'flex-start', marginBottom: 10 }}>
+                        <span style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', marginBottom: 2 }}>
+                          {msg.sender_type === 'client' ? (operatorDisplayName || 'Tú') : 'Soporte IA'}
+                        </span>
+                        <div style={{ maxWidth: '70%', background: msg.sender_type === 'client' ? '#f3f4f6' : '#ecfdf5', border: `1px solid ${msg.sender_type === 'client' ? '#d1d5db' : '#6fb7aa'}`, padding: '10px 14px' }}>
+                          <p style={{ fontFamily: f, fontSize: 13, color: '#111827', lineHeight: 1.5, whiteSpace: 'pre-wrap', margin: 0 }}>{msg.message}</p>
+                          <p style={{ fontFamily: f, fontSize: 10, color: '#d1d5db', marginTop: 4, textAlign: 'right' }}>{new Date(msg.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                  <div ref={ticketMsgBottom} />
+                </div>
+                {/* Reply input */}
+                <div style={{ borderTop: '1px solid #e5e7eb', padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input value={ticketReply} onChange={(e) => setTicketReply(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendTicketReply(); } }}
+                    placeholder="Escribe una respuesta..." style={{ flex: 1, padding: '10px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', color: '#111827', background: '#f9fafb' }} />
+                  <button onClick={sendTicketReply} disabled={!ticketReply.trim() || ticketReplySending} style={{
+                    width: 36, height: 36, background: ticketReply.trim() && !ticketReplySending ? 'var(--accent)' : '#e5e7eb', border: 'none',
+                    cursor: ticketReply.trim() && !ticketReplySending ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Send size={14} color="#ffffff" />
+                  </button>
+                </div>
+              </div>
             </div>
+          )}
+
+          {/* ── Tickets list ── */}
+          {!selectedTicket && !creating && (
+            <>
+              {ticketsLoading ? (
+                <div style={{ border: '1px solid #e5e7eb' }}>
+                  {[1,2,3].map(i => <div key={i} style={{ padding: '16px 20px', borderBottom: i < 3 ? '1px solid #f3f4f6' : 'none' }}><div style={{ width: '40%', height: 12, background: '#f3f4f6' }} /></div>)}
+                </div>
+              ) : tickets.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '60px 20px', border: '1px solid #e5e7eb' }}>
+                  <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 20, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Todo en orden</p>
+                  <p style={{ fontFamily: f, fontSize: 14, color: '#9ca3af', marginBottom: 24 }}>Si necesitas ayuda, abre un ticket</p>
+                  <button onClick={() => setCreating(true)} style={{
+                    background: 'var(--accent)', color: '#ffffff', border: 'none', padding: '12px 28px',
+                    fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer',
+                  }}>Abrir ticket</button>
+                </div>
+              ) : (
+                <div style={{ border: '1px solid #e5e7eb' }}>
+                  {tickets.map((t, i) => {
+                    const st = STATUS_STYLE[t.status] ?? STATUS_STYLE.open;
+                    return (
+                      <div key={t.id} onClick={() => openTicketDetail(t)}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', borderBottom: i < tickets.length - 1 ? '1px solid #f3f4f6' : 'none', cursor: 'pointer', transition: 'background 0.15s' }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = '#f9fafb')}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = '#ffffff')}>
+                        <div>
+                          <p style={{ fontFamily: f, fontSize: 14, fontWeight: 600, color: '#111827', marginBottom: 2 }}>{t.subject}</p>
+                          <p style={{ fontFamily: f, fontSize: 11, color: '#9ca3af' }}>
+                            {new Date(t.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                            <span style={{ marginLeft: 8 }}>·</span>
+                            <span style={{ marginLeft: 8 }}>Click para ver detalles</span>
+                          </p>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, padding: '2px 8px', color: st.color, background: st.bg, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{st.label}</span>
+                          <ArrowRight size={14} color="#d1d5db" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
