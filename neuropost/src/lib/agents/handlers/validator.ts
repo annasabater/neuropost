@@ -201,15 +201,46 @@ const validateImageHandler: AgentHandler = async (job: AgentJob): Promise<Handle
           ...(allDone ? { status: 'pending', edited_image_url: newImages[0] } : {}),
         }).eq('id', input.post_id);
 
-        // Notify client when the full batch is ready
+        // When all images ready: queue caption generation (auto-pipeline) or notify directly
         if (allDone) {
-          await db.from('notifications').insert({
-            brand_id: postRow.brand_id ?? job.brand_id,
-            type:     'approval_needed',
-            message:  `Tu contenido está listo para revisar${total > 1 ? ` (${total} imágenes)` : ''}`,
-            read:     false,
-            metadata: { post_id: input.post_id, image_count: total },
-          }).then(() => null);
+          const isAutoPipeline = (input as unknown as Record<string, unknown>)._auto_pipeline === true;
+          if (isAutoPipeline) {
+            // Queue caption generation — it will notify the client when done
+            await db.from('agent_jobs').insert({
+              brand_id:      postRow.brand_id ?? job.brand_id,
+              agent_type:    'content',
+              action:        'generate_caption',
+              input: {
+                post_id:         input.post_id,
+                image_url:       newImages[0],
+                visualTags:      ['contenido', 'negocio'],
+                imageAnalysis:   {
+                  isSuitable: true, suitabilityReason: null,
+                  dominantColors: [], composition: 'square',
+                  mainSubjects: [], qualityScore: 8, qualityIssues: [],
+                  lightingCondition: 'natural', suggestedCrop: null,
+                },
+                goal:        'engagement',
+                platforms:   ['instagram'],
+                postContext: input.original_prompt,
+                _post_id:    input.post_id,
+                _auto_pipeline: true,
+              },
+              status:        'pending',
+              priority:      job.priority ?? 80,
+              max_attempts:  3,
+              requested_by:  'agent',
+              parent_job_id: job.id,
+            });
+          } else {
+            await db.from('notifications').insert({
+              brand_id: postRow.brand_id ?? job.brand_id,
+              type:     'approval_needed',
+              message:  `Tu contenido está listo para revisar${total > 1 ? ` (${total} imágenes)` : ''}`,
+              read:     false,
+              metadata: { post_id: input.post_id, image_count: total },
+            }).then(() => null);
+          }
         }
       }
 

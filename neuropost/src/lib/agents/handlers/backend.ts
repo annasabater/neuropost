@@ -56,8 +56,45 @@ const copywriterHandler: AgentHandler = async (job) => {
   if (typeof guard !== 'string') return guard;
   try {
     const { ctx } = await loadBrandContext(guard);
-    const result = await runCopywriterAgent(job.input as unknown as CopywriterInput, ctx);
-    return toHandlerResult('caption', result, { model: 'copywriter-agent' });
+    const input = job.input as unknown as CopywriterInput & { _post_id?: string; _auto_pipeline?: boolean };
+    const result = await runCopywriterAgent(input, ctx);
+    const handlerResult = toHandlerResult('caption', result, { model: 'copywriter-agent' });
+
+    // Auto-pipeline: save caption to post and notify client
+    if (handlerResult.type === 'ok' && input._auto_pipeline && input._post_id && result.success && result.data) {
+      try {
+        const { createAdminClient } = await import('@/lib/supabase');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const db = createAdminClient() as any;
+
+        const copies = result.data.copies;
+        const platform = Object.keys(copies)[0] ?? 'instagram';
+        const copy = copies[platform as keyof typeof copies];
+        const hashtags = [
+          ...(result.data.hashtags.branded ?? []),
+          ...(result.data.hashtags.niche   ?? []),
+          ...(result.data.hashtags.broad   ?? []).slice(0, 3),
+        ];
+
+        await db.from('posts').update({
+          caption:  copy?.caption  ?? null,
+          hashtags: hashtags.length ? hashtags : [],
+          status:   'pending',
+        }).eq('id', input._post_id);
+
+        await db.from('notifications').insert({
+          brand_id: job.brand_id,
+          type:     'approval_needed',
+          message:  'Tu contenido está listo para revisar',
+          read:     false,
+          metadata: { post_id: input._post_id },
+        });
+      } catch (e) {
+        console.error('[copywriterHandler] auto-pipeline finalize error', e);
+      }
+    }
+
+    return handlerResult;
   } catch (err) {
     return { type: 'fail', error: err instanceof Error ? err.message : String(err) };
   }
