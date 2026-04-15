@@ -81,7 +81,7 @@ export async function sendWelcomeEmail(to: string, name: string): Promise<void> 
     <p style="font-weight:700;margin-top:24px;margin-bottom:8px">Primeros pasos:</p>
     <ol style="color:#555;line-height:2;padding-left:20px">
       <li>Configura tu marca en <strong>Ajustes</strong></li>
-      <li>Conecta tu Instagram o Facebook</li>
+      <li>Conecta tu Instagram, Facebook o TikTok</li>
       <li>Genera tu primer post con IA</li>
     </ol>
     <a href="${APP()}/dashboard" style="${BTN}">Ir al dashboard →</a>
