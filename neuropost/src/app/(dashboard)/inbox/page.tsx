@@ -94,7 +94,9 @@ function InboxInner() {
   const [ticketForm, setTicketForm] = useState({ subject: '', description: '', category: 'technical', priority: 'normal' });
   const [saving, setSaving] = useState(false);
 
-  // (Testimonials removed — comments tab now uses real DB data)
+  // Comment form state
+  const [commentText, setCommentText] = useState('');
+  const [commentSending, setCommentSending] = useState(false);
 
   // Comments state (real data from DB)
   type CommentRow = {
@@ -315,6 +317,28 @@ function InboxInner() {
     setSaving(false);
   }
 
+  async function sendComment() {
+    if (!commentText.trim() || commentSending) return;
+    setCommentSending(true);
+    try {
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: commentText.trim() }),
+      });
+      if (res.ok) {
+        setCommentText('');
+        toast.success('Comentario enviado — el agente lo procesará en breve');
+      } else {
+        const d = await res.json();
+        toast.error(d.error ?? 'Error al enviar');
+      }
+    } catch {
+      toast.error('Error al enviar');
+    }
+    setCommentSending(false);
+  }
+
   async function sendChat() {
     if (!chatText.trim() || chatSending) return;
     setChatSending(true);
@@ -361,6 +385,33 @@ function InboxInner() {
         <div>
           <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: '#111827', marginBottom: 4 }}>Comentarios</h2>
           <p style={{ fontFamily: f, fontSize: 13, color: '#9ca3af', marginBottom: 20 }}>Comentarios de tus redes sociales y respuestas del agente IA</p>
+
+          {/* Formulario de nuevo comentario */}
+          <div style={{ border: '1px solid #e5e7eb', padding: 20, marginBottom: 24, background: '#ffffff' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+              <div style={{ width: 28, height: 28, background: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 11, fontWeight: 700, color: 'var(--accent)' }}>
+                {(brand?.name ?? 'C').charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <span style={{ fontFamily: f, fontSize: 13, fontWeight: 600, color: '#111827' }}>{operatorDisplayName || brand?.name || 'Cliente'}</span>
+                <span style={{ fontFamily: f, fontSize: 11, color: '#9ca3af', marginLeft: 8 }}>{new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+              </div>
+            </div>
+            <textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Escribe un comentario..."
+              rows={3}
+              style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 13, outline: 'none', color: '#111827', background: '#f9fafb', resize: 'vertical', marginBottom: 10, boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontFamily: f, fontSize: 11, color: '#d1d5db' }}>El agente IA revisará tu comentario automáticamente</span>
+              <button type="button" onClick={sendComment} disabled={!commentText.trim() || commentSending}
+                style={{ padding: '8px 20px', background: commentText.trim() && !commentSending ? 'var(--accent)' : '#e5e7eb', color: '#ffffff', border: 'none', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: commentText.trim() && !commentSending ? 'pointer' : 'not-allowed' }}>
+                {commentSending ? 'Enviando...' : 'Publicar comentario'}
+              </button>
+            </div>
+          </div>
 
           {commentsLoading ? (
             <div style={{ border: '1px solid #e5e7eb' }}>
