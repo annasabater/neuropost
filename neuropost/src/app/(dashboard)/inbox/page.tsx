@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, Suspense, useMemo, useSyncExternalStore } from 'react';
+import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { MessageSquare, MessageCircle, LifeBuoy, Sparkles, Bell, ArrowRight, Plus, Send, X, TrendingUp, AlertCircle, TrendingDown, CheckCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -24,12 +24,7 @@ type ChangelogRow = {
   id: string; version: string | null; title: string; summary: string | null;
   published_at: string | null;
 };
-import {
-  addPendingTestimonial,
-  subscribeTestimonials,
-  getTestimonialsSnapshot,
-  getTestimonialsServerSnapshot,
-} from '@/lib/site-testimonials';
+// Testimonials removed — comments tab now uses real DB data
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
@@ -99,26 +94,17 @@ function InboxInner() {
   const [ticketForm, setTicketForm] = useState({ subject: '', description: '', category: 'technical', priority: 'normal' });
   const [saving, setSaving] = useState(false);
 
-  // Site testimonials (web feedback) — read from localStorage via external store.
-  const allTestimonials = useSyncExternalStore(
-    subscribeTestimonials,
-    getTestimonialsSnapshot,
-    getTestimonialsServerSnapshot,
-  );
-  const testimonials = useMemo(
-    () => allTestimonials.filter((t) => t.status === 'approved'),
-    [allTestimonials],
-  );
-  const [testimonialMessage, setTestimonialMessage] = useState('');
-  const [showAllComments, setShowAllComments] = useState(false);
+  // (Testimonials removed — comments tab now uses real DB data)
 
-  function submitTestimonial() {
-    const msg = testimonialMessage.trim();
-    if (msg.length < 5) { toast.error('Escribe al menos 5 caracteres'); return; }
-    addPendingTestimonial({ name: brand?.name ?? 'Cliente', message: msg });
-    setTestimonialMessage('');
-    toast.success('Gracias. Tu comentario será revisado por el equipo antes de publicarse');
-  }
+  // Comments state (real data from DB)
+  type CommentRow = {
+    id: string; brand_id: string; post_id?: string; platform: string;
+    external_id: string; author: string; content: string; status: string;
+    ai_reply?: string | null; created_at: string;
+  };
+  const [comments, setComments] = useState<CommentRow[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+  const [expandedComment, setExpandedComment] = useState<string | null>(null);
 
   // Chat state
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -150,6 +136,34 @@ function InboxInner() {
         const row = payload.new;
         setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row as ChatMsg]));
         if (row.sender_type === 'worker') toast.success('Nuevo mensaje de tu equipo');
+      },
+    ).subscribe();
+    return () => { supabase.removeChannel(ch as unknown as Parameters<typeof supabase.removeChannel>[0]); };
+  }, [brand?.id, supabase]);
+
+  // ── Realtime: comments for this brand ────────────────────────────────────
+  useEffect(() => {
+    if (!brand?.id) return;
+    const brandId = brand.id;
+    const ch = (supabase.channel(`client-comments-${brandId}`) as unknown as {
+      on: (event: string, filter: Record<string, unknown>, cb: (payload: { new: CommentRow } | { old: CommentRow; new: CommentRow }) => void) => typeof ch;
+      subscribe: () => typeof ch;
+    });
+    ch.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'comments', filter: `brand_id=eq.${brandId}` },
+      (payload) => {
+        const row = (payload as { new: CommentRow }).new;
+        setComments((prev) => (prev.some((c) => c.id === row.id) ? prev : [row, ...prev]));
+        toast('Nuevo comentario en tus redes', { icon: '💬' });
+      },
+    ).on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'comments', filter: `brand_id=eq.${brandId}` },
+      (payload) => {
+        const row = (payload as { new: CommentRow }).new;
+        setComments((prev) => prev.map((c) => (c.id === row.id ? row : c)));
+        if (row.ai_reply) toast('Respuesta del agente lista', { icon: '🤖' });
       },
     ).subscribe();
     return () => { supabase.removeChannel(ch as unknown as Parameters<typeof supabase.removeChannel>[0]); };
@@ -258,7 +272,13 @@ function InboxInner() {
     if (loadedTabsRef.current[tab]) return;
     loadedTabsRef.current[tab] = true;
 
-    if (tab === 'soporte') {
+    if (tab === 'comentarios') {
+      fetch('/api/comments')
+        .then((r) => r.json())
+        .then((d) => setComments(d.comments ?? []))
+        .catch(() => { loadedTabsRef.current[tab] = false; })
+        .finally(() => setCommentsLoading(false));
+    } else if (tab === 'soporte') {
       fetch('/api/soporte')
         .then((r) => r.json())
         .then((d) => setTickets(d.tickets ?? []))
@@ -336,82 +356,63 @@ function InboxInner() {
         })}
       </div>
 
-      {/* ── COMENTARIOS ── */}
-      {tab === 'comentarios' && (() => {
-        const seeded: { name: string; platform: string; msg: string; time: string }[] = [
-          { name: 'María García', platform: 'Instagram', msg: '¡Me encanta vuestro producto! ¿Cuándo online?', time: 'Hace 2h' },
-          { name: 'Carlos López', platform: 'Facebook', msg: 'Llevo 2 semanas esperando respuesta...', time: 'Hace 5h' },
-          { name: 'Ana Martín', platform: 'Instagram', msg: '¿Hacéis envíos a Canarias?', time: 'Ayer' },
-          { name: 'Pedro Ruiz', platform: 'Instagram', msg: 'El mejor sitio de la ciudad', time: 'Hace 2 días' },
-        ];
-        const fromWeb = testimonials.map((t) => ({
-          name: t.name, platform: 'Web', msg: t.message, time: new Date(t.created_at).toLocaleDateString(),
-        }));
-        const all = [...fromWeb, ...seeded];
-        const visible = showAllComments ? all : all.slice(0, 6);
-        return (
+      {/* ── COMENTARIOS — datos reales de la tabla comments ── */}
+      {tab === 'comentarios' && (
         <div>
-          <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: '#111827', marginBottom: 20 }}>Comentarios</h2>
+          <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: '#111827', marginBottom: 4 }}>Comentarios</h2>
+          <p style={{ fontFamily: f, fontSize: 13, color: '#9ca3af', marginBottom: 20 }}>Comentarios de tus redes sociales y respuestas del agente IA</p>
 
-          {/* Deja tu comentario — web feedback form */}
-          <div style={{ border: '1px solid #e5e7eb', padding: 20, marginBottom: 24, background: '#ffffff' }}>
-            <h3 style={{ fontFamily: fc, fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#111827', marginBottom: 4 }}>
-              Deja tu comentario
-            </h3>
-            <p style={{ fontFamily: f, fontSize: 12, color: '#6b7280', marginBottom: 14 }}>
-              {(() => {
-                const fullName = [operatorFirstName, operatorLastName].filter(Boolean).join(' ');
-                const bName = brand?.name || 'Cliente';
-                if (operatorShowName && fullName) {
-                  return <>Publicarás como <strong style={{ color: '#111827' }}>{fullName}</strong> de la empresa <strong style={{ color: '#111827' }}>{bName}</strong>.</>;
-                }
-                return <>Publicarás como <strong style={{ color: '#111827' }}>{bName}</strong>.</>;
-              })()}{' '}Cuéntanos qué te parece la web — tu comentario será revisado por el equipo antes de publicarse.
-            </p>
-            <textarea
-              value={testimonialMessage}
-              onChange={(e) => setTestimonialMessage(e.target.value)}
-              placeholder="¿Qué te parece la web?"
-              rows={3}
-              style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 13, outline: 'none', color: '#111827', background: '#f9fafb', resize: 'vertical', marginBottom: 10 }}
-            />
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="button" onClick={submitTestimonial} disabled={!testimonialMessage.trim()}
-                style={{ padding: '8px 20px', background: testimonialMessage.trim() ? '#111827' : '#e5e7eb', color: '#ffffff', border: 'none', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: testimonialMessage.trim() ? 'pointer' : 'not-allowed' }}>
-                Enviar comentario
-              </button>
+          {commentsLoading ? (
+            <div style={{ border: '1px solid #e5e7eb' }}>
+              {[1,2,3].map(i => <div key={i} style={{ padding: '20px', borderBottom: i < 3 ? '1px solid #f3f4f6' : 'none' }}><div style={{ width: '60%', height: 14, background: '#f3f4f6', marginBottom: 8 }} /><div style={{ width: '40%', height: 10, background: '#f3f4f6' }} /></div>)}
             </div>
-          </div>
-
-          {/* Lista */}
-          <div style={{ border: '1px solid #e5e7eb' }}>
-            {visible.map((item, i) => (
-              <div key={`${item.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 20px', borderBottom: i < visible.length - 1 ? '1px solid #f3f4f6' : 'none' }}>
-                <div style={{ width: 32, height: 32, background: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 12, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>{item.name.charAt(0)}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
-                    <span style={{ fontFamily: f, fontSize: 13, fontWeight: 600, color: '#111827' }}>{item.name}</span>
-                    <span style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{item.platform}</span>
+          ) : comments.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', border: '1px solid #e5e7eb' }}>
+              <p style={{ fontSize: 32, marginBottom: 12 }}>💬</p>
+              <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 20, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Sin comentarios</p>
+              <p style={{ fontFamily: f, fontSize: 14, color: '#9ca3af' }}>Cuando recibas comentarios en Instagram o Facebook, aparecerán aquí con la respuesta automática del agente</p>
+            </div>
+          ) : (
+            <div style={{ border: '1px solid #e5e7eb' }}>
+              {comments.map((c, i) => {
+                const isExpanded = expandedComment === c.id;
+                const statusColor = c.status === 'replied' ? '#0F766E' : c.status === 'escalated' ? '#c62828' : '#f59e0b';
+                const statusLabel = c.status === 'replied' ? 'Respondido' : c.status === 'escalated' ? 'Escalado' : 'Pendiente';
+                return (
+                  <div key={c.id} onClick={() => setExpandedComment(isExpanded ? null : c.id)}
+                    style={{ padding: '16px 20px', borderBottom: i < comments.length - 1 ? '1px solid #f3f4f6' : 'none', cursor: 'pointer', background: isExpanded ? '#f9fafb' : '#ffffff', transition: 'background 0.15s' }}>
+                    {/* Header */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                      <div style={{ width: 28, height: 28, background: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 11, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>{c.author.charAt(0).toUpperCase()}</div>
+                      <span style={{ fontFamily: f, fontSize: 13, fontWeight: 600, color: '#111827' }}>{c.author}</span>
+                      <span style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{c.platform}</span>
+                      <span style={{ marginLeft: 'auto', fontSize: 10, fontFamily: fc, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: statusColor, background: `${statusColor}11`, padding: '2px 8px' }}>{statusLabel}</span>
+                    </div>
+                    {/* Comment content */}
+                    <p style={{ fontFamily: f, fontSize: 13, color: '#374151', lineHeight: 1.5, marginBottom: isExpanded ? 12 : 0 }}>{c.content}</p>
+                    {/* Expanded: AI reply */}
+                    {isExpanded && (
+                      <div style={{ marginTop: 8 }}>
+                        {c.ai_reply ? (
+                          <div style={{ borderLeft: '3px solid var(--accent)', padding: '10px 14px', background: '#ecfdf5' }}>
+                            <p style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 4 }}>Respuesta IA</p>
+                            <p style={{ fontFamily: f, fontSize: 13, color: '#111827', lineHeight: 1.5 }}>{c.ai_reply}</p>
+                          </div>
+                        ) : (
+                          <div style={{ borderLeft: '3px solid #f59e0b', padding: '10px 14px', background: '#fffbeb' }}>
+                            <p style={{ fontFamily: f, fontSize: 12, color: '#92400e' }}>El agente aún no ha generado una respuesta</p>
+                          </div>
+                        )}
+                        <p style={{ fontFamily: f, fontSize: 11, color: '#d1d5db', marginTop: 8 }}>{new Date(c.created_at).toLocaleString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                    )}
                   </div>
-                  <p style={{ fontFamily: f, fontSize: 13, color: '#6b7280', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.msg}</p>
-                </div>
-                <span style={{ fontFamily: f, fontSize: 11, color: '#d1d5db', flexShrink: 0 }}>{item.time}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Ver todos / ver menos */}
-          {all.length > 6 && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 16 }}>
-              <button type="button" onClick={() => setShowAllComments((v) => !v)}
-                style={{ padding: '8px 20px', background: '#ffffff', color: '#111827', border: '1px solid #e5e7eb', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer' }}>
-                {showAllComments ? 'Ver menos' : `Ver todos los comentarios (${all.length})`}
-              </button>
+                );
+              })}
             </div>
           )}
         </div>
-        );
-      })()}
+      )}
 
       {/* ── MENSAJES — inline chat ── */}
       {tab === 'mensajes' && (
