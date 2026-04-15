@@ -840,6 +840,10 @@ export default function SettingsPage() {
                 );
               };
 
+              // TikTok status
+              const ttConnected = !!(brand as Record<string, unknown>).tiktok_open_id;
+              const ttUsername  = (brand as Record<string, unknown>).tiktok_username as string | null;
+
               return (
                 <>
                   <Card
@@ -850,8 +854,73 @@ export default function SettingsPage() {
                     detail={igConnected ? null : 'No hay ninguna cuenta vinculada todavía'}
                     connected={igConnected}
                     onConnect={() => connectMeta('instagram')}
-                    body="Conecta tu cuenta de Instagram para publicar fotos, vídeos, reels, carruseles e historias directamente desde NeuroPost."
+                    body="Conecta tu cuenta Business o Creator para publicar fotos, vídeos, reels, carruseles e historias."
                   />
+                  <Card
+                    platform="facebook"
+                    emoji="📘"
+                    typeLabel="Facebook"
+                    name={fbConnected ? (brand.fb_page_name ?? brand.fb_page_id ?? 'Página conectada') : 'Facebook'}
+                    detail={fbConnected ? null : 'No hay ninguna página vinculada todavía'}
+                    connected={fbConnected}
+                    onConnect={() => connectMeta('facebook')}
+                    body="Conecta tu Página de Facebook para publicar fotos, vídeos y posts de texto. Se enlaza con el mismo flujo que Instagram."
+                  />
+                  {/* TikTok — uses separate OAuth, not Meta */}
+                  <div style={{
+                    border: '1px solid var(--border)', background: '#ffffff',
+                    padding: '18px 20px', marginBottom: 12,
+                    display: 'grid', gridTemplateColumns: '1fr auto', gap: 14, alignItems: 'flex-start',
+                  }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                        <span style={{ fontSize: 20 }}>🎵</span>
+                        <span style={{
+                          fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif",
+                          fontWeight: 800, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.08em',
+                          color: 'var(--ink)',
+                        }}>TikTok</span>
+                        <span style={{
+                          fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                          fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                          padding: '3px 8px',
+                          background: ttConnected ? '#e8f5e9' : '#f3f4f6',
+                          color: ttConnected ? '#2d7d32' : '#9ca3af',
+                        }}>
+                          {ttConnected ? 'Conectado' : 'Sin conectar'}
+                        </span>
+                      </div>
+                      <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 14, fontWeight: 600, color: 'var(--ink)', margin: '0 0 2px' }}>
+                        {ttConnected ? (ttUsername ? `@${ttUsername}` : 'Cuenta conectada') : 'TikTok'}
+                      </p>
+                      {!ttConnected && (
+                        <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 12, color: 'var(--muted)', margin: 0 }}>
+                          No hay ninguna cuenta vinculada todavía
+                        </p>
+                      )}
+                      <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 12, color: 'var(--muted)', marginTop: 8, lineHeight: 1.5 }}>
+                        Conecta tu cuenta de TikTok para publicar vídeos y reels directamente. Solo compatible con formato vídeo (Business o Creator).
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn-outline"
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/tiktok/auth-url');
+                          const json = await res.json() as { url?: string; error?: string };
+                          if (!res.ok || !json.url) throw new Error(json.error ?? 'No se pudo conectar con TikTok');
+                          window.location.href = json.url;
+                        } catch (e) {
+                          toast.error(e instanceof Error ? e.message : 'Error al conectar TikTok');
+                        }
+                      }}
+                      style={{ alignSelf: 'center', whiteSpace: 'nowrap' }}
+                    >
+                      <ExternalLink size={14} />
+                      {ttConnected ? 'Reconectar' : 'Conectar'}
+                    </button>
+                  </div>
                 </>
               );
             })()}
