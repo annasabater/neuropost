@@ -170,61 +170,64 @@ async function processSupportInteraction(db: DB, job: AgentJob, output: AgentOut
 
   if (!finalReply) return; // Don't save empty replies unless it's a fallback
 
+  console.log(`[process-agent-replies] Job ${job.id}: source=${source}, reply=${finalReply?.slice(0, 50)}...`);
+
   if (source === 'chat') {
-    // Save to chat_messages
-    // Use raw SQL to check JSONB contains to avoid JSON string comparison issues
-    const { data: existing } = await db
-      .from('chat_messages')
-      .select('id')
-      .eq('brand_id', job.brand_id)
-      .eq('sender_type', 'worker')
-      .filter('metadata->job_id', 'eq', job.id)
-      .maybeSingle();
+    // Save to chat_messages — skip dedup check on first insert for reliability
+    const { error: insertError } = await db.from('chat_messages').insert({
+      brand_id: job.brand_id,
+      sender_id: null,
+      sender_type: 'worker',
+      message: finalReply,
+      attachments: [],
+      metadata: { job_id: job.id },
+    });
 
-    if (!existing) {
-      await db.from('chat_messages').insert({
-        brand_id: job.brand_id,
-        sender_id: null,
-        sender_type: 'worker',
-        message: finalReply,
-        attachments: [],
-        metadata: { job_id: job.id },
-      });
+    if (insertError) {
+      console.error(`[process-agent-replies] FAILED to insert chat_message for job ${job.id}:`, insertError);
+      throw new Error(`chat_messages insert failed: ${insertError.message}`);
     }
+    console.log(`[process-agent-replies] ✅ Saved chat reply for job ${job.id}`);
+
   } else if (source === 'ticket' || source === 'ticket_message') {
-    // Save to support_ticket_messages
     const ticketId = job.input?.ticket_id as string;
-    if (!ticketId) return;
-
-    const { data: existing } = await db
-      .from('support_ticket_messages')
-      .select('id')
-      .eq('ticket_id', ticketId)
-      .eq('sender_type', 'worker')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    // Only insert if there's no recent worker message for this ticket from this job
-    if (!existing || (existing as any)?.metadata?.job_id !== job.id) {
-      await db.from('support_ticket_messages').insert({
-        ticket_id: ticketId,
-        sender_id: null,
-        sender_type: 'worker',
-        message: finalReply,
-        metadata: { job_id: job.id },
-      });
+    if (!ticketId) {
+      console.warn(`[process-agent-replies] Job ${job.id}: no ticket_id in input, skipping`);
+      return;
     }
+
+    const { error: insertError } = await db.from('support_ticket_messages').insert({
+      ticket_id: ticketId,
+      sender_id: null,
+      sender_type: 'worker',
+      message: finalReply,
+      metadata: { job_id: job.id },
+    });
+
+    if (insertError) {
+      console.error(`[process-agent-replies] FAILED to insert ticket_message for job ${job.id}:`, insertError);
+      throw new Error(`ticket_messages insert failed: ${insertError.message}`);
+    }
+    console.log(`[process-agent-replies] ✅ Saved ticket reply for job ${job.id}`);
+
   } else if (source === 'comment') {
-    // Save to comments.ai_reply and update status
     const externalId = job.input?.external_id as string;
     if (!externalId) return;
 
     const newStatus = decision === 'escalate' ? 'escalated' : 'replied';
-    await db
+    const { error: updateError } = await db
       .from('comments')
       .update({ ai_reply: finalReply, status: newStatus })
       .eq('external_id', externalId);
+
+    if (updateError) {
+      console.error(`[process-agent-replies] FAILED to update comment for job ${job.id}:`, updateError);
+      throw new Error(`comments update failed: ${updateError.message}`);
+    }
+    console.log(`[process-agent-replies] ✅ Saved comment reply for job ${job.id}`);
+
+  } else {
+    console.warn(`[process-agent-replies] Job ${job.id}: unknown source '${source}', skipping`);
   }
 }
 
