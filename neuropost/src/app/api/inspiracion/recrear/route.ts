@@ -95,6 +95,10 @@ export async function POST(request: Request) {
     }
 
     // Queue agent to generate content ideas for the recreation request (fire-and-forget)
+    const styles = body.style_to_adapt ?? [];
+    const styleInfo = styles.length > 0 ? `\nEstilos a adaptar: ${styles.join(', ')}` : '';
+    const mediaInfo = mediaUrls.length > 0 ? `\nFotos de referencia adjuntas: ${mediaUrls.length}` : '';
+    const recreatePrompt = `Recrear contenido basado en referencia de inspiración.\n\nNotas del cliente: ${composedNotes ?? 'Sin notas'}${styleInfo}${mediaInfo}`;
     queueJob({
       brand_id:     brand.id,
       agent_type:   'content',
@@ -103,10 +107,8 @@ export async function POST(request: Request) {
         source:           'recreation_request',
         recreation_id:    recreation.id,
         reference_id:     body.reference_id,
-        client_notes:     body.client_notes ?? '',
-        style_to_adapt:   body.style_to_adapt ?? [],
-        description:      body.client_notes ?? 'Recreación de contenido',
-        type:             'custom',
+        prompt:           recreatePrompt,
+        count:            3,
       },
       priority:     70,
       requested_by: 'client',

@@ -58,6 +58,7 @@ export async function POST(request: Request) {
     }).then(() => {});
 
     // Queue agent to process the special request (fire-and-forget)
+    const prompt = `Solicitud: ${title.trim()}${description?.trim() ? `\n\nDetalles: ${description.trim()}` : ''}${type !== 'custom' ? `\nTipo de contenido: ${type}` : ''}`;
     queueJob({
       brand_id:     brand.id,
       agent_type:   'content',
@@ -65,10 +66,8 @@ export async function POST(request: Request) {
       input:        {
         source:      'special_request',
         request_id:  req.id,
-        title:       title.trim(),
-        description: description?.trim() ?? '',
-        type,
-        deadline_at: deadline_at ?? null,
+        prompt,
+        count:       3,
       },
       priority:     deadline_at ? 85 : 65,
       requested_by: 'client',
