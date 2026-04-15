@@ -215,7 +215,16 @@ async function processSupportInteraction(db: DB, job: AgentJob, output: AgentOut
     const externalId = job.input?.external_id as string;
     if (!externalId) return;
 
-    const newStatus = decision === 'escalate' ? 'escalated' : 'replied';
+    // Moderation: approve, reject, or escalate based on agent decision
+    let newStatus: string;
+    if (decision === 'escalate') {
+      newStatus = 'escalated';
+    } else if (decision === 'ignore') {
+      newStatus = 'rejected';
+    } else {
+      newStatus = 'approved';
+    }
+
     const { error: updateError } = await db
       .from('comments')
       .update({ ai_reply: finalReply, status: newStatus })
@@ -225,7 +234,7 @@ async function processSupportInteraction(db: DB, job: AgentJob, output: AgentOut
       console.error(`[process-agent-replies] FAILED to update comment for job ${job.id}:`, updateError);
       throw new Error(`comments update failed: ${updateError.message}`);
     }
-    console.log(`[process-agent-replies] ✅ Saved comment reply for job ${job.id}`);
+    console.log(`[process-agent-replies] ✅ Comment ${externalId} → ${newStatus} for job ${job.id}`);
 
   } else {
     console.warn(`[process-agent-replies] Job ${job.id}: unknown source '${source}', skipping`);

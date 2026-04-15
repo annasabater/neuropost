@@ -427,8 +427,16 @@ function InboxInner() {
             <div style={{ border: '1px solid #e5e7eb' }}>
               {comments.map((c, i) => {
                 const isExpanded = expandedComment === c.id;
-                const statusColor = c.status === 'replied' ? '#0F766E' : c.status === 'escalated' ? '#c62828' : '#f59e0b';
-                const statusLabel = c.status === 'replied' ? 'Respondido' : c.status === 'escalated' ? 'Escalado' : 'Pendiente';
+                const statusMap: Record<string, { color: string; label: string }> = {
+                  approved: { color: '#0F766E', label: 'Aprobado' },
+                  rejected: { color: '#c62828', label: 'Rechazado' },
+                  escalated: { color: '#7c3aed', label: 'Escalado' },
+                  replied: { color: '#0F766E', label: 'Aprobado' },
+                  pending: { color: '#f59e0b', label: 'Pendiente' },
+                };
+                const st = statusMap[c.status] ?? statusMap.pending;
+                const statusColor = st.color;
+                const statusLabel = st.label;
                 return (
                   <div key={c.id} onClick={() => setExpandedComment(isExpanded ? null : c.id)}
                     style={{ padding: '16px 20px', borderBottom: i < comments.length - 1 ? '1px solid #f3f4f6' : 'none', cursor: 'pointer', background: isExpanded ? '#f9fafb' : '#ffffff', transition: 'background 0.15s' }}>
