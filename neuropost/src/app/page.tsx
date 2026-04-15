@@ -58,7 +58,7 @@ const STEPS = [
   { n: '01', title: 'Cuéntanos tu negocio', desc: 'Responde unas preguntas sobre tu negocio y tu estilo. Preparamos tu perfil de marca.' },
   { n: '02', title: 'Conecta tus redes', desc: 'Vincula Instagram, Facebook y TikTok con un clic. Proceso seguro y en menos de 2 minutos.' },
   { n: '03', title: 'Nosotros creamos el contenido', desc: 'Cada semana preparamos fotos, vídeos y reels profesionales adaptados a tu negocio y cada plataforma.' },
-  { n: '04', title: 'Tú apruebas, nosotros publicamos', desc: 'Revisa con un clic o déjanos publicar automáticamente según tu calendario.' },
+  { n: '04', title: 'Tú decides cómo publicar', desc: 'Aprueba el contenido, pide cambios o publícalo tú mismo. Si prefieres, lo gestionamos nosotros — en los días y horas que nuestros análisis marcan como óptimos para tu audiencia.' },
 ];
 
 const DEMO_VIDEOS = [
