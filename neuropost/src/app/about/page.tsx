@@ -241,7 +241,7 @@ export default function AboutPage() {
             </h2>
             <div style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 15, color: '#6b7280', lineHeight: 1.75, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <p style={{ margin: 0 }}>NeuroPost nace observando algo que nos llamó la atención: negocios increíbles con una presencia digital que no les hacía justicia.</p>
-              <p style={{ margin: 0 }}>Restaurantes de calidad, centros profesionales, gimnasios… negocios que ya funcionan, pero que pueden crecer mucho más si mejoran su presencia en redes.</p>
+              <p style={{ margin: 0 }}>Hoteles, academias, museos, centros deportivos, restaurantes, tiendas, clínicas, agencias… cualquier negocio que quiera crecer en redes sin perder tiempo en gestionarlas.</p>
               <p style={{ margin: 0, color: '#111827', fontWeight: 600 }}>Ahí es donde decidimos aportar valor.</p>
               <p style={{ margin: 0 }}>Nos encargamos de toda la gestión para que tu negocio tenga una presencia cuidada, constante y profesional, sin que le dediques tiempo.</p>
             </div>
@@ -465,9 +465,10 @@ export default function AboutPage() {
                       <label style={{ display: 'block', fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af', marginBottom: 10 }}>Tipo de negocio</label>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: '#e5e7eb', border: '1px solid #e5e7eb' }}>
                         {[
-                          { v: 'Restaurante', icon: '🍽' }, { v: 'Cafetería', icon: '☕' }, { v: 'Gym', icon: '🏋️' },
-                          { v: 'Estética', icon: '💅' }, { v: 'Barbería', icon: '✂️' }, { v: 'Inmobiliaria', icon: '🏠' },
-                          { v: 'Boutique', icon: '👗' }, { v: 'Floristería', icon: '🌸' }, { v: 'Otro', icon: '✦' },
+                          { v: 'Restaurante', icon: '🍽' }, { v: 'Hotel / Hostal', icon: '🏨' }, { v: 'Museo / Cultura', icon: '🏛️' },
+                          { v: 'Academia', icon: '📚' }, { v: 'Gym / Deporte', icon: '🏋️' }, { v: 'Aventura', icon: '🧗' },
+                          { v: 'Tienda / Moda', icon: '👗' }, { v: 'Salud / Clínica', icon: '🩺' }, { v: 'Eventos', icon: '🎊' },
+                          { v: 'Inmobiliaria', icon: '🏠' }, { v: 'Cafetería', icon: '☕' }, { v: 'Otro', icon: '✦' },
                         ].map(({ v, icon }) => (
                           <button key={v} type="button" onClick={() => setForm((f) => ({ ...f, business_type: v }))} style={{
                             padding: '8px 10px',

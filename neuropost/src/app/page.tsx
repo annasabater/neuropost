@@ -15,31 +15,37 @@ const UNS = (id: string, w = 600) =>
 
 const HERO_POSTS = [
   { img: UNS('1565299624946-b28f40a0ae38'), caption: 'El mejor risotto de la ciudad 🍝 Reserva tu mesa para esta noche', likes: 234, sector: 'Restaurante' },
-  { img: UNS('1563805042-7684c019e1cb'), caption: 'Pistacho artesanal recién hecho 🍦 El sabor del verano ya está aquí', likes: 189, sector: 'Heladería' },
-  { img: UNS('1501339847302-ac426a4a7cbb'), caption: 'Empieza el día con el mejor café ☕ Latte art perfecto cada mañana', likes: 312, sector: 'Cafetería' },
+  { img: UNS('1566073771219-73d80a00a7cf'), caption: 'Despertarse con vistas así no tiene precio 🌅 Descubre nuestras habitaciones', likes: 312, sector: 'Hotel' },
+  { img: UNS('1558618666-fcd25c85cd64'), caption: 'Historia que cobra vida cada semana 🏛️ Exposición temporal hasta fin de mes', likes: 278, sector: 'Museo' },
   { img: UNS('1534438327276-14e5300c3a48'), caption: 'Sin excusas, solo resultados 💪 Clase de las 7am lista', likes: 156, sector: 'Gimnasio' },
-  { img: UNS('1540555700478-4be289fbecef'), caption: 'Tu momento de relax te espera 💆 Reserva tu sesión', likes: 278, sector: 'Estética' },
-  { img: UNS('1560518883-ce09059eeffa'), caption: 'Tu hogar soñado te espera 🏠 Ático con vistas espectaculares', likes: 145, sector: 'Inmobiliaria' },
+  { img: UNS('1522202176988-66273c2fd55f'), caption: 'Nuevas plazas disponibles 📚 Matrícula abierta hasta el 30', likes: 189, sector: 'Academia' },
+  { img: UNS('1464822759023-fed622ff2c3b'), caption: 'Naturaleza + adrenalina 🧗 Ruta de senderismo este fin de semana', likes: 341, sector: 'Aventura' },
 ];
 
 const PORTFOLIO = [
   { img: UNS('1482049016688-2d3e1b311543'), caption: 'Mesa lista para esta noche ✨', hashtags: '#restaurante #gastronomia', sector: 'Restaurante' },
-  { img: UNS('1570145820259-b5b80c5c8bd6'), caption: 'Nuevos sabores de temporada 🍦', hashtags: '#heladeria #artesanal', sector: 'Heladería' },
-  { img: UNS('1495474472287-4d71bcdd2085'), caption: 'Tu rincón favorito te espera ☕', hashtags: '#cafeteria #brunch', sector: 'Cafetería' },
+  { img: UNS('1566073771219-73d80a00a7cf'), caption: 'Check-in perfecto 🛎️ Tu escapada te espera', hashtags: '#hotel #viajes', sector: 'Hotel' },
+  { img: UNS('1558618666-fcd25c85cd64'), caption: 'Arte que emociona 🖼️ Ven a descubrirlo', hashtags: '#museo #cultura', sector: 'Museo' },
   { img: UNS('1571019614242-c5c5dee9f50b'), caption: 'Tu mejor versión empieza hoy 🔥', hashtags: '#gym #fitness', sector: 'Gimnasio' },
-  { img: UNS('1503951914875-452162b0f3f1'), caption: 'Corte clásico, estilo eterno ✂️', hashtags: '#barberia #grooming', sector: 'Barbería' },
-  { img: UNS('1441984904996-e0b6ba687e04'), caption: 'Nueva colección ya en tienda 🛍️', hashtags: '#boutique #moda', sector: 'Boutique' },
-  { img: UNS('1570129477492-45c003edd2be'), caption: 'Cocina reformada con estilo ✨', hashtags: '#inmobiliaria #hogar', sector: 'Inmobiliaria' },
-  { img: '/floristeria-ramos.jpg', caption: 'Ramos que enamoran 🌹', hashtags: '#floristería #flores', sector: 'Floristería' },
+  { img: UNS('1522202176988-66273c2fd55f'), caption: 'Aprender nunca fue tan divertido 📚', hashtags: '#academia #formacion', sector: 'Academia' },
+  { img: UNS('1464822759023-fed622ff2c3b'), caption: 'La aventura empieza aquí 🏕️', hashtags: '#aventura #naturaleza', sector: 'Aventura' },
+  { img: UNS('1570129477492-45c003edd2be'), caption: 'Reforma integral con estilo ✨', hashtags: '#inmobiliaria #hogar', sector: 'Inmobiliaria' },
+  { img: UNS('1516321318423-f06f85e504b3'), caption: '¿Listo para el evento del año? 🎊', hashtags: '#eventos #celebracion', sector: 'Eventos' },
 ];
 
 const SECTORS = [
   { label: 'Restaurantes', img: UNS('1517248135467-4c7edcad34c4', 400) },
-  { label: 'Cafeterías', img: UNS('1501339847302-ac426a4a7cbb', 400) },
-  { label: 'Gimnasios', img: UNS('1534438327276-14e5300c3a48', 400) },
-  { label: 'Estética', img: UNS('1540555700478-4be289fbecef', 400) },
+  { label: 'Hoteles', img: UNS('1566073771219-73d80a00a7cf', 400) },
+  { label: 'Museos y Cultura', img: UNS('1558618666-fcd25c85cd64', 400) },
+  { label: 'Academias', img: UNS('1522202176988-66273c2fd55f', 400) },
+  { label: 'Deporte y Aventura', img: UNS('1464822759023-fed622ff2c3b', 400) },
+  { label: 'Tiendas y Moda', img: UNS('1441984904996-e0b6ba687e04', 400) },
+  { label: 'Salud y Bienestar', img: UNS('1540555700478-4be289fbecef', 400) },
   { label: 'Inmobiliarias', img: UNS('1560518883-ce09059eeffa', 400) },
-  { label: 'Tiendas', img: UNS('1441984904996-e0b6ba687e04', 400) },
+  { label: 'Cafeterías', img: UNS('1501339847302-ac426a4a7cbb', 400) },
+  { label: 'Ocio Familiar', img: UNS('1472162072942-cd5147eb3902', 400) },
+  { label: 'Eventos', img: UNS('1516321318423-f06f85e504b3', 400) },
+  { label: 'Y mucho más…', img: UNS('1497366216548-37526070297c', 400) },
 ];
 
 const RESULTS = [
@@ -50,7 +56,7 @@ const RESULTS = [
 
 const STEPS = [
   { n: '01', title: 'Cuéntanos tu negocio', desc: 'Responde unas preguntas sobre tu negocio y tu estilo. Preparamos tu perfil de marca.' },
-  { n: '02', title: 'Conecta tu Instagram', desc: 'Vincula tu cuenta de Instagram Business con un clic. Proceso seguro y rápido.' },
+  { n: '02', title: 'Conecta tus redes', desc: 'Vincula Instagram, Facebook y TikTok con un clic. Proceso seguro y en menos de 2 minutos.' },
   { n: '03', title: 'Nosotros creamos el contenido', desc: 'Cada semana preparamos posts profesionales con tus fotos. Editamos, escribimos y programamos.' },
   { n: '04', title: 'Tú apruebas, nosotros publicamos', desc: 'Revisa con un clic o déjanos publicar automáticamente según tu calendario.' },
 ];
@@ -109,8 +115,8 @@ const FAQ_DATA: FaqCategory[] = [
     { q: '¿Qué pasa si quiero cambios?', a: 'Puedes pedir modificaciones en cualquier momento. El objetivo es que el contenido encaje perfectamente con tu negocio.' },
   ]},
   { category: 'Plataforma', items: [
-    { q: '¿Qué tipo de negocios pueden usar NeuroPost?', a: 'Trabajamos con negocios locales como restaurantes, gimnasios, centros de estética, inmobiliarias y más. Cualquier negocio que quiera mejorar su presencia en redes.' },
-    { q: '¿En qué redes sociales publicáis?', a: 'Actualmente nos centramos en Instagram, donde los negocios locales obtienen los mejores resultados. Facebook y otras plataformas llegarán próximamente — mientras tanto, puedes reaprovechar las fotos y vídeos que publicamos en Instagram y subirlos tú mismo a las otras plataformas.' },
+    { q: '¿Qué tipo de negocios pueden usar NeuroPost?', a: 'Cualquier negocio con presencia en redes: hoteles, restaurantes, academias, museos, centros deportivos, tiendas, clínicas, gestorías, organizadores de eventos, parques de aventura… Si tienes algo que contar, nosotros lo contamos por ti.' },
+    { q: '¿En qué redes sociales publicáis?', a: 'Publicamos en Instagram, Facebook y TikTok. Cada plataforma tiene su propio formato y algoritmo — nos adaptamos a cada una para maximizar el alcance de tu negocio.' },
     { q: '¿Se puede generar contenido con IA?', a: 'Sí. Puedes generar contenido tú mismo desde la plataforma o solicitarlo a nuestro equipo para que lo prepare por ti. Nos adaptamos a cómo prefieras trabajar.' },
   ]},
   { category: 'Planes y condiciones', items: [
@@ -121,11 +127,15 @@ const FAQ_DATA: FaqCategory[] = [
 
 const TESTIMONIALS = [
   { name: 'María González', biz: 'Heladería Toscana, Barcelona', quote: 'En pocas semanas, el local empezó a llenarse, sobre todo de gente joven que venía por lo que veía en Instagram. Ahora tengo más clientes entrando cada día.' },
-  { name: 'Carlos Martín', biz: 'Cafetería El Rincón, Madrid', quote: 'Han captado perfectamente el tono de mi negocio y lo que quiero transmitir. Ahora mi Instagram refleja de verdad mi marca... y se nota en los clientes.' },
-  { name: 'Laura Jiménez', biz: 'Cafetería El Rincón, Madrid', quote: 'Han captado perfectamente el tono de mi negocio y lo que quiero transmitir. Ahora mi Instagram refleja de verdad mi marca... y se nota en los clientes.' },
+  { name: 'David Ferrer', biz: 'Hotel Mirador, Costa Brava', quote: 'Nuestras reservas directas aumentaron un 40% en la primera temporada. El contenido transmite exactamente la experiencia que ofrecemos.' },
+  { name: 'Ana Puig', biz: 'Academia Creativa, Valencia', quote: 'Teníamos cero presencia en redes. A los 3 meses llenamos todas las plazas del trimestre solo con alumnos captados por Instagram.' },
 ];
 
-const LOGOS = ['🍦 Heladería Toscana', '☕ Cafetería El Rincón', '🌮 Tacos & Co.', '💈 Barbería Retro', '🌸 Centro Estético Alma', '🍕 Pizzería Napoli', '👗 Boutique Mía', '🏋️ Gym Urban Fit'];
+const LOGOS = [
+  '🍦 Heladería Toscana', '🏨 Hotel Mirador', '🏛️ Museo del Barrio', '💈 Barbería Retro',
+  '📚 Academia Creativa', '🧗 Aventura Norte', '🌸 Centro Estético Alma', '🎭 Teatro La Nave',
+  '🏋️ Gym Urban Fit', '🎒 Hostal Sol', '🌿 Jardín Botánico', '🎊 Eventos Premium',
+];
 
 const f  = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
