@@ -41,7 +41,7 @@ const PLANS: Plan[] = [
     annualPrice:    21,
     annualSavings:  48,
     desc:          'Para presencia activa',
-    content:       ['📷  2 fotos/semana', '🎬  Carruseles hasta 3', '◯  Sin vídeo/reel'],
+    content:       ['✔ 2 fotos/semana', '✔ Carruseles hasta 3', '✔ Sin vídeo/reel'],
     highlight:     'Ideal para empezar con redes',
     featured: false,
     features: [
@@ -60,7 +60,7 @@ const PLANS: Plan[] = [
     annualPrice:    63,
     annualSavings:  158,
     desc:          'Máximo alcance',
-    content:       ['📷  4 fotos/semana', '🎬  2 vídeo/reel ≤90s/semana', '⭐  Carruseles hasta 8'],
+    content:       ['✔ 4 fotos/semana', '✔ 2 vídeos/reels ≤90s/sem', '✔ Carruseles hasta 8'],
     highlight:     'Vídeo/reel optimizados a ≤90s para máximo alcance en Instagram',
     featured: true,
     badge: '⚡ Más popular',
@@ -80,7 +80,7 @@ const PLANS: Plan[] = [
     annualPrice:    133,
     annualSavings:  336,
     desc:          'Control completo',
-    content:       ['📷  Hasta 20 fotos/semana', '🎬  10 vídeo/reel ≤90s/semana', '⭐  Carruseles hasta 20'],
+    content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels ≤90s/sem', '✔ Carruseles hasta 20'],
     highlight:     'Conversión máxima de leads a ventas',
     featured: false,
     badge: '🚀 Completo',
@@ -495,26 +495,36 @@ function RoiCalculator() {
 }
 
 function PlanRecommender({ billing }: { billing: BillingCycle }) {
-  const [photosPerWeek, setPhotosPerWeek] = useState(8);
-  const [videosPerWeek, setVideosPerWeek] = useState(2);
-  const [engagementGoal, setEngagementGoal] = useState(6);
+  const [photosPerWeek, setPhotosPerWeek] = useState(3);
+  const [videosPerWeek, setVideosPerWeek] = useState(1);
+  const [engagementGoal, setEngagementGoal] = useState(5);
 
-  const planRules = {
-    starter: { photos: 2, videos: 0 },
-    pro: { photos: 3, videos: 2 },
-    total: { photos: 20, videos: 10 },
-  } as const;
+  // Limits that each plan actually includes (must match PLANS data above)
+  const planLimits = [
+    { plan: PLANS[0], photos: 2,  videos: 0  },   // Starter
+    { plan: PLANS[1], photos: 4,  videos: 2  },   // Pro
+    { plan: PLANS[2], photos: 20, videos: 10 },   // Total
+  ] as const;
 
-  let recommended: Plan = PLANS[0];
-  if (photosPerWeek <= planRules.starter.photos && videosPerWeek <= planRules.starter.videos) {
-    recommended = PLANS[0];
-  } else if (photosPerWeek <= planRules.pro.photos && videosPerWeek <= planRules.pro.videos) {
-    recommended = PLANS[1];
-  } else {
-    recommended = PLANS[2];
+  // High engagement (≥8/10) nudges toward at least Pro
+  const minTierByEngagement = engagementGoal >= 8 ? 1 : 0;
+
+  let recommendedIdx = planLimits.length - 1; // default to Total
+  for (let i = 0; i < planLimits.length; i++) {
+    if (photosPerWeek <= planLimits[i].photos && videosPerWeek <= planLimits[i].videos && i >= minTierByEngagement) {
+      recommendedIdx = i;
+      break;
+    }
   }
+  const recommended = planLimits[recommendedIdx].plan;
+  const includedPhotos = planLimits[recommendedIdx].photos;
+  const includedVideos = planLimits[recommendedIdx].videos;
 
-  const price = billing === 'annual' ? annualPrice(recommended.monthlyPrice) : recommended.monthlyPrice;
+  // Extras only exist if user requests more than any plan covers (beyond Total)
+  const extraPhotos = Math.max(0, photosPerWeek - includedPhotos);
+  const extraVideos = Math.max(0, videosPerWeek - includedVideos);
+
+  const basePrice = billing === 'annual' ? annualPrice(recommended.monthlyPrice) : recommended.monthlyPrice;
   const savings = annualSavings(recommended.monthlyPrice);
 
   return (
@@ -607,8 +617,8 @@ function PlanRecommender({ billing }: { billing: BillingCycle }) {
             <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 34, textTransform: 'uppercase', lineHeight: 0.95, marginBottom: 8 }}>
               {recommended.name}
             </p>
-            <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 32, lineHeight: 1, marginBottom: 8 }}>
-              <span style={{ fontSize: 16, verticalAlign: 'top' }}>€</span>{price}
+            <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 32, lineHeight: 1, marginBottom: 4 }}>
+              <span style={{ fontSize: 16, verticalAlign: 'top' }}>€</span>{basePrice}
               <span style={{ fontFamily: f, fontSize: 12, fontWeight: 500, color: '#9ca3af' }}>/mes</span>
             </p>
             {billing === 'annual' && (
@@ -617,14 +627,37 @@ function PlanRecommender({ billing }: { billing: BillingCycle }) {
               </p>
             )}
 
-            <p style={{ fontFamily: f, color: '#d1d5db', fontSize: 13, lineHeight: 1.6, marginBottom: 14 }}>
+            <p style={{ fontFamily: f, color: '#d1d5db', fontSize: 13, lineHeight: 1.6, marginBottom: 12 }}>
               {recommended.desc}
             </p>
 
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8, marginBottom: 16 }}>
-              <li style={{ fontFamily: f, fontSize: 12, color: '#d1d5db' }}>✔ Carga estimada: {photosPerWeek + videosPerWeek} piezas/semana</li>
-              <li style={{ fontFamily: f, fontSize: 12, color: '#d1d5db' }}>✔ Intensidad de crecimiento: {engagementGoal}/10</li>
+            {/* What's included vs what you asked for */}
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 6, marginBottom: 14 }}>
+              <li style={{ fontFamily: f, fontSize: 12, color: '#d1d5db' }}>
+                📷 {photosPerWeek} foto{photosPerWeek !== 1 ? 's' : ''}/sem
+                {extraPhotos > 0
+                  ? <span style={{ color: '#fca5a5', marginLeft: 4 }}>({includedPhotos} incl. + {extraPhotos} extra)</span>
+                  : <span style={{ color: '#6ee7b7', marginLeft: 4 }}>✓ incluido</span>}
+              </li>
+              <li style={{ fontFamily: f, fontSize: 12, color: '#d1d5db' }}>
+                🎬 {videosPerWeek} vídeo{videosPerWeek !== 1 ? 's' : ''}/sem
+                {extraVideos > 0
+                  ? <span style={{ color: '#fca5a5', marginLeft: 4 }}>({includedVideos} incl. + {extraVideos} extra)</span>
+                  : <span style={{ color: '#6ee7b7', marginLeft: 4 }}>✓ incluido</span>}
+              </li>
+              <li style={{ fontFamily: f, fontSize: 12, color: '#d1d5db' }}>
+                📈 Engagement {engagementGoal}/10
+                {engagementGoal >= 8
+                  ? <span style={{ color: '#fde68a', marginLeft: 4 }}>(alta intensidad)</span>
+                  : <span style={{ color: '#6ee7b7', marginLeft: 4 }}>✓ ok</span>}
+              </li>
             </ul>
+
+            {(extraPhotos > 0 || extraVideos > 0) && (
+              <p style={{ fontFamily: f, fontSize: 11, color: '#fca5a5', marginBottom: 12, lineHeight: 1.5 }}>
+                Superas los límites del plan Total. Escríbenos para un precio personalizado.
+              </p>
+            )}
 
             <a href="#pricing-plans" style={{ display: 'inline-block', width: '100%', textAlign: 'center', background: '#ffffff', color: '#111111', textDecoration: 'none', fontFamily: fc, fontWeight: 700, fontSize: 12, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '10px 14px' }}>
               Ver plan abajo
@@ -824,7 +857,7 @@ export default function PricingPage() {
           </div>
 
           <div className="pricing-note">
-            🔒 Pago seguro con Stripe · Cancela en cualquier momento · Sin permanencia
+            🔒 Pago seguro con Stripe · Cancela en cualquier momento
           </div>
         </div>
       </section>
@@ -1009,7 +1042,7 @@ export default function PricingPage() {
           <h2>
             Empieza hoy y recupera<br /><em>horas de tu semana</em>
           </h2>
-          <p className="cta-sub">14 días gratis. Sin tarjeta de crédito. Sin permanencia.</p>
+          <p className="cta-sub">Sin compromiso. Cancela cuando quieras.</p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap', position: 'relative' }}>
             <Link
               href="/register"
@@ -1047,7 +1080,7 @@ export default function PricingPage() {
             </Link>
           </div>
           <p className="cta-guarantee">
-            ✓ Cancela cuando quieras &nbsp;·&nbsp; ✓ Sin permanencia &nbsp;·&nbsp; ✓ GDPR compliant
+            ✓ Cancela cuando quieras &nbsp;·&nbsp; ✓ GDPR compliant
           </p>
         </div>
       </section>

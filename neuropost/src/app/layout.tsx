@@ -33,9 +33,9 @@ const barlowCondensed = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: 'NeuroPost — Gestión de Instagram con IA para negocios locales',
+  title: 'NeuroPost — Gestión de redes sociales con IA para negocios locales',
   description:
-    'Llevamos tu Instagram mientras tú te centras en tu negocio. La IA publica, responde comentarios y hace crecer tu cuenta. 14 días gratis, sin tarjeta.',
+    'Gestionamos tus redes sociales con IA: Instagram, TikTok y Facebook. Contenido profesional, publicación automática y estrategia adaptada a cada plataforma.',
   icons: {
     apple: '/icon.svg',
   },

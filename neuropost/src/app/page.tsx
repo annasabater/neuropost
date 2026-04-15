@@ -189,7 +189,7 @@ export default function LandingPage() {
       annualPrice:    21,
       annualSavings:  48,
       desc:          'Para presencia activa',
-      content:       ['📷  2 fotos/semana', '🎬  Carruseles hasta 3', '◯  Sin vídeo/reel'],
+      content:       ['✔ 2 fotos/semana', '✔ Carruseles hasta 3', '✔ Sin vídeo/reel'],
       highlight:     'Ideal para empezar con redes',
       features: [
         'Publicación programada',
@@ -209,7 +209,7 @@ export default function LandingPage() {
       desc:          'Máximo alcance',
       featured:      true,
       badge:         '⚡ Más popular',
-      content:       ['📷  4 fotos/semana', '🎬  2 vídeo/reel ≤90s/semana', '⭐  Carruseles hasta 8'],
+      content:       ['✔ 4 fotos/semana', '✔ 2 vídeos/reels ≤90s/sem', '✔ Carruseles hasta 8'],
       highlight:     'Vídeo/reel optimizados a ≤90s para máximo alcance en Instagram',
       features: [
         'Publicación programada',
@@ -228,7 +228,7 @@ export default function LandingPage() {
       annualSavings:  336,
       desc:          'Control completo',
       badge:         '🚀 Completo',
-      content:       ['📷  Hasta 20 fotos/semana', '🎬  10 vídeo/reel ≤90s/semana', '⭐  Carruseles hasta 20'],
+      content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels ≤90s/sem', '✔ Carruseles hasta 20'],
       highlight:     'Conversión máxima de leads a ventas',
       features: [
         'Publicación programada',
@@ -309,21 +309,32 @@ export default function LandingPage() {
       <section style={{ padding: '140px 0 80px', background: '#ffffff' }}>
         <div className="container" style={{ textAlign: 'center', maxWidth: 800 }}>
           <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 20 }}>
-            Tu equipo de redes sociales
+            Gestión multiplataforma con IA
           </div>
           <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.8rem, 6vw, 4.5rem)', textTransform: 'uppercase', letterSpacing: '-0.01em', lineHeight: 0.95, color: '#111111', marginBottom: 24 }}>
-            Nos encargamos de <span style={{ color: '#0F766E' }}>tus redes</span> para que tú te encargues de tu negocio
+            Gestionamos <span style={{ color: '#0F766E' }}>tus redes sociales</span> mientras tú te centras en tu negocio
           </h1>
-          <p style={{ fontFamily: f, fontSize: 17, color: '#6b7280', lineHeight: 1.7, maxWidth: 560, margin: '0 auto 32px' }}>
-            Creamos contenido que hace que la gente te vea, te recuerde y termine entrando por la puerta.
+          <p style={{ fontFamily: f, fontSize: 17, color: '#6b7280', lineHeight: 1.7, maxWidth: 560, margin: '0 auto 24px' }}>
+            Contenido optimizado para cada plataforma. Estrategia adaptada a cada canal. Publicación automática.
           </p>
+          {/* Platform badges */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginBottom: 32, flexWrap: 'wrap' }}>
+            {[
+              { label: 'Instagram', color: '#E1306C' },
+              { label: 'TikTok',    color: '#010101' },
+              { label: 'Facebook',  color: '#1877F2' },
+            ].map(({ label, color }) => (
+              <span key={label} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: `1.5px solid ${color}`, fontFamily: f, fontSize: 12, fontWeight: 700, color, letterSpacing: '0.04em' }}>
+                {label}
+              </span>
+            ))}
+          </div>
           <div style={{ display: 'flex', justifyContent: 'center', margin: '0 auto 16px' }}>
             <Link href="/register"
               style={{ display: 'inline-block', padding: '16px 40px', background: '#0F766E', color: '#ffffff', textDecoration: 'none', fontFamily: fc, fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
-              Empezar gratis →
+              Empezar →
             </Link>
           </div>
-          
         </div>
 
         {/* Hero carousel — auto-scrolling posts */}
@@ -636,7 +647,7 @@ export default function LandingPage() {
               Ver más detalles de planes →
             </Link>
           </div>
-          <p style={{ fontFamily: f, textAlign: 'center', fontSize: 12, color: '#9ca3af', marginTop: 16 }}>Pago seguro con Stripe · Cancela en cualquier momento · Sin permanencia</p>
+          <p style={{ fontFamily: f, textAlign: 'center', fontSize: 12, color: '#9ca3af', marginTop: 16 }}>Pago seguro con Stripe · Cancela en cualquier momento</p>
         </div>
       </section>
 

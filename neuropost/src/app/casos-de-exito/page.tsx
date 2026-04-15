@@ -57,7 +57,7 @@ const CASES = [
     initials: 'CB',
     name: 'Café Bonito',
     type: 'Cafetería · Sevilla',
-    quote: 'Probamos 14 días gratis y al cabo de una semana ya era obvio que no íbamos a cancelar.',
+    quote: 'Desde la primera semana ya era obvio que no íbamos a cancelar. El contenido que generan es exactamente lo que necesitábamos.',
     metrics: [
       { label: 'Interacciones', value: '×4' },
       { label: 'Seguidores nuevos', value: '+320/mes' },
@@ -160,7 +160,7 @@ export default function CasosDeExitoPage() {
       <section className="cta-final">
         <div className="container">
           <h2>¿Quieres ser el próximo<br />caso de <em>éxito</em>?</h2>
-          <p className="cta-sub">14 días gratis. Sin tarjeta de crédito. Sin compromiso.</p>
+          <p className="cta-sub">Sin compromiso. Cancela cuando quieras.</p>
           <div style={{ marginTop: 24 }}>
             <button
               className="btn-primary"
@@ -170,7 +170,7 @@ export default function CasosDeExitoPage() {
               Empezar ahora →
             </button>
           </div>
-          <p className="cta-guarantee">✓ Cancela cuando quieras &nbsp;·&nbsp; ✓ Sin permanencia &nbsp;·&nbsp; ✓ GDPR compliant</p>
+          <p className="cta-guarantee">✓ Cancela cuando quieras &nbsp;·&nbsp; ✓ GDPR compliant</p>
         </div>
       </section>
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { MessageSquare, MessageCircle, LifeBuoy, Sparkles, Bell, ArrowRight, Plus, Send, X, TrendingUp, AlertCircle, TrendingDown, CheckCheck } from 'lucide-react';
+import { MessageSquare, MessageCircle, LifeBuoy, Bell, ArrowRight, Plus, Send, X, CheckCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppStore } from '@/store/useAppStore';
 import { createBrowserClient } from '@/lib/supabase';
@@ -20,16 +20,12 @@ type TicketRow = {
   id: string; brand_id: string; subject: string; status: string;
   category: string; created_at: string; resolution?: string | null;
 };
-type ChangelogRow = {
-  id: string; version: string | null; title: string; summary: string | null;
-  published_at: string | null;
-};
 // Testimonials removed — comments tab now uses real DB data
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
-type Tab = 'comentarios' | 'mensajes' | 'soporte' | 'novedades' | 'notificaciones';
+type Tab = 'comentarios' | 'mensajes' | 'soporte' | 'notificaciones';
 type IconProps = { size?: number; style?: React.CSSProperties };
 
 const TABS: { key: Tab; title: string; desc: string; icon: React.ComponentType<IconProps> }[] = [
@@ -37,17 +33,11 @@ const TABS: { key: Tab; title: string; desc: string; icon: React.ComponentType<I
   { key: 'mensajes',       title: 'Mensajes',       desc: 'Tu equipo NeuroPost',  icon: MessageCircle },
   { key: 'comentarios',    title: 'Comentarios',    desc: 'Instagram y Facebook', icon: MessageSquare },
   { key: 'soporte',        title: 'Soporte',        desc: 'Tickets y consultas',  icon: LifeBuoy },
-  { key: 'novedades',      title: 'Novedades',      desc: 'Mejoras del producto', icon: Sparkles },
 ];
 
 // ── Types ──
 type Ticket = { id: string; subject: string; status: string; category: string; created_at: string };
 type ChatMsg = { id: string; sender_type: 'client' | 'worker'; message: string; created_at: string };
-type ChangeEntry = { id: string; version: string | null; title: string; summary: string | null; changes: { type: string; text: string }[]; published_at: string | null };
-
-const TYPE_COLOR: Record<string, string> = { new: '#0F766E', improved: '#0D9488', fixed: '#0F766E', removed: '#6b7280' };
-const TYPE_LABEL: Record<string, string> = { new: 'NUEVO', improved: 'MEJORADO', fixed: 'CORREGIDO', removed: 'ELIMINADO' };
-const TYPE_ICON: Record<string, React.ComponentType<IconProps>> = { new: TrendingUp, improved: TrendingUp, fixed: AlertCircle, removed: TrendingDown };
 const STATUS_STYLE: Record<string, { color: string; bg: string; label: string }> = {
   open: { color: '#0F766E', bg: '#f0fdfa', label: 'Abierto' },
   in_progress: { color: '#0D9488', bg: '#ecfeff', label: 'En proceso' },
@@ -135,8 +125,6 @@ function InboxInner() {
   const [chatSending, setChatSending] = useState(false);
   const chatBottom = useRef<HTMLDivElement>(null);
 
-  // Changelog state
-  const [entries, setEntries] = useState<ChangeEntry[]>([]);
 
   // Supabase browser client — created once and reused across realtime subscriptions.
   const supabase = useMemo(() => createBrowserClient(), []);
@@ -241,27 +229,6 @@ function InboxInner() {
     return () => { supabase.removeChannel(ch as unknown as Parameters<typeof supabase.removeChannel>[0]); };
   }, [brand?.id, supabase]);
 
-  // ── Realtime: new changelog / novedades entries ─────────────────────────
-  useEffect(() => {
-    const ch = (supabase.channel('client-changelog') as unknown as {
-      on: (event: string, filter: Record<string, unknown>, cb: (payload: { new: ChangelogRow }) => void) => typeof ch;
-      subscribe: () => typeof ch;
-    });
-    ch.on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'changelog_entries' },
-      (payload) => {
-        const n = payload.new;
-        if (!n.published_at) return; // skip drafts
-        toast(`Nueva novedad: ${n.title}`, { icon: '✨' });
-        setEntries((prev) => (prev.some((e) => e.id === n.id) ? prev : [{
-          id: n.id, version: n.version, title: n.title, summary: n.summary,
-          changes: [], published_at: n.published_at,
-        }, ...prev]));
-      },
-    ).subscribe();
-    return () => { supabase.removeChannel(ch as unknown as Parameters<typeof supabase.removeChannel>[0]); };
-  }, [supabase]);
 
   function setTab(t: Tab) { router.push(`/inbox?tab=${t}`); }
 
@@ -312,11 +279,6 @@ function InboxInner() {
         .then((d) => setMessages(d.messages ?? []))
         .catch(() => { loadedTabsRef.current[tab] = false; })
         .finally(() => setChatLoading(false));
-    } else if (tab === 'novedades') {
-      fetch('/api/changelog')
-        .then((r) => r.json())
-        .then((d) => setEntries(d.entries ?? []))
-        .catch(() => { loadedTabsRef.current[tab] = false; });
     } else if (tab === 'notificaciones') {
       fetch('/api/notifications')
         .then((r) => r.json())
@@ -744,51 +706,6 @@ function InboxInner() {
         </div>
       )}
 
-      {/* ── NOVEDADES — inline changelog ── */}
-      {tab === 'novedades' && (
-        <div>
-          <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: '#111827', marginBottom: 20 }}>Novedades</h2>
-          {entries.length === 0 ? (
-            <div style={{ border: '1px solid #e5e7eb' }}>
-              {[1,2,3].map(i => <div key={i} style={{ padding: '20px 24px', borderBottom: i < 3 ? '1px solid #f3f4f6' : 'none' }}><div style={{ width: '50%', height: 14, background: '#f3f4f6', marginBottom: 8 }} /><div style={{ width: '80%', height: 10, background: '#f3f4f6' }} /></div>)}
-            </div>
-          ) : (
-            <div style={{ position: 'relative', paddingLeft: 28 }}>
-              <div style={{ position: 'absolute', left: 5, top: 0, bottom: 0, width: 1, background: '#e5e7eb' }} />
-              {entries.slice(0, 8).map((entry) => {
-                const byType: Record<string, { type: string; text: string }[]> = {};
-                for (const c of (Array.isArray(entry.changes) ? entry.changes : [])) { if (!byType[c.type]) byType[c.type] = []; byType[c.type].push(c); }
-                return (
-                  <div key={entry.id} style={{ position: 'relative', marginBottom: 24 }}>
-                    <div style={{ position: 'absolute', left: -24, top: 4, width: 8, height: 8, background: 'var(--accent)', borderRadius: '50%' }} />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      {entry.published_at && <span style={{ fontFamily: f, fontSize: 11, color: '#9ca3af' }}>{new Date(entry.published_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</span>}
-                      {entry.version && <span style={{ fontFamily: f, fontSize: 9, fontWeight: 600, color: 'var(--accent)', background: 'var(--accent-light)', padding: '1px 6px', textTransform: 'uppercase' }}>v{entry.version}</span>}
-                    </div>
-                    <div style={{ background: '#ffffff', border: '1px solid #e5e7eb', padding: '16px 20px' }}>
-                      <h3 style={{ fontFamily: fc, fontSize: 16, fontWeight: 800, textTransform: 'uppercase', color: '#111827', marginBottom: entry.summary ? 4 : 10 }}>{entry.title}</h3>
-                      {entry.summary && <p style={{ fontFamily: f, fontSize: 13, color: '#6b7280', lineHeight: 1.6, marginBottom: 10 }}>{entry.summary}</p>}
-                      {Object.entries(byType).map(([type, changes]) => {
-                        const Icon = TYPE_ICON[type] ?? TrendingUp;
-                        return (
-                          <div key={type} style={{ marginBottom: 6 }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', background: 'var(--accent-light)', fontFamily: f, fontSize: 9, fontWeight: 600, color: TYPE_COLOR[type] ?? '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                              <Icon size={10} style={{ color: TYPE_COLOR[type] }} /> {TYPE_LABEL[type] ?? type}
-                            </span>
-                            <ul style={{ margin: '4px 0 0', paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 2 }}>
-                              {changes.map((c, i) => <li key={i} style={{ fontFamily: f, fontSize: 12, color: '#374151', lineHeight: 1.5 }}>{c.text}</li>)}
-                            </ul>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
       {/* ── NOTIFICACIONES ── */}
       {tab === 'notificaciones' && (
         <div>

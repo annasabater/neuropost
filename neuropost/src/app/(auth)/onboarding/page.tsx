@@ -1022,7 +1022,7 @@ export default function OnboardingPage() {
         </ul>
       </div>
       <div style={{ marginTop: 'auto', padding: '16px 20px', background: '#f3f4f6', border: '1px solid #e5e7eb', fontFamily: FONT, fontSize: '0.8rem', color: MUTED, lineHeight: 1.6 }}>
-        Sin permanencia. Puedes cambiar de plan o cancelar cuando quieras desde los ajustes.
+        Puedes cambiar de plan o cancelar cuando quieras desde los ajustes.
       </div>
     </div>
   );

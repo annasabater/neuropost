@@ -556,13 +556,13 @@ export default function AboutPage() {
       <section className="cta-final">
         <div className="container">
           <h2>¿Listo para que llevemos<br />tus <em>redes</em>?</h2>
-          <p className="cta-sub">14 días gratis. Sin tarjeta de crédito.</p>
+          <p className="cta-sub">Sin compromiso. Cancela cuando quieras.</p>
           <div style={{ marginTop: 24 }}>
             <button className="btn-primary" onClick={() => router.push('/register')} style={{ padding: '16px 36px', fontSize: '1rem' }}>
               Empezar ahora →
             </button>
           </div>
-          <p className="cta-guarantee">✓ Cancela cuando quieras &nbsp;·&nbsp; ✓ Sin permanencia &nbsp;·&nbsp; ✓ GDPR compliant</p>
+          <p className="cta-guarantee">✓ Cancela cuando quieras &nbsp;·&nbsp; ✓ GDPR compliant</p>
         </div>
       </section>
 

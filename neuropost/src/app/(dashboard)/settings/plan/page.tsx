@@ -117,7 +117,7 @@ const PLANS: {
     annualPrice:    21,
     annualSavings:  48,
     desc:          'Para presencia activa',
-    content:       ['📷  2 fotos/semana', '🎬  Carruseles hasta 3', '◯  Sin vídeo/reel'],
+    content:       ['✔ 2 fotos/semana', '✔ Carruseles hasta 3', '✔ Sin vídeo/reel'],
     highlight:     'Ideal para empezar con redes',
     perks: [
       'Publicación programada',
@@ -137,7 +137,7 @@ const PLANS: {
     annualPrice:    63,
     annualSavings:  158,
     desc:          'Máximo alcance',
-    content:       ['📷  4 fotos/semana', '🎬  2 vídeo/reel ≤90s/semana', '⭐  Carruseles hasta 8'],
+    content:       ['✔ 4 fotos/semana', '✔ 2 vídeos/reels ≤90s/sem', '✔ Carruseles hasta 8'],
     highlight:     'Vídeo/reel optimizados a ≤90s para máximo alcance en Instagram',
     perks: [
       'Publicación programada',
@@ -158,7 +158,7 @@ const PLANS: {
     annualPrice:    133,
     annualSavings:  336,
     desc:          'Control completo',
-    content:       ['📷  Hasta 20 fotos/semana', '🎬  10 vídeo/reel ≤90s/semana', '⭐  Carruseles hasta 20'],
+    content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels ≤90s/sem', '✔ Carruseles hasta 20'],
     highlight:     'Conversión máxima de leads a ventas',
     perks: [
       'Publicación programada',

@@ -482,7 +482,7 @@ export default function QueIncluyePage() {
             className="observe-fade"
             style={{ fontFamily: f, fontSize: 12, color: '#6b7280', marginTop: 32 }}
           >
-            Sin permanencias · Cancela cuando quieras · Soporte incluido
+            Cancela cuando quieras · Soporte incluido
           </p>
         </div>
       </section>

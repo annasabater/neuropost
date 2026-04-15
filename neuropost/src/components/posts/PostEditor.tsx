@@ -621,7 +621,47 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
           </div>
         </div>
 
-        {/* Platforms section removed as requested */}
+        {/* Platforms */}
+        <div className="editor-section editor-row">
+          <div className="form-group" style={{ flex: 1 }}>
+            <label>Publicar en</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {([
+                { value: 'instagram' as Platform, label: '📷 Instagram', note: '' },
+                { value: 'facebook'  as Platform, label: '📘 Facebook',  note: '' },
+                { value: 'tiktok'    as Platform, label: '🎵 TikTok',    note: 'solo vídeos' },
+              ] as { value: Platform; label: string; note: string }[]).map(({ value, label, note }) => {
+                const active = platforms.includes(value);
+                const disabled = value === 'tiktok' && format !== 'reel';
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    title={disabled ? 'TikTok solo admite vídeos (formato Reel)' : undefined}
+                    disabled={disabled}
+                    onClick={() => !disabled && togglePlatform(value)}
+                    style={{
+                      padding: '7px 14px', border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                      background: active ? 'var(--accent-light, #f0fdfa)' : 'var(--bg)',
+                      color: active ? 'var(--accent)' : 'var(--text-secondary)',
+                      fontFamily: 'var(--font-barlow), sans-serif', fontSize: 13, fontWeight: active ? 700 : 400,
+                      cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
+                      display: 'flex', alignItems: 'center', gap: 4,
+                    }}
+                  >
+                    {label}
+                    {note && <span style={{ fontSize: 10, opacity: 0.7 }}>({note})</span>}
+                  </button>
+                );
+              })}
+            </div>
+            {platforms.includes('tiktok') && (
+              <p style={{ fontSize: 12, color: 'var(--accent)', marginTop: 6 }}>
+                TikTok solo publica el vídeo — el pie de foto se usa como descripción.
+              </p>
+            )}
+          </div>
+        </div>
 
         {/* Format */}
         <div className="editor-section editor-row">

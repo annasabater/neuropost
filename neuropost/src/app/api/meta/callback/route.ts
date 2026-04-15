@@ -60,7 +60,10 @@ export async function GET(request: Request) {
       update.ig_access_token = page.access_token; // page token works for IG Business
     }
 
-    // TODO [FASE 2]: Facebook — store fb_page_id, fb_page_name, fb_access_token when source === 'facebook'
+    // Facebook Page — always save page token so user can publish to FB too
+    update.fb_page_id     = page.id;
+    update.fb_page_name   = page.name;
+    update.fb_access_token = page.access_token;
 
     await supabase
       .from('brands')

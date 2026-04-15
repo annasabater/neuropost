@@ -4,7 +4,7 @@
 
 // ─── Primitive Unions ─────────────────────────────────────────────────────────
 
-export type Platform        = 'instagram'; // FASE 2: | 'facebook' | 'tiktok'
+export type Platform        = 'instagram' | 'facebook' | 'tiktok';
 export type SocialSector    = 'heladeria' | 'restaurante' | 'cafeteria' | 'gym' | 'clinica' | 'barberia' | 'boutique' | 'inmobiliaria'
   | 'panaderia' | 'cocteleria' | 'street_food' | 'vinoteca'
   | 'nail_art' | 'estetica' | 'maquillaje'
@@ -119,6 +119,11 @@ export interface Brand {
   ig_access_token:        string | null;
   fb_access_token:        string | null;
   meta_token_expires_at:  string | null;
+  tt_access_token:        string | null;
+  tt_refresh_token:       string | null;
+  tt_open_id:             string | null;
+  tt_username:            string | null;
+  tt_token_expires_at:    string | null;
   auto_publish:           boolean;
   publish_mode:           PublishMode;
   rules:                  BrandRules | null;
@@ -196,6 +201,7 @@ export interface Post {
   published_at:       string | null;
   ig_post_id:         string | null;
   fb_post_id:         string | null;
+  tt_post_id:         string | null;
   ai_explanation:     string | null;
   quality_score:      number | null;
   versions:           PostVersion[];

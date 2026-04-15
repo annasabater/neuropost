@@ -185,7 +185,7 @@ export default function BlogPage() {
             fontSize: 15,
             marginBottom: '32px',
           }}>
-            Automatiza tus redes con IA. 14 días gratis, sin tarjeta de crédito.
+            Automatiza tus redes con IA. Sin compromiso.
           </p>
           <Link
             href="/register"
