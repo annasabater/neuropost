@@ -229,6 +229,12 @@ export interface Post {
   photo_count:        number;
   /** Number of times this post has been regenerated. 0–3 are free. */
   regeneration_count: number;
+  /** AI-generated images pending client approval (one per requested photo). */
+  generated_images:   string[];
+  /** How many images were requested for this post. */
+  generation_total:   number;
+  /** How many images have been validated and added to generated_images. */
+  generation_done:    number;
 }
 
 // ─── Database: Comment ────────────────────────────────────────────────────────
