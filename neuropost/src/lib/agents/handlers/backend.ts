@@ -209,14 +209,13 @@ const creativeExtractorHandler: AgentHandler = async (job) => {
     });
 
     return toHandlerResult('analysis', {
-      success:  true,
-      data:     {
-        recipe_id:       stored.id,
-        quality_score:   stored.quality_score,
-        has_embedding:   stored.has_embedding,
-        industry:        stored.industry_vertical,
+      success: true,
+      data: {
+        recipe_id:     stored.id,
+        quality_score: stored.quality_score,
+        has_embedding: stored.has_embedding,
+        industry:      stored.industry_vertical,
       },
-      metadata: result.metadata,
     }, { model: 'creative-extractor' });
   } catch (err) {
     return { type: 'fail', error: err instanceof Error ? err.message : String(err) };
