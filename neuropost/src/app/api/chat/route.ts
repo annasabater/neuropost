@@ -45,15 +45,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Message or attachment required' }, { status: 400 });
     }
 
-    const { data: brand } = await db.from('brands').select('id, name').eq('user_id', user.id).single();
+    const { data: brand } = await db.from('brands').select('id, name, plan').eq('user_id', user.id).single();
     if (!brand) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
     const brandId = bodyBrandId ?? brand.id;
+
+    const clientMessage = message?.trim() ?? '';
 
     const { data: msg, error } = await db.from('chat_messages').insert({
       brand_id: brandId,
       sender_id: user.id,
       sender_type: 'client',
-      message: message?.trim() ?? '',
+      message: clientMessage,
       attachments,
     }).select().single();
     if (error) throw error;
@@ -68,23 +70,38 @@ export async function POST(request: Request) {
       metadata: { msg_id: msg.id },
     }).then(() => null).catch(() => null);
 
-    // Queue agent job to generate a reply (fire-and-forget)
+    // Skip agent call if the message is empty (attachments-only)
+    if (!clientMessage) {
+      return NextResponse.json({ message: msg });
+    }
+
+    // Load the last 10 chat messages as context (oldest-first, excluding the one just inserted)
+    const { data: historyRows } = await db
+      .from('chat_messages')
+      .select('sender_type, message, created_at')
+      .eq('brand_id', brandId)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    const messageHistory = (historyRows ?? [])
+      .reverse()
+      .slice(0, -1)  // drop the just-inserted message
+      .map((m: { sender_type: string; message: string; created_at: string }) => ({
+        sender: m.sender_type === 'client' ? 'client' as const : 'worker' as const,
+        message: m.message,
+        at: m.created_at,
+      }));
+
+    // Queue SupportAgent to resolve the chat message (fire-and-forget).
     queueJob({
       brand_id:     brandId,
       agent_type:   'support',
-      action:       'handle_interactions',
+      action:       'resolve_ticket',
       input:        {
-        source:       'chat',
-        interactions: [{
-          id:         msg.id,
-          type:       'dm',
-          platform:   'instagram',
-          authorId:   user.id,
-          authorName: brand.name ?? 'Cliente',
-          text:       message?.trim() ?? '',
-          timestamp:  new Date().toISOString(),
-        }],
-        autoPostReplies: false,
+        source:         'chat',
+        clientMessage,
+        plan:           brand.plan ?? 'starter',
+        messageHistory,
       },
       priority:     80,
       requested_by: 'client',

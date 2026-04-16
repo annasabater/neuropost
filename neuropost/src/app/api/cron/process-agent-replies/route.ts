@@ -119,7 +119,9 @@ export async function GET(request: Request) {
         const action = job.action as string;
         const source = job.input?.source as string;
 
-        if (agentType === 'support' && action === 'handle_interactions') {
+        if (agentType === 'support' && action === 'resolve_ticket') {
+          await processSupportResolveTicket(db, job, outputs[0] as AgentOutput);
+        } else if (agentType === 'support' && action === 'handle_interactions') {
           await processSupportInteraction(db, job, outputs[0] as AgentOutput);
         } else if (agentType === 'content' && action === 'generate_ideas') {
           await processContentIdeas(db, job, outputs[0] as AgentOutput);
@@ -277,6 +279,152 @@ async function processSupportInteraction(db: DB, job: AgentJob, output: AgentOut
       category,
       sentiment,
     }).catch(err => console.error(`[process-agent-replies] Escalation failed for job ${job.id}:`, err));
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SupportAgent resolve_ticket — for /api/soporte + /api/chat flows.
+// The new support action always returns { reply, solutions, ... } with a
+// non-empty `reply`. We post it back to the client and optionally ping the
+// worker team if the agent flagged it for human follow-up.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface SupportResolvePayload {
+  reply?: string;
+  category?: string;
+  sentiment?: string;
+  language?: string;
+  solutions?: Array<{ title: string; steps: string[]; link?: string }>;
+  needsHumanFollowUp?: boolean;
+  escalationReason?: string;
+  resolved?: boolean;
+}
+
+async function processSupportResolveTicket(db: DB, job: AgentJob, output: AgentOutput) {
+  const source = job.input?.source as string;
+  const payload = output.payload as SupportResolvePayload;
+
+  const reply = (payload.reply ?? '').trim();
+  if (!reply) {
+    // Defensive: SupportAgent has its own fallback, so this should never fire.
+    // If it does, at least log and notify the worker team so no client is left hanging.
+    console.error(`[process-agent-replies] SupportAgent job ${job.id} produced empty reply`);
+    await db.from('worker_notifications').insert({
+      type:       'support_needs_attention',
+      message:    `El agente de soporte no pudo generar respuesta (job ${job.id}). Revisa manualmente.`,
+      brand_id:   job.brand_id,
+      brand_name: null,
+      read:       false,
+      metadata:   { job_id: job.id, source, ticket_id: job.input?.ticket_id ?? null },
+    }).then(() => null).catch(() => null);
+    return;
+  }
+
+  const needsHumanFollowUp = payload.needsHumanFollowUp === true;
+  const escalationReason   = payload.escalationReason ?? null;
+  const category           = payload.category ?? 'other';
+  const solutions          = Array.isArray(payload.solutions) ? payload.solutions : [];
+
+  console.log(`[process-agent-replies] SupportAgent job ${job.id}: source=${source}, category=${category}, resolved=${payload.resolved}, handover=${needsHumanFollowUp}`);
+
+  // ── Insert the reply into the right table ────────────────────────────────
+  if (source === 'ticket') {
+    const ticketId = job.input?.ticket_id as string;
+    if (!ticketId) {
+      console.warn(`[process-agent-replies] Job ${job.id}: ticket source but no ticket_id`);
+      return;
+    }
+
+    const { error: insertError } = await db.from('support_ticket_messages').insert({
+      ticket_id:   ticketId,
+      sender_id:   null,
+      sender_type: 'worker',
+      message:     reply,
+      metadata:    {
+        job_id:              job.id,
+        agent:               'support',
+        category,
+        solutions,
+        needs_human_follow_up: needsHumanFollowUp,
+      },
+    });
+    if (insertError) {
+      console.error(`[process-agent-replies] FAILED to insert ticket_message for job ${job.id}:`, insertError);
+      throw new Error(`ticket_messages insert failed: ${insertError.message}`);
+    }
+
+    // Client-facing notification
+    await db.from('notifications').insert({
+      brand_id: job.brand_id,
+      type:     'ticket_reply',
+      message:  `Respuesta en tu ticket: "${reply.slice(0, 60)}${reply.length > 60 ? '…' : ''}"`,
+      read:     false,
+      metadata: { job_id: job.id, ticket_id: ticketId },
+    }).then(() => null).catch(() => null);
+
+    // If fully resolved, auto-advance ticket status to 'pending_client' so the worker dashboard
+    // can tell the difference between "client waiting for reply" and "reply sent, waiting on client".
+    if (payload.resolved === true && !needsHumanFollowUp) {
+      await db.from('support_tickets')
+        .update({ status: 'awaiting_client' })
+        .eq('id', ticketId)
+        .then(() => null)
+        .catch(() => null);
+    }
+
+  } else if (source === 'chat') {
+    const { error: insertError } = await db.from('chat_messages').insert({
+      brand_id:    job.brand_id,
+      sender_id:   null,
+      sender_type: 'worker',
+      message:     reply,
+      attachments: [],
+      metadata:    {
+        job_id:              job.id,
+        agent:               'support',
+        category,
+        solutions,
+        needs_human_follow_up: needsHumanFollowUp,
+      },
+    });
+    if (insertError) {
+      console.error(`[process-agent-replies] FAILED to insert chat_message for job ${job.id}:`, insertError);
+      throw new Error(`chat_messages insert failed: ${insertError.message}`);
+    }
+
+    await db.from('notifications').insert({
+      brand_id: job.brand_id,
+      type:     'chat_message',
+      message:  `Nuevo mensaje del equipo: "${reply.slice(0, 60)}${reply.length > 60 ? '…' : ''}"`,
+      read:     false,
+      metadata: { job_id: job.id },
+    }).then(() => null).catch(() => null);
+
+  } else {
+    console.warn(`[process-agent-replies] Job ${job.id}: unknown support source '${source}'`);
+    return;
+  }
+
+  // ── Worker follow-up ping ────────────────────────────────────────────────
+  // When the agent couldn't fully resolve (billing disputes, unreproducible
+  // bugs, feature requests, etc.), the reply still goes to the client so they
+  // know they've been heard, but a worker gets pinged to follow up manually.
+  if (needsHumanFollowUp) {
+    const summary = escalationReason ?? `Categoría: ${category}`;
+    await db.from('worker_notifications').insert({
+      type:       'support_handover',
+      message:    `Ticket requiere seguimiento humano: ${summary}`,
+      brand_id:   job.brand_id,
+      brand_name: null,
+      read:       false,
+      metadata: {
+        job_id:    job.id,
+        source,
+        category,
+        ticket_id: job.input?.ticket_id ?? null,
+        reason:    escalationReason,
+      },
+    }).then(() => null).catch(() => null);
   }
 }
 

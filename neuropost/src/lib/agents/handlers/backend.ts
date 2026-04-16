@@ -18,6 +18,7 @@ import {
   runCommunityAgent,
   runAnalystAgent,
   runPublisherAgent,
+  runSupportAgent,
 } from '@neuropost/agents';
 import type {
   EditorInput,
@@ -27,6 +28,7 @@ import type {
   CommunityInput,
   AnalystInput,
   PublisherInput,
+  SupportInput,
 } from '@neuropost/agents';
 
 import { registerHandler } from '../registry';
@@ -131,7 +133,7 @@ const plannerHandler: AgentHandler = async (job) => {
 };
 
 // -----------------------------------------------------------------------------
-// support:handle_interactions → CommunityAgent
+// support:handle_interactions → CommunityAgent (IG comments / DMs only)
 // -----------------------------------------------------------------------------
 const communityHandler: AgentHandler = async (job) => {
   const guard = requireBrandId(job);
@@ -140,6 +142,23 @@ const communityHandler: AgentHandler = async (job) => {
     const { ctx } = await loadBrandContext(guard);
     const result = await runCommunityAgent(job.input as unknown as CommunityInput, ctx);
     return toHandlerResult('reply', result, { model: 'community-agent' });
+  } catch (err) {
+    return { type: 'fail', error: err instanceof Error ? err.message : String(err) };
+  }
+};
+
+// -----------------------------------------------------------------------------
+// support:resolve_ticket → SupportAgent (client tickets + chat)
+// Dedicated agent that ALWAYS produces a reply with concrete NeuroPost-specific
+// solutions. Used for /api/soporte and /api/chat flows.
+// -----------------------------------------------------------------------------
+const supportHandler: AgentHandler = async (job) => {
+  const guard = requireBrandId(job);
+  if (typeof guard !== 'string') return guard;
+  try {
+    const { ctx } = await loadBrandContext(guard);
+    const result = await runSupportAgent(job.input as unknown as SupportInput, ctx);
+    return toHandlerResult('reply', result, { model: 'support-agent' });
   } catch (err) {
     return { type: 'fail', error: err instanceof Error ? err.message : String(err) };
   }
@@ -201,6 +220,7 @@ export function registerBackendAgentHandlers(): void {
   registerHandler({ agent_type: 'content',    action: 'generate_ideas'       }, ideasHandler);
   registerHandler({ agent_type: 'scheduling', action: 'plan_calendar'        }, plannerHandler);
   registerHandler({ agent_type: 'support',    action: 'handle_interactions'  }, communityHandler);
+  registerHandler({ agent_type: 'support',    action: 'resolve_ticket'       }, supportHandler);
   registerHandler({ agent_type: 'analytics',  action: 'analyze_performance'  }, analystHandler);
   registerHandler({ agent_type: 'moderation', action: 'check_brand_safety'   }, publisherHandler);
 }
