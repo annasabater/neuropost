@@ -226,7 +226,7 @@ const inspirationHandler: AgentHandler = async (job) => {
   const guard = requireBrandId(job);
   if (typeof guard !== 'string') return guard;
 
-  const rawInput = job.input as AnalyzeReferenceInput & { _reference_id?: string };
+  const rawInput = job.input as unknown as AnalyzeReferenceInput & { _reference_id?: string };
   const { _reference_id, ...agentInput } = rawInput;
 
   let result: import('@/agents/InspirationAgent').InspirationAnalysisResult;
