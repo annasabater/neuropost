@@ -840,9 +840,9 @@ export default function SettingsPage() {
                 );
               };
 
-              // TikTok status
-              const ttConnected = !!(brand as Record<string, unknown>).tiktok_open_id;
-              const ttUsername  = (brand as Record<string, unknown>).tiktok_username as string | null;
+              // TikTok status — cast via unknown first (strict TS check)
+              const ttConnected = !!(brand as unknown as Record<string, unknown>).tiktok_open_id;
+              const ttUsername  = (brand as unknown as Record<string, unknown>).tiktok_username as string | null;
 
               return (
                 <>
