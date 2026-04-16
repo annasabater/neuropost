@@ -132,6 +132,7 @@ export default function NewPostPage() {
     imageUrl: string | null; caption: string; hashtags: string[];
     platforms: ('instagram' | 'facebook' | 'tiktok')[]; format: string; goal: string;
     aiExplanation?: string; qualityScore?: number; isStory?: boolean;
+    publications?: Array<{ platform: 'instagram' | 'facebook' | 'tiktok'; scheduledAt: string | null }>;
   }) {
     // Merge from_self_service into ai_explanation so the detail page can show
     // the original image and the "Regenerar propuesta" action.
@@ -139,6 +140,7 @@ export default function NewPostPage() {
     try { aiExpl = data.aiExplanation ? JSON.parse(data.aiExplanation) : {}; } catch { /* ignore */ }
     const aiExplanation = JSON.stringify({ ...aiExpl, from_self_service: true, original_image_url: data.imageUrl });
 
+    // 1. Create the post (legacy route — still writes all the normal fields).
     const res = await fetch('/api/posts', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -153,7 +155,56 @@ export default function NewPostPage() {
     const json = await res.json();
     if (!res.ok) throw new Error(json.error ?? 'Error al guardar');
     addPost(json.post);
-    toast.success('Post guardado');
+
+    // 2. If the user configured per-platform schedules, fan them out into
+    //    post_publications via the new multi-platform endpoint. Legacy
+    //    posts.scheduled_at keeps being set by the normal flow for
+    //    backward compatibility.
+    if (data.publications && data.publications.length > 0) {
+      try {
+        const pubRes = await fetch(`/api/posts/${json.post.id}/publications`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ publications: data.publications }),
+        });
+        const pubJson = await pubRes.json() as {
+          outcomes?: Array<{ platform: string; mode: string; error?: string }>;
+          error?:    string;
+        };
+
+        if (!pubRes.ok) {
+          // Post created but publications failed — don't throw so the user
+          // isn't stuck with a half-created post. Show a warning toast.
+          toast.error(`Post creado, pero falló la programación: ${pubJson.error ?? 'error desconocido'}`);
+        } else {
+          const outcomes = pubJson.outcomes ?? [];
+          const failures = outcomes.filter(o => o.mode === 'failed' || o.mode === 'unsupported');
+          const skipped  = outcomes.filter(o => o.mode === 'skipped');
+          if (failures.length > 0) {
+            toast.error(`Algunas plataformas fallaron: ${failures.map(f => f.platform).join(', ')}`);
+          } else if (skipped.length > 0) {
+            toast.success(`Post guardado. Conecta ${skipped.map(s => s.platform).join(', ')} para publicar en esas plataformas.`);
+          } else {
+            const published = outcomes.filter(o => o.mode === 'published').length;
+            const scheduled = outcomes.filter(o => o.mode === 'scheduled').length;
+            if (published > 0 && scheduled > 0) {
+              toast.success(`Publicado en ${published} plataforma(s), programado en ${scheduled}.`);
+            } else if (published > 0) {
+              toast.success(`Publicado en ${published} plataforma(s).`);
+            } else if (scheduled > 0) {
+              toast.success(`Programado en ${scheduled} plataforma(s).`);
+            } else {
+              toast.success('Post guardado');
+            }
+          }
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Error al programar en plataformas');
+      }
+    } else {
+      toast.success('Post guardado');
+    }
+
     router.push(`/posts/${json.post.id}`);
   }
 
