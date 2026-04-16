@@ -124,3 +124,32 @@ export function rateLimitWrite(req: Request) {
 export function rateLimitRead(req: Request) {
   return rateLimit(req, 'read', { limit: 60, window: 60 });
 }
+
+// ─── Legacy compat ───────────────────────────────────────────────────────────
+// Older routes use a different signature:
+//   checkRateLimit(key: string, limit: number, windowMs: number) → { success }
+// The new `rateLimit()` expects a Request + scope and returns a NextResponse.
+// This shim keeps the old callers (feedback, contact, image-generate,
+// video-generate) working until they're migrated.
+
+export interface CheckRateLimitResult {
+  success:   boolean;
+  remaining: number;
+  reset:     number;
+}
+
+/** @deprecated Use `rateLimit(request, scope, opts)` or one of the preset helpers. */
+export function checkRateLimit(key: string, limit: number, windowMs: number): CheckRateLimitResult {
+  const now = Date.now();
+  const entry = memStore.get(key);
+  if (!entry || now > entry.reset) {
+    const reset = now + windowMs;
+    memStore.set(key, { count: 1, reset });
+    return { success: true, remaining: limit - 1, reset };
+  }
+  if (entry.count >= limit) {
+    return { success: false, remaining: 0, reset: entry.reset };
+  }
+  entry.count++;
+  return { success: true, remaining: limit - entry.count, reset: entry.reset };
+}
