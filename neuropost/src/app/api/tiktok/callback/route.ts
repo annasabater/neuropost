@@ -71,7 +71,12 @@ export async function GET(request: Request) {
 
     return NextResponse.redirect(new URL('/settings/connections?tiktok_connected=1', origin));
   } catch (err) {
-    console.error('[TikTok callback]', err);
-    return NextResponse.redirect(new URL('/settings/connections?tiktok_error=1', origin));
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('[TikTok callback] FAILED:', message, err);
+    // Surface the error reason so we can see it without SSHing into logs.
+    const redirectUrl = new URL('/settings/connections', origin);
+    redirectUrl.searchParams.set('tiktok_error', '1');
+    redirectUrl.searchParams.set('tiktok_error_reason', message.slice(0, 200));
+    return NextResponse.redirect(redirectUrl);
   }
 }
