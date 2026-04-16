@@ -45,8 +45,42 @@ export async function GET(request: Request) {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       tiktokResults.push({ brand_id: b.id, ok: false, error: message });
-      // Log but keep going — one brand failing shouldn't block the others.
       console.error(`[refresh-tokens] TikTok refresh failed for brand ${b.id}:`, message);
+
+      // Refresh failed → the refresh_token is no longer valid (revoked by user,
+      // expired past 365 days, or TikTok reset). Surface to the client so they
+      // know to reconnect — otherwise publishing silently stops working.
+      try {
+        // Skip if we already warned them recently (last 24h) to avoid spam.
+        const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const { data: recent } = await db
+          .from('notifications')
+          .select('id')
+          .eq('brand_id', b.id)
+          .eq('type', 'tiktok_reconnect_required')
+          .gt('created_at', since)
+          .limit(1);
+
+        if (!recent || recent.length === 0) {
+          await db.from('notifications').insert({
+            brand_id: b.id,
+            type:     'tiktok_reconnect_required',
+            message:  'Tu conexión con TikTok ha expirado. Ve a Ajustes → Conexiones y pulsa "Reconectar" para volver a publicar.',
+            read:     false,
+            metadata: { reason: message },
+          });
+
+          // Also clear the dead token so the UI correctly shows "not connected"
+          // instead of an expired-looking state.
+          await db.from('brands').update({
+            tt_access_token:     null,
+            tt_refresh_token:    null,
+            tt_token_expires_at: null,
+          }).eq('id', b.id);
+        }
+      } catch (notifyErr) {
+        console.error(`[refresh-tokens] Could not notify brand ${b.id}:`, notifyErr);
+      }
     }
   }
 
