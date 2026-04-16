@@ -19,7 +19,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Camera, ExternalLink, RefreshCw, Facebook, Music2 } from 'lucide-react';
+import { Camera, ExternalLink, RefreshCw } from 'lucide-react';
 
 const f  = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
@@ -56,11 +56,10 @@ const PLATFORMS: Record<Platform, {
   label:        string;
   emoji:        string;
   connectHref:  string;
-  IconNode:     React.ReactNode;
 }> = {
-  instagram: { label: 'Instagram', emoji: '📷', connectHref: '/settings#redes', IconNode: <Camera size={14} /> },
-  facebook:  { label: 'Facebook',  emoji: '📘', connectHref: '/settings#redes', IconNode: <Facebook size={14} /> },
-  tiktok:    { label: 'TikTok',    emoji: '🎵', connectHref: '/settings#redes', IconNode: <Music2 size={14} /> },
+  instagram: { label: 'Instagram', emoji: '📷', connectHref: '/settings#redes' },
+  facebook:  { label: 'Facebook',  emoji: '📘', connectHref: '/settings#redes' },
+  tiktok:    { label: 'TikTok',    emoji: '🎵', connectHref: '/settings#redes' },
 };
 
 const STATUS_COLOR: Record<string, { label: string; color: string; bg: string }> = {
@@ -211,7 +210,7 @@ function PlatformPanel({ data }: { data: FeedData }) {
               display: 'inline-flex', alignItems: 'center', gap: 6,
             }}
           >
-            {meta.IconNode} Conectar {meta.label}
+            <span style={{ fontSize: 14 }}>{meta.emoji}</span> Conectar {meta.label}
           </Link>
         </div>
 
