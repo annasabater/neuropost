@@ -117,6 +117,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ jobs });
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     if (message === 'UNAUTHENTICATED') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

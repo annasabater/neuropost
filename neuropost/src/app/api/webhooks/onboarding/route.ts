@@ -64,6 +64,7 @@ export async function POST(request: Request) {
     const result = await queueOnboardingPipeline(brandId);
     return NextResponse.json({ ok: true, ...result }, { status: 201 });
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     if (message === 'UNAUTHENTICATED') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

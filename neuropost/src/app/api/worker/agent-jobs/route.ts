@@ -41,6 +41,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ jobs: data ?? [] });
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     if (message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }

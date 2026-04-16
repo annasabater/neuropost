@@ -72,6 +72,7 @@ export async function POST(request: Request) {
       savingsText,
     });
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     if (message === 'UNAUTHENTICATED') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

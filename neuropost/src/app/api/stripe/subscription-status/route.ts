@@ -58,6 +58,7 @@ export async function GET() {
       cancelAtPeriodEnd: sub.cancel_at_period_end,
     });
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     if (message === 'UNAUTHENTICATED') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

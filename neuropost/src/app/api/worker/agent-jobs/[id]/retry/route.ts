@@ -53,6 +53,7 @@ export async function POST(
 
     return NextResponse.json({ ok: true });
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     if (message === 'FORBIDDEN') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }

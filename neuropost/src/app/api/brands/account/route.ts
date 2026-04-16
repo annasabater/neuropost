@@ -33,6 +33,7 @@ export async function DELETE() {
 
     return NextResponse.json({ success: true });
   } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
     if (message === 'UNAUTHENTICATED') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
