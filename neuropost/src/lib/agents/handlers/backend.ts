@@ -19,6 +19,7 @@ import {
   runAnalystAgent,
   runPublisherAgent,
   runSupportAgent,
+  runCreativeExtractorAgent,
 } from '@neuropost/agents';
 import type {
   EditorInput,
@@ -29,7 +30,10 @@ import type {
   AnalystInput,
   PublisherInput,
   SupportInput,
+  ExtractorInput,
 } from '@neuropost/agents';
+import { generateEmbedding } from '@/lib/embeddings';
+import { indexRecipe } from '@/lib/creative-library/repository';
 
 import { registerHandler } from '../registry';
 import { loadBrandContext, requireBrandId, toHandlerResult } from '../helpers';
@@ -165,6 +169,80 @@ const supportHandler: AgentHandler = async (job) => {
 };
 
 // -----------------------------------------------------------------------------
+// content:extract_creative_recipe → CreativeExtractorAgent
+// Analyses a piece of viral content, persists the recipe + embedding in
+// biblioteca_creativa, and returns the newly created recipe id. Does NOT
+// require a brand_id (recipes are brand-agnostic) — but we accept one so
+// the agent_jobs audit trail links back to whoever asked for the indexing.
+// -----------------------------------------------------------------------------
+const creativeExtractorHandler: AgentHandler = async (job) => {
+  try {
+    // A brand context isn't needed for extraction (recipes are generic)
+    // but we load one if available so the shared agent base has a sane
+    // AgentContext. If no brand, build a minimal synthetic context.
+    const input = job.input as unknown as ExtractorInput & {
+      fuente?: { url?: string; cuenta?: string; plataforma?: string };
+    };
+    const ctx = job.brand_id
+      ? (await loadBrandContext(job.brand_id)).ctx
+      : syntheticCtx();
+
+    const result = await runCreativeExtractorAgent(input, ctx);
+    if (!result.success || !result.data) {
+      return { type: 'fail', error: result.error?.message ?? 'Extractor failed' };
+    }
+
+    // Generate embedding (null-tolerant; repository handles the null case).
+    const embedding = await generateEmbedding(result.data.embeddingText);
+
+    const stored = await indexRecipe({
+      recipe:    result.data.recipe,
+      embedding: embedding?.vector ?? null,
+      fuente: input.fuente
+        ? {
+            url:        input.fuente.url,
+            cuenta:     input.fuente.cuenta,
+            plataforma: (input.fuente.plataforma as 'instagram' | 'tiktok' | 'facebook' | 'youtube' | 'manual' | undefined) ?? 'manual',
+          }
+        : undefined,
+      indexadoPorAgente: true,
+    });
+
+    return toHandlerResult('analysis', {
+      success:  true,
+      data:     {
+        recipe_id:       stored.id,
+        quality_score:   stored.quality_score,
+        has_embedding:   stored.has_embedding,
+        industry:        stored.industry_vertical,
+      },
+      metadata: result.metadata,
+    }, { model: 'creative-extractor' });
+  } catch (err) {
+    return { type: 'fail', error: err instanceof Error ? err.message : String(err) };
+  }
+};
+
+/** Minimal synthetic AgentContext for brand-agnostic agents. */
+function syntheticCtx() {
+  return {
+    businessId:       'system',
+    businessName:     'NeuroPost (library indexer)',
+    brandVoice: {
+      tone:            'profesional' as const,
+      keywords:        [],
+      forbiddenWords:  [],
+      sector:          'otro' as const,
+      language:        'en',
+      exampleCaptions: [],
+    },
+    socialAccounts: { accessToken: '' },
+    timezone:         'Europe/Madrid',
+    subscriptionTier: 'pro' as const,
+  };
+}
+
+// -----------------------------------------------------------------------------
 // analytics:analyze_performance → AnalystAgent
 // -----------------------------------------------------------------------------
 const analystHandler: AgentHandler = async (job) => {
@@ -219,8 +297,9 @@ export function registerBackendAgentHandlers(): void {
   registerHandler({ agent_type: 'content',    action: 'generate_caption'     }, copywriterHandler);
   registerHandler({ agent_type: 'content',    action: 'generate_ideas'       }, ideasHandler);
   registerHandler({ agent_type: 'scheduling', action: 'plan_calendar'        }, plannerHandler);
-  registerHandler({ agent_type: 'support',    action: 'handle_interactions'  }, communityHandler);
-  registerHandler({ agent_type: 'support',    action: 'resolve_ticket'       }, supportHandler);
-  registerHandler({ agent_type: 'analytics',  action: 'analyze_performance'  }, analystHandler);
-  registerHandler({ agent_type: 'moderation', action: 'check_brand_safety'   }, publisherHandler);
+  registerHandler({ agent_type: 'support',    action: 'handle_interactions'   }, communityHandler);
+  registerHandler({ agent_type: 'support',    action: 'resolve_ticket'        }, supportHandler);
+  registerHandler({ agent_type: 'analytics',  action: 'analyze_performance'   }, analystHandler);
+  registerHandler({ agent_type: 'moderation', action: 'check_brand_safety'    }, publisherHandler);
+  registerHandler({ agent_type: 'content',    action: 'extract_creative_recipe' }, creativeExtractorHandler);
 }
