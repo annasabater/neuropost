@@ -28,30 +28,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'post_id requerido' }, { status: 400 });
     }
 
-    // Load brand + TikTok credentials
+    // Load brand + TikTok credentials (schema uses tt_* prefix — not tiktok_*)
     const { data: brand } = await db
       .from('brands')
-      .select('id, tiktok_access_token, tiktok_token_expires_at')
+      .select('id, tt_access_token, tt_refresh_token, tt_token_expires_at')
       .eq('user_id', user.id)
       .single();
     if (!brand) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
 
-    if (!brand.tiktok_access_token) {
+    if (!brand.tt_access_token) {
       return NextResponse.json({ error: 'TikTok no está conectado. Conéctalo en Ajustes → Conexiones.' }, { status: 400 });
     }
 
-    // Check token expiry
-    if (brand.tiktok_token_expires_at && new Date(brand.tiktok_token_expires_at) < new Date()) {
-      // Try refresh
+    // Check token expiry — refresh if already expired
+    if (brand.tt_token_expires_at && new Date(brand.tt_token_expires_at) < new Date()) {
       try {
         const { refreshTikTokToken } = await import('@/lib/tiktok');
-        const refreshed = await refreshTikTokToken(brand.tiktok_refresh_token);
+        const refreshed = await refreshTikTokToken(brand.tt_refresh_token);
         await db.from('brands').update({
-          tiktok_access_token:     refreshed.accessToken,
-          tiktok_refresh_token:    refreshed.refreshToken,
-          tiktok_token_expires_at: new Date(Date.now() + refreshed.expiresIn * 1000).toISOString(),
+          tt_access_token:     refreshed.accessToken,
+          tt_refresh_token:    refreshed.refreshToken,
+          tt_token_expires_at: new Date(Date.now() + refreshed.expiresIn * 1000).toISOString(),
         }).eq('id', brand.id);
-        brand.tiktok_access_token = refreshed.accessToken;
+        brand.tt_access_token = refreshed.accessToken;
       } catch {
         return NextResponse.json({ error: 'Token de TikTok expirado. Reconecta tu cuenta.' }, { status: 401 });
       }
@@ -78,7 +77,7 @@ export async function POST(request: Request) {
 
     // Publish to TikTok
     const result = await publishVideoToTikTok({
-      accessToken: brand.tiktok_access_token,
+      accessToken: brand.tt_access_token,
       videoUrl,
       caption: fullCaption,
     });
