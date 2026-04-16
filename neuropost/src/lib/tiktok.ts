@@ -183,13 +183,16 @@ export async function getTikTokUserInfo(accessToken: string, openId: string): Pr
   const res  = await fetch(`${TT_API_BASE}/user/info/?fields=open_id,union_id,avatar_url,display_name`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
+  // TikTok v2 ALWAYS returns an { error: { code, message, log_id } } field,
+  // even on success (where code === 'ok'). Treat code !== 'ok' as failure.
   const data = await res.json() as {
-    data?: { user?: { open_id: string; display_name: string } };
-    error?: { code: string; message: string };
+    data?:  { user?: { open_id: string; display_name: string } };
+    error?: { code: string; message: string; log_id?: string };
   };
 
-  if (!res.ok || data.error) {
-    throw new Error(`TikTok user info failed: ${data.error?.message ?? res.statusText}`);
+  if (!res.ok || (data.error && data.error.code !== 'ok')) {
+    const reason = data.error?.message || data.error?.code || res.statusText;
+    throw new Error(`TikTok user info failed: ${reason}`);
   }
 
   const user = data.data?.user;
