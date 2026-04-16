@@ -127,13 +127,70 @@ export class FacebookProvider implements PlatformProvider {
     });
   }
 
-  async fetchPostInsights(_platformPostId: string, _conn: Connection): Promise<PlatformInsights> {
-    // Phase 2: /{postId}/insights?metric=post_impressions,post_engaged_users,post_reactions_by_type_total
-    throw new ProviderError({
-      message:  'FacebookProvider.fetchPostInsights not implemented yet (phase 2).',
-      code:     'not_implemented',
-      platform: 'facebook',
-    });
+  async fetchPostInsights(platformPostId: string, conn: Connection): Promise<PlatformInsights> {
+    // Facebook Page post insights. The metric set is what the Graph API
+    // actually returns for Page posts (post_impressions_unique ≈ reach;
+    // post_reactions_by_type_total is a map we sum). Video metrics only
+    // come back when the post is a video / reel — otherwise they're 0.
+    const metrics = [
+      'post_impressions',
+      'post_impressions_unique',
+      'post_engaged_users',
+      'post_reactions_by_type_total',
+      'post_video_views',
+      'post_video_avg_time_watched',
+    ].join(',');
+
+    const url = `https://graph.facebook.com/v19.0/${platformPostId}/insights?metric=${metrics}&access_token=${conn.accessToken}`;
+
+    try {
+      const res  = await fetch(url);
+      const json = await res.json() as {
+        data?:  Array<{ name: string; values: Array<{ value: unknown }> }>;
+        error?: { code?: number; message?: string };
+      };
+
+      if (!res.ok || json.error || !Array.isArray(json.data)) {
+        throw new Error(json.error?.message ?? `Facebook insights returned ${res.status}`);
+      }
+
+      // Each metric returns a single-item `values` array. Some values are
+      // numbers, reactions_by_type_total is an object { like: n, love: n, ... }.
+      const pick = (name: string): unknown => json.data?.find(m => m.name === name)?.values?.[0]?.value;
+
+      const reactionsMap = pick('post_reactions_by_type_total') as Record<string, number> | undefined;
+      const reactions    = reactionsMap
+        ? Object.values(reactionsMap).reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0)
+        : 0;
+
+      const impressions  = Number(pick('post_impressions') ?? 0);
+      const reach        = Number(pick('post_impressions_unique') ?? 0);
+      const videoViews   = Number(pick('post_video_views') ?? 0);
+      const avgWatchMs   = Number(pick('post_video_avg_time_watched') ?? 0);
+      const avgWatchSec  = avgWatchMs > 0 ? avgWatchMs / 1000 : undefined;
+
+      // Facebook doesn't expose comments / shares on the insights endpoint —
+      // we pull them from the post object itself.
+      const summary = await fetch(
+        `https://graph.facebook.com/v19.0/${platformPostId}?fields=comments.summary(true),shares&access_token=${conn.accessToken}`,
+      ).then(r => r.json() as Promise<{
+        comments?: { summary?: { total_count?: number } };
+        shares?:   { count?: number };
+      }>).catch(() => ({} as Record<string, never>));
+
+      return {
+        platform:        'facebook',
+        reach,
+        impressions,
+        reactions,
+        comments:        summary.comments?.summary?.total_count ?? 0,
+        shares:          summary.shares?.count ?? 0,
+        videoViews:      videoViews > 0 ? videoViews : undefined,
+        avgWatchTimeSec: avgWatchSec,
+      };
+    } catch (err) {
+      throw this.normalize(err);
+    }
   }
 
   async fetchAccountInsights(_conn: Connection, _range: DateRange): Promise<AccountInsights> {
