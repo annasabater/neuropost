@@ -161,12 +161,21 @@ CREATE POLICY "service_role_all_post_publications"
 -- ────────────────────────────────────────────────────────────────────────────
 -- 3. Add `platform` to tables that were missing it
 --    (comments, post_analytics already have it; ab_tests does not)
+--    Defensive: only touches ab_tests if premium_features.sql has run.
 -- ────────────────────────────────────────────────────────────────────────────
-ALTER TABLE public.ab_tests
-  ADD COLUMN IF NOT EXISTS platform text DEFAULT 'instagram'
-    CHECK (platform IN ('instagram', 'facebook', 'tiktok'));
-
-CREATE INDEX IF NOT EXISTS idx_ab_tests_platform ON public.ab_tests (platform);
+DO $$
+BEGIN
+  IF to_regclass('public.ab_tests') IS NOT NULL THEN
+    EXECUTE $sql$
+      ALTER TABLE public.ab_tests
+        ADD COLUMN IF NOT EXISTS platform text DEFAULT 'instagram'
+          CHECK (platform IN ('instagram', 'facebook', 'tiktok'))
+    $sql$;
+    EXECUTE $sql$ CREATE INDEX IF NOT EXISTS idx_ab_tests_platform ON public.ab_tests (platform) $sql$;
+  ELSE
+    RAISE NOTICE 'Skipping ab_tests.platform: table not present (premium_features.sql not applied?)';
+  END IF;
+END $$;
 
 -- ────────────────────────────────────────────────────────────────────────────
 -- 4. Backfill platform_connections from legacy columns on `brands`
@@ -175,16 +184,18 @@ CREATE INDEX IF NOT EXISTS idx_ab_tests_platform ON public.ab_tests (platform);
 -- ────────────────────────────────────────────────────────────────────────────
 
 -- 4.a Instagram
+--   Note: we do NOT copy a last_token_refresh_at value because the legacy
+--   schema doesn't track it. It'll be populated from the first refresh
+--   the cron runs against the new row.
 INSERT INTO public.platform_connections
   (brand_id, platform, platform_user_id, platform_username,
-   access_token, expires_at, last_token_refresh_at, status, metadata)
+   access_token, expires_at, status, metadata)
 SELECT
   b.id, 'instagram',
   b.ig_account_id,
   b.ig_username,
   b.ig_access_token,
   b.meta_token_expires_at,
-  b.token_refreshed_at,
   CASE
     WHEN b.meta_token_expires_at IS NULL            THEN 'active'
     WHEN b.meta_token_expires_at > now()            THEN 'active'
@@ -298,31 +309,65 @@ ON CONFLICT (post_id, platform) DO NOTHING;
 -- Extra rule: TikTok only supports video / reel formats. Skip backfill for
 -- rows whose format is explicitly 'foto' or 'carousel' — those never had
 -- a real TikTok publication even if platform=['...','tiktok'] was set.
-INSERT INTO public.post_publications
-  (post_id, platform, caption, hashtags,
-   scheduled_at, published_at, platform_post_id, status, metadata)
-SELECT
-  p.id, 'tiktok',
-  p.caption,
-  COALESCE(p.hashtags, '{}'),
-  p.scheduled_at,
-  p.published_at,
-  p.tiktok_video_id,
-  CASE
-    WHEN p.tiktok_video_id IS NOT NULL AND p.published_at IS NOT NULL THEN 'published'
-    WHEN p.status = 'failed'     THEN 'failed'
-    WHEN p.status = 'cancelled'  THEN 'cancelled'
-    WHEN p.status = 'scheduled'  THEN 'scheduled'
-    ELSE 'pending'
-  END,
-  jsonb_build_object('backfilled_from', 'posts.legacy')
-FROM public.posts p
-WHERE (
-        'tiktok'          = ANY(p.platform)
-     OR  p.tiktok_video_id IS NOT NULL
-      )
-  AND  (p.format IS NULL OR p.format IN ('reel', 'video', 'videos'))
-ON CONFLICT (post_id, platform) DO NOTHING;
+-- Defensive: if posts.tiktok_video_id doesn't exist (premium_features.sql
+-- not applied), fall back to a version that only uses posts.platform[].
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'posts' AND column_name = 'tiktok_video_id'
+  ) THEN
+    EXECUTE $sql$
+      INSERT INTO public.post_publications
+        (post_id, platform, caption, hashtags,
+         scheduled_at, published_at, platform_post_id, status, metadata)
+      SELECT
+        p.id, 'tiktok',
+        p.caption,
+        COALESCE(p.hashtags, '{}'),
+        p.scheduled_at,
+        p.published_at,
+        p.tiktok_video_id,
+        CASE
+          WHEN p.tiktok_video_id IS NOT NULL AND p.published_at IS NOT NULL THEN 'published'
+          WHEN p.status = 'failed'     THEN 'failed'
+          WHEN p.status = 'cancelled'  THEN 'cancelled'
+          WHEN p.status = 'scheduled'  THEN 'scheduled'
+          ELSE 'pending'
+        END,
+        jsonb_build_object('backfilled_from', 'posts.legacy')
+      FROM public.posts p
+      WHERE ('tiktok' = ANY(p.platform) OR p.tiktok_video_id IS NOT NULL)
+        AND (p.format IS NULL OR p.format IN ('reel', 'video', 'videos'))
+      ON CONFLICT (post_id, platform) DO NOTHING
+    $sql$;
+  ELSE
+    EXECUTE $sql$
+      INSERT INTO public.post_publications
+        (post_id, platform, caption, hashtags,
+         scheduled_at, published_at, status, metadata)
+      SELECT
+        p.id, 'tiktok',
+        p.caption,
+        COALESCE(p.hashtags, '{}'),
+        p.scheduled_at,
+        p.published_at,
+        CASE
+          WHEN p.status = 'failed'     THEN 'failed'
+          WHEN p.status = 'cancelled'  THEN 'cancelled'
+          WHEN p.status = 'scheduled'  THEN 'scheduled'
+          WHEN p.published_at IS NOT NULL THEN 'published'
+          ELSE 'pending'
+        END,
+        jsonb_build_object('backfilled_from', 'posts.legacy')
+      FROM public.posts p
+      WHERE 'tiktok' = ANY(p.platform)
+        AND (p.format IS NULL OR p.format IN ('reel', 'video', 'videos'))
+      ON CONFLICT (post_id, platform) DO NOTHING
+    $sql$;
+    RAISE NOTICE 'posts.tiktok_video_id absent — TikTok backfill ran without platform_post_id';
+  END IF;
+END $$;
 
 -- ────────────────────────────────────────────────────────────────────────────
 -- 6. Sanity counters — surfaced in NOTICE so the user sees what moved.
