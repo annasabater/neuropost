@@ -97,7 +97,7 @@ export function Sidebar() {
         {/* Biblioteca */}
         <div className="dash-nav-group-label">Biblioteca</div>
         <NavItem href="/biblioteca" label="Contenido" icon={Upload} />
-        <NavItem href="/instagram" label="Feed Instagram" icon={Camera} />
+        <NavItem href="/feed" label="Feed" icon={Camera} />
 
         {/* Rendimiento */}
         <div className="dash-nav-group-label">Rendimiento</div>
