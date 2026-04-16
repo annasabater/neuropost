@@ -171,17 +171,20 @@ export async function refreshTikTokToken(refreshToken: string): Promise<{
   };
 }
 
-/** Fetches TikTok user info (username, display name). */
+/** Fetches TikTok user info (display name). Only requests fields
+ *  allowed by the `user.info.basic` scope — `username` requires
+ *  `user.info.profile` which we don't request. Display name is used
+ *  everywhere we used to show @username. */
 export async function getTikTokUserInfo(accessToken: string, openId: string): Promise<{
   openId:      string;
   username:    string;
   displayName: string;
 }> {
-  const res  = await fetch(`${TT_API_BASE}/user/info/?fields=open_id,union_id,avatar_url,display_name,username`, {
+  const res  = await fetch(`${TT_API_BASE}/user/info/?fields=open_id,union_id,avatar_url,display_name`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   const data = await res.json() as {
-    data?: { user?: { open_id: string; display_name: string; username?: string } };
+    data?: { user?: { open_id: string; display_name: string } };
     error?: { code: string; message: string };
   };
 
@@ -192,7 +195,9 @@ export async function getTikTokUserInfo(accessToken: string, openId: string): Pr
   const user = data.data?.user;
   return {
     openId:      user?.open_id ?? openId,
-    username:    user?.username ?? user?.display_name ?? openId,
+    // Without user.info.profile scope we don't get the @ handle, so we
+    // store the display name as the "username" for UI labels.
+    username:    user?.display_name ?? openId,
     displayName: user?.display_name ?? openId,
   };
 }
