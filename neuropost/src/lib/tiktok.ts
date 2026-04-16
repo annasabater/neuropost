@@ -97,22 +97,31 @@ export async function exchangeTikTokCode(code: string): Promise<{
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body:    body.toString(),
   });
+  // TikTok v2 /oauth/token/ returns flat fields (no .data wrapper) and uses
+  // { error, error_description } for failures, per:
+  //   https://developers.tiktok.com/doc/oauth-user-access-token-management
   const data = await res.json() as {
-    data?: { access_token: string; refresh_token: string; open_id: string; expires_in: number; refresh_expires_in: number };
-    error?: { code: string; message: string };
+    access_token?:       string;
+    refresh_token?:      string;
+    open_id?:            string;
+    expires_in?:         number;
+    refresh_expires_in?: number;
+    error?:              string;
+    error_description?:  string;
   };
 
-  if (!res.ok || data.error) {
-    throw new Error(`TikTok token exchange failed: ${data.error?.message ?? res.statusText}`);
+  if (!res.ok || data.error || !data.access_token) {
+    throw new Error(
+      `TikTok token exchange failed: ${data.error_description ?? data.error ?? res.statusText}`,
+    );
   }
 
-  const d = data.data!;
   return {
-    accessToken:      d.access_token,
-    refreshToken:     d.refresh_token,
-    openId:           d.open_id,
-    expiresIn:        d.expires_in,
-    refreshExpiresIn: d.refresh_expires_in,
+    accessToken:      data.access_token,
+    refreshToken:     data.refresh_token ?? '',
+    openId:           data.open_id ?? '',
+    expiresIn:        data.expires_in ?? 0,
+    refreshExpiresIn: data.refresh_expires_in ?? 0,
   };
 }
 
@@ -138,21 +147,27 @@ export async function refreshTikTokToken(refreshToken: string): Promise<{
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body:    body.toString(),
   });
+  // v2 flat response — same shape as exchangeTikTokCode.
   const data = await res.json() as {
-    data?: { access_token: string; refresh_token: string; expires_in: number; refresh_expires_in: number };
-    error?: { code: string; message: string };
+    access_token?:       string;
+    refresh_token?:      string;
+    expires_in?:         number;
+    refresh_expires_in?: number;
+    error?:              string;
+    error_description?:  string;
   };
 
-  if (!res.ok || data.error) {
-    throw new Error(`TikTok token refresh failed: ${data.error?.message ?? res.statusText}`);
+  if (!res.ok || data.error || !data.access_token) {
+    throw new Error(
+      `TikTok token refresh failed: ${data.error_description ?? data.error ?? res.statusText}`,
+    );
   }
 
-  const d = data.data!;
   return {
-    accessToken:      d.access_token,
-    refreshToken:     d.refresh_token,
-    expiresIn:        d.expires_in,
-    refreshExpiresIn: d.refresh_expires_in,
+    accessToken:      data.access_token,
+    refreshToken:     data.refresh_token ?? '',
+    expiresIn:        data.expires_in ?? 0,
+    refreshExpiresIn: data.refresh_expires_in ?? 0,
   };
 }
 
