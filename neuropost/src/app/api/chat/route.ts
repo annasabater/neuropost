@@ -1,10 +1,10 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
 import { queueJob } from '@/lib/agents/queue';
 import { apiError, parsePagination } from '@/lib/api-utils';
 import { rateLimitWrite } from '@/lib/ratelimit';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const user = await requireServerUser();
     const db = createAdminClient();
