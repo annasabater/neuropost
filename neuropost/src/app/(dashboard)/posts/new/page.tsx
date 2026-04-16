@@ -26,6 +26,12 @@ export default function NewPostPage() {
   const [clientNote, setClientNote] = useState('');
   const [requestKind, setRequestKind] = useState<string | null>(null);
 
+  // Target platforms for the request (self-service has its own picker
+  // inside PostEditor; this drives only the request flow).
+  // Default to Instagram — that's still the most common use case and we
+  // don't want to force the user to tick anything on the existing form.
+  const [requestPlatforms, setRequestPlatforms] = useState<Array<'instagram' | 'facebook' | 'tiktok'>>(['instagram']);
+
   // Extra AI-generated photos beyond the ones the user uploaded
   const [extraGenerated, setExtraGenerated] = useState(0);
 
@@ -257,7 +263,10 @@ export default function NewPostPage() {
             image_url: media?.url ?? null, // null → worker will generate
             status: 'request',
             format: 'image',
-            platform: ['instagram'],
+            // Use the platforms the user picked (defaults to ['instagram']).
+            // If nothing ticked, fall back to instagram so the request is
+            // still routeable.
+            platform: requestPlatforms.length > 0 ? requestPlatforms : ['instagram'],
             scheduled_at: preferredDate ? new Date(preferredDate).toISOString() : null,
             ai_explanation: meta,
           }),
@@ -1147,6 +1156,45 @@ export default function NewPostPage() {
                   <textarea value={extraNotes} onChange={(e) => setExtraNotes(e.target.value)}
                     placeholder="Ej: Tono profesional, referencias visuales a nuestra web, evitar emojis..."
                     rows={2} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} />
+                </div>
+                {/* Target platforms — drives post.platform[] on submit so the
+                    worker knows where to publish. Self-service uses
+                    PostEditor's own picker; this one only shows in request
+                    mode. */}
+                <div style={{ padding: '18px 20px', background: 'var(--bg)' }}>
+                  <label style={labelStyle}>
+                    Publicar en
+                  </label>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {(['instagram', 'facebook', 'tiktok'] as const).map((p) => {
+                      const active = requestPlatforms.includes(p);
+                      const meta = { instagram: '📷 Instagram', facebook: '📘 Facebook', tiktok: '🎵 TikTok' }[p];
+                      return (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => {
+                            setRequestPlatforms(prev =>
+                              prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p],
+                            );
+                          }}
+                          style={{
+                            padding: '8px 14px',
+                            border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                            background: active ? 'var(--accent-light, #f0fdfa)' : 'var(--bg)',
+                            color: active ? 'var(--accent)' : 'var(--text-secondary)',
+                            fontFamily: f, fontSize: 13, fontWeight: active ? 700 : 500,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {meta}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8 }}>
+                    Tu equipo adaptará el contenido a cada plataforma que marques.
+                  </p>
                 </div>
               </div>
             </div>

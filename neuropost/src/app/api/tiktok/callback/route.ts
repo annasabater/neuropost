@@ -4,6 +4,8 @@
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { verifyTikTokState, exchangeTikTokCode, getTikTokUserInfo } from '@/lib/tiktok';
+import { upsertConnection } from '@/lib/platforms';
+import { canConnectPlatform, overQuotaRedirect } from '@/lib/social-quota';
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
@@ -32,8 +34,27 @@ export async function GET(request: Request) {
     // 2 — Fetch user info (username)
     const userInfo = await getTikTokUserInfo(tokens.accessToken, tokens.openId);
 
-    // 3 — Save to brand
+    // 3 — Resolve brand + enforce social-account quota
     const supabase = createAdminClient();
+    const { data: brand } = await supabase
+      .from('brands')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
+
+    if (!brand?.id) {
+      return NextResponse.redirect(new URL('/settings/connections?tiktok_error=no_brand', origin));
+    }
+
+    const decision = await canConnectPlatform(brand.id, 'tiktok');
+    if (!decision.allowed) {
+      console.warn('[tiktok-callback] quota blocked', { userId, reason: decision.reason });
+      return NextResponse.redirect(
+        overQuotaRedirect(origin, 'tiktok', decision.quota).toString(),
+      );
+    }
+
+    // 4 — Persist to legacy brand columns + canonical platform_connections
     await supabase
       .from('brands')
       .update({
@@ -45,11 +66,20 @@ export async function GET(request: Request) {
       })
       .eq('user_id', userId);
 
-    const { data: brand } = await supabase
-      .from('brands')
-      .select('id')
-      .eq('user_id', userId)
-      .single();
+    await upsertConnection({
+      brandId:          brand.id,
+      platform:         'tiktok',
+      platformUserId:   tokens.openId,
+      platformUsername: userInfo.username ?? null,
+      accessToken:      tokens.accessToken,
+      refreshToken:     tokens.refreshToken,
+      expiresAt:        new Date(expiresAt),
+      refreshExpiresAt: tokens.refreshExpiresIn > 0
+        ? new Date(Date.now() + tokens.refreshExpiresIn * 1000)
+        : null,
+      status:           'active',
+      metadata:         { source: 'tiktok-callback', display_name: userInfo.displayName },
+    });
 
     // 4 — Activity log + notification
     if (brand?.id) {

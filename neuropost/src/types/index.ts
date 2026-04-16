@@ -762,17 +762,34 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, {
   agency:  { postsPerMonth: Infinity, postsPerWeek: 20, storiesPerWeek: 14, brands: 10, platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true,  autoProposalsPerWeek: 30, videosPerWeek: 10, requestsPerMonth: Infinity, selfServiceActions: Infinity, autopilot: true,  inspirationAccess: true, carouselMaxPhotos: 20 },
 };
 
-/** UI-facing metadata per plan. */
+/** UI-facing metadata per plan.
+ *
+ *  The internal enum stays ('starter' | 'pro' | 'total' | 'agency') so we
+ *  don't have to migrate 50+ code references and the `brands.plan` DB
+ *  column. The user-visible labels collapse to three tiers:
+ *
+ *     starter → "Basic"
+ *     pro     → "Pro"
+ *     total   → "Premium"
+ *     agency  → "Premium" (same tier, kept for grandfathered multi-brand users)
+ *
+ *  Every plan ships with 1 connected social account; extras cost €15/mo
+ *  (tracked on brands.purchased_extra_accounts — see lib/social-quota.ts).
+ */
 export const PLAN_META: Record<SubscriptionPlan, {
-  label:    string;
-  price:    number;
-  tagline:  string;
+  label:                    string;
+  price:                    number;
+  tagline:                  string;
+  socialAccountsIncluded:   number;
 }> = {
-  starter: { label: 'Starter', price: 21,  tagline: '2 posts de foto por semana · Generación con IA' },
-  pro:     { label: 'Pro',     price: 63,  tagline: '4 fotos + 2 vídeos por semana · Soporte prioritario' },
-  total:   { label: 'Total',   price: 133, tagline: 'Hasta 20 fotos + 10 vídeos por semana · 24h' },
-  agency:  { label: 'Agency',  price: 159, tagline: 'Todo de Total · Hasta 10 marcas' },
+  starter: { label: 'Basic',   price: 21,  tagline: '2 posts de foto por semana · Generación con IA',            socialAccountsIncluded: 1 },
+  pro:     { label: 'Pro',     price: 63,  tagline: '4 fotos + 2 vídeos por semana · Soporte prioritario',        socialAccountsIncluded: 1 },
+  total:   { label: 'Premium', price: 133, tagline: 'Hasta 20 fotos + 10 vídeos por semana · 24h',                socialAccountsIncluded: 1 },
+  agency:  { label: 'Premium', price: 159, tagline: 'Todo de Premium · Hasta 10 marcas (grandfathered)',          socialAccountsIncluded: 1 },
 };
+
+/** Add-on pricing. One extra connected social account = €15/mo each. */
+export const SOCIAL_ACCOUNT_ADDON_PRICE_EUR = 15;
 
 // ─── Content mode type ───────────────────────────────────────────────────────
 

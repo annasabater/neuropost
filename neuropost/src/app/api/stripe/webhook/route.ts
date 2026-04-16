@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { constructWebhookEvent } from '@/lib/stripe';
+import { constructWebhookEvent, countSocialAccountAddons } from '@/lib/stripe';
 import { createAdminClient } from '@/lib/supabase';
 import type Stripe from 'stripe';
 
@@ -71,14 +71,28 @@ export async function POST(request: Request) {
 
     // ── Subscription changed (upgrade/downgrade) ──────────────────────────────
     case 'customer.subscription.updated': {
-      const sub     = event.data.object as Stripe.Subscription;
-      const priceId = sub.items.data[0]?.price.id ?? '';
-      const plan    = priceId === process.env.STRIPE_PRICE_AGENCY ? 'agency'
-                    : priceId === process.env.STRIPE_PRICE_TOTAL  ? 'total'
-                    : priceId === process.env.STRIPE_PRICE_PRO    ? 'pro'
-                    : 'starter';
+      const sub = event.data.object as Stripe.Subscription;
 
-      const updates: Record<string, unknown> = {};
+      // Find the plan item by explicit price-ID match (not array[0], because
+      // the subscription may also carry the social-account add-on line).
+      const planPrices: Array<[string, string]> = [
+        ['agency',  process.env.STRIPE_PRICE_AGENCY  ?? ''],
+        ['total',   process.env.STRIPE_PRICE_TOTAL   ?? ''],
+        ['pro',     process.env.STRIPE_PRICE_PRO     ?? ''],
+        ['starter', process.env.STRIPE_PRICE_STARTER ?? ''],
+      ];
+      let plan = 'starter';
+      for (const item of sub.items.data) {
+        const match = planPrices.find(([, priceId]) => priceId && priceId === item.price.id);
+        if (match) { plan = match[0]; break; }
+      }
+
+      // Add-on count — synced from the subscription's extra-social line.
+      const extraAccounts = countSocialAccountAddons(sub);
+
+      const updates: Record<string, unknown> = {
+        purchased_extra_accounts: extraAccounts,
+      };
       if (sub.status === 'active' || sub.status === 'trialing') {
         updates.plan = plan;
       }
@@ -104,7 +118,13 @@ export async function POST(request: Request) {
 
       const { data: brand } = await supabase
         .from('brands')
-        .update({ plan: 'starter', stripe_subscription_id: null, plan_cancels_at: null })
+        .update({
+          plan: 'starter',
+          stripe_subscription_id: null,
+          plan_cancels_at: null,
+          // Subscription gone → no more paid add-ons. Quota drops to plan-included only.
+          purchased_extra_accounts: 0,
+        })
         .eq('stripe_subscription_id', sub.id)
         .select('id,user_id')
         .single();
