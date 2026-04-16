@@ -53,9 +53,17 @@ export function getTikTokAuthUrl(state: string): string {
   const clientKey  = getRequiredEnv('TIKTOK_CLIENT_KEY');
   const redirectUri = getRequiredEnv('TIKTOK_REDIRECT_URI');
 
+  // Scopes requested:
+  //   user.info.basic — identify the connected account
+  //   video.upload    — upload videos as DRAFT (user finalizes in TikTok app)
+  //
+  // NOTE: `video.publish` (direct post, no manual confirmation) is a separate
+  // scope that requires adding the Direct Post API product in the TikTok
+  // Developer Portal AND is more restrictive in review. Re-add it to the
+  // scope string once that product is approved for this app.
   const params = new URLSearchParams({
     client_key:    clientKey,
-    scope:         'user.info.basic,video.publish,video.upload',
+    scope:         'user.info.basic,video.upload',
     response_type: 'code',
     redirect_uri:  redirectUri,
     state,
@@ -204,20 +212,27 @@ export async function publishVideoToTikTok({
   disableStitch?:  boolean;
 }): Promise<TikTokPublishResult> {
   // Step 1 — Init pull upload (provide video URL, TikTok pulls it)
-  const initRes = await fetch(`${TT_API_BASE}/post/publish/video/init/`, {
+  //
+  // We use the INBOX endpoint which requires only `video.upload` scope:
+  // the video lands in the user's TikTok app inbox/drafts and THEY open
+  // the app to add final caption, privacy and post it.
+  // The Direct Post endpoint (/post/publish/video/init/) requires the
+  // stricter `video.publish` scope — switch to that when it's approved.
+  //
+  // NOTE: the inbox endpoint does not accept `post_info` (title, privacy,
+  // etc.) — those fields are set by the user in the TikTok app when they
+  // finalize the post. We still generate the caption for copy-paste in
+  // the post details shown in our dashboard.
+  void caption; void privacyLevel;
+  void disableComment; void disableDuet; void disableStitch;
+
+  const initRes = await fetch(`${TT_API_BASE}/post/publish/inbox/video/init/`, {
     method:  'POST',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type':  'application/json; charset=UTF-8',
     },
     body: JSON.stringify({
-      post_info: {
-        title:           caption.slice(0, 2200),
-        privacy_level:   privacyLevel,
-        disable_comment: disableComment,
-        disable_duet:    disableDuet,
-        disable_stitch:  disableStitch,
-      },
       source_info: {
         source:    'PULL_FROM_URL',
         video_url: videoUrl,
