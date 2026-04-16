@@ -20,7 +20,7 @@ export type AgentJobStatus =
   | 'needs_review'
   | 'cancelled';
 
-export type AgentJobRequester = 'client' | 'worker' | 'cron' | 'agent';
+export type AgentJobRequester = 'client' | 'worker' | 'cron' | 'agent' | 'system';
 
 export interface AgentJob {
   id:             string;
