@@ -16,7 +16,6 @@
 -- avoid overwriting values set by the Stripe webhook afterwards.
 -- ============================================================================
 
-BEGIN;
 
 -- 1. Column
 ALTER TABLE public.brands

@@ -31,7 +31,6 @@ type IconProps = { size?: number; style?: React.CSSProperties };
 const TABS: { key: Tab; title: string; desc: string; icon: React.ComponentType<IconProps> }[] = [
   { key: 'notificaciones', title: 'Notificaciones', desc: 'Actividad reciente',   icon: Bell },
   { key: 'mensajes',       title: 'Mensajes',       desc: 'Tu equipo NeuroPost',  icon: MessageCircle },
-  { key: 'comentarios',    title: 'Comentarios',    desc: 'Instagram y Facebook', icon: MessageSquare },
   { key: 'soporte',        title: 'Soporte',        desc: 'Tickets y consultas',  icon: LifeBuoy },
 ];
 
@@ -104,19 +103,12 @@ function InboxInner() {
   const [ticketReplySending, setTicketReplySending] = useState(false);
   const ticketMsgBottom = useRef<HTMLDivElement>(null);
 
-  // Comment form state
-  const [commentText, setCommentText] = useState('');
-  const [commentSending, setCommentSending] = useState(false);
+  // Feedback form state
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackSending, setFeedbackSending] = useState(false);
 
-  // Comments state (real data from DB)
-  type CommentRow = {
-    id: string; brand_id: string; post_id?: string; platform: string;
-    external_id: string; author: string; content: string; status: string;
-    ai_reply?: string | null; created_at: string;
-  };
-  const [comments, setComments] = useState<CommentRow[]>([]);
-  const [commentsLoading, setCommentsLoading] = useState(true);
-  const [expandedComment, setExpandedComment] = useState<string | null>(null);
+  // Eliminar lógica de comentarios (no se usa)
 
   // Chat state
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -336,18 +328,20 @@ function InboxInner() {
 
   useEffect(() => { ticketMsgBottom.current?.scrollIntoView({ behavior: 'smooth' }); }, [ticketMessages]);
 
-  async function sendComment() {
-    if (!commentText.trim() || commentSending) return;
-    setCommentSending(true);
+  async function sendFeedback() {
+    if (!feedbackText.trim() || feedbackSending) return;
+    setFeedbackSending(true);
     try {
-      const res = await fetch('/api/comments', {
+      // Puedes cambiar la ruta si tienes un endpoint específico para feedback
+      const res = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: commentText.trim() }),
+        body: JSON.stringify({ content: feedbackText.trim() }),
       });
       if (res.ok) {
-        setCommentText('');
-        toast.success('Comentario enviado — el agente lo procesará en breve');
+        setFeedbackText('');
+        setFeedbackOpen(false);
+        toast.success('¡Gracias por tu valoración!');
       } else {
         const d = await res.json();
         toast.error(d.error ?? 'Error al enviar');
@@ -355,7 +349,7 @@ function InboxInner() {
     } catch {
       toast.error('Error al enviar');
     }
-    setCommentSending(false);
+    setFeedbackSending(false);
   }
 
   async function sendChat() {
@@ -377,12 +371,12 @@ function InboxInner() {
         <p style={{ color: '#6b7280', fontSize: 15, fontFamily: f }}>Todo lo que necesitas atender</p>
       </div>
 
-      {/* Tab selector — 4 cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', marginBottom: 40 }}>
+      {/* Tab selector — 3 cards + botón de valoración */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', marginBottom: 40 }}>
         {TABS.map((s) => {
           const active = tab === s.key;
           const Icon = s.icon;
-          const badge = s.key === 'comentarios' ? unreadComments : s.key === 'notificaciones' ? unreadNotifications : 0;
+          const badge = s.key === 'notificaciones' ? unreadNotifications : 0;
           return (
             <button key={s.key} onClick={() => setTab(s.key)} style={{
               padding: '24px 20px', background: active ? 'var(--accent)' : '#ffffff',
@@ -397,98 +391,38 @@ function InboxInner() {
             </button>
           );
         })}
+        {/* Botón de valoración */}
+        <button onClick={() => setFeedbackOpen(true)} style={{
+          padding: '24px 20px', background: '#ffffff', border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <MessageSquare size={18} style={{ color: 'var(--accent)' }} />
+          </div>
+          <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 15, textTransform: 'uppercase', color: '#111827', marginBottom: 4 }}>Valoración</p>
+          <p style={{ fontFamily: f, fontSize: 12, color: '#9ca3af' }}>Déjanos tu feedback</p>
+        </button>
       </div>
 
-      {/* ── COMENTARIOS — datos reales de la tabla comments ── */}
-      {tab === 'comentarios' && (
-        <div>
-          <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: '#111827', marginBottom: 4 }}>Comentarios</h2>
-          <p style={{ fontFamily: f, fontSize: 13, color: '#9ca3af', marginBottom: 20 }}>Comentarios de tus redes sociales y respuestas del agente IA</p>
 
-          {/* Formulario de nuevo comentario */}
-          <div style={{ border: '1px solid #e5e7eb', padding: 20, marginBottom: 24, background: '#ffffff' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-              <div style={{ width: 28, height: 28, background: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 11, fontWeight: 700, color: 'var(--accent)' }}>
-                {(brand?.name ?? 'C').charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <span style={{ fontFamily: f, fontSize: 13, fontWeight: 600, color: '#111827' }}>{operatorDisplayName || brand?.name || 'Cliente'}</span>
-                <span style={{ fontFamily: f, fontSize: 11, color: '#9ca3af', marginLeft: 8 }}>{new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-              </div>
-            </div>
+      {/* MODAL DE VALORACIÓN */}
+      {feedbackOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.18)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', padding: 32, minWidth: 340, maxWidth: '90vw', position: 'relative' }}>
+            <button onClick={() => setFeedbackOpen(false)} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}><X size={18} /></button>
+            <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 20, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Déjanos tu valoración</h2>
+            <p style={{ fontFamily: f, fontSize: 13, color: '#9ca3af', marginBottom: 18 }}>¿Qué te ha parecido la plataforma? Tu opinión nos ayuda a mejorar.</p>
             <textarea
-              value={commentText}
-              onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Escribe un comentario..."
-              rows={3}
-              style={{ width: '100%', padding: '10px 12px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 13, outline: 'none', color: '#111827', background: '#f9fafb', resize: 'vertical', marginBottom: 10, boxSizing: 'border-box' }}
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+              placeholder="Escribe tu valoración o sugerencia..."
+              rows={4}
+              style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', color: '#111827', background: '#f9fafb', resize: 'vertical', marginBottom: 16, boxSizing: 'border-box', borderRadius: 4 }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontFamily: f, fontSize: 11, color: '#d1d5db' }}>El agente IA revisará tu comentario automáticamente</span>
-              <button type="button" onClick={sendComment} disabled={!commentText.trim() || commentSending}
-                style={{ padding: '8px 20px', background: commentText.trim() && !commentSending ? 'var(--accent)' : '#e5e7eb', color: '#ffffff', border: 'none', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: commentText.trim() && !commentSending ? 'pointer' : 'not-allowed' }}>
-                {commentSending ? 'Enviando...' : 'Publicar comentario'}
-              </button>
-            </div>
+            <button onClick={sendFeedback} disabled={!feedbackText.trim() || feedbackSending}
+              style={{ padding: '10px 24px', background: feedbackText.trim() && !feedbackSending ? 'var(--accent)' : '#e5e7eb', color: '#ffffff', border: 'none', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: feedbackText.trim() && !feedbackSending ? 'pointer' : 'not-allowed', borderRadius: 4 }}>
+              {feedbackSending ? 'Enviando...' : 'Enviar valoración'}
+            </button>
           </div>
-
-          {commentsLoading ? (
-            <div style={{ border: '1px solid #e5e7eb' }}>
-              {[1,2,3].map(i => <div key={i} style={{ padding: '20px', borderBottom: i < 3 ? '1px solid #f3f4f6' : 'none' }}><div style={{ width: '60%', height: 14, background: '#f3f4f6', marginBottom: 8 }} /><div style={{ width: '40%', height: 10, background: '#f3f4f6' }} /></div>)}
-            </div>
-          ) : comments.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', border: '1px solid #e5e7eb' }}>
-              <p style={{ fontSize: 32, marginBottom: 12 }}>💬</p>
-              <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 20, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Sin comentarios</p>
-              <p style={{ fontFamily: f, fontSize: 14, color: '#9ca3af' }}>Cuando recibas comentarios en Instagram o Facebook, aparecerán aquí con la respuesta automática del agente</p>
-            </div>
-          ) : (
-            <div style={{ border: '1px solid #e5e7eb' }}>
-              {comments.map((c, i) => {
-                const isExpanded = expandedComment === c.id;
-                const statusMap: Record<string, { color: string; label: string }> = {
-                  approved: { color: '#0F766E', label: 'Aprobado' },
-                  rejected: { color: '#c62828', label: 'Rechazado' },
-                  escalated: { color: '#7c3aed', label: 'Escalado' },
-                  replied: { color: '#0F766E', label: 'Aprobado' },
-                  pending: { color: '#f59e0b', label: 'Pendiente' },
-                };
-                const st = statusMap[c.status] ?? statusMap.pending;
-                const statusColor = st.color;
-                const statusLabel = st.label;
-                return (
-                  <div key={c.id} onClick={() => setExpandedComment(isExpanded ? null : c.id)}
-                    style={{ padding: '16px 20px', borderBottom: i < comments.length - 1 ? '1px solid #f3f4f6' : 'none', cursor: 'pointer', background: isExpanded ? '#f9fafb' : '#ffffff', transition: 'background 0.15s' }}>
-                    {/* Header */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                      <div style={{ width: 28, height: 28, background: 'var(--accent-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 11, fontWeight: 700, color: 'var(--accent)', flexShrink: 0 }}>{c.author.charAt(0).toUpperCase()}</div>
-                      <span style={{ fontFamily: f, fontSize: 13, fontWeight: 600, color: '#111827' }}>{c.author}</span>
-                      <span style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{c.platform}</span>
-                      <span style={{ marginLeft: 'auto', fontSize: 10, fontFamily: fc, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: statusColor, background: `${statusColor}11`, padding: '2px 8px' }}>{statusLabel}</span>
-                    </div>
-                    {/* Comment content */}
-                    <p style={{ fontFamily: f, fontSize: 13, color: '#374151', lineHeight: 1.5, marginBottom: isExpanded ? 12 : 0 }}>{c.content}</p>
-                    {/* Expanded: AI reply */}
-                    {isExpanded && (
-                      <div style={{ marginTop: 8 }}>
-                        {c.ai_reply ? (
-                          <div style={{ borderLeft: '3px solid var(--accent)', padding: '10px 14px', background: '#ecfdf5' }}>
-                            <p style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', marginBottom: 4 }}>Respuesta IA</p>
-                            <p style={{ fontFamily: f, fontSize: 13, color: '#111827', lineHeight: 1.5 }}>{c.ai_reply}</p>
-                          </div>
-                        ) : (
-                          <div style={{ borderLeft: '3px solid #f59e0b', padding: '10px 14px', background: '#fffbeb' }}>
-                            <p style={{ fontFamily: f, fontSize: 12, color: '#92400e' }}>El agente aún no ha generado una respuesta</p>
-                          </div>
-                        )}
-                        <p style={{ fontFamily: f, fontSize: 11, color: '#d1d5db', marginTop: 8 }}>{new Date(c.created_at).toLocaleString('es-ES', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </div>
       )}
 

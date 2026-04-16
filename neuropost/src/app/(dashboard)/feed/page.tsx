@@ -57,9 +57,9 @@ const PLATFORMS: Record<Platform, {
   emoji:        string;
   connectHref:  string;
 }> = {
-  instagram: { label: 'Instagram', emoji: '📷', connectHref: '/settings#redes' },
-  facebook:  { label: 'Facebook',  emoji: '📘', connectHref: '/settings#redes' },
-  tiktok:    { label: 'TikTok',    emoji: '🎵', connectHref: '/settings#redes' },
+  instagram: { label: 'Instagram', emoji: '', connectHref: '/settings#redes' },
+  facebook:  { label: 'Facebook',  emoji: '', connectHref: '/settings#redes' },
+  tiktok:    { label: 'TikTok',    emoji: '', connectHref: '/settings#redes' },
 };
 
 const STATUS_COLOR: Record<string, { label: string; color: string; bg: string }> = {
@@ -108,7 +108,7 @@ export default function FeedPage() {
       <div className="page-header">
         <div className="page-header-text">
           <h1 className="page-title">Feed</h1>
-          <p className="page-sub">Tu contenido en tiempo real · Instagram · Facebook · TikTok</p>
+          <p className="page-sub">Visualiza y gestiona tus publicaciones en todas tus plataformas desde un solo lugar.</p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
@@ -144,7 +144,6 @@ export default function FeedPage() {
                 cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6,
               }}
             >
-              <span>{meta.emoji}</span>
               <span>{meta.label}</span>
               {status && (
                 <span style={{
@@ -306,50 +305,54 @@ function QueuedSection({ platform, queued }: { platform: Platform; queued: Queue
   return (
     <section style={{ marginBottom: 28 }}>
       <h2 style={{
-        fontFamily: fc, fontSize: 13, fontWeight: 800, textTransform: 'uppercase',
-        letterSpacing: '0.06em', color: 'var(--text-primary)', marginBottom: 12,
+        fontFamily: fc, fontSize: 16, fontWeight: 800, textTransform: 'none',
+        letterSpacing: '0.01em', color: 'var(--text-primary)', marginBottom: 8,
       }}>
-        En cola · {queued.length}
+        Publicaciones pendientes ({queued.length})
       </h2>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <p style={{ fontFamily: f, fontSize: 13, color: '#6b7280', marginBottom: 14 }}>
+        Contenido programado y solicitudes en proceso de publicación.
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {queued.map(q => (
           <Link
             key={q.id}
             href={`/posts/${q.postId}`}
             style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+              display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
               border: '1px solid var(--border)', background: 'var(--bg)',
-              textDecoration: 'none', color: 'inherit',
+              textDecoration: 'none', color: 'inherit', borderRadius: 6,
             }}
           >
             {q.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={q.imageUrl} alt="" style={{
-                width: 36, height: 36, objectFit: 'cover', flexShrink: 0,
+                width: 44, height: 44, objectFit: 'cover', flexShrink: 0, borderRadius: 4,
               }} />
             ) : (
               <div style={{
-                width: 36, height: 36, background: 'var(--bg-1)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                width: 44, height: 44, background: 'var(--bg-1)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, borderRadius: 4,
               }}>
-                <Camera size={14} style={{ color: 'var(--text-tertiary)' }} />
+                <Camera size={18} style={{ color: 'var(--text-tertiary)' }} />
               </div>
             )}
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{
-                fontFamily: f, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)',
+                fontFamily: f, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
-                {q.caption?.slice(0, 80) ?? '(sin caption)'}
+                Publicación para feed {q.imageUrl ? '(imagen)' : ''}
               </p>
-              <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>
-                {platform} ·{' '}
-                {q.scheduledAt
+              <p style={{ fontFamily: f, fontSize: 12, color: '#6b7280', marginBottom: 2 }}>
+                {PLATFORMS[platform].label} · {q.scheduledAt
                   ? new Date(q.scheduledAt).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })
-                  : 'sin fecha'}
+                  : 'Sin fecha programada'}
+              </p>
+              <p style={{ fontFamily: f, fontSize: 12, color: '#6b7280', margin: 0 }}>
+                Estado: <span style={{ color: '#78350f', fontWeight: 600 }}>{STATUS_COLOR[q.status]?.label ?? q.status}</span>
               </p>
             </div>
-            <StatusPill status={q.status} />
           </Link>
         ))}
       </div>

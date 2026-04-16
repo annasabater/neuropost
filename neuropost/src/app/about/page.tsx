@@ -208,7 +208,7 @@ export default function AboutPage() {
           </h1>
           <p style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.65)', lineHeight: 1.7, maxWidth: 560, margin: '0 auto' }}>
             Nacimos en Barcelona con una idea simple: los dueños de negocios locales no deberían perder
-            horas gestionando Instagram. Nosotros nos encargamos.
+            horas gestionando redes sociales. Nosotros nos encargamos.
           </p>
         </div>
       </section>
@@ -226,7 +226,8 @@ export default function AboutPage() {
       <section className="fade-in" style={{ background: '#ffffff', paddingBottom: 80 }}>
         <div className="container" style={{ maxWidth: 640, textAlign: 'center' }}>
           <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 17, color: '#6b7280', lineHeight: 1.8, margin: 0 }}>
-            Negocios que ya funcionan bien… pero que pueden crecer aún más cuando se ven como realmente son. Porque hoy, antes de entrar a un sitio, la mayoría lo descubre en Instagram.
+            Negocios que ya funcionan, pero que pueden escalar aún más cuando su imagen digital está a la altura de lo que realmente ofrecen.<br />
+            Porque hoy, el primer contacto con tu marca ocurre mucho antes de entrar.
           </p>
         </div>
       </section>
