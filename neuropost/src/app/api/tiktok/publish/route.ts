@@ -47,11 +47,11 @@ export async function POST(request: Request) {
         const { refreshTikTokToken } = await import('@/lib/tiktok');
         const refreshed = await refreshTikTokToken(brand.tiktok_refresh_token);
         await db.from('brands').update({
-          tiktok_access_token:     refreshed.access_token,
-          tiktok_refresh_token:    refreshed.refresh_token,
-          tiktok_token_expires_at: new Date(Date.now() + refreshed.expires_in * 1000).toISOString(),
+          tiktok_access_token:     refreshed.accessToken,
+          tiktok_refresh_token:    refreshed.refreshToken,
+          tiktok_token_expires_at: new Date(Date.now() + refreshed.expiresIn * 1000).toISOString(),
         }).eq('id', brand.id);
-        brand.tiktok_access_token = refreshed.access_token;
+        brand.tiktok_access_token = refreshed.accessToken;
       } catch {
         return NextResponse.json({ error: 'Token de TikTok expirado. Reconecta tu cuenta.' }, { status: 401 });
       }
