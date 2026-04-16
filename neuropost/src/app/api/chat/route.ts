@@ -1,12 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
 import { queueJob } from '@/lib/agents/queue';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const user = await requireServerUser();
     const db = createAdminClient();
-    const searchParams = await request.nextUrl.searchParams;
+    const searchParams = request.nextUrl.searchParams;
     const brandId = searchParams.get('brandId');
 
     const { data: brand } = await db.from('brands').select('id').eq('user_id', user.id).single();
