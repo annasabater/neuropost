@@ -3,7 +3,7 @@
 import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { X, Edit2, Save, Send, MessageCircle, LifeBuoy, BookOpen, Sparkles, Plus, Flag, Upload } from 'lucide-react';
+import { X, Edit2, Save, Send, MessageCircle, LifeBuoy, BookOpen, Sparkles, Plus, Flag, Upload, Share2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const C = {
@@ -650,6 +650,17 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
               }}
             >
               <Sparkles size={14} color={C.accent} /> Inspiración
+            </Link>
+            <Link
+              href={`/worker/clientes/${brandId}/plataformas`}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 14px', background: C.bg1, border: `1px solid ${C.border}`,
+                color: C.text, textDecoration: 'none', fontSize: 12, fontWeight: 700,
+                fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em',
+              }}
+            >
+              <Share2 size={14} color={C.accent} /> Plataformas
             </Link>
           </div>
         </div>
