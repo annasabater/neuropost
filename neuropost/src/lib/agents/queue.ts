@@ -1,14 +1,20 @@
 // =============================================================================
-// Agent queue — thin wrapper over the agent_jobs table
+// Agent queue — dual-write: Supabase (persistence) + BullMQ (dispatch)
 // =============================================================================
 // The only module that knows how to insert/read jobs. API routes and agents
 // must call these helpers instead of touching the table directly — this is
 // what keeps the orchestration contract honest.
 //
-// All reads/writes use the admin client. RLS on agent_jobs protects
-// client-side reads; server-side code is already authenticated by the route.
+// Flow:
+//   queueJob() → INSERT into Supabase (source of truth + UI) →
+//                add to BullMQ Queue (Redis, for fast dispatch)
+//
+// The BullMQ job carries only the Supabase job ID. The worker loads the full
+// job from Supabase when it picks it up. This keeps Redis jobs tiny and
+// Supabase as the single source of truth for status/outputs/audit trail.
 
 import { createAdminClient } from '@/lib/supabase';
+import { getAgentQueue, toBullPriority } from '@/lib/bullmq';
 import type {
   AgentJob,
   AgentOutput,
@@ -22,17 +28,21 @@ import type {
 type DB = any;
 
 /**
- * Enqueue a new agent job. Returns the created job row.
+ * Enqueue a new agent job.
+ * Writes to Supabase (persistence) then adds to BullMQ Queue (dispatch).
+ * Returns the created Supabase job row.
  */
 export async function queueJob(input: QueueJobInput): Promise<AgentJob> {
   const db = createAdminClient() as DB;
+
+  const priority = input.priority ?? 50;
 
   const row = {
     brand_id:      input.brand_id ?? null,
     agent_type:    input.agent_type,
     action:        input.action,
     input:         input.input ?? {},
-    priority:      input.priority ?? 50,
+    priority,
     max_attempts:  input.max_attempts ?? 3,
     requested_by:  input.requested_by ?? 'client',
     requester_id:  input.requester_id ?? null,
@@ -48,11 +58,37 @@ export async function queueJob(input: QueueJobInput): Promise<AgentJob> {
     .single();
 
   if (error) throw new Error(`queueJob: ${error.message}`);
-  return data as AgentJob;
+  const job = data as AgentJob;
+
+  // Push to BullMQ for fast dispatch (non-blocking — Supabase is the source of truth)
+  try {
+    const queue = getAgentQueue();
+    // Calculate BullMQ delay from scheduled_for (milliseconds from now)
+    const delay = input.scheduled_for
+      ? Math.max(0, new Date(input.scheduled_for).getTime() - Date.now())
+      : undefined;
+
+    await queue.add(
+      `${input.agent_type}:${input.action}`,
+      { agent_job_id: job.id },
+      {
+        jobId:    `supabase:${job.id}`,   // idempotency key
+        priority: toBullPriority(priority),
+        delay,
+      },
+    );
+  } catch (redisErr) {
+    // Redis failure must NOT block the caller — Supabase job already exists
+    // and the cron fallback can still pick it up.
+    console.error('[queueJob] BullMQ enqueue failed (job still in Supabase):', redisErr);
+  }
+
+  return job;
 }
 
 /**
  * Enqueue many sub-jobs at once (used by handlers that return sub_jobs).
+ * Writes all to Supabase in one batch, then pushes each to BullMQ.
  */
 export async function queueSubJobs(
   parentJob: AgentJob,
@@ -81,7 +117,32 @@ export async function queueSubJobs(
     .select();
 
   if (error) throw new Error(`queueSubJobs: ${error.message}`);
-  return (data ?? []) as AgentJob[];
+  const inserted = (data ?? []) as AgentJob[];
+
+  // Push all sub-jobs to BullMQ in bulk
+  try {
+    const queue = getAgentQueue();
+    const bullJobs = inserted.map((job, i) => {
+      const sub = subJobs[i];
+      const delay = sub.scheduled_for
+        ? Math.max(0, new Date(sub.scheduled_for).getTime() - Date.now())
+        : undefined;
+      return {
+        name:    `${job.agent_type}:${job.action}`,
+        data:    { agent_job_id: job.id },
+        opts: {
+          jobId:    `supabase:${job.id}`,
+          priority: toBullPriority(sub.priority ?? parentJob.priority ?? 50),
+          delay,
+        },
+      };
+    });
+    await queue.addBulk(bullJobs);
+  } catch (redisErr) {
+    console.error('[queueSubJobs] BullMQ bulk enqueue failed (jobs still in Supabase):', redisErr);
+  }
+
+  return inserted;
 }
 
 /**

@@ -1,167 +1,232 @@
 // =============================================================================
-// analytics:sync_post_metrics
+// analytics:sync_post_metrics — multi-platform version
 // =============================================================================
-// Reads Instagram Insights for every published post of a brand and upserts
-// the metrics into post_analytics. Uses the existing getIGPostInsights()
-// from src/lib/meta.ts — no new Meta API surface needed.
+// Walks every published post_publications row for a brand within the time
+// window, calls the platform provider's fetchPostInsights, and upserts the
+// result into post_analytics using the composite (post_id, platform) PK.
 //
-// Flow:
-//   1. Load brand (needs ig_access_token + ig_account_id)
-//   2. Pull all published posts with an ig_post_id in the last N days
-//   3. For each post → getIGPostInsights()
-//   4. Upsert into post_analytics
+// Replaces the earlier IG-only version that read brands.ig_access_token
+// directly. Now we load platform_connections rows via the provider
+// repository and go platform-by-platform — any provider that throws
+// ProviderError('not_implemented') (e.g. TikTok until research-API
+// approval lands) is skipped gracefully.
 //
 // Inputs (job.input):
-//   { days?: number }   // window (default 60, max 90)
+//   { days?: number }   // window in days (default 60, max 90)
 //
-// This handler is designed to be called:
-//   • By the weekly recompute-weights cron (as a dependency before recompute)
-//   • Directly via POST /api/agent-jobs when a user wants fresh data
-//   • By the existing /api/cron/sync-comments (if wired to also enqueue this)
-//
-// Rate limits: Instagram Graph API allows ~200 calls/hour per user token.
-// A brand with 20 published posts/60 days = 20 API calls = well within.
-// For brands with 100+ posts we batch with a safety cap.
+// Rate limits: each platform's provider is the source of truth for its
+// own rate limits. We cap total publications per sync at 100 to stay
+// safely inside Meta's 200-calls/hour/token limit.
+// =============================================================================
 
-import { getIGPostInsights, type IGPostInsights } from '@/lib/meta';
 import { createAdminClient } from '@/lib/supabase';
+import {
+  getProvider,
+  getConnection,
+  ProviderError,
+  type Platform,
+  type PlatformInsights,
+} from '@/lib/platforms';
 import type { AgentJob, HandlerResult } from '../types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
 
-const MAX_POSTS_PER_SYNC = 100; // safety cap to stay under rate limits
+const MAX_POSTS_PER_SYNC = 100;
 
-interface PostRow {
-  id:                     string;
-  ig_post_id:             string;
-  published_at:           string | null;
-  format:                 string | null;
-  strategy_category_key:  string | null;
+interface PublicationRow {
+  id:               string;
+  post_id:          string;
+  platform:         Platform;
+  platform_post_id: string | null;
+  published_at:     string | null;
+  post: {
+    format: string | null;
+    strategy_category_key: string | null;
+  } | null;
 }
 
-function computeEngagementRate(m: IGPostInsights): number | null {
-  if (!m.reach || m.reach === 0) return null;
-  return (m.likes + m.comments + m.saved + m.shares) / m.reach;
+// Platform → metrics mapping into post_analytics columns. Each provider's
+// insights shape is different, so we normalise here into the column set
+// the table actually has.
+function toRow(
+  insights:  PlatformInsights,
+  publicationRow: PublicationRow,
+  brandId:   string,
+): Record<string, unknown> {
+  const base: Record<string, unknown> = {
+    post_id:       publicationRow.post_id,
+    brand_id:      brandId,
+    platform:      insights.platform,
+    fetched_at:    new Date().toISOString(),
+    published_at:  publicationRow.published_at,
+    category_key:  publicationRow.post?.strategy_category_key ?? null,
+    format:        mapFormat(publicationRow.post?.format),
+    best_day:      publicationRow.published_at ? dayOfWeek(publicationRow.published_at) : null,
+    best_hour:     publicationRow.published_at ? new Date(publicationRow.published_at).getUTCHours() : null,
+  };
+
+  if (insights.platform === 'instagram') {
+    return {
+      ...base,
+      reach:              insights.reach,
+      impressions:        insights.impressions,
+      likes:              insights.likes,
+      comments:           insights.comments,
+      saves:              insights.saves,
+      shares:             insights.shares,
+      video_views:        insights.videoViews ?? null,
+      avg_watch_time_sec: insights.avgWatchTimeSec ?? null,
+      engagement_rate:    engagementRate(insights.likes, insights.comments, insights.saves, insights.shares, insights.reach),
+    };
+  }
+  if (insights.platform === 'facebook') {
+    return {
+      ...base,
+      reach:              insights.reach,
+      impressions:        insights.impressions,
+      // Facebook lumps reactions (likes/love/haha/…) into one field —
+      // persist them under `likes` so cross-platform queries still work.
+      likes:              insights.reactions,
+      comments:           insights.comments,
+      saves:              0,
+      shares:             insights.shares,
+      video_views:        insights.videoViews ?? null,
+      avg_watch_time_sec: insights.avgWatchTimeSec ?? null,
+      engagement_rate:    engagementRate(insights.reactions, insights.comments, 0, insights.shares, insights.reach),
+    };
+  }
+  // TikTok
+  return {
+    ...base,
+    reach:              insights.videoViews, // closest proxy; TT API doesn't give reach
+    impressions:        insights.videoViews,
+    likes:              insights.likes,
+    comments:           insights.comments,
+    saves:              0,
+    shares:             insights.shares,
+    video_views:        insights.videoViews,
+    avg_watch_time_sec: insights.avgWatchTimeSec ?? null,
+    completion_rate:    insights.completionRate ?? null,
+    engagement_rate:    engagementRate(insights.likes, insights.comments, 0, insights.shares, insights.videoViews),
+  };
+}
+
+function engagementRate(
+  a: number, b: number, c: number, d: number, denom: number,
+): number | null {
+  if (!denom || denom === 0) return null;
+  return Number(((a + b + c + d) / denom).toFixed(4));
 }
 
 function dayOfWeek(dateStr: string): number {
-  // Mon=0, Sun=6
+  // Mon = 0 … Sun = 6
   const d = new Date(dateStr).getUTCDay();
   return d === 0 ? 6 : d - 1;
 }
 
+function mapFormat(raw: string | null | undefined): string {
+  const m: Record<string, string> = {
+    image: 'foto', foto: 'foto', photo: 'foto',
+    carousel: 'carrusel', carrusel: 'carrusel',
+    reel: 'reel', reels: 'reel',
+    video: 'video', videos: 'video',
+    story: 'story', stories: 'story',
+  };
+  return m[(raw ?? 'foto').toLowerCase()] ?? 'foto';
+}
+
 export interface SyncResult {
   brand_id:       string;
-  posts_checked:  number;
-  posts_updated:  number;
-  posts_skipped:  number; // ig_post_id exists but insights call failed
-  reason?:        'no_token' | 'no_posts';
+  window_days:    number;
+  per_platform:   Record<Platform, {
+    checked:    number;
+    updated:    number;
+    skipped:    number;
+    not_connected?: boolean;
+  }>;
 }
 
 export async function syncPostMetricsHandler(job: AgentJob): Promise<HandlerResult> {
   if (!job.brand_id) return { type: 'fail', error: 'brand_id is required' };
 
-  const days = Math.min(Math.max(Number((job.input as { days?: number }).days ?? 60), 1), 90);
+  const days   = Math.min(Math.max(Number((job.input as { days?: number }).days ?? 60), 1), 90);
+  const cutoff = new Date(Date.now() - days * 86_400_000).toISOString();
+  const db     = createAdminClient() as DB;
 
   try {
-    const db = createAdminClient() as DB;
-
-    // 1. Load brand for token.
-    const { data: brand } = await db
-      .from('brands')
-      .select('id, ig_access_token, ig_account_id')
-      .eq('id', job.brand_id)
-      .single();
-    if (!brand) return { type: 'fail', error: `Brand not found: ${job.brand_id}` };
-    if (!brand.ig_access_token || !brand.ig_account_id) {
-      return {
-        type: 'ok',
-        outputs: [{
-          kind:    'analysis',
-          payload: { brand_id: job.brand_id, posts_checked: 0, posts_updated: 0, posts_skipped: 0, reason: 'no_token' } as unknown as Record<string, unknown>,
-          model:   'sync-post-metrics',
-        }],
-      };
-    }
-
-    // 2. Pull published posts with an ig_post_id within the window.
-    const cutoff = new Date(Date.now() - days * 86_400_000).toISOString();
-    const { data: posts } = await db
-      .from('posts')
-      .select('id, ig_post_id, published_at, format, strategy_category_key')
-      .eq('brand_id', job.brand_id)
+    // Published publications in the window, joined with the posts row for
+    // format + category. Sort newest-first so rate-limit-capped brands get
+    // fresh data before old data.
+    const { data: pubs } = await db
+      .from('post_publications')
+      .select(`
+        id, post_id, platform, platform_post_id, published_at,
+        post:posts!inner(
+          format, strategy_category_key, brand_id
+        )
+      `)
       .eq('status', 'published')
-      .not('ig_post_id', 'is', null)
+      .not('platform_post_id', 'is', null)
       .gte('published_at', cutoff)
+      .eq('posts.brand_id', job.brand_id)
       .order('published_at', { ascending: false })
       .limit(MAX_POSTS_PER_SYNC);
 
-    const rows = (posts ?? []) as PostRow[];
-    if (rows.length === 0) {
-      return {
-        type: 'ok',
-        outputs: [{
-          kind:    'analysis',
-          payload: { brand_id: job.brand_id, posts_checked: 0, posts_updated: 0, posts_skipped: 0, reason: 'no_posts' } as unknown as Record<string, unknown>,
-          model:   'sync-post-metrics',
-        }],
-      };
-    }
+    const rows = (pubs ?? []) as PublicationRow[];
 
-    // 3. Fetch insights for each post.
-    let updated = 0;
-    let skipped = 0;
+    const perPlatform: SyncResult['per_platform'] = {
+      instagram: { checked: 0, updated: 0, skipped: 0 },
+      facebook:  { checked: 0, updated: 0, skipped: 0 },
+      tiktok:    { checked: 0, updated: 0, skipped: 0 },
+    };
 
-    for (const post of rows) {
+    // Per-platform connection caching — avoid N queries for the same token.
+    const connCache = new Map<Platform, Awaited<ReturnType<typeof getConnection>>>();
+
+    for (const pub of rows) {
+      if (!pub.platform_post_id) continue;
+
+      let conn = connCache.get(pub.platform);
+      if (conn === undefined) {
+        conn = await getConnection(job.brand_id, pub.platform);
+        connCache.set(pub.platform, conn);
+      }
+
+      if (!conn) {
+        perPlatform[pub.platform].not_connected = true;
+        perPlatform[pub.platform].skipped += 1;
+        continue;
+      }
+
+      perPlatform[pub.platform].checked += 1;
+
       try {
-        const insights = await getIGPostInsights(post.ig_post_id, brand.ig_access_token);
-        const engRate = computeEngagementRate(insights);
-        const publishedHour = post.published_at ? new Date(post.published_at).getUTCHours() : null;
-        const publishedDay  = post.published_at ? dayOfWeek(post.published_at) : null;
-
-        // Map the DB format to our taxonomy format names.
-        const formatMap: Record<string, string> = {
-          image:    'foto',
-          carousel: 'carrusel',
-          reel:     'reel',
-          video:    'video',
-          story:    'story',
-        };
-        const format = formatMap[post.format ?? 'image'] ?? post.format ?? 'foto';
+        const insights = await getProvider(pub.platform).fetchPostInsights(
+          pub.platform_post_id,
+          conn,
+        );
 
         await db
           .from('post_analytics')
-          .upsert({
-            post_id:         post.id,
-            brand_id:        job.brand_id,
-            impressions:     insights.impressions,
-            reach:           insights.reach,
-            likes:           insights.likes,
-            comments:        insights.comments,
-            saves:           insights.saved,
-            shares:          insights.shares,
-            engagement_rate: engRate,
-            best_hour:       publishedHour,
-            best_day:        publishedDay,
-            category_key:    post.strategy_category_key,
-            format,
-            published_at:    post.published_at,
-            fetched_at:      new Date().toISOString(),
-          }, { onConflict: 'post_id' });
+          .upsert(toRow(insights, pub, job.brand_id), { onConflict: 'post_id,platform' });
 
-        updated += 1;
-      } catch {
-        // Individual post insight failure — don't abort the whole batch.
-        skipped += 1;
+        perPlatform[pub.platform].updated += 1;
+      } catch (err) {
+        // not_implemented (TikTok today, etc.) — silent skip, not an error
+        if (err instanceof ProviderError && err.code === 'not_implemented') {
+          perPlatform[pub.platform].skipped += 1;
+          continue;
+        }
+        // Transient (rate limit / network) — skip this post but keep going.
+        perPlatform[pub.platform].skipped += 1;
       }
     }
 
     const result: SyncResult = {
-      brand_id:      job.brand_id,
-      posts_checked: rows.length,
-      posts_updated: updated,
-      posts_skipped: skipped,
+      brand_id:    job.brand_id,
+      window_days: days,
+      per_platform: perPlatform,
     };
 
     return {
@@ -173,8 +238,7 @@ export async function syncPostMetricsHandler(job: AgentJob): Promise<HandlerResu
       }],
     };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    // Meta API rate limits or auth errors are transient — retry.
+    const msg       = err instanceof Error ? err.message : String(err);
     const transient = /timeout|rate.?limit|overloaded|503|504|ECONN|OAuthException/i.test(msg);
     return transient ? { type: 'retry', error: msg } : { type: 'fail', error: msg };
   }

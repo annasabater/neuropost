@@ -6,6 +6,7 @@ import { Upload, Wand2, RefreshCw, Image as ImageIcon, Check, Flame, X, Play, Ch
 import { useTranslations } from 'next-intl';
 import type { Platform, PostFormat, PostGoal, EditorOutput, CopywriterOutput } from '@/types';
 import { PostPreview } from './PostPreview';
+import { PlatformScheduler, type PlatformSchedule } from './PlatformScheduler';
 import { createBrowserClient } from '@/lib/supabase';
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
@@ -36,6 +37,10 @@ interface Props {
     aiExplanation?: string;
     qualityScore?: number;
     isStory?: boolean;
+    /** Per-platform publish time set in the PlatformScheduler. The host form
+     *  forwards this to POST /api/posts/[id]/publications after creating
+     *  the post. Absent = legacy single-schedule flow. */
+    publications?: Array<{ platform: Platform; scheduledAt: string | null }>;
   }) => Promise<void>;
 }
 
@@ -67,6 +72,8 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
   const [goal, setGoal] = useState<PostGoal>('engagement');
   const [previewPlatform, setPreviewPlatform] = useState<Platform>('instagram');
   const [isStory, setIsStory] = useState(false);
+  // Per-platform publish-time picks — updated by the PlatformScheduler child.
+  const [schedules, setSchedules] = useState<PlatformSchedule[]>([]);
 
   // ── AI state ──
   const [editorResult, setEditorResult] = useState<EditorOutput | null>(null);
@@ -237,6 +244,10 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
         aiExplanation: aiMeta || undefined,
         qualityScore: editorResult?.analysis.qualityScore,
         isStory: isStory && platforms.includes('instagram'),
+        // Forward the per-platform schedule picked in PlatformScheduler.
+        // Filtered to the currently ticked platforms to match the child
+        // output exactly.
+        publications: schedules.length > 0 ? schedules : undefined,
       });
     } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
     finally { setSaving(false); }
@@ -621,7 +632,47 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
           </div>
         </div>
 
-        {/* Platforms section removed as requested */}
+        {/* Platforms */}
+        <div className="editor-section editor-row">
+          <div className="form-group" style={{ flex: 1 }}>
+            <label>Publicar en</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {([
+                { value: 'instagram' as Platform, label: '📷 Instagram', note: '' },
+                { value: 'facebook'  as Platform, label: '📘 Facebook',  note: '' },
+                { value: 'tiktok'    as Platform, label: '🎵 TikTok',    note: 'solo vídeos' },
+              ] as { value: Platform; label: string; note: string }[]).map(({ value, label, note }) => {
+                const active = platforms.includes(value);
+                const disabled = value === 'tiktok' && format !== 'reel';
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    title={disabled ? 'TikTok solo admite vídeos (formato Reel)' : undefined}
+                    disabled={disabled}
+                    onClick={() => !disabled && togglePlatform(value)}
+                    style={{
+                      padding: '7px 14px', border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                      background: active ? 'var(--accent-light, #f0fdfa)' : 'var(--bg)',
+                      color: active ? 'var(--accent)' : 'var(--text-secondary)',
+                      fontFamily: 'var(--font-barlow), sans-serif', fontSize: 13, fontWeight: active ? 700 : 400,
+                      cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
+                      display: 'flex', alignItems: 'center', gap: 4,
+                    }}
+                  >
+                    {label}
+                    {note && <span style={{ fontSize: 10, opacity: 0.7 }}>({note})</span>}
+                  </button>
+                );
+              })}
+            </div>
+            {platforms.includes('tiktok') && (
+              <p style={{ fontSize: 12, color: 'var(--accent)', marginTop: 6 }}>
+                TikTok solo publica el vídeo — el pie de foto se usa como descripción.
+              </p>
+            )}
+          </div>
+        </div>
 
         {/* Format */}
         <div className="editor-section editor-row">
@@ -724,6 +775,14 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
             <span>Convertir también en historia</span>
           </label>
         )}
+
+        {/* Per-platform schedule picker — drives POST /api/posts/[id]/publications
+            after the post is created in the host form. */}
+        <PlatformScheduler
+          platforms={platforms}
+          onChange={setSchedules}
+          disabled={saving || uploading}
+        />
 
         {error && <p className="editor-error">{error}</p>}
 

@@ -1,0 +1,190 @@
+{
+  "generated_at": "2026-04-15T19:34:12.634Z",
+  "total": 26,
+  "success": 11,
+  "failed": 15,
+  "images": [
+    {
+      "id": "ice_cream_creative",
+      "label": "Heladería Creativa",
+      "aspect": "1:1",
+      "url": "https://replicate.delivery/xezq/Dzvnxj1uKy6cKN5YRDP7tIETqt2efWbfGtNT516FGiSfNmtZB/out-0.jpg",
+      "error": null
+    },
+    {
+      "id": "ice_cream_luxury",
+      "label": "Heladería Gourmet",
+      "aspect": "1:1",
+      "url": "https://replicate.delivery/xezq/kGNJgntoX57xONeUQ56ieYawlQyYfmow8avr7xaX8CYdHz2sA/out-0.jpg",
+      "error": null
+    },
+    {
+      "id": "gym_classic",
+      "label": "Gimnasio Clásico",
+      "aspect": "1:1",
+      "url": "https://replicate.delivery/xezq/wuf7k7aiZc0IG6LtaS9kdzngsAPiEPq0f3pj4X7wOwLeHz2sA/out-0.jpg",
+      "error": null
+    },
+    {
+      "id": "gym_modern",
+      "label": "Gimnasio Moderno / Wellness",
+      "aspect": "1:1",
+      "url": "https://replicate.delivery/xezq/Gk83mZZqCJYUMxCmzKH9mCFC65RbT6OyB0pzTPXumFdDZ2mF/out-0.jpg",
+      "error": null
+    },
+    {
+      "id": "beauty_products",
+      "label": "Centro de Estética — Productos",
+      "aspect": "1:1",
+      "url": "https://replicate.delivery/xezq/QQ1Nh7fT6rwbNaZtqOwzMG9sTvoHvJahzWn6t9V1eew6Iz2sA/out-0.jpg",
+      "error": null
+    },
+    {
+      "id": "beauty_spa",
+      "label": "Centro de Estética — Spa",
+      "aspect": "1:1",
+      "url": "https://replicate.delivery/xezq/ZTWUX5boaBIbIJeoYKFfozA8YjhJnlR0hmdG9tAVLhXtkZbWA/out-0.jpg",
+      "error": null
+    },
+    {
+      "id": "restaurant_plating",
+      "label": "Restaurante — Plato",
+      "aspect": "1:1",
+      "url": "https://replicate.delivery/xezq/IvLkgNwdEOpeOKzp3PApyvfzBMpRdgv9k9H2WvSpLoC7kZbWA/out-0.jpg",
+      "error": null
+    },
+    {
+      "id": "restaurant_brunch",
+      "label": "Restaurante — Brunch Lifestyle",
+      "aspect": "1:1",
+      "url": "https://replicate.delivery/xezq/No8i6T5th14qJBY3ntKuUzSCCAmkxVMWIBJJeopztx7lysNLA/out-0.jpg",
+      "error": null
+    },
+    {
+      "id": "sailing_golden",
+      "label": "Centro de Vela — Atardecer",
+      "aspect": "1:1",
+      "url": "https://replicate.delivery/xezq/Og18Bw43gfROVada6Dchmum6F10QhMeyP7jM71MpGJqblZbWA/out-0.jpg",
+      "error": null
+    },
+    {
+      "id": "sailing_lifestyle",
+      "label": "Centro de Vela — Lifestyle",
+      "aspect": "1:1",
+      "url": "https://replicate.delivery/xezq/wAx2up3bCcqSE59eN91ZSqsME62negJwSeSLH6Gl1iFULz2sA/out-0.jpg",
+      "error": null
+    },
+    {
+      "id": "ecommerce_product",
+      "label": "Ecommerce — Producto",
+      "aspect": "1:1",
+      "url": "https://replicate.delivery/xezq/zTQL5KVgF8aGBlb4psF6NmeLs5O8fept7qDbaJTWSUHyLz2sA/out-0.jpg",
+      "error": null
+    },
+    {
+      "id": "ecommerce_lifestyle",
+      "label": "Ecommerce — Lifestyle",
+      "aspect": "1:1",
+      "url": null,
+      "error": "Replicate start error: You have insufficient credit to run this model. Go to https://replicate.com/account/billing#billing to purchase credit. Once you purchase credit, please wait a few minutes before trying again."
+    },
+    {
+      "id": "clinic_dental",
+      "label": "Clínica Dental",
+      "aspect": "1:1",
+      "url": null,
+      "error": "Replicate start error: You have insufficient credit to run this model. Go to https://replicate.com/account/billing#billing to purchase credit. Once you purchase credit, please wait a few minutes before trying again."
+    },
+    {
+      "id": "clinic_wellness",
+      "label": "Clínica de Bienestar",
+      "aspect": "1:1",
+      "url": null,
+      "error": "Replicate start error: You have insufficient credit to run this model. Go to https://replicate.com/account/billing#billing to purchase credit. Once you purchase credit, please wait a few minutes before trying again."
+    },
+    {
+      "id": "real_estate_interior",
+      "label": "Inmobiliaria — Interior",
+      "aspect": "1:1",
+      "url": null,
+      "error": "Replicate start error: You have insufficient credit to run this model. Go to https://replicate.com/account/billing#billing to purchase credit. Once you purchase credit, please wait a few minutes before trying again."
+    },
+    {
+      "id": "real_estate_exterior",
+      "label": "Inmobiliaria — Villa Exterior",
+      "aspect": "1:1",
+      "url": null,
+      "error": "Replicate start error: You have insufficient credit to run this model. Go to https://replicate.com/account/billing#billing to purchase credit. Once you purchase credit, please wait a few minutes before trying again."
+    },
+    {
+      "id": "coffee_latte_art",
+      "label": "Cafetería — Latte Art",
+      "aspect": "1:1",
+      "url": null,
+      "error": "Replicate start error: You have insufficient credit to run this model. Go to https://replicate.com/account/billing#billing to purchase credit. Once you purchase credit, please wait a few minutes before trying again."
+    },
+    {
+      "id": "coffee_shop_interior",
+      "label": "Cafetería — Interior",
+      "aspect": "1:1",
+      "url": null,
+      "error": "Replicate start error: You have insufficient credit to run this model. Go to https://replicate.com/account/billing#billing to purchase credit. Once you purchase credit, please wait a few minutes before trying again."
+    },
+    {
+      "id": "fashion_editorial",
+      "label": "Moda — Editorial",
+      "aspect": "1:1",
+      "url": null,
+      "error": "Replicate start error: You have insufficient credit to run this model. Go to https://replicate.com/account/billing#billing to purchase credit. Once you purchase credit, please wait a few minutes before trying again."
+    },
+    {
+      "id": "fashion_boutique",
+      "label": "Moda — Boutique",
+      "aspect": "1:1",
+      "url": null,
+      "error": "Replicate start error: You have insufficient credit to run this model. Go to https://replicate.com/account/billing#billing to purchase credit. Once you purchase credit, please wait a few minutes before trying again."
+    },
+    {
+      "id": "barbershop",
+      "label": "Barbería Clásica",
+      "aspect": "1:1",
+      "url": null,
+      "error": "Replicate start error: You have insufficient credit to run this model. Go to https://replicate.com/account/billing#billing to purchase credit. Once you purchase credit, please wait a few minutes before trying again."
+    },
+    {
+      "id": "hair_salon",
+      "label": "Salón de Peluquería",
+      "aspect": "1:1",
+      "url": null,
+      "error": "Replicate start error: You have insufficient credit to run this model. Go to https://replicate.com/account/billing#billing to purchase credit. Once you purchase credit, please wait a few minutes before trying again."
+    },
+    {
+      "id": "bakery_artisan",
+      "label": "Panadería Artesanal",
+      "aspect": "1:1",
+      "url": null,
+      "error": "Replicate start error: You have insufficient credit to run this model. Go to https://replicate.com/account/billing#billing to purchase credit. Once you purchase credit, please wait a few minutes before trying again."
+    },
+    {
+      "id": "recreation_karting",
+      "label": "Centro Recreativo — Karting",
+      "aspect": "1:1",
+      "url": null,
+      "error": "Replicate start error: You have insufficient credit to run this model. Go to https://replicate.com/account/billing#billing to purchase credit. Once you purchase credit, please wait a few minutes before trying again."
+    },
+    {
+      "id": "yoga_studio",
+      "label": "Yoga & Pilates Studio",
+      "aspect": "1:1",
+      "url": null,
+      "error": "Replicate start error: You have insufficient credit to run this model. Go to https://replicate.com/account/billing#billing to purchase credit. Once you purchase credit, please wait a few minutes before trying again."
+    },
+    {
+      "id": "coworking_space",
+      "label": "Coworking & Tecnología",
+      "aspect": "1:1",
+      "url": null,
+      "error": "Replicate start error: You have insufficient credit to run this model. Go to https://replicate.com/account/billing#billing to purchase credit. Once you purchase credit, please wait a few minutes before trying again."
+    }
+  ]
+}

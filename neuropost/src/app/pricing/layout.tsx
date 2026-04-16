@@ -2,10 +2,10 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Precios y planes — NeuroPost',
-  description: 'Gestión de redes sociales con IA desde 29€/mes. Planes Starter, Pro, Total y Agencia. 14 días gratis, sin permanencia, cancela cuando quieras.',
+  description: 'Gestión de redes sociales con IA desde 29€/mes. Planes Starter, Pro, Total y Agencia. Cancela cuando quieras.',
   openGraph: {
     title: 'Precios y planes — NeuroPost',
-    description: 'Gestión de redes sociales con IA desde 29€/mes. Sin permanencia. 14 días gratis.',
+    description: 'Gestión de redes sociales con IA desde 29€/mes. Cancela cuando quieras.',
     url: 'https://neuropost.es/pricing',
     siteName: 'NeuroPost',
     locale: 'es_ES',
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Precios y planes — NeuroPost',
-    description: 'Gestión de redes sociales con IA desde 29€/mes. Sin permanencia.',
+    description: 'Gestión de redes sociales con IA desde 29€/mes. Cancela cuando quieras.',
     images: ['https://neuropost.es/og'],
   },
   alternates: { canonical: 'https://neuropost.es/pricing' },

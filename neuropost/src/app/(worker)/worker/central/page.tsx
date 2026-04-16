@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Image, AlertCircle, X, Search } from 'lucide-react';
 import Link from 'next/link';
@@ -45,52 +45,60 @@ function timeAgo(d: string) {
   return `hace ${Math.floor(h / 24)}d`;
 }
 
-function PostCard({ post }: { post: any }) {
+function PostCard({ post, onGenerateImage }: { post: any; onGenerateImage?: (postId: string) => void }) {
+  const [generating, setGenerating] = React.useState(false);
+  const hasImage = !!(post.edited_image_url || post.image_url);
+  const isPending = post.status === 'pending' || post.status === 'request';
+
+  async function handleGenerate(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (generating) return;
+    setGenerating(true);
+    try {
+      const res = await fetch(`/api/posts/${post.id}/generate-image`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+      if (!res.ok) { const d = await res.json(); toast.error(d.error ?? 'Error al generar'); return; }
+      toast.success('Imagen enviada a generar. Llegará en 1-2 min ✅');
+      onGenerateImage?.(post.id);
+    } catch { toast.error('Error de red'); }
+    finally { setGenerating(false); }
+  }
+
   return (
-    <Link href={`/worker/clientes/${post.brand_id}`}>
-      <div
-        style={{
-          border: `1px solid ${C.border}`,
-          background: C.card,
-          cursor: 'pointer',
-          transition: 'background 0.15s',
-        }}
-        onMouseEnter={(e) => (e.currentTarget.style.background = C.bg1)}
-        onMouseLeave={(e) => (e.currentTarget.style.background = C.card)}
-      >
-        {post.edited_image_url || post.image_url ? (
-          <img
-            src={post.edited_image_url || post.image_url}
-            alt={post.caption || 'Post'}
-            style={{ width: '100%', height: 160, objectFit: 'cover' }}
-          />
-        ) : (
-          <div
-            style={{
-              width: '100%',
-              height: 160,
-              background: C.bg1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Image size={32} color={C.muted} />
+    <div style={{ border: `1px solid ${C.border}`, background: C.card }}>
+      <Link href={`/worker/clientes/${post.brand_id}`} style={{ textDecoration: 'none' }}>
+        <div
+          style={{ cursor: 'pointer', transition: 'background 0.15s' }}
+          onMouseEnter={(e) => (e.currentTarget.style.background = C.bg1)}
+          onMouseLeave={(e) => (e.currentTarget.style.background = C.card)}
+        >
+          {hasImage ? (
+            <img src={post.edited_image_url || post.image_url} alt={post.caption || 'Post'} style={{ width: '100%', height: 160, objectFit: 'cover', display: 'block' }} />
+          ) : (
+            <div style={{ width: '100%', height: 160, background: C.bg1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Image size={32} color={C.muted} />
+            </div>
+          )}
+          <div style={{ padding: '12px 16px' }}>
+            <p style={{ fontSize: 13, color: C.muted, margin: '0 0 8px' }}>{post.brands?.name || 'Sin marca'}</p>
+            <p style={{ fontSize: 12, color: C.text, margin: '0' }}>{post.caption || '(sin caption)'}</p>
+            <p style={{ fontSize: 11, color: C.muted, margin: '8px 0 0', fontStyle: 'italic' }}>{timeAgo(post.created_at)}</p>
           </div>
-        )}
-        <div style={{ padding: '12px 16px' }}>
-          <p style={{ fontSize: 13, color: C.muted, margin: '0 0 8px' }}>
-            {post.brands?.name || 'Sin marca'}
-          </p>
-          <p style={{ fontSize: 12, color: C.text, margin: '0', lineClamp: 2 }}>
-            {post.caption || '(sin caption)'}
-          </p>
-          <p style={{ fontSize: 11, color: C.muted, margin: '8px 0 0', fontStyle: 'italic' }}>
-            {timeAgo(post.created_at)}
-          </p>
         </div>
-      </div>
-    </Link>
+      </Link>
+      {isPending && (
+        <div style={{ padding: '0 12px 12px' }}>
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={generating}
+            style={{ width: '100%', padding: '8px', background: generating ? C.bg1 : C.accent, color: generating ? C.muted : '#fff', border: 'none', cursor: generating ? 'not-allowed' : 'pointer', fontSize: 12, fontFamily: f, fontWeight: 700, letterSpacing: '0.03em' }}
+          >
+            {generating ? 'Generando…' : 'Generar imagen con IA'}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -240,7 +248,7 @@ export default function WorkerDashboardPage() {
     const recChannel = supabase
       .channel('worker-recreation-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'recreation_requests' }, () => {
-        toast.success('🎨 Nueva solicitud de recreación');
+        toast.success('Nueva solicitud de recreación');
         fetch('/api/worker/dashboard')
           .then((r) => r.json())
           .then((newData) => {
@@ -689,7 +697,7 @@ export default function WorkerDashboardPage() {
           {/* Recreation Requests */}
           <div>
             <h2 style={{ fontSize: 16, fontFamily: fc, fontWeight: 700, margin: '0 0 16px', color: C.text }}>
-              🎨 Solicitudes de recreación ({filteredData.recreationRequests.length})
+              Solicitudes de recreación ({filteredData.recreationRequests.length})
             </h2>
             {filteredData.recreationRequests.length > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', background: C.border }}>

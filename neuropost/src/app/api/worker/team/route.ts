@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { createAdminClient, createServerClient } from '@/lib/supabase';
 
 // GET /api/worker/team — lista workers (activos + inactivos)
@@ -126,7 +127,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ worker: inserted }, { status: 201 });
   } catch (err) {
     console.error('[POST /api/worker/team]', err);
-    const message = err instanceof Error ? err.message : 'Error interno';
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'worker/team');
   }
 }

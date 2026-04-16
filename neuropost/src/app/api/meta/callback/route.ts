@@ -8,6 +8,8 @@ import {
 } from '@/lib/meta';
 import { createAdminClient } from '@/lib/supabase';
 import { syncBrandPostsIntoFeedQueue, syncInstagramPublishedSnapshot } from '@/lib/feedQueue';
+import { upsertConnection, type Platform } from '@/lib/platforms';
+import { getSocialQuota, overQuotaRedirect } from '@/lib/social-quota';
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -47,9 +49,31 @@ export async function GET(request: Request) {
     // 4 — Discover the IG Business Account linked to that page
     const igAccount = await getIGAccountFromPage(page.id, page.access_token);
 
-    // 5 — Save to brands (service role bypasses RLS)
+    // 5 — Resolve brand + enforce social-account quota
     const supabase = createAdminClient();
+    const { data: brandRow } = await supabase.from('brands').select('id').eq('user_id', userId).single();
+    if (!brandRow?.id) {
+      return NextResponse.redirect(new URL('/settings?meta_error=no_brand', origin));
+    }
 
+    // Quota: every plan includes 1 connected social platform, extras are paid.
+    // Connecting a platform the brand already has wired doesn't consume a slot
+    // (that's a re-auth). If this OAuth would *add* more platforms than the
+    // remaining quota allows, bounce to /settings/plan with an upsell banner.
+    const quota = await getSocialQuota(brandRow.id);
+    const attempted: Platform[] = [];
+    if (igAccount && !quota.connected.includes('instagram')) attempted.push('instagram');
+    if (!quota.connected.includes('facebook'))               attempted.push('facebook');
+
+    if (attempted.length > quota.remaining) {
+      return NextResponse.redirect(
+        overQuotaRedirect(origin, attempted[0]!, quota).toString(),
+      );
+    }
+
+    // 6 — Persist tokens on the legacy brand columns (backward compat until
+    //     phase 1b drops them) AND on the canonical platform_connections
+    //     rows so the quota counter stays accurate going forward.
     const update: Record<string, string | null> = {
       meta_token_expires_at: expiresAt,
     };
@@ -60,14 +84,45 @@ export async function GET(request: Request) {
       update.ig_access_token = page.access_token; // page token works for IG Business
     }
 
-    // TODO [FASE 2]: Facebook — store fb_page_id, fb_page_name, fb_access_token when source === 'facebook'
+    // Facebook Page — always save page token so user can publish to FB too
+    update.fb_page_id     = page.id;
+    update.fb_page_name   = page.name;
+    update.fb_access_token = page.access_token;
 
     await supabase
       .from('brands')
       .update(update)
       .eq('user_id', userId);
 
-    const { data: brandRow } = await supabase.from('brands').select('id').eq('user_id', userId).single();
+    const expiresAtDate = new Date(expiresAt);
+
+    // Upsert platform_connections so future quota checks see the new rows.
+    if (igAccount) {
+      await upsertConnection({
+        brandId:          brandRow.id,
+        platform:         'instagram',
+        platformUserId:   igAccount.id,
+        platformUsername: igAccount.username ?? null,
+        accessToken:      page.access_token,
+        refreshToken:     null,
+        expiresAt:        expiresAtDate,
+        refreshExpiresAt: null,
+        status:           'active',
+        metadata:         { source: 'meta/callback', fb_page_id: page.id },
+      });
+    }
+    await upsertConnection({
+      brandId:          brandRow.id,
+      platform:         'facebook',
+      platformUserId:   page.id,
+      platformUsername: page.name,
+      accessToken:      page.access_token,
+      refreshToken:     null,
+      expiresAt:        expiresAtDate,
+      refreshExpiresAt: null,
+      status:           'active',
+      metadata:         { source: 'meta/callback' },
+    });
     if (brandRow?.id) {
       await syncBrandPostsIntoFeedQueue(supabase, brandRow.id);
       if (igAccount) {
@@ -94,6 +149,11 @@ export async function GET(request: Request) {
           : `Cuenta de Instagram conectada correctamente.`,
         read:     false,
       });
+
+      // 8 — Trigger first-content generation (onboarding auto-content)
+      import('@/lib/onboarding-content')
+        .then(({ triggerOnboardingContent }) => triggerOnboardingContent(brandRow.id, 'instagram_connect'))
+        .catch((e) => console.error('[meta/callback] onboarding content trigger failed:', e));
     }
 
     return NextResponse.redirect(new URL('/settings?meta_connected=1', origin));

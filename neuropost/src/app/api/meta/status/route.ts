@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import type { Brand } from '@/types';
 
@@ -12,37 +13,30 @@ export async function GET() {
 
     const { data: brand } = await supabase
       .from('brands')
-      .select('ig_account_id,ig_username,meta_token_expires_at,token_refreshed_at,ig_access_token')
+      .select('ig_account_id,ig_username,meta_token_expires_at,token_refreshed_at,ig_access_token,fb_page_id,fb_page_name,fb_access_token')
       .eq('user_id', user.id)
       .single();
 
-    if (!brand) return NextResponse.json({ instagram: null });
+    if (!brand) return NextResponse.json({ instagram: null, facebook: null });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const b = brand as Pick<Brand, 'ig_account_id' | 'ig_username' | 'meta_token_expires_at'> & { token_refreshed_at?: string | null };
+    const b = brand as Pick<Brand, 'ig_account_id' | 'ig_username' | 'meta_token_expires_at' | 'fb_page_id' | 'fb_page_name' | 'fb_access_token'> & { token_refreshed_at?: string | null };
 
     const tokenExpiresAt = b.meta_token_expires_at ? new Date(b.meta_token_expires_at) : null;
     const daysLeft       = tokenExpiresAt ? Math.floor((tokenExpiresAt.getTime() - Date.now()) / 86_400_000) : null;
     const tokenStatus    = daysLeft === null ? 'missing' : daysLeft <= 0 ? 'expired' : daysLeft <= 7 ? 'expiring_soon' : 'ok';
     const tokenRefreshedAt = b.token_refreshed_at ?? null;
 
-    // TODO [FASE 2]: Facebook — add facebook: b.fb_page_id ? { ... } : null
     return NextResponse.json({
       instagram: b.ig_account_id
-        ? {
-            accountId:       b.ig_account_id,
-            username:        b.ig_username ?? null,
-            tokenStatus,
-            daysLeft,
-            expiresAt:       b.meta_token_expires_at,
-            tokenRefreshedAt,
-          }
+        ? { accountId: b.ig_account_id, username: b.ig_username ?? null, tokenStatus, daysLeft, expiresAt: b.meta_token_expires_at, tokenRefreshedAt }
+        : null,
+      facebook: b.fb_page_id
+        ? { pageId: b.fb_page_id, pageName: b.fb_page_name ?? null, tokenStatus, daysLeft, expiresAt: b.meta_token_expires_at, tokenRefreshedAt }
         : null,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'meta/status');
   }
 }
 
@@ -66,8 +60,6 @@ export async function DELETE() {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'meta/status');
   }
 }

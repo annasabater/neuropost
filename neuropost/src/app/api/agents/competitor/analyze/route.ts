@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { rateLimitAgents } from '@/lib/ratelimit';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { fetchCompetitorPublicData, analyzeCompetitor } from '@/agents/CompetitorAgent';
 import { checkFeature } from '@/lib/plan-limits';
@@ -7,6 +9,8 @@ import type { Brand, BrandRules } from '@/types';
 
 export async function POST(request: Request) {
   try {
+    const rl = await rateLimitAgents(request);
+    if (rl) return rl;
     const user = await requireServerUser();
     const { competitorUsername } = await request.json() as { competitorUsername: string };
 
@@ -71,8 +75,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ analysis: saved, result });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'POST /api/agents/competitor/analyze');
   }
 }

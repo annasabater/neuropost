@@ -1,83 +1,148 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Vercel Cron — publishes every due `post_publications` row.
+//
+// This is the phase-2 rewrite: instead of reading the legacy
+// posts.scheduled_at and publishing only to Instagram, we now walk the
+// post_publications fan-out table, call provider.publish through the
+// multi-platform factory, and persist the per-platform outcome.
+//
+// A small back-compat shim picks up any post whose scheduled_at has
+// elapsed but has NO post_publications row yet (shouldn't happen after
+// the phase-1 backfill, but defensive — synthesises an IG publication
+// so nothing silently falls behind).
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
-import { publishToInstagram } from '@/lib/meta';
 import { markPostAsPublishedInFeedQueue } from '@/lib/feedQueue';
-import type { Post, Brand } from '@/types';
+import {
+  listDuePublications,
+  claimAndRun,
+} from '@/lib/posts/publications';
 
-// Vercel Cron: runs every hour — publishes posts whose scheduled_at has passed
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DB = any;
+
+const BATCH_LIMIT = 50;
+
 export async function GET(request: Request) {
   const auth = request.headers.get('authorization');
   if (auth !== `Bearer ${process.env.CRON_SECRET ?? ''}`) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const supabase = createAdminClient();
-  const now      = new Date().toISOString();
+  const db = createAdminClient() as DB;
 
-  // Fetch all posts that are scheduled and due
-  const { data: posts } = await supabase
-    .from('posts')
-    .select('*')
-    .eq('status', 'scheduled')
-    .lte('scheduled_at', now);
-
-  if (!posts?.length) return NextResponse.json({ published: 0 });
+  // ── Phase-2 path: walk post_publications ────────────────────────────────
+  const due = await listDuePublications(BATCH_LIMIT);
 
   let published = 0;
+  let failed    = 0;
+  let skipped   = 0;
+  const details: Array<{
+    publicationId: string;
+    postId:        string;
+    platform:      string;
+    outcome:       string;
+    error?:        string;
+  }> = [];
 
-  for (const rawPost of posts) {
-    const post = rawPost as Post;
-
-    // Get brand
-    const { data: rawBrand } = await supabase
-      .from('brands')
-      .select('*')
-      .eq('id', post.brand_id)
-      .single();
-
-    if (!rawBrand) continue;
-    const brand = rawBrand as Brand;
-
-    const imageUrl = post.edited_image_url ?? post.image_url;
-    if (!imageUrl) continue;
-
-    const caption = [post.caption ?? '', ...(post.hashtags ?? [])].filter(Boolean).join('\n\n');
-    const updates: Partial<Post & { status: string }> = { status: 'published', published_at: now };
-
-    if (post.platform.includes('instagram') && brand.ig_account_id && brand.ig_access_token) {
-      try {
-        const result = await publishToInstagram({
-          igAccountId:  brand.ig_account_id,
-          imageUrl,
-          caption,
-          accessToken:  brand.ig_access_token,
-        });
-        updates.ig_post_id = result.postId;
-      } catch (err) {
-        console.error(`IG publish failed for post ${post.id}:`, err);
-        updates.status = 'failed';
+  for (const pub of due) {
+    try {
+      const outcome = await claimAndRun(pub.id);
+      if (!outcome) {
+        skipped++;
+        details.push({ publicationId: pub.id, postId: pub.post_id, platform: pub.platform, outcome: 'claimed_elsewhere' });
+        continue;
       }
+
+      details.push({
+        publicationId: pub.id,
+        postId:        pub.post_id,
+        platform:      pub.platform,
+        outcome:       outcome.mode,
+        error:         outcome.error,
+      });
+
+      if (outcome.mode === 'published') {
+        published++;
+        // Feed queue bookkeeping — once per post, on the first successful
+        // platform. Keeps the old feed tracking working until phase 3.
+        const { data: post } = await db
+          .from('posts').select('brand_id, image_url, edited_image_url')
+          .eq('id', pub.post_id).single();
+        if (post) {
+          const imageUrl = (post.edited_image_url ?? post.image_url ?? '') as string;
+          if (imageUrl) {
+            await markPostAsPublishedInFeedQueue(db, post.brand_id as string, pub.post_id, imageUrl)
+              .catch(err => console.error('[publish-scheduled] feedQueue update failed:', err));
+          }
+        }
+      } else {
+        failed++;
+      }
+
+      const brandId = await brandIdForPost(db, pub.post_id);
+      if (brandId) {
+        await db.from('notifications').insert({
+          brand_id: brandId,
+          type:     outcome.mode === 'published' ? 'published' : 'failed',
+          message:  outcome.mode === 'published'
+            ? `Post publicado en ${pub.platform}.`
+            : `Error al publicar en ${pub.platform}: ${outcome.error ?? 'desconocido'}`,
+          read:     false,
+          metadata: { postId: pub.post_id, publicationId: pub.id, platform: pub.platform },
+        }).then(() => null).catch(() => null);
+      }
+    } catch (err) {
+      failed++;
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[publish-scheduled] unexpected error on publication ${pub.id}:`, err);
+      details.push({
+        publicationId: pub.id,
+        postId:        pub.post_id,
+        platform:      pub.platform,
+        outcome:       'unexpected_error',
+        error:         msg,
+      });
     }
-
-    // TODO [FASE 2]: Facebook — republicar con adaptación automática de formato
-
-    await supabase.from('posts').update(updates).eq('id', post.id);
-    if (updates.status !== 'failed') {
-      await markPostAsPublishedInFeedQueue(supabase, brand.id, post.id, imageUrl);
-    }
-
-    await supabase.from('notifications').insert({
-      brand_id: brand.id,
-      type:     updates.status === 'failed' ? 'failed' : 'published',
-      message:  updates.status === 'failed'
-        ? `Error al publicar el post programado.`
-        : `Post programado publicado correctamente.`,
-      read:     false,
-      metadata: { postId: post.id },
-    });
-
-    if (updates.status !== 'failed') published++;
   }
 
-  return NextResponse.json({ published });
+  // ── Legacy safety net: posts with scheduled_at due but no publications ──
+  // After the phase-1 backfill this query returns ~0 rows. If a future
+  // regression ever stops populating post_publications, at least we surface
+  // the orphans so they don't get silently left behind.
+  const { data: orphans } = await db
+    .from('posts')
+    .select('id, brand_id, platform, scheduled_at')
+    .eq('status', 'scheduled')
+    .lte('scheduled_at', new Date().toISOString())
+    .limit(10);
+
+  let orphansDetected = 0;
+  for (const o of (orphans ?? []) as Array<{ id: string }>) {
+    const { data: pubs } = await db
+      .from('post_publications')
+      .select('id')
+      .eq('post_id', o.id)
+      .limit(1);
+    if (!pubs || pubs.length === 0) {
+      orphansDetected++;
+      console.warn(`[publish-scheduled] ORPHAN: post ${o.id} is scheduled but has no post_publications row`);
+    }
+  }
+
+  return NextResponse.json({
+    checked:         due.length,
+    published,
+    failed,
+    skipped,
+    orphansDetected,
+    details,
+  });
+}
+
+async function brandIdForPost(db: DB, postId: string): Promise<string | null> {
+  const { data } = await db.from('posts').select('brand_id').eq('id', postId).single();
+  return (data?.brand_id as string | undefined) ?? null;
 }

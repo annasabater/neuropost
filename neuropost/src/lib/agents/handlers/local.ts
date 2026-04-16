@@ -75,8 +75,15 @@ async function runPlain<T>(
 // them from the brand row. That's what the orchestrator is for.
 const imageGenerateHandler: AgentHandler = async (job) => {
   // brandId is optional on this agent (for asset upload); we don't enforce it.
-  const input = { ...(job.input as unknown as ImageGenerateInput), brandId: job.brand_id ?? undefined };
-  return runPlain(
+  const rawInput = job.input as unknown as ImageGenerateInput & {
+    _post_id?: string;
+    _photo_index?: number;
+    _original_prompt?: string;
+  };
+  const { _post_id, _photo_index, _original_prompt, ...agentInput } = rawInput;
+  const input = { ...agentInput, brandId: job.brand_id ?? undefined };
+
+  const result = await runPlain(
     () => runImageGenerateAgent(input),
     'image',
     {
@@ -84,6 +91,35 @@ const imageGenerateHandler: AgentHandler = async (job) => {
       preview_url: (out) => out.imageUrl as string,
     },
   );
+
+  // If this job was triggered for a specific post, auto-queue validate_image
+  if (result.type === 'ok' && _post_id && job.brand_id) {
+    const generatedUrl = result.outputs?.[0]?.preview_url;
+    if (generatedUrl) {
+      const { createAdminClient } = await import('@/lib/supabase');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = createAdminClient() as any;
+      await db.from('agent_jobs').insert({
+        brand_id:      job.brand_id,
+        agent_type:    'content',
+        action:        'validate_image',
+        input: {
+          post_id:         _post_id,
+          image_url:       generatedUrl,
+          original_prompt: _original_prompt ?? agentInput.userPrompt ?? '',
+          attempt_number:  1,
+          _photo_index:    _photo_index ?? 0,
+        },
+        status:        'pending',
+        priority:      job.priority ?? 70,
+        max_attempts:  3,
+        requested_by:  'agent',
+        parent_job_id: job.id,
+      });
+    }
+  }
+
+  return result;
 };
 
 // -----------------------------------------------------------------------------
@@ -183,12 +219,53 @@ const adaptTrendHandler: AgentHandler = async (job) => {
 // -----------------------------------------------------------------------------
 // content:analyze_inspiration → analyzeReference
 // -----------------------------------------------------------------------------
+// Extended behaviour: when the caller includes `_reference_id` in the input,
+// the handler saves the analysis back to inspiration_references so the prompt
+// is immediately available for Replicate recreations without re-running Claude.
 const inspirationHandler: AgentHandler = async (job) => {
-  return runPlain(
-    () => analyzeReference(job.input as unknown as AnalyzeReferenceInput),
-    'analysis',
-    { model: 'inspiration-agent' },
-  );
+  const guard = requireBrandId(job);
+  if (typeof guard !== 'string') return guard;
+
+  const rawInput = job.input as unknown as AnalyzeReferenceInput & { _reference_id?: string };
+  const { _reference_id, ...agentInput } = rawInput;
+
+  let result: import('@/agents/InspirationAgent').InspirationAnalysisResult;
+  try {
+    result = await analyzeReference(agentInput);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const transient = /timeout|rate.?limit|overloaded|503|504|ECONN/i.test(msg);
+    return transient ? { type: 'retry', error: msg } : { type: 'fail', error: msg };
+  }
+
+  // Persist analysis back to inspiration_references when reference_id provided
+  if (_reference_id) {
+    try {
+      const { createAdminClient } = await import('@/lib/supabase');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const db = createAdminClient() as any;
+      await db.from('inspiration_references').update({
+        recreation_prompt:   result.recreationPrompt,
+        style_analysis:      result.styleAnalysis,
+        worker_instructions: result.workerInstructions,
+        suggested_caption:   result.suggestedCaption,
+        suggested_hashtags:  result.suggestedHashtags,
+        analysis_status:     'done',
+      }).eq('id', _reference_id);
+    } catch (saveErr) {
+      console.error('[inspirationHandler] Failed to persist analysis:', saveErr);
+      // Non-fatal: result still returned as agent output
+    }
+  }
+
+  return {
+    type: 'ok',
+    outputs: [{
+      kind:    'analysis',
+      payload: result as unknown as Record<string, unknown>,
+      model:   'claude-haiku-4-5-20251001',
+    }],
+  };
 };
 
 // -----------------------------------------------------------------------------

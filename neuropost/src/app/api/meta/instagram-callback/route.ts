@@ -6,6 +6,8 @@ import {
   verifyMetaState,
 } from '@/lib/meta';
 import { createAdminClient } from '@/lib/supabase';
+import { upsertConnection } from '@/lib/platforms';
+import { canConnectPlatform, overQuotaRedirect } from '@/lib/social-quota';
 
 /**
  * GET /api/meta/instagram-callback
@@ -52,9 +54,27 @@ export async function GET(request: Request) {
     // 3 — Perfil de Instagram
     const profile = await getInstagramProfile(longToken);
 
-    // 4 — Guardar en brands (service role, bypasses RLS)
+    // 4 — Resolve brand + enforce social-account quota
     const supabase = createAdminClient();
+    const { data: brandRow } = await supabase
+      .from('brands')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
 
+    if (!brandRow?.id) {
+      return NextResponse.redirect(new URL('/settings/connections?meta_error=no_brand', origin));
+    }
+
+    const decision = await canConnectPlatform(brandRow.id, 'instagram');
+    if (!decision.allowed) {
+      console.warn('[instagram-callback] quota blocked', { userId, reason: decision.reason });
+      return NextResponse.redirect(
+        overQuotaRedirect(origin, 'instagram', decision.quota).toString(),
+      );
+    }
+
+    // 5 — Persist token on legacy brand columns + canonical platform_connections
     await supabase
       .from('brands')
       .update({
@@ -65,11 +85,18 @@ export async function GET(request: Request) {
       })
       .eq('user_id', userId);
 
-    const { data: brandRow } = await supabase
-      .from('brands')
-      .select('id')
-      .eq('user_id', userId)
-      .single();
+    await upsertConnection({
+      brandId:          brandRow.id,
+      platform:         'instagram',
+      platformUserId:   profile.id,
+      platformUsername: profile.username ?? null,
+      accessToken:      longToken,
+      refreshToken:     null,
+      expiresAt:        new Date(expiresAt),
+      refreshExpiresAt: null,
+      status:           'active',
+      metadata:         { source: 'instagram-callback', flow: 'instagram_login' },
+    });
 
     // 5 — Activity log
     if (brandRow?.id) {

@@ -49,8 +49,8 @@ export async function POST(request: Request) {
     try {
       await db.from('notifications').insert({
         brand_id,
-        type: 'new_message',
-        message: 'Tienes un nuevo mensaje de tu equipo.',
+        type: 'chat_message',
+        message: 'Nuevo mensaje del equipo de NeuroPost.',
         read: false,
         metadata: { messageId: msg.id },
       });

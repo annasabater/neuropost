@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import toast from 'react-hot-toast';
 import { Plus, X, Calendar, Palette, Zap, MessageCircle, FileText } from 'lucide-react';
+import { createBrowserClient } from '@/lib/supabase';
+import { useAppStore } from '@/store/useAppStore';
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
@@ -49,6 +51,8 @@ export default function SolicitudesPage() {
   const [showDrawer, setShowDrawer] = useState(false);
   const [form, setForm] = useState({ type: 'campaign', title: '', description: '', deadline_at: '', priority: 'normal' });
   const [saving, setSaving] = useState(false);
+  const brand = useAppStore((s) => s.brand);
+  const supabase = useMemo(() => createBrowserClient(), []);
 
   useEffect(() => {
     fetch('/api/solicitudes').then((r) => r.json()).then((d) => {
@@ -56,6 +60,25 @@ export default function SolicitudesPage() {
       setLoading(false);
     });
   }, []);
+
+  // Realtime: actualizar cuando el agente responda (worker_response cambia)
+  useEffect(() => {
+    if (!brand?.id) return;
+    const ch = (supabase.channel(`client-solicitudes-${brand.id}`) as unknown as {
+      on: (event: string, filter: Record<string, unknown>, cb: (payload: { new: Request }) => void) => typeof ch;
+      subscribe: () => typeof ch;
+    });
+    ch.on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'special_requests', filter: `brand_id=eq.${brand.id}` },
+      (payload) => {
+        const updated = payload.new;
+        setRequests(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r));
+        if (updated.worker_response) toast.success('El agente ha respondido a tu solicitud');
+      },
+    ).subscribe();
+    return () => { supabase.removeChannel(ch as unknown as Parameters<typeof supabase.removeChannel>[0]); };
+  }, [brand?.id, supabase]);
 
   async function submit() {
     if (!form.title.trim()) { toast.error('Añade un título'); return; }

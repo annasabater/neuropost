@@ -4,16 +4,28 @@
 
 // ─── Primitive Unions ─────────────────────────────────────────────────────────
 
-export type Platform        = 'instagram'; // FASE 2: | 'facebook' | 'tiktok'
+export type Platform        = 'instagram' | 'facebook' | 'tiktok';
 export type SocialSector    = 'heladeria' | 'restaurante' | 'cafeteria' | 'gym' | 'clinica' | 'barberia' | 'boutique' | 'inmobiliaria'
   | 'panaderia' | 'cocteleria' | 'street_food' | 'vinoteca'
-  | 'nail_art' | 'estetica' | 'maquillaje'
+  | 'nail_art' | 'estetica' | 'maquillaje' | 'peluqueria' | 'tattoo'
   | 'moda_hombre' | 'zapateria' | 'skincare'
-  | 'yoga' | 'dental' | 'clinica_estetica' | 'nutricion'
-  | 'decoracion' | 'jardineria' | 'reformas' | 'inmobiliaria_lujo'
-  | 'fotografia' | 'academia' | 'abogado' | 'veterinario' | 'mecanica'
+  | 'yoga' | 'dental' | 'clinica_estetica' | 'nutricion' | 'psicologia' | 'fisioterapia'
+  | 'decoracion' | 'jardineria' | 'reformas' | 'inmobiliaria_lujo' | 'arquitectura'
+  | 'fotografia' | 'academia' | 'abogado' | 'veterinario' | 'mecanica' | 'consultoria'
   | 'teatro' | 'arte' | 'libreria' | 'gaming' | 'viajes' | 'hotel'
-  | 'floristeria' | 'regalos' | 'tecnologia'
+  | 'floristeria' | 'regalos' | 'tecnologia' | 'ecommerce' | 'agencia_marketing'
+  // Turismo y alojamiento
+  | 'hostal' | 'casa_rural' | 'camping' | 'agencia_viajes'
+  // Cultura y ocio
+  | 'museo' | 'galeria' | 'sala_conciertos' | 'cine' | 'escape_room'
+  // Educación y formación
+  | 'escuela' | 'guarderia' | 'academia_idiomas' | 'academia_musica' | 'academia_deporte'
+  // Deporte y aventura
+  | 'centro_deportivo' | 'parque_acuatico' | 'aventura' | 'club_deportivo' | 'padel'
+  // Ocio y familia
+  | 'centro_ludico' | 'parque_infantil' | 'zoo' | 'acuario'
+  // Eventos y servicios
+  | 'organizacion_eventos' | 'catering' | 'ong' | 'coworking'
   | 'otro';
 export type BrandTone       = 'cercano' | 'profesional' | 'divertido' | 'premium';
 export type PublishMode     = 'manual' | 'semi' | 'auto';
@@ -119,6 +131,11 @@ export interface Brand {
   ig_access_token:        string | null;
   fb_access_token:        string | null;
   meta_token_expires_at:  string | null;
+  tt_access_token:        string | null;
+  tt_refresh_token:       string | null;
+  tt_open_id:             string | null;
+  tt_username:            string | null;
+  tt_token_expires_at:    string | null;
   auto_publish:           boolean;
   publish_mode:           PublishMode;
   rules:                  BrandRules | null;
@@ -177,6 +194,7 @@ export interface PostVersion {
   caption:   string;
   hashtags:  string[];
   savedAt:   string;
+  image_url?: string | null;   // image snapshot at this version (populated from regenerations)
 }
 
 export type StoryType = 'repost' | 'new' | 'auto';
@@ -196,6 +214,7 @@ export interface Post {
   published_at:       string | null;
   ig_post_id:         string | null;
   fb_post_id:         string | null;
+  tt_post_id:         string | null;
   ai_explanation:     string | null;
   quality_score:      number | null;
   versions:           PostVersion[];
@@ -211,6 +230,12 @@ export interface Post {
   photo_count:        number;
   /** Number of times this post has been regenerated. 0–3 are free. */
   regeneration_count: number;
+  /** AI-generated images pending client approval (one per requested photo). */
+  generated_images:   string[];
+  /** How many images were requested for this post. */
+  generation_total:   number;
+  /** How many images have been validated and added to generated_images. */
+  generation_done:    number;
 }
 
 // ─── Database: Comment ────────────────────────────────────────────────────────
@@ -737,17 +762,34 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, {
   agency:  { postsPerMonth: Infinity, postsPerWeek: 20, storiesPerWeek: 14, brands: 10, platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true,  autoProposalsPerWeek: 30, videosPerWeek: 10, requestsPerMonth: Infinity, selfServiceActions: Infinity, autopilot: true,  inspirationAccess: true, carouselMaxPhotos: 20 },
 };
 
-/** UI-facing metadata per plan. */
+/** UI-facing metadata per plan.
+ *
+ *  The internal enum stays ('starter' | 'pro' | 'total' | 'agency') so we
+ *  don't have to migrate 50+ code references and the `brands.plan` DB
+ *  column. The user-visible labels collapse to three tiers:
+ *
+ *     starter → "Basic"
+ *     pro     → "Pro"
+ *     total   → "Premium"
+ *     agency  → "Premium" (same tier, kept for grandfathered multi-brand users)
+ *
+ *  Every plan ships with 1 connected social account; extras cost €15/mo
+ *  (tracked on brands.purchased_extra_accounts — see lib/social-quota.ts).
+ */
 export const PLAN_META: Record<SubscriptionPlan, {
-  label:    string;
-  price:    number;
-  tagline:  string;
+  label:                    string;
+  price:                    number;
+  tagline:                  string;
+  socialAccountsIncluded:   number;
 }> = {
-  starter: { label: 'Starter', price: 21,  tagline: '2 posts de foto por semana · Generación con IA' },
-  pro:     { label: 'Pro',     price: 63,  tagline: '4 fotos + 2 vídeos por semana · Soporte prioritario' },
-  total:   { label: 'Total',   price: 133, tagline: 'Hasta 20 fotos + 10 vídeos por semana · 24h' },
-  agency:  { label: 'Agency',  price: 159, tagline: 'Todo de Total · Hasta 10 marcas' },
+  starter: { label: 'Basic',   price: 21,  tagline: '2 posts de foto por semana · Generación con IA',            socialAccountsIncluded: 1 },
+  pro:     { label: 'Pro',     price: 63,  tagline: '4 fotos + 2 vídeos por semana · Soporte prioritario',        socialAccountsIncluded: 1 },
+  total:   { label: 'Premium', price: 133, tagline: 'Hasta 20 fotos + 10 vídeos por semana · 24h',                socialAccountsIncluded: 1 },
+  agency:  { label: 'Premium', price: 159, tagline: 'Todo de Premium · Hasta 10 marcas (grandfathered)',          socialAccountsIncluded: 1 },
 };
+
+/** Add-on pricing. One extra connected social account = €15/mo each. */
+export const SOCIAL_ACCOUNT_ADDON_PRICE_EUR = 15;
 
 // ─── Content mode type ───────────────────────────────────────────────────────
 

@@ -208,7 +208,7 @@ export default function AboutPage() {
           </h1>
           <p style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.65)', lineHeight: 1.7, maxWidth: 560, margin: '0 auto' }}>
             Nacimos en Barcelona con una idea simple: los dueños de negocios locales no deberían perder
-            horas gestionando Instagram. Nosotros nos encargamos.
+            horas gestionando redes sociales. Nosotros nos encargamos.
           </p>
         </div>
       </section>
@@ -226,7 +226,8 @@ export default function AboutPage() {
       <section className="fade-in" style={{ background: '#ffffff', paddingBottom: 80 }}>
         <div className="container" style={{ maxWidth: 640, textAlign: 'center' }}>
           <p style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 17, color: '#6b7280', lineHeight: 1.8, margin: 0 }}>
-            Negocios que ya funcionan bien… pero que pueden crecer aún más cuando se ven como realmente son. Porque hoy, antes de entrar a un sitio, la mayoría lo descubre en Instagram.
+            Negocios que ya funcionan, pero que pueden escalar aún más cuando su imagen digital está a la altura de lo que realmente ofrecen.<br />
+            Porque hoy, el primer contacto con tu marca ocurre mucho antes de entrar.
           </p>
         </div>
       </section>
@@ -241,7 +242,7 @@ export default function AboutPage() {
             </h2>
             <div style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 15, color: '#6b7280', lineHeight: 1.75, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <p style={{ margin: 0 }}>NeuroPost nace observando algo que nos llamó la atención: negocios increíbles con una presencia digital que no les hacía justicia.</p>
-              <p style={{ margin: 0 }}>Restaurantes de calidad, centros profesionales, gimnasios… negocios que ya funcionan, pero que pueden crecer mucho más si mejoran su presencia en redes.</p>
+              <p style={{ margin: 0 }}>Hoteles, academias, museos, centros deportivos, restaurantes, tiendas, clínicas, agencias… cualquier negocio que quiera crecer en redes sin perder tiempo en gestionarlas.</p>
               <p style={{ margin: 0, color: '#111827', fontWeight: 600 }}>Ahí es donde decidimos aportar valor.</p>
               <p style={{ margin: 0 }}>Nos encargamos de toda la gestión para que tu negocio tenga una presencia cuidada, constante y profesional, sin que le dediques tiempo.</p>
             </div>
@@ -465,9 +466,10 @@ export default function AboutPage() {
                       <label style={{ display: 'block', fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af', marginBottom: 10 }}>Tipo de negocio</label>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: '#e5e7eb', border: '1px solid #e5e7eb' }}>
                         {[
-                          { v: 'Restaurante', icon: '🍽' }, { v: 'Cafetería', icon: '☕' }, { v: 'Gym', icon: '🏋️' },
-                          { v: 'Estética', icon: '💅' }, { v: 'Barbería', icon: '✂️' }, { v: 'Inmobiliaria', icon: '🏠' },
-                          { v: 'Boutique', icon: '👗' }, { v: 'Floristería', icon: '🌸' }, { v: 'Otro', icon: '✦' },
+                          { v: 'Restaurante', icon: '🍽' }, { v: 'Hotel / Hostal', icon: '🏨' }, { v: 'Museo / Cultura', icon: '🏛️' },
+                          { v: 'Academia', icon: '📚' }, { v: 'Gym / Deporte', icon: '🏋️' }, { v: 'Aventura', icon: '🧗' },
+                          { v: 'Tienda / Moda', icon: '👗' }, { v: 'Salud / Clínica', icon: '🩺' }, { v: 'Eventos', icon: '🎊' },
+                          { v: 'Inmobiliaria', icon: '🏠' }, { v: 'Cafetería', icon: '☕' }, { v: 'Otro', icon: '✦' },
                         ].map(({ v, icon }) => (
                           <button key={v} type="button" onClick={() => setForm((f) => ({ ...f, business_type: v }))} style={{
                             padding: '8px 10px',
@@ -556,13 +558,13 @@ export default function AboutPage() {
       <section className="cta-final">
         <div className="container">
           <h2>¿Listo para que llevemos<br />tus <em>redes</em>?</h2>
-          <p className="cta-sub">14 días gratis. Sin tarjeta de crédito.</p>
+          <p className="cta-sub">Sin compromiso. Cancela cuando quieras.</p>
           <div style={{ marginTop: 24 }}>
             <button className="btn-primary" onClick={() => router.push('/register')} style={{ padding: '16px 36px', fontSize: '1rem' }}>
               Empezar ahora →
             </button>
           </div>
-          <p className="cta-guarantee">✓ Cancela cuando quieras &nbsp;·&nbsp; ✓ Sin permanencia &nbsp;·&nbsp; ✓ GDPR compliant</p>
+          <p className="cta-guarantee">✓ Cancela cuando quieras &nbsp;·&nbsp; ✓ GDPR compliant</p>
         </div>
       </section>
 

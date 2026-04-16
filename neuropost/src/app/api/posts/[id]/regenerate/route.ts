@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { brandToAgentContext } from '@/lib/agentContext';
 import { runCopywriterAgent } from '@neuropost/agents';
@@ -46,7 +47,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // ── Regenerate copy ────────────────────────────────────────────────────────
     const prevVersions: PostVersion[] = Array.isArray(p.versions) ? p.versions : [];
     if (p.caption) {
-      prevVersions.push({ caption: p.caption, hashtags: p.hashtags ?? [], savedAt: new Date().toISOString() });
+      prevVersions.push({ caption: p.caption, hashtags: p.hashtags ?? [], savedAt: new Date().toISOString(), image_url: p.image_url ?? null });
     }
 
     const ctx    = brandToAgentContext(brand as Brand);
@@ -127,8 +128,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       quotaAfter:    check.quotaAfter,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'posts/[id]/regenerate');
   }
 }

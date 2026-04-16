@@ -82,7 +82,7 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
     return { type: 'fail', error: 'brand_id is required' };
   }
 
-  const input = job.input as PlanWeekInput;
+  const input = job.input as unknown as PlanWeekInput;
   const count = Math.min(Math.max(Number(input.count ?? 5), 1), 10);
 
   let ideas: ContentIdea[];

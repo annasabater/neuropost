@@ -1,72 +1,104 @@
 // =============================================================================
-// Agent runner
+// Agent runner — BullMQ Worker + Supabase persistence
 // =============================================================================
-// Pulls a batch of pending jobs, dispatches each to its registered handler,
-// and persists outputs / sub-jobs / status transitions. Invoked by the cron
-// at /api/cron/agent-queue-runner once a minute.
+// Processes agent jobs dispatched via BullMQ. Each Vercel cron tick:
+//   1. Creates a short-lived BullMQ Worker (autorun: false)
+//   2. Runs it for up to DRAIN_DURATION_MS (≤ Vercel maxDuration)
+//   3. Closes the worker gracefully and returns stats
 //
-// Concurrency: jobs in a batch run in parallel (Promise.allSettled). The
-// claim step uses SELECT ... FOR UPDATE SKIP LOCKED so running multiple
-// runner instances (e.g. several cron ticks overlapping) is safe.
+// The processor function:
+//   - Receives a BullMQ job with { agent_job_id }
+//   - Loads the full Supabase job row
+//   - Dispatches to the registered handler
+//   - Writes result back to Supabase
+//
+// BullMQ owns retry/backoff. Supabase owns status/outputs/audit trail.
+// If Redis is unavailable, the cron falls back to claimJobs() (Supabase poll).
 
+import type { Job as BullJob } from 'bullmq';
+import * as Sentry from '@sentry/nextjs';
+import { createAgentWorker, type AgentBullJob } from '@/lib/bullmq';
+import { createAdminClient } from '@/lib/supabase';
 import {
-  claimJobs,
   saveOutputs,
   queueSubJobs,
   finalizeJob,
   releaseJobForRetry,
+  claimJobs,
 } from './queue';
 import { lookupHandler } from './registry';
 import type { AgentJob, HandlerResult } from './types';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DB = any;
+
 export interface RunnerResult {
-  claimed:    number;
-  done:       number;
-  errored:    number;
-  retried:    number;
+  claimed:     number;
+  done:        number;
+  errored:     number;
+  retried:     number;
   needsReview: number;
-  unhandled:  number;
-  elapsedMs:  number;
+  unhandled:   number;
+  elapsedMs:   number;
+  source:      'bullmq' | 'supabase_fallback';
 }
 
-const DEFAULT_BATCH_SIZE = 10;
-const HANDLER_TIMEOUT_MS = 45_000; // well under Vercel's 300s cap
+const DEFAULT_BATCH_SIZE   = 10;
+const DRAIN_DURATION_MS    = 50_000; // run worker for 50s (cron maxDuration = 60s)
+const HANDLER_TIMEOUT_MS   = 45_000;
+
+// ─── Stats accumulator (shared across parallel BullMQ jobs in one cron tick) ─
+
+interface Stats {
+  done: number; errored: number; retried: number; needsReview: number; unhandled: number;
+}
+let _stats: Stats = { done: 0, errored: 0, retried: 0, needsReview: 0, unhandled: 0 };
+let _claimed = 0;
+
+function resetStats() {
+  _stats   = { done: 0, errored: 0, retried: 0, needsReview: 0, unhandled: 0 };
+  _claimed = 0;
+}
+
+// ─── Core processor (shared between BullMQ and Supabase-fallback paths) ──────
 
 function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms);
+    const timer = setTimeout(
+      () => reject(new Error(`${label} timed out after ${ms}ms`)),
+      ms,
+    );
     p.then((v) => { clearTimeout(timer); resolve(v); })
      .catch((e) => { clearTimeout(timer); reject(e); });
   });
 }
 
-/**
- * Process a single job end-to-end. Catches every error so one bad job never
- * poisons the whole batch.
- */
-async function processJob(job: AgentJob): Promise<Pick<RunnerResult, 'done' | 'errored' | 'retried' | 'needsReview' | 'unhandled'>> {
-  const stats = { done: 0, errored: 0, retried: 0, needsReview: 0, unhandled: 0 };
-
+async function processJob(job: AgentJob): Promise<void> {
   const handler = lookupHandler(job.agent_type, job.action);
   if (!handler) {
-    await finalizeJob(job.id, 'error', `No handler registered for ${job.agent_type}:${job.action}`);
-    stats.unhandled = 1;
-    return stats;
+    await finalizeJob(job.id, 'error', `No handler for ${job.agent_type}:${job.action}`);
+    _stats.unhandled++;
+    return;
   }
 
   let result: HandlerResult;
   try {
-    result = await withTimeout(handler(job), HANDLER_TIMEOUT_MS, `${job.agent_type}:${job.action}`);
+    result = await withTimeout(
+      handler(job),
+      HANDLER_TIMEOUT_MS,
+      `${job.agent_type}:${job.action}`,
+    );
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (job.attempts < job.max_attempts) {
       await releaseJobForRetry(job.id, msg);
-      stats.retried = 1;
+      _stats.retried++;
     } else {
       await finalizeJob(job.id, 'error', msg);
-      stats.errored = 1;
+      _stats.errored++;
     }
-    return stats;
+    // Re-throw so BullMQ also records the failure (triggers its own retry/backoff)
+    throw err;
   }
 
   try {
@@ -75,74 +107,161 @@ async function processJob(job: AgentJob): Promise<Pick<RunnerResult, 'done' | 'e
         if (result.outputs?.length) await saveOutputs(job, result.outputs);
         if (result.sub_jobs?.length) await queueSubJobs(job, result.sub_jobs);
         await finalizeJob(job.id, 'done');
-        stats.done = 1;
+        _stats.done++;
         break;
       }
       case 'needs_review': {
         if (result.outputs?.length) await saveOutputs(job, result.outputs);
         await finalizeJob(job.id, 'needs_review', result.reason);
-        stats.needsReview = 1;
+        _stats.needsReview++;
         break;
       }
       case 'retry': {
         if (job.attempts < job.max_attempts) {
           await releaseJobForRetry(job.id, result.error);
-          stats.retried = 1;
+          _stats.retried++;
         } else {
-          await finalizeJob(job.id, 'error', `Max retries exceeded: ${result.error}`);
-          stats.errored = 1;
+          await finalizeJob(job.id, 'error', `Max retries: ${result.error}`);
+          _stats.errored++;
         }
-        break;
+        // Re-throw so BullMQ also retries via its backoff schedule
+        throw new Error(result.error);
       }
       case 'fail': {
         await finalizeJob(job.id, 'error', result.error);
-        stats.errored = 1;
-        break;
+        _stats.errored++;
+        throw new Error(result.error); // BullMQ marks job as failed
       }
     }
   } catch (err) {
-    // Persistence layer failure: best-effort mark errored, don't retry in this tick.
+    // Persistence failure
     const msg = err instanceof Error ? err.message : String(err);
     await finalizeJob(job.id, 'error', `Persist failure: ${msg}`).catch(() => null);
-    stats.errored = 1;
+    _stats.errored++;
+    throw err;
   }
-
-  return stats;
 }
 
+// ─── BullMQ processor (receives BullMQ job, loads Supabase row, dispatches) ──
+
+async function bullProcessor(bullJob: BullJob<AgentBullJob>): Promise<void> {
+  _claimed++;
+  const { agent_job_id } = bullJob.data;
+
+  const db = createAdminClient() as DB;
+  const { data: row } = await db
+    .from('agent_jobs')
+    .select('*')
+    .eq('id', agent_job_id)
+    .maybeSingle();
+
+  if (!row) {
+    // Job deleted or never existed — discard silently
+    return;
+  }
+  const job = row as AgentJob;
+
+  // Skip jobs already processed by another runner instance
+  if (job.status === 'done' || job.status === 'error' || job.status === 'cancelled') {
+    return;
+  }
+
+  // Mark as running in Supabase
+  await db
+    .from('agent_jobs')
+    .update({ status: 'running', started_at: new Date().toISOString(), attempts: (job.attempts ?? 0) + 1 })
+    .eq('id', agent_job_id)
+    .eq('status', 'pending'); // only claim if still pending (optimistic lock)
+
+  // Reload with updated attempts count
+  const updatedJob: AgentJob = {
+    ...job,
+    status:     'running',
+    attempts:   (job.attempts ?? 0) + 1,
+    started_at: new Date().toISOString(),
+  };
+
+  await processJob(updatedJob);
+}
+
+// ─── Supabase fallback (used when Redis is unavailable) ──────────────────────
+
+async function runSupabaseFallback(batchSize: number): Promise<void> {
+  const claimed = await claimJobs(batchSize);
+  _claimed = claimed.length;
+  await Promise.allSettled(claimed.map(processJob));
+}
+
+// ─── Public entry point ───────────────────────────────────────────────────────
+
 /**
- * Run a single tick: claim up to `batchSize` jobs and process them in parallel.
+ * Run a single cron tick.
+ *   1. Try BullMQ (drain queue for DRAIN_DURATION_MS).
+ *   2. If Redis is unavailable, fall back to Supabase polling (original behaviour).
  */
 export async function runOnce(batchSize = DEFAULT_BATCH_SIZE): Promise<RunnerResult> {
   const t0 = Date.now();
+  resetStats();
 
-  const claimed = await claimJobs(batchSize);
-  if (claimed.length === 0) {
-    return {
-      claimed: 0, done: 0, errored: 0, retried: 0, needsReview: 0, unhandled: 0,
-      elapsedMs: Date.now() - t0,
-    };
-  }
+  let source: RunnerResult['source'] = 'bullmq';
 
-  const results = await Promise.allSettled(claimed.map(processJob));
+  try {
+    const worker = createAgentWorker(bullProcessor, batchSize);
 
-  const agg = { done: 0, errored: 0, retried: 0, needsReview: 0, unhandled: 0 };
-  for (const r of results) {
-    if (r.status === 'fulfilled') {
-      agg.done        += r.value.done;
-      agg.errored     += r.value.errored;
-      agg.retried     += r.value.retried;
-      agg.needsReview += r.value.needsReview;
-      agg.unhandled   += r.value.unhandled;
+    // Run the worker for DRAIN_DURATION_MS then close gracefully
+    await new Promise<void>((resolve) => {
+      worker.run();
+
+      const stopTimer = setTimeout(async () => {
+        // Close the worker: waits for in-flight jobs to finish, then exits
+        await worker.close().catch(() => null);
+        resolve();
+      }, DRAIN_DURATION_MS);
+
+      worker.on('error', (err) => {
+        console.error('[runner] BullMQ worker error:', err.message);
+        Sentry.captureException(err, { tags: { component: 'agent-runner' } });
+      });
+
+      worker.on('closed', () => {
+        clearTimeout(stopTimer);
+        resolve();
+      });
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    // Redis down or BullMQ init failed → fall back to Supabase polling
+    if (/REDIS_URL|ECONNREFUSED|ENOTFOUND|connect/i.test(msg)) {
+      console.warn('[runner] BullMQ unavailable, falling back to Supabase polling:', msg);
+      source = 'supabase_fallback';
+      await runSupabaseFallback(batchSize);
     } else {
-      // processJob itself should never throw, but count it if it does.
-      agg.errored += 1;
+      console.error('[runner] Unexpected runner error:', msg);
+      Sentry.captureException(err, { tags: { component: 'agent-runner', phase: 'unexpected' } });
     }
   }
 
+  // Even on BullMQ path, check for any jobs in Supabase that weren't dispatched
+  // to Redis (e.g., created before Redis was available, or enqueue failures).
+  if (source === 'bullmq') {
+    try {
+      const orphans = await claimJobs(batchSize);
+      if (orphans.length > 0) {
+        console.log(`[runner] Processing ${orphans.length} Supabase-only jobs`);
+        _claimed += orphans.length;
+        await Promise.allSettled(orphans.map(processJob));
+      }
+    } catch { /* non-critical */ }
+  }
+
   return {
-    claimed: claimed.length,
-    ...agg,
-    elapsedMs: Date.now() - t0,
+    claimed:     _claimed,
+    done:        _stats.done,
+    errored:     _stats.errored,
+    retried:     _stats.retried,
+    needsReview: _stats.needsReview,
+    unhandled:   _stats.unhandled,
+    elapsedMs:   Date.now() - t0,
+    source,
   };
 }

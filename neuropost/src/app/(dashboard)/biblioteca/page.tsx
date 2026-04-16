@@ -146,7 +146,11 @@ export default function BibliotecaPage() {
     }
 
     setUploading(false);
-    if (uploaded > 0) toast.success(`${uploaded} archivo(s) subido(s)`);
+    if (uploaded > 0) {
+      toast.success(`${uploaded} archivo(s) subido(s)`);
+      // Notify system of first upload (triggers onboarding content if applicable)
+      fetch('/api/biblioteca/notify-upload', { method: 'POST' }).catch(() => null);
+    }
   }, [brandId, supabase]);
 
   function handleDrop(e: React.DragEvent) { e.preventDefault(); setDragOver(false); if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files); }

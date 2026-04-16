@@ -345,10 +345,102 @@ export async function publishStoryToInstagram({
   return { postId: published.id, permalink: '', publishedAt: new Date().toISOString() };
 }
 
-// TODO [FASE 2]: Facebook — republicar con adaptación automática de formato
-// export async function publishToFacebook({ pageId, imageUrl, caption, accessToken }: {
-//   pageId: string; imageUrl: string; caption: string; accessToken: string;
-// }): Promise<MetaPublishResult> { ... }
+// ─── Facebook Publishing ──────────────────────────────────────────────────────
+
+/** Publishes a photo post to a Facebook Page. */
+export async function publishToFacebook({
+  pageId,
+  imageUrl,
+  caption,
+  accessToken,
+}: {
+  pageId:      string;
+  imageUrl:    string;
+  caption:     string;
+  accessToken: string;
+}): Promise<MetaPublishResult> {
+  const result = await graphFetch<{ id: string; post_id?: string }>(
+    `${pageId}/photos`,
+    {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        url:          imageUrl,
+        caption,
+        published:    true,
+        access_token: accessToken,
+      }),
+    },
+  );
+
+  // photos endpoint returns { id, post_id } — post_id is the feed post, id is the photo
+  const postId = result.post_id ?? result.id;
+
+  // Fetch permalink from the post object
+  let permalink = '';
+  try {
+    const postData = await graphFetch<{ permalink_url?: string }>(
+      `${postId}?fields=permalink_url&access_token=${accessToken}`,
+    );
+    permalink = postData.permalink_url ?? '';
+  } catch {
+    // Non-fatal — permalink is cosmetic
+  }
+
+  return { postId, permalink, publishedAt: new Date().toISOString() };
+}
+
+/** Publishes a video/reel to a Facebook Page. */
+export async function publishVideoToFacebook({
+  pageId,
+  videoUrl,
+  caption,
+  accessToken,
+}: {
+  pageId:      string;
+  videoUrl:    string;
+  caption:     string;
+  accessToken: string;
+}): Promise<MetaPublishResult> {
+  // Step 1 — Upload video (async processing on Meta side)
+  const upload = await graphFetch<{ id: string }>(
+    `${pageId}/videos`,
+    {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        file_url:     videoUrl,
+        description:  caption,
+        published:    true,
+        access_token: accessToken,
+      }),
+    },
+  );
+
+  return { postId: upload.id, permalink: '', publishedAt: new Date().toISOString() };
+}
+
+/** Publishes a text-only post to a Facebook Page. */
+export async function publishTextToFacebook({
+  pageId,
+  message,
+  accessToken,
+}: {
+  pageId:      string;
+  message:     string;
+  accessToken: string;
+}): Promise<MetaPublishResult> {
+  const result = await graphFetch<{ id: string }>(
+    `${pageId}/feed`,
+    {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ message, published: true, access_token: accessToken }),
+    },
+  );
+
+  return { postId: result.id, permalink: '', publishedAt: new Date().toISOString() };
+}
 
 // =============================================================================
 // Instagram Login (sin Facebook)

@@ -23,6 +23,7 @@ import { registerAdvancedHandlers           } from './advanced';
 import { registerMaterializeHandler         } from './materialize';
 import { registerMediaHandlers              } from './media';
 import { registerValidatorHandlers          } from './validator';
+import { registerSchedulingHandlers         } from './scheduling';
 
 let registered = false;
 
@@ -37,6 +38,7 @@ export function registerAllHandlers(): void {
   registerMaterializeHandler();
   registerMediaHandlers();
   registerValidatorHandlers();
+  registerSchedulingHandlers();
   registered = true;
 }
 

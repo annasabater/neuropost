@@ -174,6 +174,41 @@ async function callLLM(
 // handler (which needs the same ideas list before fanning out sub-jobs).
 // -----------------------------------------------------------------------------
 
+// -----------------------------------------------------------------------------
+// Load saved inspirations (is_saved=true) for the brand
+// -----------------------------------------------------------------------------
+
+interface InspirationRow {
+  title:      string | null;
+  notes:      string | null;
+  style_tags: string[] | null;
+  category:   string | null;
+}
+
+async function loadFavoritesBlock(db: DB, brandId: string): Promise<string> {
+  const { data } = await db
+    .from('inspiration_references')
+    .select('title, notes, style_tags, category')
+    .eq('brand_id', brandId)
+    .eq('is_saved', true)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  const rows = (data ?? []) as InspirationRow[];
+  if (rows.length === 0) return '';
+
+  const lines = rows.map((r) => {
+    const parts: string[] = [];
+    if (r.title)      parts.push(r.title);
+    if (r.category)   parts.push(`(${r.category})`);
+    if (r.notes)      parts.push(`— ${r.notes.slice(0, 120)}`);
+    if (r.style_tags?.length) parts.push(`[${r.style_tags.join(', ')}]`);
+    return `• ${parts.join(' ')}`;
+  });
+
+  return `\n\nINSPIRACIONES GUARDADAS POR EL CLIENTE (favoritos — incorpora su estilo/temática cuando encaje con las categorías):\n${lines.join('\n')}`;
+}
+
 export async function generateIdeasForBrand(
   brandId: string,
   count: number,
@@ -201,7 +236,10 @@ export async function generateIdeasForBrand(
   const categoriesBlock = renderCategoriesBlock(list);
   const knownKeys = new Set(list.map((r) => r.category_key));
 
-  return callLLM(brandBlock, categoriesBlock, count, knownKeys);
+  // Load saved inspirations/favorites — enriches asset_hint and caption_angle
+  const favoritesBlock = await loadFavoritesBlock(db, brandId).catch(() => '');
+
+  return callLLM(brandBlock + favoritesBlock, categoriesBlock, count, knownKeys);
 }
 
 // -----------------------------------------------------------------------------

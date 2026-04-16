@@ -9,6 +9,7 @@
 // Requires authentication (brand owner or CRON_SECRET for webhooks).
 
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
 import { queueOnboardingPipeline } from '@/lib/agents/pipelines/onboarding';
 
@@ -68,6 +69,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     console.error('[POST /api/webhooks/onboarding]', err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'webhooks/onboarding');
   }
 }

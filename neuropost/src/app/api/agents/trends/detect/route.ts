@@ -1,9 +1,13 @@
 import { NextResponse } from 'next/server';
+import { rateLimitAgents } from '@/lib/ratelimit';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { detectTrendsBySector } from '@/agents/TrendsAgent';
 
 export async function POST(request: Request) {
   try {
+    const rl = await rateLimitAgents(request);
+    if (rl) return rl;
     await requireServerUser();
     const { sector, ciudad } = await request.json() as { sector: string; ciudad?: string };
 
@@ -35,8 +39,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ trends: trendRows, weekSummary: result.weekSummary });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'POST /api/agents/trends/detect');
   }
 }

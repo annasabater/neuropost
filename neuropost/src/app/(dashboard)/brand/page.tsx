@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Pencil, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppStore } from '@/store/useAppStore';
@@ -134,6 +135,7 @@ function composeVoiceDoc(
 }
 
 export default function BrandPage() {
+  const router = useRouter();
   const brand = useAppStore((s) => s.brand);
   const brandLoading = useAppStore((s) => s.brandLoading);
   const setBrand = useAppStore((s) => s.setBrand);
@@ -338,9 +340,18 @@ export default function BrandPage() {
   return (
     <>
       <div className="page-content dashboard-unified-page" style={{ maxWidth: 800 }}>
-        <div className="dashboard-unified-header" style={{ padding: '48px 0 40px' }}>
-          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, marginBottom: 8 }}>Brand Kit</h1>
-          <p style={{ color: '#6b7280', fontSize: 15, fontFamily: f }}>La identidad de tu marca</p>
+        <div className="dashboard-unified-header" style={{ padding: '48px 0 40px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, marginBottom: 8 }}>Brand Kit</h1>
+            <p style={{ color: '#6b7280', fontSize: 15, fontFamily: f }}>La identidad de tu marca</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => router.push('/onboarding?redo=1')}
+            style={{ fontFamily: f, fontSize: 13, fontWeight: 700, padding: '10px 20px', background: '#ffffff', border: '1.5px solid #111827', color: '#111827', cursor: 'pointer', letterSpacing: '0.03em', whiteSpace: 'nowrap', flexShrink: 0 }}
+          >
+            Reconfigurar marca →
+          </button>
         </div>
 
         {emptyState && (

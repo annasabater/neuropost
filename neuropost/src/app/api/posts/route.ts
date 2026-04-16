@@ -3,6 +3,9 @@ import { requireServerUser, createServerClient, createAdminClient } from '@/lib/
 import { checkPostLimit } from '@/lib/plan-limits';
 import { requirePermission } from '@/lib/rbac';
 import { syncPostIntoFeedQueue } from '@/lib/feedQueue';
+import { queueJob } from '@/lib/agents/queue';
+import { apiError } from '@/lib/api-utils';
+import { rateLimitWrite } from '@/lib/ratelimit';
 import type { Post, Brand } from '@/types';
 import { PLAN_LIMITS } from '@/types';
 
@@ -32,9 +35,7 @@ export async function GET(request: Request) {
     if (error) throw error;
     return NextResponse.json({ posts: (data as Post[]) ?? [] });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'GET /api/posts');
   }
 }
 
@@ -95,10 +96,107 @@ export async function POST(request: Request) {
       } catch { /* non-blocking — post is already approved in DB */ }
     }
 
+    // ── Auto-pipeline for client requests ─────────────────────────────────────
+    // When a client submits a request (status:'request'), automatically start
+    // the generation pipeline so the worker doesn't have to do anything manually.
+    if (effectiveStatus === 'request') {
+      autoStartPipeline(insertedPost, brand as Brand).catch((e) =>
+        console.error('[posts/POST] pipeline error', e),
+      );
+    }
+
     return NextResponse.json({ post: insertedPost }, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'POST /api/posts');
+  }
+}
+
+// =============================================================================
+// autoStartPipeline — fires after a client request post is created
+// =============================================================================
+// Two paths:
+//   A. No image (image_url null) → generate_image → validate_image → generate_caption
+//   B. Image provided             → validate_image → generate_caption
+// =============================================================================
+async function autoStartPipeline(post: Post, brand: Brand): Promise<void> {
+  let clientDesc = '';
+  let inspirationId: string | null = null;
+  try {
+    const meta = JSON.parse(post.ai_explanation ?? '{}') as Record<string, unknown>;
+    clientDesc    = String(meta.global_description ?? meta.client_notes ?? post.caption ?? '');
+    const perImg  = meta.per_image as Array<{ inspiration_id?: string }> | undefined;
+    inspirationId = perImg?.[0]?.inspiration_id ?? null;
+  } catch {
+    clientDesc = post.caption ?? '';
+  }
+
+  let inspirationPrompt = '';
+  if (inspirationId) {
+    try {
+      const db = createAdminClient() as DB;
+      const { data: ref } = await db
+        .from('inspiration_references')
+        .select('title, notes, style_tags')
+        .eq('id', inspirationId).single();
+      if (ref) {
+        inspirationPrompt = [
+          ref.title  ? `Inspired by: "${ref.title}"` : '',
+          ref.notes  ?? '',
+          (ref.style_tags as string[] | null)?.length
+            ? `style: ${(ref.style_tags as string[]).join(', ')}` : '',
+        ].filter(Boolean).join(', ');
+      }
+    } catch { /* non-critical */ }
+  }
+
+  const basePrompt = [inspirationPrompt, clientDesc].filter(Boolean).join('. ')
+    || `Contenido para ${brand.name}, sector ${brand.sector}`;
+
+  const pipelineMeta = {
+    _post_id:         post.id,
+    _photo_index:     0,
+    _original_prompt: basePrompt,
+    _auto_pipeline:   true,
+  };
+
+  if (!post.image_url) {
+    // Path A: no image → generate from scratch
+    await queueJob({
+      brand_id:    post.brand_id,
+      agent_type:  'content',
+      action:      'generate_image',
+      input: {
+        userPrompt:     basePrompt,
+        sector:         brand.sector       ?? 'restaurante',
+        visualStyle:    brand.visual_style ?? 'warm',
+        brandContext:   brand.brand_voice_doc
+          ?? `${brand.name} — sector ${brand.sector}, tono ${brand.tone ?? 'cercano'}`,
+        colors:         brand.colors ?? null,
+        forbiddenWords: (brand.rules as { forbiddenWords?: string[] } | null)?.forbiddenWords ?? [],
+        noEmojis:       brand.visual_style === 'elegant' || brand.visual_style === 'dark',
+        format:         post.format === 'story' ? 'story'
+                      : post.format === 'reel'  ? 'reel_cover' : 'post',
+        brandId:        post.brand_id,
+        ...pipelineMeta,
+      },
+      priority:     80,
+      requested_by: 'client',
+    });
+  } else {
+    // Path B: image provided → validate first
+    await queueJob({
+      brand_id:    post.brand_id,
+      agent_type:  'content',
+      action:      'validate_image',
+      input: {
+        post_id:         post.id,
+        image_url:       post.image_url,
+        original_prompt: basePrompt,
+        attempt_number:  1,
+        ...pipelineMeta,
+      },
+      priority:     80,
+      requested_by: 'client',
+    });
   }
 }

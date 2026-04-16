@@ -12,15 +12,20 @@ const CSP = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://eu.posthog.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "img-src 'self' data: blob: https://*.supabase.co https://*.instagram.com https://graph.facebook.com https://images.unsplash.com https://loremflickr.com https://*.staticflickr.com https://picsum.photos https://*.picsum.photos",
+  "img-src 'self' data: blob: https://*.supabase.co https://*.instagram.com https://graph.facebook.com https://images.unsplash.com https://loremflickr.com https://*.staticflickr.com https://picsum.photos https://*.picsum.photos https://replicate.delivery https://*.replicate.delivery",
   "font-src 'self' https://fonts.gstatic.com",
+  "media-src 'self' blob: https://*.supabase.co https://cdn.coverr.co https://*.coverr.co https://replicate.delivery https://*.replicate.delivery",
   "frame-src https://js.stripe.com",
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://eu.posthog.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.anthropic.com https://eu.posthog.com https://api.replicate.com https://graph.facebook.com https://graph.instagram.com",
 ].join('; ');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   transpilePackages: ['@neuropost/agents'],
+
+  // ioredis and bullmq use native Node.js modules (net, tls, crypto).
+  // Exclude them from Next.js bundling so they run as-is in the Node runtime.
+  serverExternalPackages: ['ioredis', 'bullmq'],
 
   // Raíz del monorepo npm workspaces — Next 16 lo necesita explícito cuando el
   // package.json raíz declara workspaces y el lockfile vive un nivel arriba.

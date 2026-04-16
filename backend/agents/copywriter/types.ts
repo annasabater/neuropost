@@ -10,7 +10,7 @@ import type { ImageAnalysis } from '../editor/types';
 export type PostGoal = 'engagement' | 'awareness' | 'promotion' | 'community';
 
 /** Social platforms to generate copy for */
-export type Platform = 'instagram' | 'facebook';
+export type Platform = 'instagram' | 'facebook' | 'tiktok';
 
 export interface CopywriterInput {
   /**

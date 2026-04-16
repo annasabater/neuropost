@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { getStripeClient } from '@/lib/stripe';
 
@@ -61,6 +62,6 @@ export async function GET() {
     if (message === 'UNAUTHENTICATED') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'stripe/subscription-status');
   }
 }

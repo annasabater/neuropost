@@ -7,6 +7,7 @@
 // those cases and we surface a 409.
 
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
 import { getJobWithOutputs, cancelJob } from '@/lib/agents/queue';
 
@@ -47,7 +48,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     console.error('[GET /api/agent-jobs/:id]', err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'agent-jobs/[id]');
   }
 }
 
@@ -78,6 +79,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     console.error('[DELETE /api/agent-jobs/:id]', err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'agent-jobs/[id]');
   }
 }

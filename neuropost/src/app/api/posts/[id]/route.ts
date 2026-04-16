@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient, createAdminClient } from '@/lib/supabase';
 import { requirePermission } from '@/lib/rbac';
 import { syncPostIntoFeedQueue } from '@/lib/feedQueue';
@@ -21,9 +22,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     if (error) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     return NextResponse.json({ post: data as Post });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'posts/[id]');
   }
 }
 
@@ -59,9 +58,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     return NextResponse.json({ post: data as Post });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'posts/[id]');
   }
 }
 
@@ -117,9 +114,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     }
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     console.error('[DELETE /api/posts/[id]]', err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'posts/[id]');
   }
 }

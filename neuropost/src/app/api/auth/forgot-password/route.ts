@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { createAdminClient } from '@/lib/supabase';
 
 export async function POST(request: Request) {
@@ -17,7 +18,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'auth/forgot-password');
   }
 }

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createAdminClient, createServerClient } from '@/lib/supabase';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -36,6 +37,6 @@ export async function DELETE() {
     if (message === 'UNAUTHENTICATED') {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
     }
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'brands/account');
   }
 }

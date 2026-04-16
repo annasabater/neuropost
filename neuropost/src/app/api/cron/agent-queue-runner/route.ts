@@ -20,8 +20,8 @@ import { runOnce } from '@/lib/agents/runner';
 // plus registering it — no changes needed here.
 import '@/lib/agents/handlers';
 
-export const dynamic = 'force-dynamic';
-export const maxDuration = 60; // seconds — runner is capped at 45s internally
+export const dynamic    = 'force-dynamic';
+export const maxDuration = 60; // seconds — BullMQ worker drains for 50s, then closes gracefully
 
 export async function GET(request: Request) {
   const auth = request.headers.get('authorization');

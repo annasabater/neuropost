@@ -35,6 +35,7 @@ interface ValidationInput {
   original_prompt: string;
   category_key?:   string;    // which content category this post belongs to
   attempt_number?: number;    // 1 (default) – 3
+  _photo_index?:   number;    // which photo slot in the batch (0-based)
 }
 
 interface ValidationResult {
@@ -179,6 +180,70 @@ const validateImageHandler: AgentHandler = async (job: AgentJob): Promise<Handle
     });
 
     if (effectiveApproval) {
+      // Append approved image to post.generated_images and check if batch complete
+      const { data: postRow } = await db
+        .from('posts')
+        .select('generated_images, generation_total, generation_done, brand_id')
+        .eq('id', input.post_id)
+        .single();
+
+      if (postRow) {
+        const existing: string[] = Array.isArray(postRow.generated_images) ? postRow.generated_images : [];
+        const alreadyAdded = existing.includes(input.image_url);
+        const newImages = alreadyAdded ? existing : [...existing, input.image_url];
+        const newDone   = alreadyAdded ? postRow.generation_done : (postRow.generation_done ?? 0) + 1;
+        const total     = postRow.generation_total ?? 1;
+        const allDone   = newDone >= total;
+
+        await db.from('posts').update({
+          generated_images: newImages,
+          generation_done:  newDone,
+          ...(allDone ? { status: 'pending', edited_image_url: newImages[0] } : {}),
+        }).eq('id', input.post_id);
+
+        // When all images ready: queue caption generation (auto-pipeline) or notify directly
+        if (allDone) {
+          const isAutoPipeline = (input as unknown as Record<string, unknown>)._auto_pipeline === true;
+          if (isAutoPipeline) {
+            // Queue caption generation — it will notify the client when done
+            await db.from('agent_jobs').insert({
+              brand_id:      postRow.brand_id ?? job.brand_id,
+              agent_type:    'content',
+              action:        'generate_caption',
+              input: {
+                post_id:         input.post_id,
+                image_url:       newImages[0],
+                visualTags:      ['contenido', 'negocio'],
+                imageAnalysis:   {
+                  isSuitable: true, suitabilityReason: null,
+                  dominantColors: [], composition: 'square',
+                  mainSubjects: [], qualityScore: 8, qualityIssues: [],
+                  lightingCondition: 'natural', suggestedCrop: null,
+                },
+                goal:        'engagement',
+                platforms:   ['instagram'],
+                postContext: input.original_prompt,
+                _post_id:    input.post_id,
+                _auto_pipeline: true,
+              },
+              status:        'pending',
+              priority:      job.priority ?? 80,
+              max_attempts:  3,
+              requested_by:  'agent',
+              parent_job_id: job.id,
+            });
+          } else {
+            await db.from('notifications').insert({
+              brand_id: postRow.brand_id ?? job.brand_id,
+              type:     'approval_needed',
+              message:  `Tu contenido está listo para revisar${total > 1 ? ` (${total} imágenes)` : ''}`,
+              read:     false,
+              metadata: { post_id: input.post_id, image_count: total },
+            }).then(() => null);
+          }
+        }
+      }
+
       return {
         type: 'ok',
         outputs: [{
@@ -230,7 +295,16 @@ const validateImageHandler: AgentHandler = async (job: AgentJob): Promise<Handle
       brand_id:      job.brand_id,
       agent_type:    'content',
       action:        'generate_image',
-      input:         { prompt: newPrompt, post_id: input.post_id },
+      input:         {
+        userPrompt:       newPrompt,
+        sector:           'restaurante',  // fallback — brand context loaded by handler
+        visualStyle:      'warm',
+        brandContext:     '',
+        brandId:          job.brand_id,
+        _post_id:         input.post_id,
+        _photo_index:     input._photo_index ?? 0,
+        _original_prompt: newPrompt,
+      },
       status:        'pending',
       priority:      job.priority ?? 50,
       parent_job_id: job.id,
@@ -247,6 +321,7 @@ const validateImageHandler: AgentHandler = async (job: AgentJob): Promise<Handle
           original_prompt: newPrompt,
           category_key:    input.category_key,
           attempt_number:  attemptNumber + 1,
+          _photo_index:    input._photo_index ?? 0,
           depends_on_job:  newImageJob.id,
         },
         status:        'pending',

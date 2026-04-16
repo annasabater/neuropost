@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient, createAdminClient } from '@/lib/supabase';
 import { syncPostIntoFeedQueue } from '@/lib/feedQueue';
 import { isDayAllowed, weekdayLabel, schedulingRulesFrom } from '@/lib/scheduling';
@@ -54,8 +55,6 @@ export async function POST(request: Request) {
     await syncPostIntoFeedQueue(createAdminClient(), data as Post);
     return NextResponse.json({ ok: true, post: data });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'schedule');
   }
 }

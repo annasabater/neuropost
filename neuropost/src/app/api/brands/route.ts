@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
+import { queueJob } from '@/lib/agents/queue';
 import type { Brand } from '@/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,9 +19,7 @@ export async function GET() {
     if (error && error.code !== 'PGRST116') throw error;
     return NextResponse.json({ brand: (data as Brand | null) ?? null });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'brands');
   }
 }
 
@@ -54,14 +54,28 @@ export async function POST(request: Request) {
       await supabase.from('content_categories').insert(rows).then(() => void 0);
     }
 
+    // Fire holiday detection agent for the current + next year (fire-and-forget)
+    if (data?.id) {
+      const currentYear = new Date().getFullYear();
+      for (const yr of [currentYear, currentYear + 1]) {
+        queueJob({
+          brand_id: data.id,
+          agent_type: 'scheduling',
+          action: 'detect_holidays',
+          input: { year: yr },
+          priority: 40,
+          requested_by: 'cron',
+        }).catch(() => null);
+      }
+    }
+
     return NextResponse.json({ brand: data as Brand }, { status: 201 });
   } catch (err: unknown) {
     console.error('[POST /api/brands] CATCH:', JSON.stringify(err, Object.getOwnPropertyNames(err as object)));
     const message = err instanceof Error ? err.message
       : (typeof err === 'object' && err !== null && 'message' in err) ? String((err as Record<string, unknown>).message)
       : JSON.stringify(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'brands');
   }
 }
 
@@ -97,8 +111,6 @@ export async function PATCH(request: Request) {
     if (error) throw error;
     return NextResponse.json({ brand: data as Brand });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'brands');
   }
 }

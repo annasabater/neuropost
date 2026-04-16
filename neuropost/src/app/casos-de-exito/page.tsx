@@ -18,26 +18,26 @@ const CASES = [
     color: '#1D9E75',
   },
   {
-    initials: 'SC',
-    name: 'Studio Cuts',
-    type: 'Barbería · Madrid',
-    quote: 'Antes tardaba horas en hacer posts. Ahora NeuroPost lo hace solo y el contenido encaja perfecto con nuestra imagen.',
+    initials: 'HM',
+    name: 'Hotel Mirador',
+    type: 'Hotel boutique · Costa Brava',
+    quote: 'Nunca habíamos apostado por las redes. Tras 4 meses con NeuroPost, el 40% de nuestras reservas directas llegan de Instagram y TikTok.',
     metrics: [
-      { label: 'Tiempo ahorrado', value: '8h/sem' },
-      { label: 'Nuevos clientes', value: '+45%' },
-      { label: 'Reach mensual', value: '+180%' },
+      { label: 'Reservas directas', value: '+40%' },
+      { label: 'Seguidores', value: '+2.100' },
+      { label: 'Alcance mensual', value: '+380%' },
     ],
     color: '#0F766E',
   },
   {
-    initials: 'FN',
-    name: 'Flor & Natura',
-    type: 'Floristería · Valencia',
-    quote: 'Nunca había tenido presencia en redes. A los 2 meses ya teníamos pedidos llegando por Instagram.',
+    initials: 'AC',
+    name: 'Academia Creativa',
+    type: 'Academia de arte · Valencia',
+    quote: 'Llenamos todas las plazas del trimestre de verano sin gastar un euro en publicidad. Solo con el contenido orgánico que genera NeuroPost.',
     metrics: [
-      { label: 'Pedidos por RRSS', value: '+120%' },
-      { label: 'Seguidores', value: '+890' },
-      { label: 'Stories vistas', value: '12k/mes' },
+      { label: 'Matrículas nuevas', value: '+65%' },
+      { label: 'Seguidores', value: '+1.400' },
+      { label: 'Consultas por DM', value: '×5' },
     ],
     color: '#065F46',
   },
@@ -54,14 +54,14 @@ const CASES = [
     color: '#1D9E75',
   },
   {
-    initials: 'CB',
-    name: 'Café Bonito',
-    type: 'Cafetería · Sevilla',
-    quote: 'Probamos 14 días gratis y al cabo de una semana ya era obvio que no íbamos a cancelar.',
+    initials: 'AN',
+    name: 'Aventura Norte',
+    type: 'Centro de aventura · Pirineos',
+    quote: 'Nuestro negocio es muy visual pero no teníamos tiempo de gestionar las redes. Ahora el contenido llega solo y la temporada alta empezó 3 semanas antes.',
     metrics: [
-      { label: 'Interacciones', value: '×4' },
-      { label: 'Seguidores nuevos', value: '+320/mes' },
-      { label: 'Clientes captados', value: '+28%' },
+      { label: 'Reservas online', value: '+90%' },
+      { label: 'Seguidores', value: '+3.200' },
+      { label: 'Alcance en TikTok', value: '180k' },
     ],
     color: '#0F766E',
   },
@@ -160,7 +160,7 @@ export default function CasosDeExitoPage() {
       <section className="cta-final">
         <div className="container">
           <h2>¿Quieres ser el próximo<br />caso de <em>éxito</em>?</h2>
-          <p className="cta-sub">14 días gratis. Sin tarjeta de crédito. Sin compromiso.</p>
+          <p className="cta-sub">Sin compromiso. Cancela cuando quieras.</p>
           <div style={{ marginTop: 24 }}>
             <button
               className="btn-primary"
@@ -170,7 +170,7 @@ export default function CasosDeExitoPage() {
               Empezar ahora →
             </button>
           </div>
-          <p className="cta-guarantee">✓ Cancela cuando quieras &nbsp;·&nbsp; ✓ Sin permanencia &nbsp;·&nbsp; ✓ GDPR compliant</p>
+          <p className="cta-guarantee">✓ Cancela cuando quieras &nbsp;·&nbsp; ✓ GDPR compliant</p>
         </div>
       </section>
 

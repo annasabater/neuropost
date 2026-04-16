@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { X, Plus, Trash2, Send, Zap, Flame, Heart } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -8,6 +8,7 @@ import { MediaPicker, type SelectedMedia } from '@/components/posts/MediaPicker'
 import { useAppStore } from '@/store/useAppStore';
 import { PLAN_LIMITS } from '@/types';
 import type { IdeaItem } from '@/types';
+import { createBrowserClient } from '@/lib/supabase';
 
 const f  = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
@@ -21,7 +22,7 @@ type Template = {
 type Reference = {
   id: string; type: string; source_url: string | null; thumbnail_url: string | null;
   title: string; notes: string | null; style_tags: string[] | null; format: string | null;
-  created_at: string; recreation?: { id: string; status: string } | null;
+  created_at: string; recreation?: { id: string; status: string; generated_images?: string[] | null } | null;
 };
 type SavedIdea = { id: string; title: string; caption: string; format: string; hashtags: string[] };
 type Campaign  = { key: string; prompt: string; img: string; format: string };
@@ -120,6 +121,81 @@ function HeartBtn({ active, onClick }: { active: boolean; onClick: () => void })
     >
       <Heart size={15} style={{ color: '#fff', fill: active ? '#fff' : 'none' }} />
     </button>
+  );
+}
+
+function RecreationStatusOverlay({ recreation, onApprove, onRegenerate }: {
+  recreation: { id: string; status: string; generated_images?: string[] | null };
+  onApprove: () => void;
+  onRegenerate: () => void;
+}) {
+  const f = "var(--font-barlow), 'Barlow', sans-serif";
+  const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
+  const { status, generated_images } = recreation;
+
+  if (status === 'completed') {
+    return (
+      <div style={{ position: 'absolute', top: 8, left: 8, background: 'var(--accent)', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 600, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        ✓ Recreado
+      </div>
+    );
+  }
+
+  if (status === 'preparacion') {
+    return (
+      <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.72)', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 600, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 5 }}>
+        <span style={{ display: 'inline-block', width: 7, height: 7, borderRadius: '50%', background: '#facc15', animation: 'pulse 1.4s infinite' }} />
+        Generando…
+      </div>
+    );
+  }
+
+  if (status === 'revisar' && generated_images?.length) {
+    return (
+      <>
+        {/* Generated image preview */}
+        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', padding: 10, gap: 6 }}>
+          <img
+            src={generated_images[0]}
+            alt="Imagen generada"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: -1 }}
+          />
+          <div style={{ display: 'flex', gap: 4, width: '100%', zIndex: 1 }}>
+            <button type="button" onClick={(e) => { e.stopPropagation(); onApprove(); }} style={{
+              flex: 1, padding: '7px 4px', background: '#0F766E', border: 'none', color: '#fff',
+              fontFamily: fc, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer',
+            }}>
+              ✓ Aprobar
+            </button>
+            <button type="button" onClick={(e) => { e.stopPropagation(); onRegenerate(); }} style={{
+              flex: 1, padding: '7px 4px', background: 'rgba(0,0,0,0.75)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff',
+              fontFamily: fc, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', cursor: 'pointer',
+            }}>
+              ↺ Regenerar
+            </button>
+          </div>
+        </div>
+        <div style={{ position: 'absolute', top: 8, left: 8, background: '#7c3aed', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 600, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: '0.06em', zIndex: 2 }}>
+          👁 Revisar
+        </div>
+      </>
+    );
+  }
+
+  // status === 'revisar' but no images yet (fallback)
+  if (status === 'revisar') {
+    return (
+      <div style={{ position: 'absolute', top: 8, left: 8, background: '#7c3aed', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 600, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        Listo para revisar
+      </div>
+    );
+  }
+
+  // pending fallback
+  return (
+    <div style={{ position: 'absolute', top: 8, left: 8, background: 'rgba(0,0,0,0.6)', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 600, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+      En preparación
+    </div>
   );
 }
 
@@ -224,6 +300,34 @@ export default function InspiracionPage() {
     fetch('/api/inspiracion/templates').then(r => r.json()).then(d => { setTemplates(d.templates ?? []); setLoadingTemplates(false); }).catch(() => setLoadingTemplates(false));
     fetch('/api/inspiracion/referencias').then(r => r.json()).then(d => { setReferences(d.references ?? []); setLoadingRefs(false); }).catch(() => setLoadingRefs(false));
   }, []);
+
+  // Realtime: update recreation status when Replicate webhook fires
+  const supabase = useMemo(() => createBrowserClient(), []);
+  useEffect(() => {
+    if (!brand?.id) return;
+    const ch = supabase
+      .channel(`recreations-${brand.id}`)
+      .on(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        'postgres_changes' as any,
+        { event: 'UPDATE', schema: 'public', table: 'recreation_requests', filter: `brand_id=eq.${brand.id}` },
+        (payload: { new: { id: string; status: string; generated_images?: string[] } }) => {
+          const updated = payload.new;
+          setReferences(prev =>
+            prev.map(ref =>
+              ref.recreation?.id === updated.id
+                ? { ...ref, recreation: { ...ref.recreation, status: updated.status, generated_images: updated.generated_images ?? [] } }
+                : ref,
+            ),
+          );
+          if (updated.status === 'revisar') {
+            toast.success('¡Tu recreación está lista para revisar!');
+          }
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
+  }, [brand?.id, supabase]);
 
   const filteredTemplates = templates
     .filter(t => filterFormat === 'all' || t.format === filterFormat)
@@ -764,9 +868,23 @@ export default function InspiracionPage() {
                     <InspirationCard image={ref.thumbnail_url} title={ref.title} description={ref.notes ?? ''} format={ref.format ?? undefined} onRecreate={ref.recreation ? undefined : () => openRecreateForRef(ref)} isFavorited={isFav(`ref-${ref.id}`)} onFavorite={() => toggleFav({ id: `ref-${ref.id}`, title: ref.title, image: ref.thumbnail_url, format: ref.format, description: ref.notes, source: 'reference', savedAt: '' })} />
                     <button onClick={() => handleDeleteRef(ref.id)} title="Eliminar" style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', padding: '4px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: f, fontSize: 10, fontWeight: 600 }}><Trash2 size={11} /> Eliminar</button>
                     {ref.recreation && (
-                      <div style={{ position: 'absolute', top: 8, left: 8, background: ref.recreation.status === 'completed' ? 'var(--accent)' : 'rgba(0,0,0,0.6)', color: '#fff', fontFamily: f, fontSize: 9, fontWeight: 600, padding: '3px 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                        {ref.recreation.status === 'completed' ? '✓ Recreado' : 'En preparación'}
-                      </div>
+                      <RecreationStatusOverlay
+                        recreation={ref.recreation}
+                        onApprove={async () => {
+                          const res = await fetch(`/api/inspiracion/recrear/${ref.recreation!.id}/approve`, { method: 'POST' });
+                          if (res.ok) {
+                            setReferences(p => p.map(r => r.id === ref.id ? { ...r, recreation: { ...r.recreation!, status: 'completed' } } : r));
+                            toast.success('Recreación aprobada');
+                          } else toast.error('Error al aprobar');
+                        }}
+                        onRegenerate={async () => {
+                          const res = await fetch(`/api/inspiracion/recrear/${ref.recreation!.id}/regenerate`, { method: 'POST' });
+                          if (res.ok) {
+                            setReferences(p => p.map(r => r.id === ref.id ? { ...r, recreation: { ...r.recreation!, status: 'preparacion', generated_images: [] } } : r));
+                            toast.success('Regenerando imágenes...');
+                          } else toast.error('Error al regenerar');
+                        }}
+                      />
                     )}
                   </div>
                 ))}

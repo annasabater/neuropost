@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import type { SocialSector, BrandTone, PublishMode, PostGoal, VisualStyle } from '@/types';
@@ -68,6 +68,47 @@ const SECTOR_KEYWORD: Record<SocialSector, string> = {
   hotel:            'hotel',
   regalos:          'gift-shop',
   tecnologia:       'technology,gadgets',
+  ecommerce:        'online-shopping',
+  agencia_marketing:'marketing-agency',
+  peluqueria:       'hair-salon',
+  tattoo:           'tattoo-studio',
+  psicologia:       'psychology,therapy',
+  fisioterapia:     'physiotherapy',
+  arquitectura:     'architecture',
+  consultoria:      'business-consulting',
+  // Turismo y alojamiento
+  hostal:           'hostel',
+  casa_rural:       'countryside-house',
+  camping:          'camping,nature',
+  agencia_viajes:   'travel-agency',
+  // Cultura y ocio
+  museo:            'museum',
+  galeria:          'art-gallery',
+  sala_conciertos:  'concert-hall,music',
+  cine:             'cinema,movies',
+  escape_room:      'escape-room,puzzle',
+  // Educación y formación
+  escuela:          'school,classroom',
+  guarderia:        'kindergarten,children',
+  academia_idiomas: 'language-school',
+  academia_musica:  'music-school',
+  academia_deporte: 'sports-academy',
+  // Deporte y aventura
+  centro_deportivo: 'sports-center',
+  parque_acuatico:  'water-park',
+  aventura:         'adventure,outdoor',
+  club_deportivo:   'sports-club',
+  padel:            'padel,tennis',
+  // Ocio y familia
+  centro_ludico:    'playground,fun',
+  parque_infantil:  'playground,children',
+  zoo:              'zoo,animals',
+  acuario:          'aquarium,fish',
+  // Eventos y servicios
+  organizacion_eventos: 'event-planning',
+  catering:         'catering,food-event',
+  ong:              'volunteering,charity',
+  coworking:        'coworking,office',
   otro:             'business,storefront',
 };
 
@@ -116,41 +157,106 @@ const THUMB = (sector: SocialSector) => IMG(SECTOR_KEYWORD[sector], 0);
 
 const SECTOR_GROUPS: SectorGroup[] = [
   { group: 'Comida y Bebida', items: [
-    { value: 'restaurante', label: 'Gastronomía',        img: THUMB('restaurante') },
-    { value: 'heladeria',   label: 'Heladería',           img: THUMB('heladeria')   },
+    { value: 'restaurante', label: 'Restaurante',        img: THUMB('restaurante') },
     { value: 'cafeteria',   label: 'Cafetería / Brunch', img: THUMB('cafeteria')   },
-    { value: 'cocteleria',  label: 'Cócteles / Bar',     img: THUMB('cocteleria')  },
-    { value: 'street_food', label: 'Street Food',        img: THUMB('street_food') },
-    { value: 'vinoteca',    label: 'Vinoteca',           img: THUMB('vinoteca')    },
+    { value: 'heladeria',   label: 'Heladería',           img: THUMB('heladeria')   },
     { value: 'panaderia',   label: 'Panadería',          img: THUMB('panaderia')   },
+    { value: 'cocteleria',  label: 'Bar / Cócteles',     img: THUMB('cocteleria')  },
+    { value: 'vinoteca',    label: 'Vinoteca',           img: THUMB('vinoteca')    },
+    { value: 'street_food', label: 'Street Food',        img: THUMB('street_food') },
+    { value: 'catering',    label: 'Catering',           img: THUMB('catering')    },
   ]},
-  { group: 'Belleza y Estética', items: [
-    { value: 'barberia',   label: 'Barbería',    img: THUMB('barberia')   },
-    { value: 'nail_art',   label: 'Nail Art',    img: THUMB('nail_art')   },
-    { value: 'estetica',   label: 'Centro Spa',  img: THUMB('estetica')   },
-    { value: 'maquillaje', label: 'Cosmética',   img: THUMB('maquillaje') },
+  { group: 'Belleza y Cuidado Personal', items: [
+    { value: 'peluqueria',  label: 'Peluquería',         img: THUMB('peluqueria')  },
+    { value: 'barberia',    label: 'Barbería',           img: THUMB('barberia')    },
+    { value: 'nail_art',    label: 'Nail Art',           img: THUMB('nail_art')    },
+    { value: 'estetica',    label: 'Centro Spa / Estética', img: THUMB('estetica') },
+    { value: 'maquillaje',  label: 'Cosmética',          img: THUMB('maquillaje')  },
+    { value: 'tattoo',      label: 'Tattoo / Piercing',  img: THUMB('tattoo')      },
+    { value: 'skincare',    label: 'Skincare',           img: THUMB('skincare')    },
+    { value: 'clinica_estetica', label: 'Clínica Estética', img: THUMB('clinica_estetica') },
   ]},
   { group: 'Moda y Estilo', items: [
-    { value: 'boutique',    label: 'Boutique',    img: THUMB('boutique')    },
-    { value: 'moda_hombre', label: 'Moda Hombre', img: THUMB('moda_hombre') },
-    { value: 'zapateria',   label: 'Zapatería',   img: THUMB('zapateria')   },
-    { value: 'skincare',    label: 'Skincare',    img: THUMB('skincare')    },
+    { value: 'boutique',    label: 'Boutique / Moda',   img: THUMB('boutique')    },
+    { value: 'moda_hombre', label: 'Moda Hombre',       img: THUMB('moda_hombre') },
+    { value: 'zapateria',   label: 'Zapatería',         img: THUMB('zapateria')   },
+    { value: 'regalos',     label: 'Regalos',           img: THUMB('regalos')     },
+    { value: 'floristeria', label: 'Floristería',       img: THUMB('floristeria') },
   ]},
   { group: 'Salud y Bienestar', items: [
-    { value: 'gym',       label: 'Gimnasio / Fitness', img: THUMB('gym')       },
-    { value: 'yoga',      label: 'Yoga / Pilates',     img: THUMB('yoga')      },
-    { value: 'dental',    label: 'Clínica Dental',     img: THUMB('dental')    },
-    { value: 'clinica',   label: 'Clínica / Medicina', img: THUMB('clinica')   },
-    { value: 'nutricion', label: 'Nutrición',          img: THUMB('nutricion') },
+    { value: 'gym',         label: 'Gimnasio / Fitness', img: THUMB('gym')         },
+    { value: 'yoga',        label: 'Yoga / Pilates',     img: THUMB('yoga')        },
+    { value: 'dental',      label: 'Clínica Dental',     img: THUMB('dental')      },
+    { value: 'clinica',     label: 'Clínica / Medicina', img: THUMB('clinica')     },
+    { value: 'nutricion',   label: 'Nutrición',          img: THUMB('nutricion')   },
+    { value: 'psicologia',  label: 'Psicología',         img: THUMB('psicologia')  },
+    { value: 'fisioterapia',label: 'Fisioterapia',       img: THUMB('fisioterapia')},
+    { value: 'veterinario', label: 'Veterinaria',        img: THUMB('veterinario') },
   ]},
-  { group: 'Hogar y Servicios', items: [
-    { value: 'decoracion',  label: 'Decoración',   img: THUMB('decoracion')   },
-    { value: 'jardineria',  label: 'Jardinería',   img: THUMB('jardineria')   },
-    { value: 'reformas',    label: 'Reformas',     img: THUMB('reformas')     },
-    { value: 'inmobiliaria',label: 'Inmobiliaria', img: THUMB('inmobiliaria') },
-    { value: 'fotografia',  label: 'Fotografía',   img: THUMB('fotografia')   },
-    { value: 'floristeria', label: 'Floristería',  img: THUMB('floristeria')  },
-    { value: 'otro',        label: 'Otro negocio', img: THUMB('otro')         },
+  { group: 'Turismo y Alojamiento', items: [
+    { value: 'hotel',         label: 'Hotel',           img: THUMB('hotel')         },
+    { value: 'hostal',        label: 'Hostal / Pensión',img: THUMB('hostal')        },
+    { value: 'casa_rural',    label: 'Casa Rural',      img: THUMB('casa_rural')    },
+    { value: 'camping',       label: 'Camping',         img: THUMB('camping')       },
+    { value: 'agencia_viajes',label: 'Agencia de Viajes', img: THUMB('agencia_viajes') },
+    { value: 'viajes',        label: 'Turismo / Viajes',img: THUMB('viajes')        },
+  ]},
+  { group: 'Cultura y Ocio', items: [
+    { value: 'museo',          label: 'Museo',           img: THUMB('museo')          },
+    { value: 'galeria',        label: 'Galería de Arte', img: THUMB('galeria')        },
+    { value: 'teatro',         label: 'Teatro',          img: THUMB('teatro')         },
+    { value: 'sala_conciertos',label: 'Sala de Conciertos', img: THUMB('sala_conciertos') },
+    { value: 'cine',           label: 'Cine',            img: THUMB('cine')           },
+    { value: 'libreria',       label: 'Librería',        img: THUMB('libreria')       },
+    { value: 'arte',           label: 'Arte / Artesanía',img: THUMB('arte')           },
+    { value: 'escape_room',    label: 'Escape Room',     img: THUMB('escape_room')    },
+    { value: 'gaming',         label: 'Gaming / Esports',img: THUMB('gaming')         },
+  ]},
+  { group: 'Educación y Formación', items: [
+    { value: 'escuela',          label: 'Escuela / Colegio',   img: THUMB('escuela')          },
+    { value: 'guarderia',        label: 'Guardería',           img: THUMB('guarderia')        },
+    { value: 'academia',         label: 'Academia / Clases',   img: THUMB('academia')         },
+    { value: 'academia_idiomas', label: 'Academia de Idiomas', img: THUMB('academia_idiomas') },
+    { value: 'academia_musica',  label: 'Academia de Música',  img: THUMB('academia_musica')  },
+    { value: 'academia_deporte', label: 'Escuela Deportiva',   img: THUMB('academia_deporte') },
+  ]},
+  { group: 'Deporte y Aventura', items: [
+    { value: 'centro_deportivo',label: 'Centro Deportivo',  img: THUMB('centro_deportivo') },
+    { value: 'club_deportivo',  label: 'Club Deportivo',    img: THUMB('club_deportivo')   },
+    { value: 'padel',           label: 'Pádel / Tenis',     img: THUMB('padel')            },
+    { value: 'parque_acuatico', label: 'Parque Acuático',   img: THUMB('parque_acuatico')  },
+    { value: 'aventura',        label: 'Aventura / Outdoor',img: THUMB('aventura')         },
+  ]},
+  { group: 'Ocio Familiar', items: [
+    { value: 'centro_ludico',  label: 'Centro Lúdico',    img: THUMB('centro_ludico')  },
+    { value: 'parque_infantil',label: 'Parque Infantil',  img: THUMB('parque_infantil') },
+    { value: 'zoo',            label: 'Zoo / Naturaleza', img: THUMB('zoo')             },
+    { value: 'acuario',        label: 'Acuario',          img: THUMB('acuario')         },
+  ]},
+  { group: 'Hogar y Construcción', items: [
+    { value: 'decoracion',    label: 'Decoración',     img: THUMB('decoracion')    },
+    { value: 'jardineria',    label: 'Jardinería',     img: THUMB('jardineria')    },
+    { value: 'reformas',      label: 'Reformas',       img: THUMB('reformas')      },
+    { value: 'arquitectura',  label: 'Arquitectura',   img: THUMB('arquitectura')  },
+    { value: 'fotografia',    label: 'Fotografía',     img: THUMB('fotografia')    },
+  ]},
+  { group: 'Servicios Profesionales', items: [
+    { value: 'inmobiliaria',      label: 'Inmobiliaria',     img: THUMB('inmobiliaria')      },
+    { value: 'inmobiliaria_lujo', label: 'Inmobiliaria Lujo',img: THUMB('inmobiliaria_lujo') },
+    { value: 'abogado',           label: 'Despacho Legal',   img: THUMB('abogado')           },
+    { value: 'consultoria',       label: 'Consultoría',      img: THUMB('consultoria')       },
+    { value: 'tecnologia',        label: 'Tecnología / IT',  img: THUMB('tecnologia')        },
+    { value: 'agencia_marketing', label: 'Agencia Marketing',img: THUMB('agencia_marketing') },
+    { value: 'mecanica',          label: 'Mecánica / Taller',img: THUMB('mecanica')          },
+    { value: 'ecommerce',         label: 'Tienda Online',    img: THUMB('ecommerce')         },
+    { value: 'coworking',         label: 'Coworking',        img: THUMB('coworking')         },
+  ]},
+  { group: 'Eventos y Social', items: [
+    { value: 'organizacion_eventos', label: 'Organización de Eventos', img: THUMB('organizacion_eventos') },
+    { value: 'ong',                  label: 'ONG / Fundación',         img: THUMB('ong')                  },
+  ]},
+  { group: 'Otro tipo de negocio', items: [
+    { value: 'otro', label: '¿No está tu sector? Escríbelo', img: THUMB('otro') },
   ]},
 ];
 
@@ -216,6 +322,31 @@ const SECTOR_CAPTIONS: Partial<Record<SocialSector, string[]>> = {
   jardineria:   ['Tu jardín merece lo mejor 🌿', 'Primavera en cada rincón 🌻', 'Verde que inspira calma 🌳'],
   reformas:     ['De proyecto a realidad 🔨', 'Reforma integral con estilo ✨', 'Tu espacio, reinventado 🏗️'],
   fotografia:   ['Momentos que perduran 📸', 'Tu historia en cada imagen ✨', 'Luz natural, emociones reales 🎞️'],
+  peluqueria:   ['El corte que buscabas ✂️', 'Transforma tu look hoy 💇', 'Reserva tu cita ahora 📲'],
+  tattoo:       ['Arte en tu piel 🖤', 'Cada trazo, una historia 🎨', 'Diseños únicos que duran para siempre ✨'],
+  hotel:        ['El descanso que mereces 🛏️', 'Vistas que te dejan sin palabras 🌅', 'Bienvenido a tu hogar lejos de casa 🏨'],
+  hostal:       ['Viajeros del mundo, bienvenidos 🌍', 'El lugar donde nacen amistades 🤝', 'Alojamiento con alma 🏠'],
+  museo:        ['Historia que cobra vida 🏛️', 'Nueva exposición temporal disponible 🖼️', 'El arte espera por ti ✨'],
+  galeria:      ['Arte contemporáneo que inspira 🎨', 'Vernissage este jueves 🍷', 'La cultura más cerca de ti 🖼️'],
+  teatro:       ['El telón sube esta noche 🎭', 'Teatro que emociona, teatro que conecta ✨', 'Reserva tus entradas 🎟️'],
+  escuela:      ['El futuro empieza aquí 📚', 'Educación de calidad para cada alumno 🎓', 'Abrimos inscripciones 📝'],
+  guarderia:    ['Los más pequeños en las mejores manos 🧸', 'Aprendizaje y juego unidos 🌈', 'Un espacio lleno de cariño 💛'],
+  academia_idiomas: ['Habla el mundo 🌍', 'Inglés, francés, alemán y más 🗣️', 'Clases online y presenciales 💻'],
+  academia_musica:  ['Música para el alma 🎵', 'Aprende guitarra, piano o voz 🎹', 'El ritmo que buscabas 🎸'],
+  centro_deportivo: ['Deporte para todos 🏅', 'Instalaciones de primera nivel ⭐', 'Únete a nuestra comunidad deportiva 🤸'],
+  parque_acuatico:  ['El verano más refrescante 💦', 'Diversión sin límites bajo el sol ☀️', 'La adrenalina del agua te espera 🌊'],
+  aventura:     ['Vive la aventura al máximo 🧗', 'Naturaleza + adrenalina 🌲', 'Experiencias que no olvidarás 🏕️'],
+  club_deportivo: ['Pasión por el deporte 🏆', 'Equipo que lucha unido 💪', 'Próximo partido, ¡ven a apoyarnos! 🎉'],
+  padel:        ['El deporte del momento 🎾', 'Pistas disponibles toda la semana ✅', '¿Tienes pareja? ¡Te espera el rival! 😄'],
+  centro_ludico: ['Risas garantizadas 🎉', 'El parque de diversiones que adoran los niños 🎠', 'Cumpleaños y celebraciones especiales 🎂'],
+  zoo:          ['Animales que enamoran 🐾', 'Una aventura para toda la familia 🦁', 'Nuevos habitantes han llegado 🐘'],
+  acuario:      ['El fondo del mar te espera 🐠', 'Descubre el mundo submarino 🌊', 'Visita guiada este fin de semana 🦈'],
+  organizacion_eventos: ['Cada evento, una historia perfecta 🎊', 'Tu celebración en manos expertas ✨', 'Bodas, corporativos y más 🥂'],
+  catering:     ['Sabores que sorprenden 🍽️', 'Tu evento con el mejor menú 🥗', 'Calidad y servicio en cada bocado 👨‍🍳'],
+  escape_room:  ['¿Puedes escapar? 🔓', 'Desafía tu mente en equipo 🧩', 'Nuevas salas disponibles 🚪'],
+  coworking:    ['Tu oficina, tu comunidad 💼', 'Espacio de trabajo flexible 🖥️', 'Networking en cada café ☕'],
+  ong:          ['Juntos cambiamos el mundo 🌱', 'Tu ayuda marca la diferencia ❤️', 'Nuevos proyectos en marcha 🤝'],
+  viajes:       ['El mundo está esperándote ✈️', 'Tu próxima aventura empieza aquí 🗺️', 'Ofertas de última hora disponibles 🏖️'],
 };
 const DEFAULT_CAPTIONS = ['Contenido adaptado a tu negocio ✨', 'Tu historia, nuestra voz 🎯', 'Conectamos con tu audiencia 💬'];
 
@@ -553,6 +684,8 @@ const ONBOARDING_PLANS: {
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isRedo = searchParams.get('redo') === '1';
   const { addTag, removeTag, handleTagKeyDown } = useTagInput();
   const [step,   setStep]   = useState<Step>(1);
   const [saving, setSaving] = useState(false);
@@ -562,6 +695,7 @@ export default function OnboardingPage() {
   const [lastName,  setLastName]  = useState('');
 
   const [sector,           setSector]           = useState<SocialSector>('restaurante');
+  const [customSectorLabel, setCustomSectorLabel] = useState('');
   const [secondarySectors, setSecondarySectors] = useState<SocialSector[]>([]);
   const [visualStyle,      setVisualStyle]      = useState<VisualStyle>('warm');
   const [name,             setName]             = useState('');
@@ -579,6 +713,7 @@ export default function OnboardingPage() {
   const [objective]                             = useState<PostGoal>('engagement');
   const [publishMode,      setPublishMode]      = useState<PublishMode>('semi');
   const [country, setCountry] = useState('España');
+  const [city, setCity] = useState('');
   const INITIAL_PRIMARY_COLOR = '#0F766E';
   const INITIAL_SECONDARY_COLOR = '#374151';
   const INITIAL_TERTIARY_COLOR = '#94A3B8';
@@ -598,6 +733,28 @@ export default function OnboardingPage() {
   const catDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load template categories when sector changes
+  // Prefill from existing brand when redoing onboarding
+  useEffect(() => {
+    if (!isRedo) return;
+    fetch('/api/brands').then(r => r.json()).then(({ brand }) => {
+      if (!brand) return;
+      if (brand.name)         setName(brand.name);
+      if (brand.sector)       setSector(brand.sector as SocialSector);
+      if (brand.visual_style) setVisualStyle(brand.visual_style as VisualStyle);
+      if (brand.tone)         setTone(brand.tone as BrandTone);
+      if (brand.hashtags?.length) setKeywords(brand.hashtags);
+      if (brand.location)     setLocation(brand.location);
+      if (brand.city)         setCity(brand.city);
+      if (brand.publish_mode) setPublishMode(brand.publish_mode as PublishMode);
+      if (brand.slogans?.[0]) setSlogan(brand.slogans[0]);
+      if (brand.colors?.primary)   setPrimaryColor(brand.colors.primary);
+      if (brand.colors?.secondary) setSecondaryColor(brand.colors.secondary);
+      if (brand.colors?.tertiary)  setTertiaryColor(brand.colors.tertiary);
+      if (brand.colors?.primary || brand.colors?.secondary) setHasCustomPalette(true);
+    }).catch(() => null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRedo]);
+
   useEffect(() => {
     const template = getTemplateForSector(sector);
     if (template) {
@@ -700,11 +857,13 @@ export default function OnboardingPage() {
         vintage:    'Estilo vintage y artesanal: lenguaje cálido, nostálgico, valorando el oficio.',
       };
       const res = await fetch('/api/brands', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: isRedo ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name, sector, secondary_sectors: secondarySectors,
           visual_style: visualStyle, tone, hashtags: keywords,
-          location: location ? `${location}, ${country}` : country || null, slogans: slogan ? [slogan] : [],
+          location: location ? `${location}, ${country}` : country || null,
+          city: city.trim() || null,
+          slogans: slogan ? [slogan] : [],
           publish_mode: publishMode,
           publish_frequency: FREQUENCY_BY_PLAN[selectedPlan],
           plan: selectedPlan,
@@ -713,7 +872,7 @@ export default function OnboardingPage() {
           rules: { forbiddenWords: forbidden, noPublishDays: [], noEmojis: visualStyle === 'elegant' || visualStyle === 'dark', noAutoReplyNegative: false, forbiddenTopics: [] },
           content_categories: contentCategories.filter((c) => c.active),
           brand_voice_doc: [
-            `Negocio: ${name}. Sector: ${sector}.`,
+            `Negocio: ${name}. Sector: ${sector === 'otro' && customSectorLabel.trim() ? customSectorLabel.trim() : sector}.`,
             `Estilo visual: ${visualStyle}. ${styleInstructions[visualStyle]}`,
             `Tono de marca: ${tone}.`,
             extraContext,
@@ -724,9 +883,9 @@ export default function OnboardingPage() {
         }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? 'Error al crear el negocio');
-      toast.success('¡Negocio configurado correctamente!');
-      router.push('/dashboard');
+      if (!res.ok) throw new Error(json.error ?? (isRedo ? 'Error al actualizar el negocio' : 'Error al crear el negocio'));
+      toast.success(isRedo ? '¡Marca actualizada correctamente!' : '¡Negocio configurado correctamente!');
+      router.push(isRedo ? '/brand' : '/dashboard');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error inesperado');
     } finally { setSaving(false); }
@@ -1022,7 +1181,7 @@ export default function OnboardingPage() {
         </ul>
       </div>
       <div style={{ marginTop: 'auto', padding: '16px 20px', background: '#f3f4f6', border: '1px solid #e5e7eb', fontFamily: FONT, fontSize: '0.8rem', color: MUTED, lineHeight: 1.6 }}>
-        Sin permanencia. Puedes cambiar de plan o cancelar cuando quieras desde los ajustes.
+        Puedes cambiar de plan o cancelar cuando quieras desde los ajustes.
       </div>
     </div>
   );
@@ -1103,6 +1262,26 @@ export default function OnboardingPage() {
                 </div>
               ))}
             </div>
+
+            {/* Custom sector input — only when "otro" is selected */}
+            {sector === 'otro' && (
+              <div style={{ margin: '8px 0 4px', padding: '14px 16px', background: '#f0fdf4', border: '1px solid #0F766E' }}>
+                <label style={{ fontFamily: FONT, fontSize: '0.75rem', fontWeight: 700, color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>
+                  ¿Qué tipo de negocio tienes?
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: Museo de ciencias, Escuela de surf, Tienda de comics..."
+                  value={customSectorLabel}
+                  onChange={(e) => setCustomSectorLabel(e.target.value)}
+                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d4d4d8', fontFamily: FONT, fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', background: '#fff' }}
+                  autoFocus
+                />
+                <p style={{ fontFamily: FONT, fontSize: '0.7rem', color: MUTED, marginTop: 5 }}>
+                  El agente usará esto para adaptar el contenido a tu negocio específico.
+                </p>
+              </div>
+            )}
 
             <div style={{ position: 'sticky', bottom: 0, marginTop: 8, paddingTop: 16, paddingBottom: 4, background: `linear-gradient(to top, ${BG_L} 70%, transparent)` }}>
               <BtnPrimary onClick={() => setStep(2)}>Siguiente →</BtnPrimary>
@@ -1459,16 +1638,34 @@ export default function OnboardingPage() {
                 {/* Region / Autonomous community — free text input */}
                 <div>
                   <Label>
-                    {country === 'España' ? 'Comunidad autónoma' : 'Región / Ciudad'}{' '}
+                    {country === 'España' ? 'Comunidad autónoma' : 'Región / Estado'}{' '}
                     <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span>
                   </Label>
                   <input
                     style={inputStyle}
                     type="text"
-                    placeholder={country === 'España' ? 'Ej: Cataluña, Madrid, Andalucía...' : 'Ej: Ciudad de México, Buenos Aires...'}
+                    placeholder={country === 'España' ? 'Ej: Cataluña, Madrid, Andalucía...' : 'Ej: California, Île-de-France, Buenos Aires...'}
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                   />
+                </div>
+
+                {/* City / Town */}
+                <div>
+                  <Label>
+                    {country === 'España' ? 'Municipio o ciudad' : 'Ciudad o pueblo'}{' '}
+                    <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span>
+                  </Label>
+                  <input
+                    style={inputStyle}
+                    type="text"
+                    placeholder={country === 'España' ? 'Ej: Barcelona, Gràcia, Sitges...' : 'Ej: Lyon, Osaka, Medellín...'}
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                  />
+                  <p style={{ fontFamily: FONT, fontSize: '0.72rem', color: MUTED, marginTop: 5, lineHeight: 1.4 }}>
+                    Con tu municipio el agente detecta fiestas locales y las marca en tu calendario.
+                  </p>
                 </div>
 
                 {/* Optional brand palette — shown here in step 3 so the
@@ -1729,7 +1926,7 @@ export default function OnboardingPage() {
 
             <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
               <BtnBack onClick={() => setStep(3)} />
-              <BtnPrimary onClick={() => setStep(5)}>Siguiente →</BtnPrimary>
+              <BtnPrimary onClick={() => isRedo ? handleSubmit() : setStep(5)}>{isRedo ? (saving ? 'Guardando…' : 'Guardar cambios →') : 'Siguiente →'}</BtnPrimary>
             </div>
           </div>
         )}

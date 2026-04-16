@@ -81,7 +81,7 @@ export async function sendWelcomeEmail(to: string, name: string): Promise<void> 
     <p style="font-weight:700;margin-top:24px;margin-bottom:8px">Primeros pasos:</p>
     <ol style="color:#555;line-height:2;padding-left:20px">
       <li>Configura tu marca en <strong>Ajustes</strong></li>
-      <li>Conecta tu Instagram o Facebook</li>
+      <li>Conecta tu Instagram, Facebook o TikTok</li>
       <li>Genera tu primer post con IA</li>
     </ol>
     <a href="${APP()}/dashboard" style="${BTN}">Ir al dashboard →</a>
@@ -253,4 +253,58 @@ export async function sendSubscriptionCancelledEmail(to: string): Promise<void> 
     <a href="${APP()}/settings/plan" style="${BTN}">Volver a activar →</a>
   `);
   await send(to, 'Tu suscripción de NeuroPost ha finalizado', html);
+}
+
+// ─── 10. Generic notification email (used by notify.ts) ──────────────────────
+
+const NOTIF_TITLES: Record<string, string> = {
+  approval_needed:  'Tu contenido está listo',
+  published:        'Post publicado',
+  failed:           'Error en la generación',
+  comment:          'Nuevo comentario en tu post',
+  ticket_reply:     'Respuesta en tu ticket',
+  chat_message:     'Nuevo mensaje del equipo de NeuroPost',
+  recreation_ready: 'Tu recreación está lista',
+  limit_reached:    'Has alcanzado el límite de tu plan',
+  token_expired:    'Reconecta tu cuenta de Instagram',
+  payment_failed:   'Error en el pago',
+  plan_activated:   'Plan activado',
+};
+
+const NOTIF_CTA: Record<string, { label: string; path: string }> = {
+  approval_needed:  { label: 'Ver contenido',        path: '/posts' },
+  published:        { label: 'Ver post publicado',    path: '/posts' },
+  comment:          { label: 'Ver comentarios',       path: '/comments' },
+  ticket_reply:     { label: 'Ver ticket',            path: '/soporte' },
+  chat_message:     { label: 'Ir al chat',            path: '/chat' },
+  recreation_ready: { label: 'Ver recreación',        path: '/inspiracion' },
+  limit_reached:    { label: 'Mejorar plan',          path: '/settings/plan' },
+  token_expired:    { label: 'Reconectar',            path: '/settings/connections' },
+  payment_failed:   { label: 'Actualizar pago',       path: '/settings/plan' },
+  plan_activated:   { label: 'Ir al dashboard',       path: '/dashboard' },
+};
+
+export async function sendNotificationEmail(opts: {
+  to:        string;
+  brandName: string;
+  type:      string;
+  message:   string;
+  metadata?: Record<string, unknown>;
+}): Promise<void> {
+  const title   = NOTIF_TITLES[opts.type] ?? 'Notificación de NeuroPost';
+  const cta     = NOTIF_CTA[opts.type];
+  const ctaHtml = cta
+    ? `<a href="${APP()}${cta.path}" style="${BTN}">${cta.label} →</a>`
+    : `<a href="${APP()}/dashboard" style="${BTN}">Ir a NeuroPost →</a>`;
+
+  const html = layout(`
+    <h1 style="font-size:26px;font-weight:800;margin:24px 0 8px">${title}</h1>
+    <p style="color:#555;line-height:1.6">${opts.message}</p>
+    ${ctaHtml}
+    <p style="color:#999;font-size:12px;margin-top:24px;line-height:1.5">
+      Puedes configurar qué notificaciones recibes por email en
+      <a href="${APP()}/settings?tab=notificaciones" style="color:#ff6b35">Ajustes → Notificaciones</a>.
+    </p>
+  `);
+  await send(opts.to, `${title} — ${opts.brandName}`, html);
 }

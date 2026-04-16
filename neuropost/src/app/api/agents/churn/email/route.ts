@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { rateLimitAgents } from '@/lib/ratelimit';
+import { apiError } from '@/lib/api-utils';
 import { requireSuperAdmin, adminErrorResponse } from '@/lib/admin';
 import { createAdminClient } from '@/lib/supabase';
 import { generateRetentionEmail } from '@/agents/ChurnAgent';
@@ -7,6 +9,8 @@ import type { Brand } from '@/types';
 
 export async function POST(request: Request) {
   try {
+    const rl = await rateLimitAgents(request);
+    if (rl) return rl;
     await requireSuperAdmin();
     const { brandId, send = false } = await request.json() as { brandId: string; send?: boolean };
 

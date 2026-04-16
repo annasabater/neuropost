@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
+import { apiError, parsePagination } from '@/lib/api-utils';
 import type { Brand, Notification } from '@/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const user     = await requireServerUser();
     const supabase = await createServerClient() as DB;
+    const { limit, offset } = parsePagination(request, 100, 50);
 
     const { data: brand } = await supabase
       .from('brands').select('id').eq('user_id', user.id).single();
@@ -19,13 +21,11 @@ export async function GET() {
       .select('*')
       .eq('brand_id', (brand as Brand).id)
       .order('created_at', { ascending: false })
-      .limit(50);
+      .range(offset, offset + limit - 1);
 
     return NextResponse.json({ notifications: (notifications as Notification[]) ?? [] });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'GET /api/notifications');
   }
 }
 
@@ -48,8 +48,6 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'PATCH /api/notifications');
   }
 }

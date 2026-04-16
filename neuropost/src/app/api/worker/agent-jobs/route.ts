@@ -5,6 +5,7 @@
 // Paginated via `limit` (capped at 200) and `before` (created_at cursor).
 
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireWorker } from '@/lib/worker';
 import { createAdminClient } from '@/lib/supabase';
 import type { AgentJobStatus, AgentType } from '@/lib/agents/types';
@@ -45,6 +46,6 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     console.error('[GET /api/worker/agent-jobs]', err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'worker/agent-jobs');
   }
 }

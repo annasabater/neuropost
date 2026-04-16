@@ -156,7 +156,7 @@ export default function TerminosPage() {
           <ul style={s.list}>
             <li style={s.listItem}><strong>Cancela cuando quieras:</strong> puedes cancelar tu suscripción en cualquier momento desde el panel de configuración, sin permanencia mínima ni penalización.</li>
             <li style={s.listItem}><strong>Sin reembolso del mes en curso:</strong> al cancelar, mantendrás el acceso al servicio hasta el final del período de facturación en curso. No se realizan reembolsos proporcionales por los días no utilizados.</li>
-            <li style={s.listItem}><strong>Período de prueba:</strong> todos los planes incluyen 14 días de prueba gratuita sin necesidad de tarjeta de crédito. Al finalizar el período de prueba, el servicio quedará suspendido hasta que introduzcas un método de pago válido.</li>
+            <li style={s.listItem}><strong>Acceso al servicio:</strong> el acceso al servicio está condicionado a la contratación de un plan de pago. Al registrarte, podrás explorar la plataforma hasta completar la suscripción.</li>
           </ul>
         </div>
         <div style={s.divider} />
