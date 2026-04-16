@@ -47,7 +47,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     // ── Regenerate copy ────────────────────────────────────────────────────────
     const prevVersions: PostVersion[] = Array.isArray(p.versions) ? p.versions : [];
     if (p.caption) {
-      prevVersions.push({ caption: p.caption, hashtags: p.hashtags ?? [], savedAt: new Date().toISOString() });
+      prevVersions.push({ caption: p.caption, hashtags: p.hashtags ?? [], savedAt: new Date().toISOString(), image_url: p.image_url ?? null });
     }
 
     const ctx    = brandToAgentContext(brand as Brand);

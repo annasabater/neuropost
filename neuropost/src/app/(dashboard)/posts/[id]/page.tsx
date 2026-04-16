@@ -44,15 +44,28 @@ export default function PostDetailPage() {
 
   async function handleRevertVersion(version: PostVersion) {
     if (!post) return;
-    // Save current as a new version first, then apply the old one
+    // Archive current state as a new version snapshot before applying the old one
     const currentVersions: PostVersion[] = Array.isArray(post.versions) ? post.versions : [];
     if (post.caption) {
-      currentVersions.push({ caption: post.caption, hashtags: post.hashtags ?? [], savedAt: new Date().toISOString() });
+      currentVersions.push({
+        caption:   post.caption,
+        hashtags:  post.hashtags ?? [],
+        savedAt:   new Date().toISOString(),
+        image_url: post.image_url ?? null,
+      });
     }
+    const patchBody: Record<string, unknown> = {
+      caption:  version.caption,
+      hashtags: version.hashtags,
+      versions: currentVersions,
+    };
+    // Restore image too if the version had one
+    if (version.image_url) patchBody.image_url = version.image_url;
+
     const res = await fetch(`/api/posts/${post.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ caption: version.caption, hashtags: version.hashtags, versions: currentVersions }),
+      body: JSON.stringify(patchBody),
     });
     const json = await res.json();
     if (!res.ok) { toast.error(json.error); return; }
@@ -67,7 +80,7 @@ export default function PostDetailPage() {
     // Archive current caption as a version snapshot before saving
     const prevVersions: PostVersion[] = Array.isArray(post.versions) ? post.versions : [];
     if (post.caption && post.caption !== caption) {
-      prevVersions.push({ caption: post.caption, hashtags: post.hashtags ?? [], savedAt: new Date().toISOString() });
+      prevVersions.push({ caption: post.caption, hashtags: post.hashtags ?? [], savedAt: new Date().toISOString(), image_url: post.image_url ?? null });
     }
     const res  = await fetch(`/api/posts/${post.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ caption, versions: prevVersions }) });
     const json = await res.json();
@@ -398,77 +411,78 @@ export default function PostDetailPage() {
         </div>
       </div>
 
-      <div className="post-detail-layout" style={{ marginBottom: 24, gridTemplateColumns: post.image_url ? '360px minmax(0, 1fr)' : '1fr' }}>
-        {post.image_url && (
-          <div>
-            {/* Worker's version label when comparing */}
-            {originalImages.length > 0 && (
-              <p style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--accent)', marginBottom: 4 }}>
-                Propuesta del equipo
-              </p>
-            )}
-            <div className="post-detail-preview" style={{ border: '1px solid var(--border)', background: '#000' }}>
-              {/\.(mp4|mov|webm|avi)(\?|$)/i.test(post.image_url) ? (
-                <video src={post.image_url} controls style={{ width: '100%', maxHeight: 560, objectFit: 'contain', display: 'block' }} />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={post.image_url} alt="" style={{ width: '100%', maxHeight: 560, objectFit: 'contain', display: 'block' }} />
-              )}
-            </div>
+      {/* ── Hero media (full width) ── */}
+      {post.image_url && (
+        <div style={{ marginBottom: 16 }}>
+          {originalImages.length > 0 && (
+            <p style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--accent)', marginBottom: 6 }}>
+              Propuesta del equipo
+            </p>
+          )}
 
-            {/* Original reference images (only in pending state when worker modified) */}
-            {originalImages.length > 0 && (
-              <div style={{ marginTop: 12 }}>
-                <p style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 6 }}>
-                  Tu imagen original
-                </p>
-                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                  {originalImages.map((url, i) => (
-                    <div key={i} style={{ border: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0 }}>
-                      {/\.(mp4|mov|webm|avi)(\?|$)/i.test(url) ? (
-                        <video src={url} style={{ width: 160, height: 160, objectFit: 'cover', display: 'block' }} />
-                      ) : (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={url} alt={`Original ${i + 1}`} style={{ width: 160, height: 160, objectFit: 'cover', display: 'block' }} />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
+          {/* Main hero image / video */}
+          <div style={{ background: '#000', border: '1px solid var(--border)' }}>
+            {/\.(mp4|mov|webm|avi)(\?|$)/i.test(post.image_url) ? (
+              <video src={post.image_url} controls style={{ width: '100%', maxHeight: 640, objectFit: 'contain', display: 'block' }} />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={post.image_url} alt="" style={{ width: '100%', maxHeight: 640, objectFit: 'contain', display: 'block' }} />
             )}
-
-            {/* Generated asset versions */}
-            <AssetVersions
-              postId={post.id}
-              currentImageUrl={post.image_url}
-              onImageChange={(url) => {
-                setPost(p => p ? { ...p, image_url: url } : p);
-                updatePost(post.id, { image_url: url });
-              }}
-              onApprove={async () => {
-                // Move post to pending so user can schedule it
-                const res = await fetch(`/api/posts/${post.id}`, {
-                  method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ status: 'pending' }),
-                });
-                if (res.ok) {
-                  const json = await res.json();
-                  updatePost(post.id, json.post);
-                  setPost(json.post);
-                }
-              }}
-              onReject={(action) => {
-                if (action === 'delete') {
-                  deleteRequest();
-                } else {
-                  // Edit = send back to preparation for regeneration
-                  changeRequestStatus('request');
-                }
-              }}
-            />
           </div>
-        )}
 
+          {/* AI asset alternatives (switch between generated versions) */}
+          <AssetVersions
+            postId={post.id}
+            currentImageUrl={post.image_url}
+            onImageChange={(url) => {
+              setPost(p => p ? { ...p, image_url: url } : p);
+              updatePost(post.id, { image_url: url });
+            }}
+            onApprove={async () => {
+              const res = await fetch(`/api/posts/${post.id}`, {
+                method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'pending' }),
+              });
+              if (res.ok) {
+                const json = await res.json();
+                updatePost(post.id, json.post);
+                setPost(json.post);
+              }
+            }}
+            onReject={(action) => {
+              if (action === 'delete') {
+                deleteRequest();
+              } else {
+                changeRequestStatus('request');
+              }
+            }}
+          />
+
+          {/* Original reference images (only when worker modified a client upload) */}
+          {originalImages.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <p style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 6 }}>
+                Tu imagen original
+              </p>
+              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {originalImages.map((url, i) => (
+                  <div key={i} style={{ border: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0 }}>
+                    {/\.(mp4|mov|webm|avi)(\?|$)/i.test(url) ? (
+                      <video src={url} style={{ width: 160, height: 160, objectFit: 'cover', display: 'block' }} />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={url} alt={`Original ${i + 1}`} style={{ width: 160, height: 160, objectFit: 'cover', display: 'block' }} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Content + actions panel (full width) ── */}
+      <div style={{ marginBottom: 24 }}>
         <div className="post-detail-panel" style={{ border: '1px solid var(--border)', overflow: 'hidden' }}>
         {/* Solicitud original (only for posts that came from a request) */}
         {meta && post.status !== 'request' && (cleanCaption !== post.caption) && (
@@ -812,13 +826,6 @@ export default function PostDetailPage() {
           </div>
         )}
 
-        {/* Version history */}
-        {Array.isArray(post.versions) && post.versions.length > 0 && (
-          <div style={{ padding: '20px 28px', borderBottom: '1px solid var(--border)' }}>
-            <VersionsPanel versions={post.versions} onRevert={handleRevertVersion} />
-          </div>
-        )}
-
         {/* Footer */}
         <div style={{
           padding: '16px 28px', background: 'var(--bg-1)',
@@ -831,6 +838,16 @@ export default function PostDetailPage() {
         </div>
         </div>
       </div>
+
+      {/* ── Version history — full width, below the panel ── */}
+      {Array.isArray(post.versions) && post.versions.length > 0 && (
+        <VersionsPanel
+          versions={post.versions}
+          currentCaption={post.caption}
+          currentImageUrl={post.image_url}
+          onRevert={handleRevertVersion}
+        />
+      )}
     </div>
   );
 }

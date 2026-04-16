@@ -194,6 +194,7 @@ export interface PostVersion {
   caption:   string;
   hashtags:  string[];
   savedAt:   string;
+  image_url?: string | null;   // image snapshot at this version (populated from regenerations)
 }
 
 export type StoryType = 'repost' | 'new' | 'auto';
