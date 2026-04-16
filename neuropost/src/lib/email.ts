@@ -263,7 +263,7 @@ const NOTIF_TITLES: Record<string, string> = {
   failed:           'Error en la generación',
   comment:          'Nuevo comentario en tu post',
   ticket_reply:     'Respuesta en tu ticket',
-  chat_message:     'Nuevo mensaje de tu equipo',
+  chat_message:     'Nuevo mensaje del equipo de NeuroPost',
   recreation_ready: 'Tu recreación está lista',
   limit_reached:    'Has alcanzado el límite de tu plan',
   token_expired:    'Reconecta tu cuenta de Instagram',

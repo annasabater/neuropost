@@ -117,7 +117,6 @@ export async function GET(request: Request) {
         // Dispatch by agent type + action + source
         const agentType = job.agent_type as string;
         const action = job.action as string;
-        const source = job.input?.source as string;
 
         if (agentType === 'support' && action === 'resolve_ticket') {
           await processSupportResolveTicket(db, job, outputs[0] as AgentOutput);
@@ -155,7 +154,7 @@ export async function GET(request: Request) {
 async function processSupportInteraction(db: DB, job: AgentJob, output: AgentOutput) {
   const source = job.input?.source as string;
   const payload = output.payload as {
-    responses?: Array<{ generatedReply?: string; analysis?: { decision?: string; detectedLanguage?: string } }>;
+    responses?: Array<{ generatedReply?: string; analysis?: { decision?: string; detectedLanguage?: string; category?: string } }>;
   };
 
   const responses = payload.responses || [];
@@ -169,7 +168,7 @@ async function processSupportInteraction(db: DB, job: AgentJob, output: AgentOut
   // Generate fallback reply if agent didn't generate one
   let finalReply = generatedReply;
   if (!finalReply && source === 'comment') {
-    const category = (response.analysis as any)?.category || 'general';
+    const category = response.analysis?.category || 'general';
     finalReply = getFallbackReply(category, detectedLanguage);
   }
 
@@ -198,7 +197,7 @@ async function processSupportInteraction(db: DB, job: AgentJob, output: AgentOut
     await db.from('notifications').insert({
       brand_id: job.brand_id,
       type: 'chat_message',
-      message: `Nuevo mensaje de tu equipo: "${finalReply.slice(0, 60)}${finalReply.length > 60 ? '...' : ''}"`,
+      message: `Nuevo mensaje del equipo de NeuroPost: "${finalReply.slice(0, 60)}${finalReply.length > 60 ? '...' : ''}"`,
       read: false,
       metadata: { job_id: job.id },
     }).then(() => null);
@@ -395,7 +394,7 @@ async function processSupportResolveTicket(db: DB, job: AgentJob, output: AgentO
     await db.from('notifications').insert({
       brand_id: job.brand_id,
       type:     'chat_message',
-      message:  `Nuevo mensaje del equipo: "${reply.slice(0, 60)}${reply.length > 60 ? '…' : ''}"`,
+      message:  `Nuevo mensaje del equipo de NeuroPost: "${reply.slice(0, 60)}${reply.length > 60 ? '…' : ''}"`,
       read:     false,
       metadata: { job_id: job.id },
     }).then(() => null).catch(() => null);

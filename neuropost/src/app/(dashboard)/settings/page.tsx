@@ -732,7 +732,7 @@ export default function SettingsPage() {
           <div id="redes" className="settings-section">
             <h2 className="settings-section-title">Redes sociales</h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: 20 }}>
-              Conecta tus cuentas de Instagram y Facebook. Las dos se enlazan con un único flujo gracias a Facebook Login — el mismo botón autoriza ambas.
+              Conecta tus cuentas de Instagram, Facebook y TikTok para publicar directamente desde NeuroPost.
             </p>
 
             {(() => {
@@ -753,9 +753,8 @@ export default function SettingsPage() {
               };
 
               const Card = ({
-                platform, name, detail, connected, onConnect, emoji, typeLabel, body,
+                name, detail, connected, onConnect, emoji, typeLabel, body,
               }: {
-                platform: 'instagram' | 'facebook';
                 name:     string;
                 detail:   string | null;
                 connected: boolean;
@@ -830,7 +829,7 @@ export default function SettingsPage() {
                     <button
                       type="button"
                       className="btn-outline"
-                      onClick={() => connectMeta(platform)}
+                      onClick={onConnect}
                       style={{ alignSelf: 'center', whiteSpace: 'nowrap' }}
                     >
                       <ExternalLink size={14} />
@@ -840,14 +839,12 @@ export default function SettingsPage() {
                 );
               };
 
-              // TikTok status — cast via unknown first (strict TS check)
-              const ttConnected = !!(brand as unknown as Record<string, unknown>).tiktok_open_id;
-              const ttUsername  = (brand as unknown as Record<string, unknown>).tiktok_username as string | null;
+              const ttConnected = !!brand.tt_open_id;
+              const ttUsername  = brand.tt_username;
 
               return (
                 <>
                   <Card
-                    platform="instagram"
                     emoji="📷"
                     typeLabel="Instagram"
                     name={igConnected ? `@${brand.ig_username ?? brand.ig_account_id}` : 'Instagram'}
@@ -857,7 +854,6 @@ export default function SettingsPage() {
                     body="Conecta tu cuenta Business o Creator para publicar fotos, vídeos, reels, carruseles e historias."
                   />
                   <Card
-                    platform="facebook"
                     emoji="📘"
                     typeLabel="Facebook"
                     name={fbConnected ? (brand.fb_page_name ?? brand.fb_page_id ?? 'Página conectada') : 'Facebook'}

@@ -57,7 +57,7 @@ export default function ChatPage() {
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chat_messages' }, (payload) => {
           const msg = payload.new as ChatMessage;
           setMessages((prev) => prev.find((m) => m.id === msg.id) ? prev : [...prev, msg]);
-          if (msg.sender_type === 'worker') toast('Nuevo mensaje de tu equipo');
+          if (msg.sender_type === 'worker') toast('Nuevo mensaje del equipo de NeuroPost');
         }).subscribe();
     } catch { /* realtime not available */ }
     return () => { if (channel) supabase.removeChannel(channel); };

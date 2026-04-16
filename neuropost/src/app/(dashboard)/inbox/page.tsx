@@ -20,12 +20,11 @@ type TicketRow = {
   id: string; brand_id: string; subject: string; status: string;
   category: string; created_at: string; resolution?: string | null;
 };
-// Testimonials removed — comments tab now uses real DB data
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
-type Tab = 'comentarios' | 'mensajes' | 'soporte' | 'notificaciones';
+type Tab = 'mensajes' | 'soporte' | 'notificaciones';
 type IconProps = { size?: number; style?: React.CSSProperties };
 
 const TABS: { key: Tab; title: string; desc: string; icon: React.ComponentType<IconProps> }[] = [
@@ -33,6 +32,13 @@ const TABS: { key: Tab; title: string; desc: string; icon: React.ComponentType<I
   { key: 'mensajes',       title: 'Mensajes',       desc: 'Tu equipo NeuroPost',  icon: MessageCircle },
   { key: 'soporte',        title: 'Soporte',        desc: 'Tickets y consultas',  icon: LifeBuoy },
 ];
+
+const FEEDBACK_OPTIONS = [
+  { value: 5, label: 'Excelente' },
+  { value: 4, label: 'Muy buena' },
+  { value: 3, label: 'Buena' },
+  { value: 2, label: 'Mejorable' },
+] as const;
 
 // ── Types ──
 type Ticket = { id: string; subject: string; status: string; category: string; created_at: string };
@@ -44,10 +50,43 @@ const STATUS_STYLE: Record<string, { color: string; bg: string; label: string }>
   closed: { color: '#6b7280', bg: '#f3f4f6', label: 'Cerrado' },
 };
 
+function normalizeNotificationMessage(type: string, message: string) {
+  if (type === 'chat_message' || type === 'new_message') {
+    if (message.startsWith('Nuevo mensaje del equipo de NeuroPost')) return message;
+    return message
+      .replace(/^Nuevo mensaje de tu equipo/, 'Nuevo mensaje del equipo de NeuroPost')
+      .replace(/^Nuevo mensaje del equipo/, 'Nuevo mensaje del equipo de NeuroPost');
+  }
+  return message;
+}
+
+function getNotificationCategory(type: string) {
+  const categories: Record<string, { label: string; color: string; bg: string }> = {
+    approval_needed: { label: 'Contenido',   color: '#0F766E', bg: '#f0fdfa' },
+    published:       { label: 'Publicación', color: '#166534', bg: '#ecfdf5' },
+    failed:          { label: 'Incidencia',  color: '#b91c1c', bg: '#fef2f2' },
+    comment:         { label: 'Comentarios', color: '#1d4ed8', bg: '#eff6ff' },
+    limit_reached:   { label: 'Plan',        color: '#b45309', bg: '#fffbeb' },
+    meta_connected:  { label: 'Conexiones',  color: '#0F766E', bg: '#f0fdfa' },
+    token_expired:   { label: 'Conexiones',  color: '#b45309', bg: '#fffbeb' },
+    payment_failed:  { label: 'Facturación', color: '#b91c1c', bg: '#fef2f2' },
+    plan_activated:  { label: 'Plan',        color: '#166534', bg: '#ecfdf5' },
+    team_invite:     { label: 'Equipo',      color: '#4338ca', bg: '#eef2ff' },
+    trend_detected:  { label: 'Tendencias',  color: '#7c3aed', bg: '#f5f3ff' },
+    chat_message:    { label: 'Mensajes',    color: '#0F766E', bg: '#f0fdfa' },
+    new_message:     { label: 'Mensajes',    color: '#0F766E', bg: '#f0fdfa' },
+    ticket_reply:    { label: 'Soporte',     color: '#0D9488', bg: '#ecfeff' },
+  };
+  return categories[type] ?? { label: 'Actualización', color: '#374151', bg: '#f3f4f6' };
+}
+
 function InboxInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tab = (searchParams.get('tab') as Tab) || 'comentarios';
+  const rawTab = searchParams.get('tab');
+  const tab: Tab = rawTab === 'mensajes' || rawTab === 'soporte' || rawTab === 'notificaciones'
+    ? rawTab
+    : 'notificaciones';
   const brand = useAppStore((s) => s.brand);
 
   // Personal profile from Supabase auth metadata
@@ -70,7 +109,6 @@ function InboxInner() {
     return bName;
   })();
 
-  const unreadComments = useAppStore((s) => s.unreadComments);
   const unreadNotifications = useAppStore((s) => s.unreadNotifications);
   const notifications = useAppStore((s) => s.notifications);
   const setNotifications = useAppStore((s) => s.setNotifications);
@@ -106,9 +144,8 @@ function InboxInner() {
   // Feedback form state
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackRating, setFeedbackRating] = useState(4);
   const [feedbackSending, setFeedbackSending] = useState(false);
-
-  // Eliminar lógica de comentarios (no se usa)
 
   // Chat state
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -137,35 +174,7 @@ function InboxInner() {
       (payload) => {
         const row = payload.new;
         setMessages((prev) => (prev.some((m) => m.id === row.id) ? prev : [...prev, row as ChatMsg]));
-        if (row.sender_type === 'worker') toast.success('Nuevo mensaje de tu equipo');
-      },
-    ).subscribe();
-    return () => { supabase.removeChannel(ch as unknown as Parameters<typeof supabase.removeChannel>[0]); };
-  }, [brand?.id, supabase]);
-
-  // ── Realtime: comments for this brand ────────────────────────────────────
-  useEffect(() => {
-    if (!brand?.id) return;
-    const brandId = brand.id;
-    const ch = (supabase.channel(`client-comments-${brandId}`) as unknown as {
-      on: (event: string, filter: Record<string, unknown>, cb: (payload: { new: CommentRow } | { old: CommentRow; new: CommentRow }) => void) => typeof ch;
-      subscribe: () => typeof ch;
-    });
-    ch.on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'comments', filter: `brand_id=eq.${brandId}` },
-      (payload) => {
-        const row = (payload as { new: CommentRow }).new;
-        setComments((prev) => (prev.some((c) => c.id === row.id) ? prev : [row, ...prev]));
-        toast('Nuevo comentario en tus redes', { icon: '💬' });
-      },
-    ).on(
-      'postgres_changes',
-      { event: 'UPDATE', schema: 'public', table: 'comments', filter: `brand_id=eq.${brandId}` },
-      (payload) => {
-        const row = (payload as { new: CommentRow }).new;
-        setComments((prev) => prev.map((c) => (c.id === row.id ? row : c)));
-        if (row.ai_reply) toast('Respuesta del agente lista', { icon: '🤖' });
+        if (row.sender_type === 'worker') toast.success('Nuevo mensaje del equipo de NeuroPost');
       },
     ).subscribe();
     return () => { supabase.removeChannel(ch as unknown as Parameters<typeof supabase.removeChannel>[0]); };
@@ -187,7 +196,7 @@ function InboxInner() {
         // Best-effort: shape the row into whatever the store's Notification type expects.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         useAppStore.getState().addNotification(n as any);
-        toast(n.message, { icon: '🔔' });
+        toast(normalizeNotificationMessage(n.type, n.message));
       },
     ).subscribe();
     return () => { supabase.removeChannel(ch as unknown as Parameters<typeof supabase.removeChannel>[0]); };
@@ -221,6 +230,9 @@ function InboxInner() {
     return () => { supabase.removeChannel(ch as unknown as Parameters<typeof supabase.removeChannel>[0]); };
   }, [brand?.id, supabase]);
 
+  useEffect(() => {
+    if (rawTab !== tab) router.replace(`/inbox?tab=${tab}`);
+  }, [rawTab, router, tab]);
 
   function setTab(t: Tab) { router.push(`/inbox?tab=${t}`); }
 
@@ -253,13 +265,7 @@ function InboxInner() {
     if (loadedTabsRef.current[tab]) return;
     loadedTabsRef.current[tab] = true;
 
-    if (tab === 'comentarios') {
-      fetch('/api/comments')
-        .then((r) => r.json())
-        .then((d) => setComments(d.comments ?? []))
-        .catch(() => { loadedTabsRef.current[tab] = false; })
-        .finally(() => setCommentsLoading(false));
-    } else if (tab === 'soporte') {
+    if (tab === 'soporte') {
       fetch('/api/soporte')
         .then((r) => r.json())
         .then((d) => setTickets(d.tickets ?? []))
@@ -295,7 +301,7 @@ function InboxInner() {
       setTickets(p => [d.ticket, ...p]);
       setCreating(false);
       setTicketForm({ subject: '', customSubject: '', description: '', category: 'technical', priority: 'normal' });
-      toast.success('Ticket abierto — el agente te responderá en breve');
+      toast.success('Ticket abierto — el equipo de NeuroPost te responderá en breve');
     } else toast.error(d.error ?? 'Error');
     setSaving(false);
   }
@@ -328,20 +334,28 @@ function InboxInner() {
 
   useEffect(() => { ticketMsgBottom.current?.scrollIntoView({ behavior: 'smooth' }); }, [ticketMessages]);
 
+  function closeFeedbackModal() {
+    setFeedbackOpen(false);
+    setFeedbackText('');
+    setFeedbackRating(4);
+  }
+
   async function sendFeedback() {
     if (!feedbackText.trim() || feedbackSending) return;
     setFeedbackSending(true);
     try {
-      // Puedes cambiar la ruta si tienes un endpoint específico para feedback
       const res = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: feedbackText.trim() }),
+        body: JSON.stringify({
+          rating: feedbackRating,
+          message: feedbackText.trim(),
+          page: window.location.pathname,
+        }),
       });
       if (res.ok) {
-        setFeedbackText('');
-        setFeedbackOpen(false);
-        toast.success('¡Gracias por tu valoración!');
+        closeFeedbackModal();
+        toast.success('Gracias por compartir tu opinión');
       } else {
         const d = await res.json();
         toast.error(d.error ?? 'Error al enviar');
@@ -371,8 +385,8 @@ function InboxInner() {
         <p style={{ color: '#6b7280', fontSize: 15, fontFamily: f }}>Todo lo que necesitas atender</p>
       </div>
 
-      {/* Tab selector — 3 cards + botón de valoración */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', marginBottom: 40 }}>
+      {/* Tab selector — 3 cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', marginBottom: 20 }}>
         {TABS.map((s) => {
           const active = tab === s.key;
           const Icon = s.icon;
@@ -391,15 +405,50 @@ function InboxInner() {
             </button>
           );
         })}
-        {/* Botón de valoración */}
-        <button onClick={() => setFeedbackOpen(true)} style={{
-          padding: '24px 20px', background: '#ffffff', border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-            <MessageSquare size={18} style={{ color: 'var(--accent)' }} />
-          </div>
-          <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 15, textTransform: 'uppercase', color: '#111827', marginBottom: 4 }}>Valoración</p>
-          <p style={{ fontFamily: f, fontSize: 12, color: '#9ca3af' }}>Déjanos tu feedback</p>
+      </div>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1fr) auto',
+        gap: 20,
+        alignItems: 'center',
+        padding: '22px 24px',
+        border: '1px solid #e5e7eb',
+        background: 'linear-gradient(180deg, #ffffff 0%, #f8fbfb 100%)',
+        marginBottom: 40,
+      }}>
+        <div>
+          <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--accent)', marginBottom: 8 }}>
+            Feedback
+          </p>
+          <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 24, textTransform: 'uppercase', color: '#111827', lineHeight: 1, marginBottom: 8 }}>
+            Cuéntanos qué mejorarías en NeuroPost
+          </h2>
+          <p style={{ fontFamily: f, fontSize: 14, color: '#6b7280', maxWidth: 620 }}>
+            Si quieres, puedes dejarnos un comentario sobre tu experiencia, sugerencias de mejora o cualquier detalle que creas que deberíamos pulir.
+          </p>
+        </div>
+        <button
+          onClick={() => setFeedbackOpen(true)}
+          style={{
+            background: '#ffffff',
+            color: '#111827',
+            border: '1px solid #d1d5db',
+            padding: '12px 18px',
+            fontFamily: fc,
+            fontSize: 12,
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <MessageSquare size={15} />
+          Compartir feedback
         </button>
       </div>
 
@@ -407,21 +456,66 @@ function InboxInner() {
       {/* MODAL DE VALORACIÓN */}
       {feedbackOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.18)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.12)', padding: 32, minWidth: 340, maxWidth: '90vw', position: 'relative' }}>
-            <button onClick={() => setFeedbackOpen(false)} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}><X size={18} /></button>
-            <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 20, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Déjanos tu valoración</h2>
-            <p style={{ fontFamily: f, fontSize: 13, color: '#9ca3af', marginBottom: 18 }}>¿Qué te ha parecido la plataforma? Tu opinión nos ayuda a mejorar.</p>
+          <div style={{ background: '#fff', boxShadow: '0 20px 50px rgba(15,23,42,0.14)', padding: 32, minWidth: 340, maxWidth: 560, width: 'calc(100vw - 32px)', position: 'relative' }}>
+            <button onClick={closeFeedbackModal} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}><X size={18} /></button>
+            <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--accent)', marginBottom: 8 }}>
+              Feedback
+            </p>
+            <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 26, textTransform: 'uppercase', color: '#111827', marginBottom: 10, lineHeight: 1 }}>
+              Comparte tu opinión
+            </h2>
+            <p style={{ fontFamily: f, fontSize: 14, color: '#6b7280', marginBottom: 18, lineHeight: 1.6 }}>
+              Queremos que la experiencia sea cada vez mejor. Cuéntanos qué te gusta, qué mejorarías o qué echas en falta.
+            </p>
+            <div style={{ marginBottom: 18 }}>
+              <p style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', marginBottom: 8 }}>
+                Valoración general
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {FEEDBACK_OPTIONS.map((option) => {
+                  const active = feedbackRating === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setFeedbackRating(option.value)}
+                      style={{
+                        padding: '9px 12px',
+                        border: `1px solid ${active ? 'var(--accent)' : '#d1d5db'}`,
+                        background: active ? '#f0fdfa' : '#ffffff',
+                        color: active ? '#0F766E' : '#374151',
+                        fontFamily: f,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <textarea
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
-              placeholder="Escribe tu valoración o sugerencia..."
-              rows={4}
-              style={{ width: '100%', padding: '12px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', color: '#111827', background: '#f9fafb', resize: 'vertical', marginBottom: 16, boxSizing: 'border-box', borderRadius: 4 }}
+              placeholder="Escribe aquí tu comentario o sugerencia..."
+              rows={5}
+              style={{ width: '100%', padding: '14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', color: '#111827', background: '#f9fafb', resize: 'vertical', marginBottom: 18, boxSizing: 'border-box' }}
             />
-            <button onClick={sendFeedback} disabled={!feedbackText.trim() || feedbackSending}
-              style={{ padding: '10px 24px', background: feedbackText.trim() && !feedbackSending ? 'var(--accent)' : '#e5e7eb', color: '#ffffff', border: 'none', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: feedbackText.trim() && !feedbackSending ? 'pointer' : 'not-allowed', borderRadius: 4 }}>
-              {feedbackSending ? 'Enviando...' : 'Enviar valoración'}
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+              <button
+                type="button"
+                onClick={closeFeedbackModal}
+                style={{ padding: '12px 18px', background: '#ffffff', color: '#6b7280', border: '1px solid #d1d5db', fontFamily: f, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button onClick={sendFeedback} disabled={!feedbackText.trim() || feedbackSending}
+                style={{ padding: '12px 24px', background: feedbackText.trim() && !feedbackSending ? 'var(--accent)' : '#e5e7eb', color: '#ffffff', border: 'none', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: feedbackText.trim() && !feedbackSending ? 'pointer' : 'not-allowed' }}>
+                {feedbackSending ? 'Enviando...' : 'Enviar comentario'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -566,7 +660,7 @@ function InboxInner() {
                     ticketMessages.map((msg) => (
                       <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: msg.sender_type === 'client' ? 'flex-end' : 'flex-start', marginBottom: 10 }}>
                         <span style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', marginBottom: 2 }}>
-                          {msg.sender_type === 'client' ? (operatorDisplayName || 'Tú') : 'Soporte IA'}
+                          {msg.sender_type === 'client' ? (operatorDisplayName || 'Tú') : 'Equipo de NeuroPost'}
                         </span>
                         <div style={{ maxWidth: '70%', background: msg.sender_type === 'client' ? '#f3f4f6' : '#ecfdf5', border: `1px solid ${msg.sender_type === 'client' ? '#d1d5db' : '#6fb7aa'}`, padding: '10px 14px' }}>
                           <p style={{ fontFamily: f, fontSize: 13, color: '#111827', lineHeight: 1.5, whiteSpace: 'pre-wrap', margin: 0 }}>{msg.message}</p>
@@ -664,19 +758,14 @@ function InboxInner() {
             // Usa los grupos precomputados en notificationGroups (useMemo arriba)
             const groups = notificationGroups;
 
-            const NOTIF_ICON: Record<string, string> = {
-              approval_needed: '⏳', published: '✅', failed: '❌', comment: '💬',
-              limit_reached: '🚫', meta_connected: '🔗', token_expired: '⚠️',
-              payment_failed: '💳', plan_activated: '🎉', team_invite: '👥', trend_detected: '🔥',
-            };
-
             const NOTIF_LINK: Record<string, string> = {
               approval_needed: '/posts', published: '/posts', failed: '/posts',
-              comment: '/inbox?tab=comentarios', limit_reached: '/settings/plan',
+              comment: '/comments', limit_reached: '/settings/plan',
               meta_connected: '/settings#redes', token_expired: '/settings#redes',
               payment_failed: '/settings/plan', plan_activated: '/settings/plan',
               team_invite: '/settings/team', trend_detected: '/tendencias',
               chat_message: '/inbox?tab=mensajes',
+              new_message: '/inbox?tab=mensajes',
               ticket_reply: '/inbox?tab=soporte',
             };
 
@@ -687,41 +776,64 @@ function InboxInner() {
                     <div style={{ padding: '10px 20px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
                       <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--accent)' }}>{group.label}</span>
                     </div>
-                    {group.items.map((n) => (
-                      <div
-                        key={n.id}
-                        onClick={() => {
-                          // Mark as read
-                          if (!n.read) {
-                            markNotificationRead(n.id);
-                            fetch('/api/notifications', {
-                              method: 'PATCH',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({ ids: [n.id] }),
-                            }).catch(() => null);
-                          }
-                          // Navigate to the right section
-                          const link = NOTIF_LINK[n.type] ?? '/dashboard';
-                          if (link.startsWith('/inbox')) setTab(link.split('tab=')[1] as Tab);
-                          else router.push(link);
-                        }}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 14, padding: '12px 20px',
-                          borderBottom: '1px solid #f3f4f6', cursor: 'pointer',
-                          background: n.read ? '#ffffff' : 'var(--accent-light)',
-                          transition: 'background 0.1s',
-                        }}
-                      >
-                        <span style={{ fontSize: 16, flexShrink: 0 }}>{NOTIF_ICON[n.type] ?? '📌'}</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontFamily: f, fontSize: 13, fontWeight: n.read ? 400 : 600, color: '#111827', marginBottom: 2 }}>{n.message}</p>
-                          <p style={{ fontFamily: f, fontSize: 11, color: '#d1d5db' }}>
-                            {new Date(n.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                          </p>
+                    {group.items.map((n) => {
+                      const category = getNotificationCategory(n.type);
+                      const message = normalizeNotificationMessage(n.type, n.message);
+
+                      return (
+                        <div
+                          key={n.id}
+                          onClick={() => {
+                            if (!n.read) {
+                              markNotificationRead(n.id);
+                              fetch('/api/notifications', {
+                                method: 'PATCH',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ ids: [n.id] }),
+                              }).catch(() => null);
+                            }
+                            const link = NOTIF_LINK[n.type] ?? '/dashboard';
+                            if (link.startsWith('/inbox')) setTab(link.split('tab=')[1] as Tab);
+                            else router.push(link);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            justifyContent: 'space-between',
+                            gap: 16,
+                            padding: '14px 20px',
+                            borderBottom: '1px solid #f3f4f6',
+                            cursor: 'pointer',
+                            background: n.read ? '#ffffff' : '#fbfefe',
+                            transition: 'background 0.1s',
+                          }}
+                        >
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                              <span style={{
+                                fontFamily: f,
+                                fontSize: 10,
+                                fontWeight: 700,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.08em',
+                                padding: '3px 8px',
+                                background: category.bg,
+                                color: category.color,
+                              }}>
+                                {category.label}
+                              </span>
+                              <span style={{ fontFamily: f, fontSize: 11, color: '#9ca3af' }}>
+                                {new Date(n.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <p style={{ fontFamily: f, fontSize: 13, fontWeight: n.read ? 500 : 700, color: '#111827', lineHeight: 1.55, margin: 0 }}>
+                              {message}
+                            </p>
+                          </div>
+                          {!n.read && <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 6 }} />}
                         </div>
-                        {!n.read && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0 }} />}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ))}
               </div>

@@ -1,7 +1,7 @@
 /**
  * Client-side testimonials store (localStorage-backed).
  *
- * Users submit "comentarios sobre la web" from /inbox?tab=comentarios.
+ * Users submit "comentarios sobre la web" from the feedback CTA in /inbox.
  * Submissions land in `pending` and become visible only after a worker
  * approves them from /worker/inbox?tab=testimonios.
  *

@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ExternalLink, RefreshCw, Trash2 } from 'lucide-react';
+import { useAppStore } from '@/store/useAppStore';
 
 const f  = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
@@ -127,21 +127,23 @@ function PlatformCard({
 }
 
 export default function ConnectionsPage() {
+  const setBrand = useAppStore((s) => s.setBrand);
   const [status,  setStatus]  = useState<ConnectionStatus>({ instagram: null, facebook: null, tiktok: null });
   const [loading, setLoading] = useState(true);
-  const [showManual, setShowManual] = useState(false);
-  const [manualToken, setManualToken] = useState('');
-  const [connecting, setConnecting] = useState(false);
 
-  async function fetchStatus() {
+  const fetchStatus = useCallback(async () => {
     setLoading(true);
     try {
-      const [metaRes, ttRes] = await Promise.all([
+      const [metaRes, ttRes, brandRes] = await Promise.all([
         fetch('/api/meta/status'),
         fetch('/api/tiktok/status'),
+        fetch('/api/brands'),
       ]);
       const meta = await metaRes.json() as { instagram?: AccountStatus | null; facebook?: AccountStatus | null };
       const tt   = await ttRes.json()  as { connected?: boolean; username?: string; openId?: string; daysLeft?: number; tokenStatus?: string };
+      const brandJson = brandRes.ok
+        ? await brandRes.json() as { brand?: Parameters<typeof setBrand>[0] }
+        : null;
 
       setStatus({
         instagram: meta.instagram ?? null,
@@ -150,12 +152,16 @@ export default function ConnectionsPage() {
           ? { openId: tt.openId, username: tt.username, tokenStatus: (tt.tokenStatus ?? 'valid') as AccountStatus['tokenStatus'], daysLeft: tt.daysLeft ?? null, expiresAt: null }
           : null,
       });
+
+      if (brandJson?.brand !== undefined) {
+        setBrand(brandJson.brand ?? null);
+      }
     } finally {
       setLoading(false);
     }
-  }
+  }, [setBrand]);
 
-  useEffect(() => { fetchStatus(); }, []);
+  useEffect(() => { void fetchStatus(); }, [fetchStatus]);
 
   async function connectInstagram() {
     try {
@@ -200,28 +206,6 @@ export default function ConnectionsPage() {
     await fetch('/api/tiktok/status', { method: 'DELETE' });
     toast.success('TikTok desconectado');
     fetchStatus();
-  }
-
-  async function manualConnect() {
-    if (!manualToken.trim()) { toast.error('Pega tu access token'); return; }
-    setConnecting(true);
-    try {
-      const res = await fetch('/api/meta/manual-connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ accessToken: manualToken.trim() }),
-      });
-      const json = await res.json() as { instagram?: { username?: string }; error?: string };
-      if (!res.ok) { toast.error(json.error ?? 'Error al conectar'); return; }
-      toast.success(json.instagram?.username ? `Conectado: @${json.instagram.username}` : 'Instagram conectado');
-      setManualToken('');
-      setShowManual(false);
-      fetchStatus();
-    } catch {
-      toast.error('Error de conexión');
-    } finally {
-      setConnecting(false);
-    }
   }
 
   return (
@@ -276,53 +260,6 @@ export default function ConnectionsPage() {
             connectLabel="Conectar con TikTok"
             connectNote="Solo se pueden publicar vídeos (no fotos ni carruseles). La cuenta debe ser Business o Creator."
           />
-
-          {/* Manual connection */}
-          <div className="settings-section" style={{ marginBottom: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-              <span style={{ fontSize: 20, lineHeight: 1 }}>🔑</span>
-              <h2 className="settings-section-title" style={{ margin: 0, fontFamily: fc }}>Conexión manual (Meta)</h2>
-            </div>
-
-            {!showManual ? (
-              <div>
-                <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12, fontFamily: f }}>
-                  Si los botones de conectar no funcionan, puedes conectar manualmente con un token de Meta.
-                </p>
-                <button type="button" className="btn-outline" onClick={() => setShowManual(true)}>
-                  Conectar con token manual
-                </button>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ background: 'var(--accent-bg, #f0fdfa)', border: '1px solid var(--accent)', padding: 16 }}>
-                  <p style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600, marginBottom: 8, fontFamily: f }}>Pasos:</p>
-                  <ol style={{ fontSize: 12, color: 'var(--muted)', lineHeight: 1.8, paddingLeft: 16, margin: 0, fontFamily: f }}>
-                    <li>Ve a <a href="https://developers.facebook.com/tools/explorer/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent)', fontWeight: 600 }}>Graph API Explorer</a></li>
-                    <li>Inicia sesión y selecciona tu app</li>
-                    <li>Añade permisos: <code style={{ background: 'var(--bg-1)', padding: '1px 4px', fontSize: 11 }}>pages_show_list, pages_manage_posts, instagram_basic, instagram_content_publish</code></li>
-                    <li>Pulsa <strong>&quot;Generate Access Token&quot;</strong> y copia el token</li>
-                  </ol>
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 600, marginBottom: 4, display: 'block', fontFamily: f }}>Access Token</label>
-                  <input
-                    type="text"
-                    value={manualToken}
-                    onChange={(e) => setManualToken(e.target.value)}
-                    placeholder="EAAxxxxxxx..."
-                    style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', fontSize: 13, fontFamily: 'monospace', outline: 'none', boxSizing: 'border-box' }}
-                  />
-                </div>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" className="btn-primary" onClick={manualConnect} disabled={connecting} style={{ opacity: connecting ? 0.5 : 1 }}>
-                    {connecting ? 'Conectando...' : 'Conectar'}
-                  </button>
-                  <button type="button" className="btn-outline" onClick={() => { setShowManual(false); setManualToken(''); }}>Cancelar</button>
-                </div>
-              </div>
-            )}
-          </div>
 
         </div>
       )}
