@@ -13,9 +13,13 @@
 --
 -- Design choices:
 --   - brand_id NOT cliente_id everywhere (matches existing codebase)
---   - embedding is NULLABLE so the library works before OPENAI_API_KEY lands.
+--   - embedding is NULLABLE so the library works before VOYAGE_API_KEY lands.
 --     The candidate-search function degrades to (industry + tag) filtering
 --     when no query embedding is provided.
+--   - embeddings use Voyage AI voyage-3.5 (1024 dims) — Anthropic's
+--     recommended partner. If you later switch to a different provider
+--     with different dimensions, update both the column type here AND
+--     EMBEDDING_DIMENSIONS in src/lib/embeddings.ts.
 --   - No pg_cron schedules here — we drive all crons through Vercel (see
 --     src/app/api/cron/creative-library-ranking).
 --
@@ -67,8 +71,9 @@ CREATE TABLE IF NOT EXISTS public.biblioteca_creativa (
                                          CHECK (localization_difficulty IN
                                            ('easy','medium','hard')),
 
-  -- Embedding for semantic search. NULL until OPENAI_API_KEY is configured.
-  embedding                            vector(1536),
+  -- Embedding for semantic search. NULL until VOYAGE_API_KEY is configured.
+  -- 1024 dims = Voyage AI voyage-3.5 (see src/lib/embeddings.ts).
+  embedding                            vector(1024),
 
   -- Dynamic ranking — updated daily by recalcular_ranking_recetas().
   internal_ranking_score               numeric(5,2) NOT NULL DEFAULT 5.0,
@@ -204,7 +209,7 @@ CREATE POLICY "sr_all_medianas" ON public.medianas_nicho
 --    query embedding is NULL (OPENAI_API_KEY not set yet).
 -- ────────────────────────────────────────────────────────────────────────────
 CREATE OR REPLACE FUNCTION public.buscar_candidatos_receta(
-  p_embedding    vector(1536)                 DEFAULT NULL,
+  p_embedding    vector(1024)                 DEFAULT NULL,
   p_industry     text                         DEFAULT NULL,
   p_plataforma   text                         DEFAULT NULL,
   p_exclude_ids  uuid[]                       DEFAULT ARRAY[]::uuid[],
