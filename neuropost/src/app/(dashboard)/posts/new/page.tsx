@@ -842,73 +842,79 @@ export default function NewPostPage() {
 
             {/* ═══ PASO 1 — Objetivo del post ════════════════════════════ */}
             <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
-              <div style={{ padding: '16px 20px', background: '#111827', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ padding: '12px 20px', background: '#111827', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <StepNum n={1} />
                 <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#ffffff' }}>
                   ¿Qué quieres comunicar?
                 </span>
               </div>
-              <div style={{ padding: '18px 20px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
-                {OBJECTIVES.map(({ v, l, desc, icon }) => {
+              {/* Nivel 1: objetivos en fila compacta */}
+              <div style={{ padding: '12px 20px 10px', display: 'flex', gap: 4 }}>
+                {OBJECTIVES.map(({ v, l, icon }) => {
                   const active = postObjective === v;
                   return (
                     <button type="button" key={v} onClick={() => pickObjective(v)} style={{
-                      padding: '14px 10px', textAlign: 'center', cursor: 'pointer',
+                      flex: 1, padding: '10px 6px', textAlign: 'center', cursor: 'pointer',
                       border: `2px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
                       background: active ? 'rgba(15,118,110,0.07)' : 'var(--bg)',
-                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                     }}>
-                      <span style={{ fontSize: 22 }}>{icon}</span>
-                      <span style={{ fontFamily: f, fontSize: 12, fontWeight: 700, color: active ? 'var(--accent)' : 'var(--text-primary)' }}>{l}</span>
-                      <span style={{ fontFamily: f, fontSize: 9, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>{desc}</span>
-                      {active && <div style={{ width: 16, height: 2, background: 'var(--accent)' }} />}
+                      <span style={{ fontSize: 18 }}>{icon}</span>
+                      <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, color: active ? 'var(--accent)' : 'var(--text-primary)' }}>{l}</span>
                     </button>
                   );
                 })}
               </div>
 
-              {/* Nivel 2: tipos específicos — solo cuando hay objetivo */}
+              {/* Nivel 2: subtipos + campo "Otro" */}
               {postObjective && (
-                <div style={{ borderTop: '1px solid var(--border)', padding: '14px 20px 16px' }}>
-                  <label style={{ ...labelStyle, marginBottom: 10 }}>Tipo específico</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <div style={{ borderTop: '1px solid var(--border)', padding: '10px 20px 12px' }}>
+                  <label style={{ ...labelStyle, marginBottom: 8 }}>Tipo específico</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                     {SUBTYPES[postObjective].map(({ v, l, placeholder }) => (
                       <button type="button" key={v} onClick={() => pickKind(v, placeholder)} style={{
-                        padding: '7px 14px',
+                        padding: '6px 12px',
                         border: `1px solid ${requestKind === v ? 'var(--accent)' : 'var(--border)'}`,
                         background: requestKind === v ? 'var(--accent)' : 'var(--bg)',
                         color: requestKind === v ? '#ffffff' : 'var(--text-secondary)',
                         fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                        transition: 'all 0.1s',
                       }}>{l}</button>
                     ))}
-                    <button type="button" onClick={() => pickKind('otro', 'Explica con detalle qué quieres publicar y qué mensaje quieres transmitir.')} style={{
-                      padding: '7px 14px',
+                    <button type="button" onClick={() => pickKind('otro', '')} style={{
+                      padding: '6px 12px',
                       border: `1px solid ${requestKind === 'otro' ? 'var(--accent)' : 'var(--border)'}`,
                       background: requestKind === 'otro' ? 'var(--accent)' : 'var(--bg)',
                       color: requestKind === 'otro' ? '#ffffff' : 'var(--text-tertiary)',
                       fontFamily: f, fontSize: 11, fontWeight: 500, cursor: 'pointer',
-                      fontStyle: 'italic',
-                    }}>Otro / lo explico abajo</button>
+                    }}>Otro</button>
                   </div>
+                  {/* Cuando selecciona "Otro" aparece un campo de descripción obligatorio */}
+                  {requestKind === 'otro' && (
+                    <textarea
+                      value={clientNote}
+                      onChange={(e) => setClientNote(e.target.value)}
+                      placeholder="Describe qué quieres publicar y qué mensaje quieres transmitir."
+                      rows={2}
+                      style={{ ...inputStyle, resize: 'none', lineHeight: 1.6, marginTop: 10, fontSize: 13 }}
+                    />
+                  )}
                 </div>
               )}
             </div>
 
-            {/* ═══ PASO 2 — ¿Tienes material? ═══════════════════════════ */}
+            {/* ═══ PASO 2 — ¿Tienes material? (compacto) ════════════════ */}
             <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
-              <div style={{ padding: '16px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ padding: '12px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <StepNum n={2} />
                 <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
                   ¿Tienes material o lo creamos nosotros?
                 </span>
               </div>
-              <div style={{ padding: '18px 20px', display: 'flex', gap: 6 }}>
-                {/* Opción A: el cliente sube fotos */}
+              <div style={{ padding: '10px 20px 12px', display: 'flex', gap: 4 }}>
                 {([
-                  { v: 'photos' as const, l: 'Subo mis fotos', icon: ImageIcon, desc: 'Usamos tus imágenes como base' },
-                  ...(allowVideos ? [{ v: 'video' as const, l: 'Subo un vídeo', icon: Video, desc: 'Trabajamos con tu vídeo' }] : []),
-                ] as const).map(({ v, l, icon: Icon, desc }) => {
+                  { v: 'photos' as const, l: 'Subo mis fotos', icon: ImageIcon },
+                  ...(allowVideos ? [{ v: 'video' as const, l: 'Subo un vídeo', icon: Video }] : []),
+                ] as const).map(({ v, l, icon: Icon }) => {
                   const active = sourceType === v;
                   return (
                     <button type="button" key={v} onClick={() => {
@@ -916,192 +922,314 @@ export default function NewPostPage() {
                       if (v === 'video') setOutputFormat('video');
                       else if (v === 'photos' && selectedMedia.length <= 1) setOutputFormat('image');
                     }} style={{
-                      flex: 1, padding: '14px 16px', textAlign: 'left',
+                      flex: 1, padding: '9px 14px',
                       border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
                       background: active ? 'rgba(15,118,110,0.06)' : 'var(--bg)',
-                      cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
                     }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Icon size={16} style={{ color: active ? 'var(--accent)' : 'var(--text-tertiary)' }} />
-                        <span style={{ fontFamily: f, fontSize: 13, fontWeight: active ? 700 : 500, color: active ? 'var(--accent)' : 'var(--text-primary)' }}>{l}</span>
-                      </div>
-                      <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)' }}>{desc}</span>
+                      <Icon size={14} style={{ color: active ? 'var(--accent)' : 'var(--text-tertiary)', flexShrink: 0 }} />
+                      <span style={{ fontFamily: f, fontSize: 12, fontWeight: active ? 700 : 500, color: active ? 'var(--accent)' : 'var(--text-primary)' }}>{l}</span>
                     </button>
                   );
                 })}
-
-                {/* Opción B: equipo lo crea — gateado por plan en Essentials */}
                 {allowVideos ? (
                   <button type="button" onClick={() => { setSourceType('none'); setOutputFormat('image'); }} style={{
-                    flex: 1, padding: '14px 16px', textAlign: 'left',
+                    flex: 1, padding: '9px 14px',
                     border: `1px solid ${sourceType === 'none' ? 'var(--accent)' : 'var(--border)'}`,
                     background: sourceType === 'none' ? 'rgba(15,118,110,0.06)' : 'var(--bg)',
-                    cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Sparkles size={16} style={{ color: sourceType === 'none' ? 'var(--accent)' : 'var(--text-tertiary)' }} />
-                      <span style={{ fontFamily: f, fontSize: 13, fontWeight: sourceType === 'none' ? 700 : 500, color: sourceType === 'none' ? 'var(--accent)' : 'var(--text-primary)' }}>Que lo cree el equipo</span>
-                    </div>
-                    <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)' }}>Generamos el contenido visual por ti</span>
+                    <Sparkles size={14} style={{ color: sourceType === 'none' ? 'var(--accent)' : 'var(--text-tertiary)', flexShrink: 0 }} />
+                    <span style={{ fontFamily: f, fontSize: 12, fontWeight: sourceType === 'none' ? 700 : 500, color: sourceType === 'none' ? 'var(--accent)' : 'var(--text-primary)' }}>Lo crea el equipo</span>
                   </button>
                 ) : (
-                  /* Essentials: opción bloqueada pero visible (upsell) */
-                  <div style={{
-                    flex: 1, padding: '14px 16px', textAlign: 'left',
-                    border: '1px solid var(--border)',
-                    background: 'var(--bg-1)', opacity: 0.7,
-                    display: 'flex', flexDirection: 'column', gap: 6, position: 'relative',
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Sparkles size={16} style={{ color: 'var(--text-tertiary)' }} />
-                      <span style={{ fontFamily: f, fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)' }}>Que lo cree el equipo</span>
+                  <div style={{ flex: 1, padding: '9px 14px', border: '1px solid var(--border)', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 8, opacity: 0.6 }}>
+                    <Sparkles size={14} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+                    <div>
+                      <span style={{ fontFamily: f, fontSize: 12, color: 'var(--text-tertiary)', display: 'block' }}>Lo crea el equipo</span>
+                      <span style={{ fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)', background: 'var(--bg-2)', padding: '1px 5px' }}>Plan Pro</span>
                     </div>
-                    <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)' }}>Generamos el contenido visual por ti</span>
-                    <span style={{ fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', background: 'var(--bg-2)', padding: '2px 6px', display: 'inline-block', width: 'fit-content' }}>
-                      Plan Pro
-                    </span>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* ═══ PASO 3 — Formato de publicación ══════════════════════ */}
+            {/* ═══ PASO 3 — Formato + Fotos (integrado) ═════════════════ */}
             <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
-              <div style={{ padding: '16px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ padding: '12px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)' }}>
                 <StepNum n={3} />
                 <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
                   ¿Qué formato?
                 </span>
               </div>
-              <div style={{ padding: '18px 20px' }}>
-                <div style={{ display: 'flex', gap: 6 }}>
+              <div style={{ padding: '12px 20px' }}>
+                <div style={{ display: 'flex', gap: 4 }}>
                   {availableOutputFormats.map(({ value, label, icon: Icon }) => {
                     const active = outputFormat === value;
                     const disabled = value === 'video' && !allowVideos;
                     return (
                       <button type="button" key={value} onClick={() => !disabled && setOutputFormat(value)} style={{
-                        flex: 1, padding: '12px 14px', textAlign: 'left',
+                        flex: 1, padding: '9px 12px',
                         border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
                         background: active ? 'var(--accent)' : disabled ? 'var(--bg-1)' : 'var(--bg)',
                         cursor: disabled ? 'not-allowed' : 'pointer',
-                        display: 'flex', alignItems: 'center', gap: 10,
+                        display: 'flex', alignItems: 'center', gap: 8,
                       }}>
-                        <Icon size={18} style={{ color: active ? '#ffffff' : 'var(--text-tertiary)', flexShrink: 0 }} />
+                        <Icon size={15} style={{ color: active ? '#ffffff' : 'var(--text-tertiary)', flexShrink: 0 }} />
                         <div>
                           <span style={{ fontFamily: f, fontSize: 12, fontWeight: active ? 700 : 500, color: active ? '#ffffff' : 'var(--text-primary)', display: 'block' }}>{label}</span>
-                          {disabled && (
-                            <span style={{ fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', background: 'var(--bg-2)', padding: '2px 6px', display: 'inline-block', marginTop: 3 }}>
-                              Plan superior
-                            </span>
-                          )}
+                          {disabled && <span style={{ fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)', background: 'var(--bg-2)', padding: '1px 5px', display: 'inline-block' }}>Plan superior</span>}
                         </div>
                       </button>
                     );
                   })}
                 </div>
 
+                {/* Carrusel: selector de nº de slides */}
+                {outputFormat === 'carousel' && (
+                  <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>Slides:</span>
+                    <div style={{ display: 'flex', gap: 0 }}>
+                      {Array.from({ length: maxImages }, (_, i) => i + 2).map((n, i, arr) => {
+                        const active = finalQty === n || (i === arr.length - 1 && finalQty > arr[arr.length - 1]);
+                        const borderColor = active ? 'var(--accent)' : 'var(--border)';
+                        return (
+                          <button type="button" key={n} onClick={() => {
+                            const toAdd = Math.max(0, n - selectedMedia.length);
+                            setExtraGenerated(Math.min(toAdd, 3));
+                          }} style={{
+                            padding: '6px 12px', minWidth: 36, textAlign: 'center',
+                            borderTop: `1px solid ${borderColor}`, borderBottom: `1px solid ${borderColor}`,
+                            borderLeft: `1px solid ${borderColor}`, borderRight: i < arr.length - 1 ? 'none' : `1px solid ${borderColor}`,
+                            background: active ? 'var(--accent)' : 'var(--bg)',
+                            color: active ? '#ffffff' : 'var(--text-secondary)',
+                            fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                          }}>{n}</button>
+                        );
+                      })}
+                    </div>
+                    <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)' }}>Máx. {maxImages}</span>
+                  </div>
+                )}
+
                 {/* Video duration */}
                 {(outputFormat === 'video' || outputFormat === 'reel') && (
-                  <div style={{ marginTop: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                      <Clock size={13} style={{ color: 'var(--text-tertiary)' }} />
-                      <label style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-tertiary)' }}>
-                        Duración del vídeo
-                      </label>
-                    </div>
+                  <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>Duración:</span>
                     <div style={{ display: 'flex', gap: 0 }}>
                       {[6, 10, 15, 20, 30].map((sec, i, arr) => {
                         const active = videoDuration === sec;
                         const borderColor = active ? 'var(--accent)' : 'var(--border)';
                         return (
                           <button type="button" key={sec} onClick={() => setVideoDuration(sec)} style={{
-                            padding: '10px 16px', minWidth: 56, justifyContent: 'center',
-                            borderTop: `1px solid ${borderColor}`,
-                            borderBottom: `1px solid ${borderColor}`,
-                            borderLeft: `1px solid ${borderColor}`,
-                            borderRight: i < arr.length - 1 ? 'none' : `1px solid ${borderColor}`,
+                            padding: '6px 12px', minWidth: 40, textAlign: 'center',
+                            borderTop: `1px solid ${borderColor}`, borderBottom: `1px solid ${borderColor}`,
+                            borderLeft: `1px solid ${borderColor}`, borderRight: i < arr.length - 1 ? 'none' : `1px solid ${borderColor}`,
                             background: active ? 'var(--accent)' : 'var(--bg)',
-                            color: active ? '#ffffff' : 'var(--text-tertiary)',
-                            fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                          }}>
-                            {sec}s
-                          </button>
+                            color: active ? '#ffffff' : 'var(--text-secondary)',
+                            fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                          }}>{sec}s</button>
                         );
                       })}
                     </div>
                   </div>
                 )}
-
-                {/* Carousel slide count */}
-                {outputFormat === 'carousel' && (
-                  <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10 }}>
-                    Tu plan permite hasta <strong style={{ color: 'var(--text-primary)' }}>{maxImages} fotos</strong> en carrusel.
-                  </p>
-                )}
               </div>
+
+              {/* ── Tus fotos (integrado en paso 3, solo si sourceType !== none) ── */}
+              {sourceType !== 'none' && (
+                <div style={{ borderTop: '1px solid var(--border)' }}>
+                  <div style={{ padding: '10px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <ImageIcon size={12} style={{ color: 'var(--text-tertiary)' }} />
+                    <span style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
+                      {sourceType === 'video' ? 'Tu vídeo' : 'Tus fotos'}
+                    </span>
+                    <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
+                      {selectedMedia.length} seleccionada{selectedMedia.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                  <div style={{ padding: '14px 20px' }}>
+                    <MediaPicker selected={selectedMedia} onChange={setSelectedMedia} max={maxImages} />
+                  </div>
+
+                  {/* Per-image notes */}
+                  {selectedMedia.length > 0 && (
+                    <div style={{ borderTop: '1px solid var(--border)' }}>
+                      <div style={{ padding: '10px 20px', background: 'var(--bg-1)' }}>
+                        <span style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
+                          Contexto por foto
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '12px 20px' }}>
+                        {selectedMedia.map((m, idx) => {
+                          const per = perMedia[m.id] ?? { note: '', inspirationId: null };
+                          const hasNote = per.note.trim().length > 0;
+                          const hasInspo = !!per.inspirationId;
+                          const isOpen = expandedMediaId === m.id;
+                          return (
+                            <button type="button" key={m.id}
+                              onClick={() => setExpandedMediaId(isOpen ? null : m.id)}
+                              style={{
+                                position: 'relative', width: 68, height: 68, padding: 0,
+                                border: `2px solid ${isOpen ? 'var(--accent)' : hasNote ? '#0D9488' : 'var(--border)'}`,
+                                background: '#000', cursor: 'pointer',
+                              }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', imageOrientation: 'from-image' }} />
+                              <div style={{ position: 'absolute', bottom: 2, left: 2, background: isOpen ? 'var(--accent)' : '#111827', color: '#ffffff', fontFamily: fc, fontSize: 9, fontWeight: 700, width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{idx + 1}</div>
+                              {hasInspo && <div style={{ position: 'absolute', top: 2, right: 2 }}><Flame size={9} style={{ color: 'var(--accent)' }} /></div>}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {expandedMediaId && (() => {
+                        const m = selectedMedia.find((x) => x.id === expandedMediaId);
+                        if (!m) return null;
+                        const per = perMedia[m.id] ?? { note: '', inspirationId: null };
+                        const setPer = (patch: Partial<PerMedia>) =>
+                          setPerMedia((prev) => ({ ...prev, [m.id]: { ...(prev[m.id] ?? { note: '', inspirationId: null }), ...patch } }));
+                        const currentInspo = inspirations.find((r) => r.id === per.inspirationId) ?? null;
+                        return (
+                          <div style={{ borderTop: '1px solid var(--border)', padding: '14px 20px', display: 'grid', gridTemplateColumns: '140px 1fr', gap: 14, alignItems: 'start' }}>
+                            <div>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={m.url} alt="" style={{ width: '100%', height: 'auto', maxHeight: 180, objectFit: 'contain', display: 'block', imageOrientation: 'from-image' }} />
+                            </div>
+                            <div>
+                              <label style={labelStyle}>¿Qué quieres hacer con esta foto?</label>
+                              <textarea
+                                value={per.note}
+                                onChange={(e) => setPer({ note: e.target.value })}
+                                placeholder="Ej: Retocar la iluminación, añadir texto en la parte superior..."
+                                rows={3}
+                                style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5, marginBottom: 10, fontSize: 13 }}
+                              />
+                              <label style={labelStyle}>Inspiración</label>
+                              {currentInspo ? (
+                                <div style={{ padding: '8px 10px', border: '1px solid var(--accent)', background: 'rgba(15,118,110,0.06)', display: 'flex', gap: 8, alignItems: 'center' }}>
+                                  {currentInspo.thumbnail_url && (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={currentInspo.thumbnail_url} alt="" style={{ width: 28, height: 28, objectFit: 'cover', flexShrink: 0 }} />
+                                  )}
+                                  <span style={{ flex: 1, fontFamily: f, fontSize: 11, color: 'var(--accent)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentInspo.title}</span>
+                                  <button type="button" onClick={() => setPer({ inspirationId: null })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex' }}>
+                                    <X size={11} style={{ color: 'var(--accent)' }} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button type="button" onClick={() => { void ensureInspirations(); }} style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '8px 12px', cursor: 'pointer', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: f, fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)' }}>
+                                  <Flame size={12} /> Elegir inspiración
+                                </button>
+                              )}
+                              {!currentInspo && inspirationsLoaded && inspirations.length > 0 && (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, marginTop: 8, maxHeight: 120, overflowY: 'auto' }}>
+                                  {inspirations.map((r) => (
+                                    <button type="button" key={r.id} onClick={() => setPer({ inspirationId: r.id })} style={{ padding: 0, border: '1px solid var(--border)', background: '#000', cursor: 'pointer', position: 'relative', aspectRatio: '1' }}>
+                                      {r.thumbnail_url ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={r.thumbnail_url} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                      ) : (
+                                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 9, color: '#9ca3af' }}>{r.title}</div>
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Extras a generar */}
+                  {outputFormat !== 'video' && outputFormat !== 'reel' && (() => {
+                    const remaining = Math.max(0, maxImages - selectedMedia.length);
+                    if (remaining === 0) return null;
+                    return (
+                      <div style={{ borderTop: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontFamily: f, fontSize: 11, color: 'var(--text-secondary)', flexShrink: 0 }}>Fotos extra a generar:</span>
+                        <div style={{ display: 'flex', gap: 0 }}>
+                          {[0, 1, 2, 3].filter((n) => n <= remaining).map((n, i, arr) => (
+                            <button type="button" key={n} onClick={() => setExtraGenerated(n)} style={{
+                              ...toggleStyle(extraGenerated === n),
+                              borderRight: i < arr.length - 1 ? 'none' : undefined,
+                              minWidth: 40, padding: '6px 10px', textAlign: 'center', justifyContent: 'center',
+                              fontSize: 11,
+                            }}>
+                              {n === 0 ? '0' : `+${n}`}
+                            </button>
+                          ))}
+                        </div>
+                        <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)' }}>
+                          Total: <strong style={{ color: 'var(--text-primary)' }}>{finalQty}</strong> / {maxImages}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
 
-            {/* ═══ PASO 4 — Briefing ════════════════════════════════════ */}
+            {/* ═══ PASO 4 — Briefing (compacto) ════════════════════════ */}
             <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
-              <div style={{ padding: '16px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ padding: '12px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)' }}>
                 <StepNum n={4} />
                 <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
                   Cuéntanos el detalle
                 </span>
               </div>
-              <div style={{ padding: '18px 20px 20px' }}>
-                <textarea
-                  value={clientNote}
-                  onChange={(e) => setClientNote(e.target.value)}
-                  placeholder={activePlaceholder}
-                  rows={4}
-                  style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.7 }}
-                />
-              </div>
+              {requestKind !== 'otro' && (
+                <div style={{ padding: '12px 20px 14px' }}>
+                  <textarea
+                    value={clientNote}
+                    onChange={(e) => setClientNote(e.target.value)}
+                    placeholder={activePlaceholder}
+                    rows={3}
+                    style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, fontSize: 13 }}
+                  />
+                </div>
+              )}
+              {requestKind === 'otro' && (
+                <p style={{ padding: '10px 20px', fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', margin: 0 }}>
+                  Ya escribiste tu descripción en el paso 1.
+                </p>
+              )}
 
-              {/* Referencias visuales */}
-              <div style={{ borderTop: '1px solid var(--border)', padding: '16px 20px 20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <div>
-                    <label style={{ ...labelStyle, marginBottom: 2 }}>Referencias visuales</label>
-                    <p style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', margin: 0 }}>
-                      Elige imágenes de tu inspiración guardada para guiar al equipo
-                    </p>
-                  </div>
+              {/* Referencias visuales — colapsables */}
+              <div style={{ borderTop: '1px solid var(--border)', padding: '10px 20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)' }}>
+                    Referencias visuales
+                    {globalInspirationIds.length > 0 && <span style={{ marginLeft: 6, color: '#0D9488' }}>({globalInspirationIds.length})</span>}
+                  </span>
                   <button type="button"
                     onClick={() => { void ensureInspirations(); setShowGlobalInspirationPicker(v => !v); }}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '7px 14px', cursor: 'pointer', flexShrink: 0,
-                      border: `1px solid ${showGlobalInspirationPicker ? '#0D9488' : 'var(--border)'}`,
-                      background: showGlobalInspirationPicker ? 'rgba(13,148,136,0.08)' : 'var(--bg)',
-                      fontFamily: f, fontSize: 11, fontWeight: 600,
-                      color: showGlobalInspirationPicker ? '#0D9488' : 'var(--text-tertiary)',
-                    }}>
-                    <Flame size={12} />
-                    {globalInspirationIds.length > 0 ? `${globalInspirationIds.length} seleccionada${globalInspirationIds.length === 1 ? '' : 's'}` : 'Elegir referencias'}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', cursor: 'pointer', border: `1px solid ${showGlobalInspirationPicker ? '#0D9488' : 'var(--border)'}`, background: showGlobalInspirationPicker ? 'rgba(13,148,136,0.08)' : 'var(--bg)', fontFamily: f, fontSize: 11, fontWeight: 600, color: showGlobalInspirationPicker ? '#0D9488' : 'var(--text-tertiary)' }}>
+                    <Flame size={11} />
+                    {globalInspirationIds.length > 0 ? `${globalInspirationIds.length} seleccionada${globalInspirationIds.length === 1 ? '' : 's'}` : 'Elegir'}
                   </button>
                 </div>
 
                 {globalInspirationIds.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: showGlobalInspirationPicker ? 14 : 0 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                     {globalInspirationIds.map(id => {
                       const ref = inspirations.find(r => r.id === id);
                       if (!ref) return null;
                       return (
-                        <div key={id} style={{ position: 'relative', width: 64, height: 64 }}>
+                        <div key={id} style={{ position: 'relative', width: 48, height: 48 }}>
                           {ref.thumbnail_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={ref.thumbnail_url} alt={ref.title} style={{ width: 64, height: 64, objectFit: 'cover', display: 'block', border: '2px solid #0D9488' }} />
+                            <img src={ref.thumbnail_url} alt={ref.title} style={{ width: 48, height: 48, objectFit: 'cover', display: 'block', border: '2px solid #0D9488' }} />
                           ) : (
-                            <div style={{ width: 64, height: 64, background: 'var(--bg-2)', border: '2px solid #0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Flame size={16} style={{ color: '#0D9488' }} />
+                            <div style={{ width: 48, height: 48, background: 'var(--bg-2)', border: '2px solid #0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Flame size={12} style={{ color: '#0D9488' }} />
                             </div>
                           )}
-                          <button type="button"
-                            onClick={() => setGlobalInspirationIds(prev => prev.filter(x => x !== id))}
-                            style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, background: '#111827', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-                            <X size={10} style={{ color: '#ffffff' }} />
+                          <button type="button" onClick={() => setGlobalInspirationIds(prev => prev.filter(x => x !== id))}
+                            style={{ position: 'absolute', top: -5, right: -5, width: 16, height: 16, background: '#111827', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                            <X size={9} style={{ color: '#ffffff' }} />
                           </button>
                         </div>
                       );
@@ -1110,20 +1238,16 @@ export default function NewPostPage() {
                 )}
 
                 {showGlobalInspirationPicker && (
-                  <div>
+                  <div style={{ marginTop: 10 }}>
                     {!inspirationsLoaded ? (
                       <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>Cargando...</p>
                     ) : inspirations.length === 0 ? (
-                      <div style={{ padding: '16px', border: '1px solid var(--border)', background: 'var(--bg-1)', textAlign: 'center' }}>
-                        <p style={{ fontFamily: f, fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 8 }}>
-                          No tienes referencias guardadas todavía.
-                        </p>
-                        <a href="/inspiracion?tab=referencias" target="_blank" style={{ fontFamily: f, fontSize: 11, fontWeight: 600, color: '#0D9488', textDecoration: 'none' }}>
-                          Ir a Referencias →
-                        </a>
+                      <div style={{ padding: '12px', border: '1px solid var(--border)', background: 'var(--bg-1)', textAlign: 'center' }}>
+                        <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>No tienes referencias guardadas todavía.</p>
+                        <a href="/inspiracion?tab=referencias" target="_blank" style={{ fontFamily: f, fontSize: 11, fontWeight: 600, color: '#0D9488', textDecoration: 'none' }}>Ir a Referencias →</a>
                       </div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8, maxHeight: 340, overflowY: 'auto', padding: 2 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
                         {inspirations.map(r => {
                           const selected = globalInspirationIds.includes(r.id);
                           const fmtColor: Record<string, string> = { image: '#3B82F6', reel: '#EF4444', carousel: '#F59E0B', video: '#8B5CF6' };
@@ -1133,47 +1257,25 @@ export default function NewPostPage() {
                           const isCarousel = fmt === 'carousel';
                           return (
                             <div key={r.id} style={{ position: 'relative', border: `2px solid ${selected ? '#0D9488' : 'var(--border)'}`, background: '#000', display: 'flex', flexDirection: 'column' }}>
-                              <button type="button"
-                                onClick={() => setGlobalInspirationIds(prev =>
-                                  selected ? prev.filter(x => x !== r.id) : [...prev, r.id]
-                                )}
-                                style={{ padding: 0, cursor: 'pointer', border: 'none', background: 'transparent', display: 'block', position: 'relative', aspectRatio: '1' }}
-                              >
+                              <button type="button" onClick={() => setGlobalInspirationIds(prev => selected ? prev.filter(x => x !== r.id) : [...prev, r.id])}
+                                style={{ padding: 0, cursor: 'pointer', border: 'none', background: 'transparent', display: 'block', position: 'relative', aspectRatio: '1' }}>
                                 {r.thumbnail_url ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img src={r.thumbnail_url} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: selected ? 1 : 0.8 }} />
                                 ) : (
-                                  <div style={{ width: '100%', height: '100%', minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111', padding: 6 }}>
-                                    {isVideo ? <Film size={24} color="#6b7280" /> : isCarousel ? <Images size={24} color="#6b7280" /> : <Flame size={24} color="#6b7280" />}
+                                  <div style={{ width: '100%', height: '100%', minHeight: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111' }}>
+                                    {isVideo ? <Film size={20} color="#6b7280" /> : isCarousel ? <Images size={20} color="#6b7280" /> : <Flame size={20} color="#6b7280" />}
                                   </div>
                                 )}
-                                <div style={{ position: 'absolute', top: 4, left: 4, background: fmtColor[fmt] ?? '#6b7280', padding: '2px 5px' }}>
-                                  <span style={{ fontFamily: f, fontSize: 8, fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                    {fmtLabel[fmt] ?? fmt}
-                                  </span>
+                                <div style={{ position: 'absolute', top: 3, left: 3, background: fmtColor[fmt] ?? '#6b7280', padding: '1px 4px' }}>
+                                  <span style={{ fontFamily: f, fontSize: 7, fontWeight: 700, color: '#fff', textTransform: 'uppercase' }}>{fmtLabel[fmt] ?? fmt}</span>
                                 </div>
-                                {(isVideo || isCarousel) && (
-                                  <div style={{ position: 'absolute', bottom: 4, left: 4, color: 'rgba(255,255,255,0.9)' }}>
-                                    {isVideo ? <Film size={12} /> : <Images size={12} />}
-                                  </div>
-                                )}
-                                {selected && (
-                                  <div style={{ position: 'absolute', top: 4, right: 4, width: 18, height: 18, background: '#0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Check size={11} style={{ color: '#ffffff' }} />
-                                  </div>
-                                )}
+                                {(isVideo || isCarousel) && <div style={{ position: 'absolute', bottom: 3, left: 3, color: 'rgba(255,255,255,0.9)' }}>{isVideo ? <Film size={10} /> : <Images size={10} />}</div>}
+                                {selected && <div style={{ position: 'absolute', top: 3, right: 3, width: 16, height: 16, background: '#0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check size={10} style={{ color: '#ffffff' }} /></div>}
                               </button>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 6px', background: '#111', minHeight: 28 }}>
-                                <span style={{ fontFamily: f, fontSize: 9, color: '#d1d5db', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.title}>
-                                  {r.title}
-                                </span>
-                                <button type="button"
-                                  onClick={(e) => { e.stopPropagation(); setLightboxRef(r); }}
-                                  style={{ padding: 3, background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0, color: '#9ca3af', display: 'flex', alignItems: 'center' }}
-                                  title="Ver en grande"
-                                >
-                                  <Maximize2 size={11} />
-                                </button>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '4px 5px', background: '#111', minHeight: 22 }}>
+                                <span style={{ fontFamily: f, fontSize: 8, color: '#d1d5db', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.title}>{r.title}</span>
+                                <button type="button" onClick={(e) => { e.stopPropagation(); setLightboxRef(r); }} style={{ padding: 2, background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0, color: '#9ca3af', display: 'flex' }} title="Ver en grande"><Maximize2 size={9} /></button>
                               </div>
                             </div>
                           );
@@ -1185,303 +1287,83 @@ export default function NewPostPage() {
               </div>
             </div>
 
-            {/* ═══ Tus fotos (solo cuando sourceType !== 'none') ════════ */}
-            {sourceType !== 'none' && <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
-              <div style={{
-                padding: '16px 20px', background: 'var(--bg-1)',
-                display: 'flex', alignItems: 'center', gap: 10,
-                borderBottom: '1px solid var(--border)',
-              }}>
-                <div style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)', flexShrink: 0 }}>
-                  <ImageIcon size={11} style={{ color: 'var(--text-tertiary)' }} />
-                </div>
-                <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
-                  {sourceType === 'video' ? 'Tu vídeo' : 'Tus fotos'}
-                </span>
-                <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
-                  {selectedMedia.length} seleccionada{selectedMedia.length === 1 ? '' : 's'}
-                </span>
-              </div>
-
-              {/* Media picker */}
-              <div style={{ padding: '20px' }}>
-                <MediaPicker selected={selectedMedia} onChange={setSelectedMedia} max={maxImages} />
-              </div>
-
-              {/* Per-image notes + inspiration */}
-              {selectedMedia.length > 0 && (
-                <div style={{ borderTop: '1px solid var(--border)' }}>
-                  <div style={{ padding: '14px 20px', background: 'var(--bg-1)' }}>
-                    <span style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
-                      Describe qué quieres hacer con cada foto
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '16px 20px' }}>
-                    {selectedMedia.map((m, idx) => {
-                      const per = perMedia[m.id] ?? { note: '', inspirationId: null };
-                      const hasNote = per.note.trim().length > 0;
-                      const hasInspo = !!per.inspirationId;
-                      const isOpen = expandedMediaId === m.id;
-                      return (
-                        <button type="button" key={m.id}
-                          onClick={() => setExpandedMediaId(isOpen ? null : m.id)}
-                          style={{
-                            position: 'relative', width: 76, height: 76, padding: 0,
-                            border: `2px solid ${isOpen ? 'var(--accent)' : 'var(--border)'}`,
-                            background: '#000', cursor: 'pointer',
-                          }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', imageOrientation: 'from-image' }} />
-                          <div style={{
-                            position: 'absolute', bottom: 2, left: 2,
-                            background: isOpen ? 'var(--accent)' : '#111827', color: '#ffffff',
-                            fontFamily: fc, fontSize: 9, fontWeight: 700,
-                            width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          }}>{idx + 1}</div>
-                          {hasNote && <div style={{ position: 'absolute', top: 2, left: 2, width: 6, height: 6, background: 'var(--accent)' }} />}
-                          {hasInspo && (
-                            <div style={{ position: 'absolute', top: 2, right: 2 }}>
-                              <Flame size={10} style={{ color: 'var(--accent)' }} />
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Active image editor */}
-                  {expandedMediaId && (() => {
-                    const m = selectedMedia.find((x) => x.id === expandedMediaId);
-                    if (!m) return null;
-                    const per = perMedia[m.id] ?? { note: '', inspirationId: null };
-                    const setPer = (patch: Partial<PerMedia>) =>
-                      setPerMedia((prev) => ({ ...prev, [m.id]: { ...(prev[m.id] ?? { note: '', inspirationId: null }), ...patch } }));
-                    const currentInspo = inspirations.find((r) => r.id === per.inspirationId) ?? null;
-                    return (
-                      <div style={{ borderTop: '1px solid var(--border)', padding: '18px 20px', display: 'grid', gridTemplateColumns: '200px 1fr', gap: 16, alignItems: 'start' }}>
-                        <div>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={m.url} alt="" style={{ width: '100%', height: 'auto', maxHeight: 240, objectFit: 'contain', display: 'block', background: 'transparent', imageOrientation: 'from-image' }} />
-                        </div>
-                        <div>
-                          <label style={labelStyle}>¿Qué quieres hacer con esta foto?</label>
-                          <textarea
-                            value={per.note}
-                            onChange={(e) => setPer({ note: e.target.value })}
-                            placeholder="¿Qué quieres hacer con esta foto? ¿Modificar algo, añadir texto, cambiar el estilo?"
-                            rows={3}
-                            style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, marginBottom: 14 }}
-                          />
-
-                          <label style={labelStyle}>Inspiración</label>
-                          {currentInspo ? (
-                            <div style={{
-                              padding: '10px 12px', border: '1px solid var(--accent)',
-                              background: 'var(--accent-soft, rgba(15,118,110,0.08))',
-                              display: 'flex', gap: 10, alignItems: 'center',
-                            }}>
-                              {currentInspo.thumbnail_url && (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={currentInspo.thumbnail_url} alt="" style={{ width: 36, height: 36, objectFit: 'cover', flexShrink: 0 }} />
-                              )}
-                              <span style={{ flex: 1, fontFamily: f, fontSize: 12, color: 'var(--accent)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {currentInspo.title}
-                              </span>
-                              <button type="button" onClick={() => setPer({ inspirationId: null })}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex' }}>
-                                <X size={13} style={{ color: 'var(--accent)' }} />
-                              </button>
-                            </div>
-                          ) : (
-                            <button type="button"
-                              onClick={() => { void ensureInspirations(); }}
-                              style={{
-                                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                                padding: '10px 14px', cursor: 'pointer',
-                                border: '1px solid var(--border)', background: 'var(--bg)',
-                                fontFamily: f, fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
-                              }}>
-                              <Flame size={13} /> Elegir inspiración
-                            </button>
-                          )}
-                          {!currentInspo && inspirationsLoaded && (
-                            inspirations.length === 0 ? (
-                              <p style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 8 }}>
-                                No tienes referencias guardadas todavía. Guarda alguna en /inspiracion.
-                              </p>
-                            ) : (
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginTop: 8, maxHeight: 180, overflowY: 'auto' }}>
-                                {inspirations.map((r) => (
-                                  <button type="button" key={r.id} onClick={() => setPer({ inspirationId: r.id })}
-                                    style={{ padding: 0, border: '1px solid var(--border)', background: '#000', cursor: 'pointer', position: 'relative', aspectRatio: '1' }}>
-                                    {r.thumbnail_url ? (
-                                      // eslint-disable-next-line @next/next/no-img-element
-                                      <img src={r.thumbnail_url} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                                    ) : (
-                                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 10, color: '#9ca3af' }}>{r.title}</div>
-                                    )}
-                                  </button>
-                                ))}
-                              </div>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-
-              {/* Extras to generate + plan notice */}
-              <div style={{ borderTop: '1px solid var(--border)', padding: '18px 20px' }}>
-                <label style={labelStyle}>¿Quieres que generemos fotos extra?</label>
-                {(() => {
-                  const remaining = Math.max(0, maxImages - selectedMedia.length);
-                  if (remaining === 0) {
-                    return (
-                      <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>
-                        Has alcanzado el máximo de {maxImages} fotos de tu plan.
-                      </p>
-                    );
-                  }
-                  return (
-                    <>
-                      <div style={{ display: 'flex', gap: 0 }}>
-                        {[0, 1, 2, 3].filter((n) => n <= remaining).map((n, i, arr) => (
-                          <button type="button" key={n} onClick={() => setExtraGenerated(n)}
-                            style={{
-                              ...toggleStyle(extraGenerated === n),
-                              borderRight: i < arr.length - 1 ? 'none' : undefined,
-                              minWidth: 48, padding: '10px 14px', justifyContent: 'center',
-                            }}>
-                            {n === 0 ? 'Ninguna' : `+${n}`}
-                          </button>
-                        ))}
-                      </div>
-                      <p style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 6 }}>
-                        Total: <strong style={{ color: 'var(--text-primary)' }}>{finalQty} foto{finalQty === 1 ? '' : 's'}</strong>
-                        {' · '}Tu plan permite hasta {maxImages}.
-                        {extraGenerated > 0 && ' Las extras las generará el equipo.'}
-                      </p>
-                    </>
-                  );
-                })()}
-              </div>
-            </div>}
-
-            {/* STEP 5 — ¿Para cuándo? */}
+            {/* STEP 5 — ¿Para cuándo? (compacto) */}
             <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
-              <div style={{
-                padding: '16px 20px', background: 'var(--bg-1)',
-                display: 'flex', alignItems: 'center', gap: 10,
-                borderBottom: '1px solid var(--border)',
-              }}>
+              <div style={{ padding: '12px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <StepNum n={5} />
                 <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
-                  Fecha preferida para tenerlo
+                  ¿Para cuándo?
                 </span>
-                <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
-                  {urgency === 'urgente' ? 'URGENTE' : 'Flexible'}
-                </span>
+                {timingPreset && <span style={{ fontFamily: f, fontSize: 10, color: urgency === 'urgente' ? '#e65100' : 'var(--text-tertiary)', marginLeft: 'auto', fontWeight: urgency === 'urgente' ? 700 : 400 }}>
+                  {urgency === 'urgente' ? 'URGENTE' : preferredDate ? new Date(preferredDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'Flexible'}
+                </span>}
               </div>
-              <div style={{ padding: '18px 20px' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-                  {([
-                    ['today',    'Hoy'],
-                    ['tomorrow', 'Mañana'],
-                    ['week',     'Esta semana'],
-                    ['custom',   'Otro día'],
-                  ] as const).map(([v, l]) => {
-                    const active =
-                      (v === 'today'    && timingPreset === 'today') ||
-                      (v === 'tomorrow' && timingPreset === 'tomorrow') ||
-                      (v === 'week'     && timingPreset === 'week') ||
-                      (v === 'custom'   && timingPreset === 'custom');
-                    return (
-                      <button type="button" key={v} onClick={() => pickTiming(v)} style={{
-                        padding: '8px 14px',
-                        border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                        background: active ? 'var(--accent)' : 'var(--bg)',
-                        color: active ? '#ffffff' : 'var(--text-secondary)',
-                        fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                      }}>{l}</button>
-                    );
-                  })}
-                </div>
+              <div style={{ padding: '10px 20px 12px', display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {([['today','Hoy'],['tomorrow','Mañana'],['week','Esta semana'],['custom','Otro día']] as const).map(([v, l]) => {
+                  const active = timingPreset === v;
+                  return (
+                    <button type="button" key={v} onClick={() => pickTiming(v)} style={{
+                      padding: '7px 12px',
+                      border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                      background: active ? 'var(--accent)' : 'var(--bg)',
+                      color: active ? '#ffffff' : 'var(--text-secondary)',
+                      fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                    }}>{l}</button>
+                  );
+                })}
                 {timingPreset === 'custom' && (
                   <input type="date" value={preferredDate} onChange={(e) => setPreferredDate(e.target.value)}
-                    min={new Date().toISOString().slice(0, 10)} style={inputStyle} />
+                    min={new Date().toISOString().slice(0, 10)}
+                    style={{ ...inputStyle, padding: '7px 10px', fontSize: 12, width: 'auto' }} />
                 )}
               </div>
             </div>
 
-            {/* STEP 6 — Detalles opcionales */}
+            {/* STEP 6 — Detalles opcionales (compacto) */}
             <div style={{ border: '1px solid var(--border)', marginBottom: 32 }}>
-              <div style={{
-                padding: '16px 20px', background: 'var(--bg-1)',
-                display: 'flex', alignItems: 'center', gap: 10,
-                borderBottom: '1px solid var(--border)',
-              }}>
+              <div style={{ padding: '12px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)' }}>
                 <StepNum n={6} />
                 <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
                   Detalles extra
                 </span>
                 <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>Opcional</span>
               </div>
-              <div style={{ display: 'grid', gap: '1px', background: 'var(--border)' }}>
-                <div style={{ padding: '18px 20px', background: 'var(--bg)' }}>
-                  <label style={labelStyle}>
-                    Texto / caption sugerido
-                  </label>
+              <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Caption sugerido</label>
                   <textarea value={proposedCaption} onChange={(e) => setProposedCaption(e.target.value)}
-                    placeholder="Si ya tienes una idea de texto, escríbela aquí. Si no, te proponemos una."
-                    rows={3} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} />
+                    placeholder="Si ya tienes una idea de texto, escríbela aquí."
+                    rows={2} style={{ ...inputStyle, resize: 'none', lineHeight: 1.5, fontSize: 13 }} />
                 </div>
-                <div style={{ padding: '18px 20px', background: 'var(--bg)' }}>
-                  <label style={labelStyle}>
-                    Notas para el equipo
-                  </label>
+                <div>
+                  <label style={labelStyle}>Notas para el equipo</label>
                   <textarea value={extraNotes} onChange={(e) => setExtraNotes(e.target.value)}
-                    placeholder="Ej: Tono profesional, referencias visuales a nuestra web, evitar emojis..."
-                    rows={2} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} />
+                    placeholder="Tono, referencias, restricciones..."
+                    rows={2} style={{ ...inputStyle, resize: 'none', lineHeight: 1.5, fontSize: 13 }} />
                 </div>
-                {/* Target platforms — drives post.platform[] on submit so the
-                    worker knows where to publish. Self-service uses
-                    PostEditor's own picker; this one only shows in request
-                    mode. */}
-                <div style={{ padding: '18px 20px', background: 'var(--bg)' }}>
-                  <label style={labelStyle}>
-                    Publicar en
-                  </label>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <div>
+                  <label style={labelStyle}>Publicar en</label>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                     {platformsForFormat(outputFormat).map((p) => {
                       const active = requestPlatforms.includes(p);
                       const meta: Record<string, string> = { instagram: '📷 Instagram', facebook: '📘 Facebook', tiktok: '🎵 TikTok' };
                       return (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => {
-                            setRequestPlatforms(prev =>
-                              prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p],
-                            );
-                          }}
+                        <button key={p} type="button"
+                          onClick={() => setRequestPlatforms(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])}
                           style={{
-                            padding: '8px 14px',
+                            padding: '7px 12px',
                             border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                            background: active ? 'var(--accent-light, #f0fdfa)' : 'var(--bg)',
+                            background: active ? 'rgba(15,118,110,0.08)' : 'var(--bg)',
                             color: active ? 'var(--accent)' : 'var(--text-secondary)',
-                            fontFamily: f, fontSize: 13, fontWeight: active ? 700 : 500,
-                            cursor: 'pointer',
-                          }}
-                        >
+                            fontFamily: f, fontSize: 12, fontWeight: active ? 700 : 500, cursor: 'pointer',
+                          }}>
                           {meta[p] ?? p}
                         </button>
                       );
                     })}
                   </div>
-                  <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8 }}>
-                    Solo puedes publicar en las redes que tienes contratadas. Tu equipo adaptará el contenido a cada plataforma.
+                  <p style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 6 }}>
+                    Solo redes contratadas. El equipo adaptará el contenido a cada plataforma.
                   </p>
                 </div>
               </div>
