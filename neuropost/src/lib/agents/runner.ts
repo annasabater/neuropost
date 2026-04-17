@@ -44,7 +44,7 @@ export interface RunnerResult {
   source:      'bullmq' | 'supabase_fallback';
 }
 
-const DEFAULT_BATCH_SIZE   = 10;
+const DEFAULT_BATCH_SIZE   = 3;
 const DRAIN_DURATION_MS    = 55_000;  // drain for 55s (safe margin within 300s maxDuration)
 const HANDLER_TIMEOUT_MS   = 45_000;
 const ORPHAN_THRESHOLD_MS  = 10 * 60 * 1000; // 10 min: jobs 'running' longer than this are orphans
@@ -239,7 +239,10 @@ async function bullProcessor(bullJob: BullJob<AgentBullJob>): Promise<void> {
 async function runSupabaseFallback(batchSize: number): Promise<void> {
   const claimed = await claimJobs(batchSize);
   _claimed = claimed.length;
-  await Promise.allSettled(claimed.map(processJob));
+  // Process sequentially to avoid hammering external APIs (Replicate rate limits)
+  for (const job of claimed) {
+    await processJob(job).catch(() => null);
+  }
 }
 
 // ─── Public entry point ───────────────────────────────────────────────────────
@@ -299,7 +302,10 @@ export async function runOnce(batchSize = DEFAULT_BATCH_SIZE): Promise<RunnerRes
       if (orphans.length > 0) {
         console.log(`[runner] Processing ${orphans.length} Supabase-only jobs`);
         _claimed += orphans.length;
-        await Promise.allSettled(orphans.map(processJob));
+        // Process sequentially to avoid hammering external APIs (Replicate rate limits)
+        for (const job of orphans) {
+          await processJob(job).catch(() => null);
+        }
       }
     } catch { /* non-critical */ }
   }
