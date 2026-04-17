@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Plus, Grid3x3, LayoutList, GripVertical, Pencil, ArrowRight, Calendar, Eye, Upload, Send } from 'lucide-react';
+import { Plus, Grid3x3, LayoutList, GripVertical, Pencil, ArrowRight, Calendar, Eye } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor,
@@ -212,7 +212,7 @@ export default function PostsPage() {
   return (
     <div className="page-content dashboard-unified-page" style={{ maxWidth: 1060 }}>
       {/* ── Header ── */}
-      <div className="dashboard-unified-header" style={{ padding: '48px 0 0' }}>
+      <div className="dashboard-unified-header" style={{ padding: '48px 0 1px' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, marginBottom: 16 }}>
           <div>
             <h1 style={{
@@ -223,23 +223,28 @@ export default function PostsPage() {
             }}>
               Contenido
             </h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontFamily: f }}>
-              Tu hub de publicaciones
-            </p>
           </div>
+          <Link href="/posts/new" style={{
+            background: '#0D9488', color: '#fff', textDecoration: 'none',
+            padding: '10px 22px', fontFamily: fc, fontSize: 12, fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '0.07em',
+            display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
+          }}>
+            <Plus size={14} /> Solicitar contenido
+          </Link>
         </div>
 
         {/* Stats row */}
-        <div style={{ display: 'flex', gap: 24, marginBottom: 24 }}>
+        <div style={{ display: 'flex', gap: 16, marginBottom: 16 }}>
           {[
-            { icon: <LayoutList size={13} />, label: 'Activos', value: statsActive },
-            { icon: <Calendar size={13} />, label: 'Programados', value: statsScheduled },
-            { icon: <Eye size={13} />,      label: 'En revisión', value: statsPending },
+            { icon: <LayoutList size={12} />, label: 'Activos', value: statsActive },
+            { icon: <Calendar size={12} />, label: 'Programados', value: statsScheduled },
+            { icon: <Eye size={12} />,      label: 'En revisión', value: statsPending },
           ].map(({ icon, label, value }) => (
-            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               <div style={{ color: 'var(--text-tertiary)', display: 'flex' }}>{icon}</div>
-              <span style={{ fontFamily: fc, fontSize: 20, fontWeight: 900, color: 'var(--text-primary)' }}>{value}</span>
-              <span style={{ fontFamily: f, fontSize: 12, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
+              <span style={{ fontFamily: fc, fontSize: 15, fontWeight: 900, color: 'var(--text-primary)' }}>{value}</span>
+              <span style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
             </div>
           ))}
         </div>
@@ -301,7 +306,7 @@ export default function PostsPage() {
       {/* ── Filters + View toggle ── */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 28, paddingBottom: 0,
+        marginBottom: 28, paddingBottom: 0, marginTop: 1,
       }}>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {view === 'grid' && STATUS_FILTERS.map((sf) => {
@@ -494,48 +499,6 @@ export default function PostsPage() {
             </div>
           )}
 
-          {/* ── Quick actions section ── */}
-          <div style={{
-            marginTop: 40, padding: '32px 0',
-            borderTop: '1px solid var(--border)',
-          }}>
-            <p style={{
-              fontFamily: fc, fontWeight: 900, fontSize: 18, textTransform: 'uppercase',
-              letterSpacing: '0.02em', color: 'var(--text-primary)', marginBottom: 20,
-            }}>
-              Crear contenido
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-              {[
-                { href: '/posts/new', icon: <Send size={18} />, title: 'Solicitar a NeuroPost', desc: 'Nuestro equipo crea tu contenido' },
-                { href: '/ideas',     icon: <Pencil size={18} />, title: 'Generar desde idea', desc: 'Genera propuestas para ti' },
-                { href: '/biblioteca', icon: <Upload size={18} />, title: 'Subir contenido', desc: 'Desde tu biblioteca de medios' },
-              ].map(({ href, icon, title, desc }) => (
-                <Link key={href} href={href} style={{
-                  padding: '20px 24px', textDecoration: 'none',
-                  border: '1px solid var(--border)', background: 'var(--bg)',
-                  display: 'flex', alignItems: 'flex-start', gap: 14,
-                  transition: 'border-color 0.15s, background 0.15s',
-                }}>
-                  <div style={{
-                    width: 40, height: 40, background: 'var(--accent-soft)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0, color: 'var(--accent)',
-                  }}>
-                    {icon}
-                  </div>
-                  <div>
-                    <p style={{ fontFamily: fc, fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', textTransform: 'uppercase', marginBottom: 4 }}>
-                      {title}
-                    </p>
-                    <p style={{ fontFamily: f, fontSize: 12, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
-                      {desc}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
         </>
       )}
 

@@ -102,6 +102,13 @@ export async function PATCH(request: Request) {
       ...allowedFields
     } = body;
 
+    // Fetch current location before updating to detect changes
+    const { data: current } = await supabase
+      .from('brands')
+      .select('id, location')
+      .eq('user_id', user.id)
+      .single();
+
     const { data, error } = await supabase
       .from('brands')
       .update(allowedFields)
@@ -109,6 +116,23 @@ export async function PATCH(request: Request) {
       .select()
       .single();
     if (error) throw error;
+
+    // Re-trigger holiday agent when location changes
+    const locationChanged = 'location' in allowedFields && allowedFields.location !== current?.location;
+    if (locationChanged && data?.id) {
+      const currentYear = new Date().getFullYear();
+      for (const yr of [currentYear, currentYear + 1]) {
+        queueJob({
+          brand_id: data.id,
+          agent_type: 'scheduling',
+          action: 'detect_holidays',
+          input: { year: yr, force_refresh: true },
+          priority: 55,
+          requested_by: 'system',
+        }).catch(() => null);
+      }
+    }
+
     return NextResponse.json({ brand: data as Brand });
   } catch (err) {
     return apiError(err, 'brands');

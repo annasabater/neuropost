@@ -25,14 +25,14 @@ const TYPE_LINK: Record<string, string> = {
   approval_needed: '/posts',
   published:       '/posts',
   failed:          '/posts',
-  comment:         '/comments',
+  comment:         '/posts',
   limit_reached:   '/settings/plan',
   meta_connected:  '/settings#redes',
   token_expired:   '/settings#redes',
   payment_failed:  '/settings/plan',
   plan_activated:  '/settings/plan',
   team_invite:     '/settings/team',
-  trend_detected:  '/tendencias',
+  trend_detected:  '/inspiracion',
 };
 
 const TYPE_COLOR: Record<string, string> = {

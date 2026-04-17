@@ -279,7 +279,7 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
     return (
       <div>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, marginTop: 28 }}>
           <div>
             <p style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--accent)', marginBottom: 4 }}>
               Paso 1 de 3
@@ -428,7 +428,7 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
     return (
       <div>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, marginTop: 28 }}>
           <div>
             <button onClick={() => setStep('select')} style={{
               fontFamily: f, fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)',
@@ -600,7 +600,7 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
     <div className="post-editor">
       {/* Left: controls */}
       <div className="post-editor-controls">
-        <div style={{ marginBottom: 16 }}>
+        <div style={{ marginBottom: 16, marginTop: 28 }}>
           <button onClick={() => setStep('configure')} style={{
             fontFamily: f, fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)',
             background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: 6,

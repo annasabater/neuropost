@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { BarChart3, Calendar, Lightbulb, MessageSquare, Plus, Zap, ArrowRight, ChevronRight, Sparkles, Send, Paintbrush } from 'lucide-react';
+import { BarChart3, Calendar, Lightbulb, Plus, ArrowRight, ChevronRight, Sparkles, Send, Paintbrush } from 'lucide-react';
 import { getServerBrand, createServerClient } from '@/lib/supabase';
 import { TrendsBanner } from '@/components/trends/TrendsBanner';
 import DashboardTour from '@/components/onboarding/DashboardTour';
@@ -438,7 +438,7 @@ export default async function DashboardPage() {
         {t('sections.quickActions')}
       </h2>
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px',
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px',
         background: 'var(--border)', border: '1px solid var(--border)',
         marginBottom: 48,
       }}>
@@ -446,8 +446,6 @@ export default async function DashboardPage() {
           { href: '/posts/new',  icon: Plus,          label: t('actions.newPost') },
           { href: '/ideas',      icon: Lightbulb,     label: t('actions.generateIdeas') },
           { href: '/calendar',   icon: Calendar,      label: t('actions.planMonth') },
-          { href: '/tendencias', icon: Zap,           label: t('actions.trends') },
-          { href: '/comments',   icon: MessageSquare, label: t('actions.community') },
           { href: '/analytics',  icon: BarChart3,     label: t('actions.analytics') },
         ].map(({ href, icon: Icon, label }) => (
           <Link key={href} href={href} style={{

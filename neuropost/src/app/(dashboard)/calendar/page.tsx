@@ -250,7 +250,7 @@ export default function CalendarPage() {
 
               return (
                 <div key={col} style={{
-                  minHeight: 88, padding: '6px 8px',
+                  height: 100, padding: '6px 8px', overflow: 'hidden',
                   borderRight: col < 6 ? '1px solid #e5e7eb' : 'none',
                   background: hasHighEvent ? '#fffbeb' : todayCell ? '#f0fdf4' : isValid ? '#ffffff' : '#f9fafb',
                 }}>

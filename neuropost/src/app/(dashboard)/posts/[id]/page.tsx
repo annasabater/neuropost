@@ -320,9 +320,7 @@ export default function PostDetailPage() {
           ];
         }
         return [
-          { status: 'request', label: 'Devolver a En preparación', bg: 'var(--bg)', color: 'var(--text-secondary)', border: 'var(--border)' },
           { status: 'regenerate', label: 'Regenerar propuesta', bg: 'var(--accent)', color: '#fff', border: 'var(--accent)' },
-          { status: 'published', label: 'Publicar ahora', bg: '#111827', color: '#fff', border: '#111827' },
         ];
       case 'generated':
         return [

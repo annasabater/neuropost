@@ -80,12 +80,12 @@ export default function NewPostPage() {
   type PostObjective = 'vender' | 'informar' | 'conectar' | 'ensenar' | 'demostrar';
   const [postObjective, setPostObjective] = useState<PostObjective | null>(null);
 
-  const OBJECTIVES: { v: PostObjective; l: string; desc: string; icon: string }[] = [
-    { v: 'vender',    l: 'Vender',          desc: 'Promociones, ofertas, llamadas a reserva o compra', icon: '🛒' },
-    { v: 'informar',  l: 'Informar',         desc: 'Novedades, eventos, horarios, recordatorios', icon: '📢' },
-    { v: 'conectar',  l: 'Conectar',         desc: 'Equipo, detrás de cámara, historia, preguntas', icon: '🤝' },
-    { v: 'ensenar',   l: 'Enseñar',          desc: 'Tips, tutoriales, mitos, comparativas, datos', icon: '💡' },
-    { v: 'demostrar', l: 'Demostrar valor',  desc: 'Testimonios, antes/después, casos de éxito', icon: '⭐' },
+  const OBJECTIVES: { v: PostObjective; l: string; desc: string }[] = [
+    { v: 'vender',    l: 'Vender',          desc: 'Promociones, ofertas, llamadas a reserva o compra' },
+    { v: 'informar',  l: 'Informar',         desc: 'Novedades, eventos, horarios, recordatorios' },
+    { v: 'conectar',  l: 'Conectar',         desc: 'Equipo, detrás de cámara, historia, preguntas' },
+    { v: 'ensenar',   l: 'Enseñar',          desc: 'Tips, tutoriales, mitos, comparativas, datos' },
+    { v: 'demostrar', l: 'Demostrar valor',  desc: 'Testimonios, antes/después, casos de éxito' },
   ];
 
   // Nivel 2: tipos específicos por objetivo
@@ -414,13 +414,13 @@ export default function NewPostPage() {
   // ══════════════════════════════════════════════════════════════════════
   if (!mode) {
     return (
-      <div className="page-content" style={{ maxWidth: 960 }}>
-        <div style={{ padding: '32px 0 24px' }}>
+      <div className="page-content dashboard-unified-page" style={{ maxWidth: 960 }}>
+        <div className="dashboard-unified-header" style={{ padding: '48px 0 24px' }}>
           <h1 style={{
             fontFamily: fc, fontWeight: 900,
             fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
             textTransform: 'uppercase', letterSpacing: '0.01em',
-            color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 12,
+            color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 10,
           }}>
             Nuevo contenido
           </h1>
@@ -710,7 +710,7 @@ export default function NewPostPage() {
       && (isVideoFormat || finalQty > 0);
 
     return (
-      <div className="page-content" style={{ maxWidth: 900 }}>
+      <div className="page-content dashboard-unified-page" style={{ maxWidth: 900 }}>
 
         {/* ── Lightbox modal ── */}
         {lightboxRef && (
@@ -812,11 +812,11 @@ export default function NewPostPage() {
         )}
 
         {/* ── Header ── */}
-        <div style={{ padding: '48px 0 32px' }}>
+        <div className="dashboard-unified-header" style={{ padding: '48px 0 24px' }}>
           <button onClick={() => setMode(null)} style={{
             fontFamily: f, fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)',
             background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-            marginBottom: 20, textTransform: 'uppercase', letterSpacing: '0.08em',
+            marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.08em',
             display: 'flex', alignItems: 'center', gap: 6,
           }}>
             <ArrowRight size={12} style={{ transform: 'rotate(180deg)' }} /> Volver
@@ -825,7 +825,7 @@ export default function NewPostPage() {
             fontFamily: fc, fontWeight: 900,
             fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
             textTransform: 'uppercase', letterSpacing: '0.01em',
-            color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 12,
+            color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 10,
           }}>
             Solicitar contenido
           </h1>
@@ -850,7 +850,7 @@ export default function NewPostPage() {
               </div>
               {/* Nivel 1: objetivos en fila compacta */}
               <div style={{ padding: '12px 20px 10px', display: 'flex', gap: 4 }}>
-                {OBJECTIVES.map(({ v, l, icon }) => {
+                {OBJECTIVES.map(({ v, l }) => {
                   const active = postObjective === v;
                   return (
                     <button type="button" key={v} onClick={() => pickObjective(v)} style={{
@@ -859,7 +859,6 @@ export default function NewPostPage() {
                       background: active ? 'rgba(15,118,110,0.07)' : 'var(--bg)',
                       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
                     }}>
-                      <span style={{ fontSize: 18 }}>{icon}</span>
                       <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, color: active ? 'var(--accent)' : 'var(--text-primary)' }}>{l}</span>
                     </button>
                   );
@@ -1151,16 +1150,22 @@ export default function NewPostPage() {
                       <div style={{ borderTop: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
                         <span style={{ fontFamily: f, fontSize: 11, color: 'var(--text-secondary)', flexShrink: 0 }}>Fotos extra a generar:</span>
                         <div style={{ display: 'flex', gap: 0 }}>
-                          {[0, 1, 2, 3].filter((n) => n <= remaining).map((n, i, arr) => (
-                            <button type="button" key={n} onClick={() => setExtraGenerated(n)} style={{
-                              ...toggleStyle(extraGenerated === n),
-                              borderRight: i < arr.length - 1 ? 'none' : undefined,
-                              minWidth: 40, padding: '6px 10px', textAlign: 'center', justifyContent: 'center',
-                              fontSize: 11,
-                            }}>
-                              {n === 0 ? '0' : `+${n}`}
-                            </button>
-                          ))}
+                          {[0, 1, 2, 3].filter((n) => n <= remaining).map((n, i, arr) => {
+                            const active = extraGenerated === n;
+                            const borderColor = active ? 'var(--accent)' : 'var(--border)';
+                            return (
+                              <button type="button" key={n} onClick={() => setExtraGenerated(n)} style={{
+                                minWidth: 40, padding: '6px 10px', textAlign: 'center', cursor: 'pointer',
+                                borderTop: `1px solid ${borderColor}`, borderBottom: `1px solid ${borderColor}`,
+                                borderLeft: `1px solid ${borderColor}`, borderRight: i < arr.length - 1 ? 'none' : `1px solid ${borderColor}`,
+                                background: active ? 'var(--accent)' : 'var(--bg)',
+                                color: active ? '#ffffff' : 'var(--text-tertiary)',
+                                fontFamily: f, fontSize: 11, fontWeight: 600,
+                              }}>
+                                {n === 0 ? '0' : `+${n}`}
+                              </button>
+                            );
+                          })}
                         </div>
                         <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)' }}>
                           Total: <strong style={{ color: 'var(--text-primary)' }}>{finalQty}</strong> / {maxImages}
@@ -1391,7 +1396,7 @@ export default function NewPostPage() {
 
               <div>
                 {[
-                  ...(postObjective ? [{ label: 'Objetivo', value: OBJECTIVES.find(o => o.v === postObjective)?.icon + ' ' + (OBJECTIVES.find(o => o.v === postObjective)?.l ?? postObjective) }] : [{ label: 'Objetivo', value: '—', highlight: true }]),
+                  ...(postObjective ? [{ label: 'Objetivo', value: OBJECTIVES.find(o => o.v === postObjective)?.l ?? postObjective }] : [{ label: 'Objetivo', value: '—', highlight: true }]),
                   ...(requestKind ? [{ label: 'Tipo', value: REQUEST_KINDS_FLAT.find((k) => k.v === requestKind)?.l ?? requestKind }] : []),
                   { label: 'Material', value: sourceType === 'none' ? 'Lo crea el equipo' : sourceType === 'video' ? 'Vídeo propio' : 'Fotos propias' },
                   { label: 'Formato', value: { image: 'Foto', video: 'Vídeo/Reel', reel: 'Reel', carousel: 'Carrusel', story: 'Story' }[outputFormat] ?? outputFormat },
@@ -1489,30 +1494,23 @@ export default function NewPostPage() {
   // SELF-SERVICE MODE — Editor + Ideas + Inspiración
   // ══════════════════════════════════════════════════════════════════════
   return (
-    <div className="page-content" style={{ maxWidth: 1200 }}>
-      <div style={{ padding: '24px 0 16px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: '2px solid var(--text-tertiary)',
-          }}>
-            <Paintbrush size={14} style={{ color: 'var(--text-secondary)' }} />
-          </div>
-          <div>
-            <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2rem)', textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 4 }}>
-              Crear contenido
-            </h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 13, fontFamily: f }}>
-              Edita, genera ideas y publica tu contenido
-            </p>
-          </div>
+    <div className="page-content dashboard-unified-page" style={{ maxWidth: 1200 }}>
+      <div className="dashboard-unified-header" style={{ padding: '48px 0 24px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
+        <div>
+          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 10 }}>
+            Crear contenido
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontFamily: f }}>
+            Edita, genera ideas y publica tu contenido
+          </p>
         </div>
         <button onClick={() => setMode(null)} style={{
-          fontSize: 12, color: 'var(--text-tertiary)', background: 'var(--bg)',
-          border: '1px solid var(--border)', padding: '6px 14px',
-          cursor: 'pointer', fontFamily: f,
+          fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', background: 'none',
+          border: 'none', padding: 0, cursor: 'pointer', fontFamily: f,
+          textTransform: 'uppercase', letterSpacing: '0.08em',
+          display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
         }}>
-          ← Volver
+          <ArrowRight size={12} style={{ transform: 'rotate(180deg)' }} /> Volver
         </button>
       </div>
       <PostEditor brandName={brand?.name ?? 'Tu negocio'} allowStories={allowStories} onSave={handleSave} />
