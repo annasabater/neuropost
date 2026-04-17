@@ -101,7 +101,7 @@ export async function POST(request: Request) {
     // the generation pipeline so the worker doesn't have to do anything manually.
     if (effectiveStatus === 'request') {
       // Notify workers: new request received
-      void (db as DB).from('worker_notifications').insert({
+      void (supabase as DB).from('worker_notifications').insert({
         type: 'new_request',
         message: `Nueva solicitud de ${(brand as Brand).name}: ${insertedPost.caption?.slice(0, 50) ?? 'contenido'}`,
         brand_id: insertedPost.brand_id,

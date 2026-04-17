@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { requireWorker, workerErrorResponse } from '@/lib/worker';
+import { requireAdminWorker, workerErrorResponse } from '@/lib/worker';
 import { createAdminClient } from '@/lib/supabase';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -12,7 +12,7 @@ type DB = any;
  */
 export async function GET(req: NextRequest) {
   try {
-    await requireWorker();
+    await requireAdminWorker();
     const db: DB = createAdminClient();
     const p = req.nextUrl.searchParams;
 

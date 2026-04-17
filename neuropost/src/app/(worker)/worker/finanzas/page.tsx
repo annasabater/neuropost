@@ -48,14 +48,26 @@ export default function FinanzasPage() {
   const [data, setData] = useState<FinanceData | null>(null);
   const [period, setPeriod] = useState('3m');
   const [loading, setLoading] = useState(true);
+  const [forbidden, setForbidden] = useState(false);
 
   useEffect(() => {
     setLoading(true);
     fetch(`/api/worker/finance/summary?period=${period}`)
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); })
+      .then(async r => {
+        if (r.status === 403) { setForbidden(true); setLoading(false); return; }
+        const d = await r.json();
+        setData(d); setLoading(false);
+      })
       .catch(() => setLoading(false));
   }, [period]);
+
+  if (forbidden) return (
+    <div style={{ padding: 60, textAlign: 'center' }}>
+      <div style={{ fontSize: 40, marginBottom: 16 }}>🔒</div>
+      <div style={{ fontSize: 20, fontWeight: 700, color: C.text, fontFamily: fc, marginBottom: 8 }}>Acceso restringido</div>
+      <div style={{ color: C.muted, fontFamily: f }}>Solo los administradores pueden ver el panel financiero.</div>
+    </div>
+  );
 
   if (loading || !data) return <div style={{ padding: 40, textAlign: 'center', color: C.muted }}>Cargando panel financiero...</div>;
 

@@ -22,6 +22,7 @@ const PLATFORM_LABEL: Record<string, string> = {
 export function PostPreview({ imageUrl, videoUrl, caption, hashtags, platform, format, brandName = 'Tu negocio', videoDuration }: Props) {
   const isVideo = format === 'video' || format === 'reel';
   const aspectClass = isVideo ? 'preview-aspect-reel' : format === 'carousel' ? 'preview-aspect-sq' : 'preview-aspect-sq';
+  const isInstagram = platform === 'instagram';
 
   return (
     <div className={`post-preview-card post-preview-${platform}`}>

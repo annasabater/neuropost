@@ -3,7 +3,8 @@ import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { getStripeClient, getPriceId } from '@/lib/stripe';
 import { requirePermission } from '@/lib/rbac';
-import type { SubscriptionPlan } from '@/types';
+import { PLAN_LIMITS } from '@/types';
+import type { SubscriptionPlan, Platform } from '@/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -51,9 +52,11 @@ export async function POST(request: Request) {
         .eq('user_id', user.id);
     }
 
-    // Build line items: base plan + extra social accounts
-    const selectedPlatforms = body.platforms ?? ['instagram'];
-    // First platform is included in the base price; each additional = +€15/mo
+    // Validate and filter platforms against what the plan allows
+    const limits = PLAN_LIMITS[body.plan];
+    const rawPlatforms = (body.platforms ?? ['instagram']) as Platform[];
+    const selectedPlatforms = rawPlatforms.filter(p => limits.allowedPlatforms.includes(p));
+    if (selectedPlatforms.length === 0) selectedPlatforms.push('instagram');
     const extraPlatformCount = Math.max(0, selectedPlatforms.length - 1);
 
     const lineItems: Array<{ price: string; quantity: number }> = [

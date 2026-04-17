@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { requireWorker, workerErrorResponse } from '@/lib/worker';
+import { requireAdminWorker, workerErrorResponse } from '@/lib/worker';
 import { createAdminClient } from '@/lib/supabase';
 import { logWorkerAction } from '@/lib/audit';
 
@@ -9,7 +9,7 @@ type DB = any;
 
 export async function GET() {
   try {
-    await requireWorker();
+    await requireAdminWorker();
     const db: DB = createAdminClient();
     const { data, error } = await db.from('fixed_costs').select('*').order('category').order('name');
     if (error) throw error;
@@ -22,7 +22,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const worker = await requireWorker();
+    const worker = await requireAdminWorker();
     const db: DB = createAdminClient();
     const body = await req.json();
     const { data, error } = await db.from('fixed_costs').insert({
@@ -43,7 +43,7 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const worker = await requireWorker();
+    const worker = await requireAdminWorker();
     const db: DB = createAdminClient();
     const body = await req.json();
     const { id, ...updates } = body;
@@ -62,7 +62,7 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const worker = await requireWorker();
+    const worker = await requireAdminWorker();
     const db: DB = createAdminClient();
     const id = req.nextUrl.searchParams.get('id');
     if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });

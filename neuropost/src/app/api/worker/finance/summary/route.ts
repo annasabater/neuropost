@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { requireWorker, workerErrorResponse } from '@/lib/worker';
+import { requireAdminWorker, workerErrorResponse } from '@/lib/worker';
 import { createAdminClient } from '@/lib/supabase';
 import { PLAN_META } from '@/types';
 import type { SubscriptionPlan } from '@/types';
@@ -23,7 +23,7 @@ const USD_TO_EUR = 0.92;
  */
 export async function GET(req: NextRequest) {
   try {
-    await requireWorker();
+    await requireAdminWorker();
     const db: DB = createAdminClient();
 
     const period = req.nextUrl.searchParams.get('period') ?? '3m';

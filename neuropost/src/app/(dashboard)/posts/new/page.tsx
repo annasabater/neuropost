@@ -871,15 +871,29 @@ export default function NewPostPage() {
                     <div style={{ display: 'flex', gap: 0 }}>
                       {[6, 10, 15, 20, 30].map((sec, i, arr) => {
                         const active = videoDuration === sec;
+                        // Usar solo propiedades individuales para los bordes
+                        const borderColor = active ? 'var(--accent)' : 'var(--border)';
                         return (
-                          <button type="button" key={sec} onClick={() => setVideoDuration(sec)} style={{
-                            padding: '10px 16px', minWidth: 56, justifyContent: 'center',
-                            border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                            borderRight: i < arr.length - 1 ? 'none' : undefined,
-                            background: active ? 'var(--accent)' : 'var(--bg)',
-                            color: active ? '#ffffff' : 'var(--text-tertiary)',
-                            fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                          }}>
+                          <button
+                            type="button"
+                            key={sec}
+                            onClick={() => setVideoDuration(sec)}
+                            style={{
+                              padding: '10px 16px',
+                              minWidth: 56,
+                              justifyContent: 'center',
+                              borderTop: `1px solid ${borderColor}`,
+                              borderBottom: `1px solid ${borderColor}`,
+                              borderLeft: `1px solid ${borderColor}`,
+                              borderRight: i < arr.length - 1 ? 'none' : `1px solid ${borderColor}`,
+                              background: active ? 'var(--accent)' : 'var(--bg)',
+                              color: active ? '#ffffff' : 'var(--text-tertiary)',
+                              fontFamily: f,
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                            }}
+                          >
                             {sec}s
                           </button>
                         );

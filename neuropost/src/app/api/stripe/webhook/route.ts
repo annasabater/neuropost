@@ -105,6 +105,10 @@ export async function POST(request: Request) {
       if (sub.status === 'active' || sub.status === 'trialing') {
         updates.plan = plan;
       }
+      // Sync subscribed_platforms from subscription metadata (set during checkout)
+      if (sub.metadata?.platforms) {
+        try { updates.subscribed_platforms = JSON.parse(sub.metadata.platforms); } catch { /* ignore parse error */ }
+      }
       if (sub.cancel_at_period_end && sub.cancel_at) {
         updates.plan_cancels_at = new Date(sub.cancel_at * 1000).toISOString();
       } else {

@@ -789,15 +789,18 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, {
  */
 export const PLAN_META: Record<SubscriptionPlan, {
   label:                    string;
+  /** Monthly price in EUR (used for MRR calculations, dashboards, etc.) */
   price:                    number;
+  /** Annual price in EUR (monthly × 12 × 0.85 discount) */
+  annualPrice:              number;
   extraPlatformPrice:       number;
   tagline:                  string;
   socialAccountsIncluded:   number;
 }> = {
-  starter: { label: 'Esencial',      price: 21,  extraPlatformPrice: 15, tagline: '2 posts de foto por semana · Generación con IA',            socialAccountsIncluded: 1 },
-  pro:     { label: 'Crecimiento',   price: 63,  extraPlatformPrice: 15, tagline: '4 fotos + 2 vídeos por semana · Soporte prioritario',        socialAccountsIncluded: 1 },
-  total:   { label: 'Profesional',   price: 133, extraPlatformPrice: 15, tagline: 'Hasta 20 fotos + 10 vídeos por semana · 24h',                socialAccountsIncluded: 1 },
-  agency:  { label: 'Profesional',   price: 159, extraPlatformPrice: 15, tagline: 'Todo de Profesional · Hasta 10 marcas (grandfathered)',       socialAccountsIncluded: 1 },
+  starter: { label: 'Esencial',      price: 25,  annualPrice: 21,  extraPlatformPrice: 15, tagline: '2 posts de foto por semana · Generación con IA',            socialAccountsIncluded: 1 },
+  pro:     { label: 'Crecimiento',   price: 76,  annualPrice: 63,  extraPlatformPrice: 15, tagline: '4 fotos + 2 vídeos por semana · Soporte prioritario',        socialAccountsIncluded: 1 },
+  total:   { label: 'Profesional',   price: 161, annualPrice: 133, extraPlatformPrice: 15, tagline: 'Hasta 20 fotos + 10 vídeos por semana · 24h',                socialAccountsIncluded: 1 },
+  agency:  { label: 'Profesional',   price: 199, annualPrice: 159, extraPlatformPrice: 15, tagline: 'Todo de Profesional · Hasta 10 marcas (grandfathered)',       socialAccountsIncluded: 1 },
 };
 
 /** Add-on pricing. One extra connected social account = €15/mo each. */

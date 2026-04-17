@@ -25,6 +25,7 @@ export default function AuditoriaPage() {
   const [stats, setStats] = useState<Stats>({ count24: 0, warn24: 0, crit24: 0, count7: 0, warn7: 0, crit7: 0 });
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [forbidden, setForbidden] = useState(false);
   const [offset, setOffset] = useState(0);
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -47,6 +48,7 @@ export default function AuditoriaPage() {
     if (severity) params.set('severity', severity);
     try {
       const res = await fetch(`/api/worker/audit?${params}`);
+      if (res.status === 403) { setForbidden(true); setLoading(false); return; }
       const d = await res.json();
       setLogs(off === 0 ? (d.logs ?? []) : [...logs, ...(d.logs ?? [])]);
       setTotal(d.total ?? 0);
@@ -61,6 +63,14 @@ export default function AuditoriaPage() {
   function clearFilters() { setQ(''); setActorType(''); setAction(''); setResType(''); setSeverity(''); }
 
   const selectStyle: React.CSSProperties = { padding: '6px 10px', border: `1px solid ${C.border}`, background: C.bg, fontSize: 12, fontFamily: f, color: C.text, outline: 'none' };
+
+  if (forbidden) return (
+    <div style={{ padding: 60, textAlign: 'center' }}>
+      <div style={{ fontSize: 40, marginBottom: 16 }}>🔒</div>
+      <div style={{ fontSize: 20, fontWeight: 700, color: C.text, fontFamily: fc, marginBottom: 8 }}>Acceso restringido</div>
+      <div style={{ color: C.muted, fontFamily: f }}>Solo los administradores pueden ver el registro de auditoría.</div>
+    </div>
+  );
 
   return (
     <div style={{ padding: '0 40px 60px', maxWidth: 1200, margin: '0 auto', color: C.text }}>
