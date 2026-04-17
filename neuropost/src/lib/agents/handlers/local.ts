@@ -136,11 +136,11 @@ const imageGenerateHandler: AgentHandler = async (job) => {
       // Build carousel_urls: primary + extras (for carrusel format)
       const allUrls = [primaryUrl, ...additionalUrls];
 
-      // 1. Update post — hidden from client until worker approves
+      // 1. Update post — visible to client immediately in "Para revisar"
       await db.from('posts').update({
         image_url:     primaryUrl,
         carousel_urls: allUrls.length > 1 ? allUrls : null,
-        status:        'pending_worker',
+        status:        'pending',
         ai_explanation: JSON.stringify({
           mode,
           enhanced_prompt: payload?.enhancedPrompt,
