@@ -22,8 +22,11 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function GET(request: Request) {
-  const auth = request.headers.get('authorization');
-  if (auth !== `Bearer ${process.env.CRON_SECRET ?? ''}`) {
+  const auth      = request.headers.get('authorization');
+  const isVercel  = request.headers.get('x-vercel-cron') === '1';
+  const secret    = process.env.CRON_SECRET ?? '';
+  const validBearer = secret && auth === `Bearer ${secret}`;
+  if (!isVercel && !validBearer) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
