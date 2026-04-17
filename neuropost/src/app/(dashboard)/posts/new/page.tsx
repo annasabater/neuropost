@@ -76,25 +76,75 @@ export default function NewPostPage() {
   const [requestSent, setRequestSent] = useState(false);
   const [sending, setSending] = useState(false);
 
-  // ── Quick-pick descriptions ─────────────────────────────────────────────
-  const REQUEST_KINDS: { v: string; l: string; hint: string }[] = [
-    { v: 'promo',        l: 'Promoción / descuento',     hint: 'Anuncia una promo, oferta o descuento limitado.' },
-    { v: 'post_normal',  l: 'Post normal',               hint: 'Una publicación regular para tu feed.' },
-    { v: 'novedad',      l: 'Novedad / lanzamiento',     hint: 'Presenta un producto, servicio o novedad.' },
-    { v: 'evento',       l: 'Evento',                    hint: 'Comunica un evento próximo o especial.' },
-    { v: 'testimonio',   l: 'Testimonio / reseña',       hint: 'Destaca una opinión o caso de éxito de un cliente.' },
-    { v: 'tips',         l: 'Tips / consejos',           hint: 'Contenido educativo o de valor para tu audiencia.' },
-    { v: 'detras_camara',l: 'Detrás de cámara',          hint: 'Muestra el día a día o el proceso de tu negocio.' },
-    { v: 'producto',     l: 'Destacar producto',         hint: 'Centra el contenido en un producto o servicio específico.' },
-    { v: 'equipo',       l: 'Equipo / personas',         hint: 'Presenta a tu equipo o las personas detrás del negocio.' },
-    { v: 'temporada',    l: 'Temporada / fecha especial',hint: 'Contenido relacionado con una fecha o temporada especial.' },
-    { v: 'pregunta',     l: 'Pregunta a tu audiencia',   hint: 'Genera interacción con una pregunta o encuesta.' },
-    { v: 'colaboracion', l: 'Colaboración',              hint: 'Anuncia una colaboración con otra marca o persona.' },
+  // ── Paso 1: Objetivo del post (nivel 1) ────────────────────────────────
+  type PostObjective = 'vender' | 'informar' | 'conectar' | 'ensenar' | 'demostrar';
+  const [postObjective, setPostObjective] = useState<PostObjective | null>(null);
+
+  const OBJECTIVES: { v: PostObjective; l: string; desc: string; icon: string }[] = [
+    { v: 'vender',    l: 'Vender',          desc: 'Promociones, ofertas, llamadas a reserva o compra', icon: '🛒' },
+    { v: 'informar',  l: 'Informar',         desc: 'Novedades, eventos, horarios, recordatorios', icon: '📢' },
+    { v: 'conectar',  l: 'Conectar',         desc: 'Equipo, detrás de cámara, historia, preguntas', icon: '🤝' },
+    { v: 'ensenar',   l: 'Enseñar',          desc: 'Tips, tutoriales, mitos, comparativas, datos', icon: '💡' },
+    { v: 'demostrar', l: 'Demostrar valor',  desc: 'Testimonios, antes/después, casos de éxito', icon: '⭐' },
   ];
-  function pickKind(v: string, hint: string) {
-    setRequestKind(v);
-    setClientNote(hint);
+
+  // Nivel 2: tipos específicos por objetivo
+  const SUBTYPES: Record<PostObjective, { v: string; l: string; placeholder: string }[]> = {
+    vender: [
+      { v: 'promo',        l: 'Promoción / descuento',  placeholder: '¿Qué ofreces, desde cuándo, hasta cuándo, condiciones?' },
+      { v: 'producto',     l: 'Destacar producto',      placeholder: '¿Qué producto o servicio quieres destacar? ¿Qué lo hace especial?' },
+      { v: 'reserva',      l: 'Llamada a reserva',      placeholder: '¿Qué servicio ofreces? ¿Cómo se reserva? ¿Hay plazas limitadas?' },
+      { v: 'sorteo',       l: 'Sorteo / concurso',      placeholder: '¿Qué sorteas? ¿Cómo participar? ¿Cuándo acaba?' },
+      { v: 'novedad',      l: 'Novedad / lanzamiento',  placeholder: 'Presenta un producto, servicio o novedad. ¿Qué cambia o es nuevo?' },
+      { v: 'colaboracion', l: 'Colaboración',           placeholder: '¿Con quién colaboras? ¿Qué hacéis juntos? ¿Hay algo especial para la audiencia?' },
+    ],
+    informar: [
+      { v: 'evento',      l: 'Evento',                  placeholder: '¿Qué evento, cuándo, dónde, cómo se apuntan?' },
+      { v: 'horarios',    l: 'Horarios / cambios',      placeholder: '¿Qué horario o cambio comunicas? ¿Desde cuándo aplica?' },
+      { v: 'recordatorio',l: 'Recordatorio',            placeholder: '¿Qué quieres recordar a tu audiencia? ¿Hay fecha límite?' },
+      { v: 'temporada',   l: 'Temporada / fecha',       placeholder: '¿Qué fecha o temporada especial es? ¿Cómo lo celebras en tu negocio?' },
+      { v: 'faq',         l: 'FAQ / pregunta frecuente',placeholder: '¿Qué pregunta responderás? ¿Cuál es la respuesta en pocas palabras?' },
+    ],
+    conectar: [
+      { v: 'equipo',        l: 'Equipo / personas',     placeholder: 'Presenta a tu equipo o a una persona. ¿Nombre, rol, algo curioso sobre ellos?' },
+      { v: 'detras_camara', l: 'Detrás de cámara',      placeholder: 'Muestra el día a día o el proceso. ¿Qué momento o rutina quieres mostrar?' },
+      { v: 'historia',      l: 'Historia / origen',     placeholder: '¿Qué historia quieres contar? ¿Cómo empezó tu negocio o por qué existe?' },
+      { v: 'agradecimiento',l: 'Agradecimiento',        placeholder: '¿A quién agradeces? ¿Por qué? ¿Hay un hito o celebración detrás?' },
+      { v: 'pregunta',      l: 'Pregunta a audiencia',  placeholder: '¿Qué pregunta quieres lanzar? ¿Qué quieres que responda tu comunidad?' },
+    ],
+    ensenar: [
+      { v: 'tips',        l: 'Tips / consejos',         placeholder: '¿Cuántos tips? ¿Sobre qué tema? ¿Qué problema resuelven?' },
+      { v: 'tutorial',    l: 'Tutorial / paso a paso',  placeholder: '¿Qué enseñas paso a paso? ¿Cuántos pasos? ¿Qué resultado obtiene el usuario?' },
+      { v: 'mito',        l: 'Mito o verdad',           placeholder: '¿Qué mito desmientes o qué verdad reveladoras compartes sobre tu sector?' },
+      { v: 'comparativa', l: 'Comparativa',             placeholder: '¿Qué comparas? ¿Cuál es la diferencia clave que quieres destacar?' },
+      { v: 'dato',        l: 'Dato curioso',            placeholder: '¿Qué dato o estadística sorprendente quieres compartir?' },
+    ],
+    demostrar: [
+      { v: 'testimonio',   l: 'Testimonio / reseña',   placeholder: 'Pega aquí la reseña o cuéntanos qué dijo el cliente.' },
+      { v: 'antes_despues',l: 'Antes / después',       placeholder: '¿Qué tratamiento o servicio? ¿Cuánto tiempo entre ambas fotos? ¿Qué cambió?' },
+      { v: 'caso_exito',   l: 'Caso de éxito',         placeholder: '¿Qué cliente o proyecto? ¿Cuál era el problema y cuál el resultado?' },
+      { v: 'ugc',          l: 'Contenido de clientes', placeholder: '¿Qué compartió el cliente? ¿Quieres mencionarlo o agradecerlo?' },
+    ],
+  };
+
+  function pickObjective(v: PostObjective) {
+    setPostObjective(v);
+    setRequestKind(null);
+    setClientNote('');
   }
+
+  function pickKind(v: string, placeholder: string) {
+    setRequestKind(v);
+    // Only pre-fill if the field is empty — don't overwrite what the user typed
+    if (!clientNote.trim()) setClientNote('');
+    // Store placeholder separately for use in textarea
+    setActivePlaceholder(placeholder);
+  }
+
+  const [activePlaceholder, setActivePlaceholder] = useState('Describe qué quieres en esta publicación, qué mensaje quieres transmitir...');
+
+  // Flat list for summary display
+  const REQUEST_KINDS_FLAT = Object.values(SUBTYPES).flat();
 
   // Timing presets → derives urgency + scheduled_at
   function pickTiming(preset: 'today' | 'tomorrow' | 'week' | 'custom') {
@@ -284,6 +334,7 @@ export default function NewPostPage() {
         inspiration_id: perMedia[m.id]?.inspirationId ?? null,
       }));
       const meta = JSON.stringify({
+        post_objective: postObjective,
         request_kind: requestKind,
         global_description: clientNote.trim(),
         source_type: sourceType,
@@ -573,7 +624,8 @@ export default function NewPostPage() {
                 </span>
               </div>
               {[
-                ...(requestKind ? [{ label: 'Tipo', value: REQUEST_KINDS.find((k) => k.v === requestKind)?.l ?? requestKind }] : []),
+                ...(postObjective ? [{ label: 'Objetivo', value: OBJECTIVES.find(o => o.v === postObjective)?.l ?? postObjective }] : []),
+                ...(requestKind ? [{ label: 'Tipo', value: REQUEST_KINDS_FLAT.find((k) => k.v === requestKind)?.l ?? requestKind }] : []),
                 { label: 'Cantidad', value: `${finalQty} foto${finalQty === 1 ? '' : 's'}` },
                 { label: 'Urgencia', value: urgency === 'urgente' ? 'Urgente' : 'Flexible' },
                 ...(preferredDate ? [{ label: 'Fecha', value: new Date(preferredDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }) }] : []),
@@ -599,7 +651,8 @@ export default function NewPostPage() {
               </button>
               <button onClick={() => {
                 setMode(null); setRequestSent(false);
-                setClientNote(''); setRequestKind(null);
+                setPostObjective(null); setClientNote(''); setRequestKind(null);
+                setActivePlaceholder('Describe qué quieres en esta publicación, qué mensaje quieres transmitir...');
                 setProposedCaption(''); setExtraNotes('');
                 setSelectedMedia([]); setPerMedia({}); setExpandedMediaId(null);
                 setExtraGenerated(0); setPreferredDate(''); setTimingPreset(null);
@@ -648,11 +701,12 @@ export default function NewPostPage() {
       </div>
     );
 
-    // Ready when there's a description or a quick-pick kind.
+    // Ready: must have picked an objective + have a description.
     // For photo/carousel: need at least one photo (selected OR extras to generate).
-    // For video/reel: photos are optional (AI can generate from scratch).
+    // For video/reel: source photos optional.
     const isVideoFormat = outputFormat === 'video' || outputFormat === 'reel';
-    const isReady = (clientNote.trim().length > 0 || !!requestKind)
+    const isReady = !!postObjective
+      && (clientNote.trim().length > 0 || !!requestKind)
       && (isVideoFormat || finalQty > 0);
 
     return (
@@ -785,32 +839,82 @@ export default function NewPostPage() {
 
           {/* ── LEFT: Form ── */}
           <div>
-            {/* STEP 0A — ¿Qué subes? (source type) */}
+
+            {/* ═══ PASO 1 — Objetivo del post ════════════════════════════ */}
             <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
-              <div style={{
-                padding: '16px 20px', background: '#111827',
-                display: 'flex', alignItems: 'center', gap: 10,
-                borderBottom: '1px solid var(--border)',
-              }}>
+              <div style={{ padding: '16px 20px', background: '#111827', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <StepNum n={1} />
                 <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#ffffff' }}>
-                  ¿Qué tipo de archivo subes?
+                  ¿Qué quieres comunicar?
+                </span>
+              </div>
+              <div style={{ padding: '18px 20px', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+                {OBJECTIVES.map(({ v, l, desc, icon }) => {
+                  const active = postObjective === v;
+                  return (
+                    <button type="button" key={v} onClick={() => pickObjective(v)} style={{
+                      padding: '14px 10px', textAlign: 'center', cursor: 'pointer',
+                      border: `2px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                      background: active ? 'rgba(15,118,110,0.07)' : 'var(--bg)',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                    }}>
+                      <span style={{ fontSize: 22 }}>{icon}</span>
+                      <span style={{ fontFamily: f, fontSize: 12, fontWeight: 700, color: active ? 'var(--accent)' : 'var(--text-primary)' }}>{l}</span>
+                      <span style={{ fontFamily: f, fontSize: 9, color: 'var(--text-tertiary)', lineHeight: 1.4 }}>{desc}</span>
+                      {active && <div style={{ width: 16, height: 2, background: 'var(--accent)' }} />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Nivel 2: tipos específicos — solo cuando hay objetivo */}
+              {postObjective && (
+                <div style={{ borderTop: '1px solid var(--border)', padding: '14px 20px 16px' }}>
+                  <label style={{ ...labelStyle, marginBottom: 10 }}>Tipo específico</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                    {SUBTYPES[postObjective].map(({ v, l, placeholder }) => (
+                      <button type="button" key={v} onClick={() => pickKind(v, placeholder)} style={{
+                        padding: '7px 14px',
+                        border: `1px solid ${requestKind === v ? 'var(--accent)' : 'var(--border)'}`,
+                        background: requestKind === v ? 'var(--accent)' : 'var(--bg)',
+                        color: requestKind === v ? '#ffffff' : 'var(--text-secondary)',
+                        fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                        transition: 'all 0.1s',
+                      }}>{l}</button>
+                    ))}
+                    <button type="button" onClick={() => pickKind('otro', 'Explica con detalle qué quieres publicar y qué mensaje quieres transmitir.')} style={{
+                      padding: '7px 14px',
+                      border: `1px solid ${requestKind === 'otro' ? 'var(--accent)' : 'var(--border)'}`,
+                      background: requestKind === 'otro' ? 'var(--accent)' : 'var(--bg)',
+                      color: requestKind === 'otro' ? '#ffffff' : 'var(--text-tertiary)',
+                      fontFamily: f, fontSize: 11, fontWeight: 500, cursor: 'pointer',
+                      fontStyle: 'italic',
+                    }}>Otro / lo explico abajo</button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* ═══ PASO 2 — ¿Tienes material? ═══════════════════════════ */}
+            <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
+              <div style={{ padding: '16px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)' }}>
+                <StepNum n={2} />
+                <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
+                  ¿Tienes material o lo creamos nosotros?
                 </span>
               </div>
               <div style={{ padding: '18px 20px', display: 'flex', gap: 6 }}>
+                {/* Opción A: el cliente sube fotos */}
                 {([
-                  { v: 'photos' as const, l: 'Foto(s)', icon: ImageIcon, desc: 'Sube una o varias imágenes' },
-                  ...(allowVideos ? [{ v: 'video' as const, l: 'Vídeo', icon: Video, desc: 'Sube un vídeo directamente' }] : []),
-                  { v: 'none' as const, l: 'Sin archivo', icon: Sparkles, desc: 'La IA lo genera todo' },
+                  { v: 'photos' as const, l: 'Subo mis fotos', icon: ImageIcon, desc: 'Usamos tus imágenes como base' },
+                  ...(allowVideos ? [{ v: 'video' as const, l: 'Subo un vídeo', icon: Video, desc: 'Trabajamos con tu vídeo' }] : []),
                 ] as const).map(({ v, l, icon: Icon, desc }) => {
                   const active = sourceType === v;
                   return (
                     <button type="button" key={v} onClick={() => {
                       setSourceType(v);
-                      // Auto-set output format based on source
                       if (v === 'video') setOutputFormat('video');
                       else if (v === 'photos' && selectedMedia.length <= 1) setOutputFormat('image');
-                      else if (v === 'none') setOutputFormat('image');
                     }} style={{
                       flex: 1, padding: '14px 16px', textAlign: 'left',
                       border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
@@ -825,21 +929,49 @@ export default function NewPostPage() {
                     </button>
                   );
                 })}
+
+                {/* Opción B: equipo lo crea — gateado por plan en Essentials */}
+                {allowVideos ? (
+                  <button type="button" onClick={() => { setSourceType('none'); setOutputFormat('image'); }} style={{
+                    flex: 1, padding: '14px 16px', textAlign: 'left',
+                    border: `1px solid ${sourceType === 'none' ? 'var(--accent)' : 'var(--border)'}`,
+                    background: sourceType === 'none' ? 'rgba(15,118,110,0.06)' : 'var(--bg)',
+                    cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6,
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Sparkles size={16} style={{ color: sourceType === 'none' ? 'var(--accent)' : 'var(--text-tertiary)' }} />
+                      <span style={{ fontFamily: f, fontSize: 13, fontWeight: sourceType === 'none' ? 700 : 500, color: sourceType === 'none' ? 'var(--accent)' : 'var(--text-primary)' }}>Que lo cree el equipo</span>
+                    </div>
+                    <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)' }}>Generamos el contenido visual por ti</span>
+                  </button>
+                ) : (
+                  /* Essentials: opción bloqueada pero visible (upsell) */
+                  <div style={{
+                    flex: 1, padding: '14px 16px', textAlign: 'left',
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg-1)', opacity: 0.7,
+                    display: 'flex', flexDirection: 'column', gap: 6, position: 'relative',
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Sparkles size={16} style={{ color: 'var(--text-tertiary)' }} />
+                      <span style={{ fontFamily: f, fontSize: 13, fontWeight: 500, color: 'var(--text-tertiary)' }}>Que lo cree el equipo</span>
+                    </div>
+                    <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)' }}>Generamos el contenido visual por ti</span>
+                    <span style={{ fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', background: 'var(--bg-2)', padding: '2px 6px', display: 'inline-block', width: 'fit-content' }}>
+                      Plan Pro
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* STEP 0B — Formato de salida */}
+            {/* ═══ PASO 3 — Formato de publicación ══════════════════════ */}
             <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
-              <div style={{
-                padding: '16px 20px', background: 'var(--bg-1)',
-                display: 'flex', alignItems: 'center', gap: 10,
-                borderBottom: '1px solid var(--border)',
-              }}>
-                <StepNum n={2} />
+              <div style={{ padding: '16px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)' }}>
+                <StepNum n={3} />
                 <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
-                  ¿Qué quieres publicar?
+                  ¿Qué formato?
                 </span>
-                <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>Formato de salida</span>
               </div>
               <div style={{ padding: '18px 20px' }}>
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -852,7 +984,6 @@ export default function NewPostPage() {
                         border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
                         background: active ? 'var(--accent)' : disabled ? 'var(--bg-1)' : 'var(--bg)',
                         cursor: disabled ? 'not-allowed' : 'pointer',
-                        opacity: disabled ? 0.5 : 1,
                         display: 'flex', alignItems: 'center', gap: 10,
                       }}>
                         <Icon size={18} style={{ color: active ? '#ffffff' : 'var(--text-tertiary)', flexShrink: 0 }} />
@@ -869,7 +1000,7 @@ export default function NewPostPage() {
                   })}
                 </div>
 
-                {/* Video duration selector — only for video/reel */}
+                {/* Video duration */}
                 {(outputFormat === 'video' || outputFormat === 'reel') && (
                   <div style={{ marginTop: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
@@ -881,29 +1012,18 @@ export default function NewPostPage() {
                     <div style={{ display: 'flex', gap: 0 }}>
                       {[6, 10, 15, 20, 30].map((sec, i, arr) => {
                         const active = videoDuration === sec;
-                        // Usar solo propiedades individuales para los bordes
                         const borderColor = active ? 'var(--accent)' : 'var(--border)';
                         return (
-                          <button
-                            type="button"
-                            key={sec}
-                            onClick={() => setVideoDuration(sec)}
-                            style={{
-                              padding: '10px 16px',
-                              minWidth: 56,
-                              justifyContent: 'center',
-                              borderTop: `1px solid ${borderColor}`,
-                              borderBottom: `1px solid ${borderColor}`,
-                              borderLeft: `1px solid ${borderColor}`,
-                              borderRight: i < arr.length - 1 ? 'none' : `1px solid ${borderColor}`,
-                              background: active ? 'var(--accent)' : 'var(--bg)',
-                              color: active ? '#ffffff' : 'var(--text-tertiary)',
-                              fontFamily: f,
-                              fontSize: 12,
-                              fontWeight: 600,
-                              cursor: 'pointer',
-                            }}
-                          >
+                          <button type="button" key={sec} onClick={() => setVideoDuration(sec)} style={{
+                            padding: '10px 16px', minWidth: 56, justifyContent: 'center',
+                            borderTop: `1px solid ${borderColor}`,
+                            borderBottom: `1px solid ${borderColor}`,
+                            borderLeft: `1px solid ${borderColor}`,
+                            borderRight: i < arr.length - 1 ? 'none' : `1px solid ${borderColor}`,
+                            background: active ? 'var(--accent)' : 'var(--bg)',
+                            color: active ? '#ffffff' : 'var(--text-tertiary)',
+                            fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                          }}>
                             {sec}s
                           </button>
                         );
@@ -911,52 +1031,35 @@ export default function NewPostPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Carousel slide count */}
+                {outputFormat === 'carousel' && (
+                  <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 10 }}>
+                    Tu plan permite hasta <strong style={{ color: 'var(--text-primary)' }}>{maxImages} fotos</strong> en carrusel.
+                  </p>
+                )}
               </div>
             </div>
 
-            {/* STEP 3 — ¿Qué tipo de publicación quieres? */}
+            {/* ═══ PASO 4 — Briefing ════════════════════════════════════ */}
             <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
-              <div style={{
-                padding: '16px 20px', background: 'var(--bg-1)',
-                display: 'flex', alignItems: 'center', gap: 10,
-                borderBottom: '1px solid var(--border)',
-              }}>
-                <StepNum n={3} />
+              <div style={{ padding: '16px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)' }}>
+                <StepNum n={4} />
                 <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
-                  ¿Qué tipo de publicación quieres?
+                  Cuéntanos el detalle
                 </span>
               </div>
-
-              {/* Quick-pick chips */}
-              <div style={{ padding: '18px 20px 10px' }}>
-                <label style={labelStyle}>Tipo de publicación</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {REQUEST_KINDS.map(({ v, l, hint }) => (
-                    <button type="button" key={v} onClick={() => pickKind(v, hint)} style={{
-                      padding: '8px 14px',
-                      border: `1px solid ${requestKind === v ? 'var(--accent)' : 'var(--border)'}`,
-                      background: requestKind === v ? 'var(--accent)' : 'var(--bg)',
-                      color: requestKind === v ? '#ffffff' : 'var(--text-secondary)',
-                      fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                      transition: 'all 0.15s',
-                    }}>{l}</button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Global free-text description */}
-              <div style={{ padding: '10px 20px 20px' }}>
-                <label style={labelStyle}>Descripción</label>
+              <div style={{ padding: '18px 20px 20px' }}>
                 <textarea
                   value={clientNote}
                   onChange={(e) => setClientNote(e.target.value)}
-                  placeholder="Describe qué quieres en esta publicación, qué mensaje quieres transmitir, si hay texto específico que incluir, etc."
-                  rows={3}
+                  placeholder={activePlaceholder}
+                  rows={4}
                   style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.7 }}
                 />
               </div>
 
-              {/* Global inspiration references */}
+              {/* Referencias visuales */}
               <div style={{ borderTop: '1px solid var(--border)', padding: '16px 20px 20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                   <div>
@@ -980,7 +1083,6 @@ export default function NewPostPage() {
                   </button>
                 </div>
 
-                {/* Selected inspiration thumbnails */}
                 {globalInspirationIds.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: showGlobalInspirationPicker ? 14 : 0 }}>
                     {globalInspirationIds.map(id => {
@@ -1007,7 +1109,6 @@ export default function NewPostPage() {
                   </div>
                 )}
 
-                {/* Picker grid */}
                 {showGlobalInspirationPicker && (
                   <div>
                     {!inspirationsLoaded ? (
@@ -1032,7 +1133,6 @@ export default function NewPostPage() {
                           const isCarousel = fmt === 'carousel';
                           return (
                             <div key={r.id} style={{ position: 'relative', border: `2px solid ${selected ? '#0D9488' : 'var(--border)'}`, background: '#000', display: 'flex', flexDirection: 'column' }}>
-                              {/* Image area — click to SELECT */}
                               <button type="button"
                                 onClick={() => setGlobalInspirationIds(prev =>
                                   selected ? prev.filter(x => x !== r.id) : [...prev, r.id]
@@ -1047,31 +1147,26 @@ export default function NewPostPage() {
                                     {isVideo ? <Film size={24} color="#6b7280" /> : isCarousel ? <Images size={24} color="#6b7280" /> : <Flame size={24} color="#6b7280" />}
                                   </div>
                                 )}
-                                {/* Format badge */}
                                 <div style={{ position: 'absolute', top: 4, left: 4, background: fmtColor[fmt] ?? '#6b7280', padding: '2px 5px' }}>
                                   <span style={{ fontFamily: f, fontSize: 8, fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                     {fmtLabel[fmt] ?? fmt}
                                   </span>
                                 </div>
-                                {/* Type icon for carousel/video */}
                                 {(isVideo || isCarousel) && (
                                   <div style={{ position: 'absolute', bottom: 4, left: 4, color: 'rgba(255,255,255,0.9)' }}>
                                     {isVideo ? <Film size={12} /> : <Images size={12} />}
                                   </div>
                                 )}
-                                {/* Selected check */}
                                 {selected && (
                                   <div style={{ position: 'absolute', top: 4, right: 4, width: 18, height: 18, background: '#0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                     <Check size={11} style={{ color: '#ffffff' }} />
                                   </div>
                                 )}
                               </button>
-                              {/* Footer: title + expand button */}
                               <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 6px', background: '#111', minHeight: 28 }}>
                                 <span style={{ fontFamily: f, fontSize: 9, color: '#d1d5db', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.title}>
                                   {r.title}
                                 </span>
-                                {/* Expand / lightbox button */}
                                 <button type="button"
                                   onClick={(e) => { e.stopPropagation(); setLightboxRef(r); }}
                                   style={{ padding: 3, background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0, color: '#9ca3af', display: 'flex', alignItems: 'center' }}
@@ -1090,14 +1185,16 @@ export default function NewPostPage() {
               </div>
             </div>
 
-            {/* STEP 4 — Tus fotos + ajustes (only when sourceType !== 'none') */}
+            {/* ═══ Tus fotos (solo cuando sourceType !== 'none') ════════ */}
             {sourceType !== 'none' && <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
               <div style={{
                 padding: '16px 20px', background: 'var(--bg-1)',
                 display: 'flex', alignItems: 'center', gap: 10,
                 borderBottom: '1px solid var(--border)',
               }}>
-                <StepNum n={4} />
+                <div style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)', flexShrink: 0 }}>
+                  <ImageIcon size={11} style={{ color: 'var(--text-tertiary)' }} />
+                </div>
                 <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
                   {sourceType === 'video' ? 'Tu vídeo' : 'Tus fotos'}
                 </span>
@@ -1325,7 +1422,7 @@ export default function NewPostPage() {
                 display: 'flex', alignItems: 'center', gap: 10,
                 borderBottom: '1px solid var(--border)',
               }}>
-                <StepNum n={3} />
+                <StepNum n={6} />
                 <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
                   Detalles extra
                 </span>
@@ -1412,17 +1509,18 @@ export default function NewPostPage() {
 
               <div>
                 {[
+                  ...(postObjective ? [{ label: 'Objetivo', value: OBJECTIVES.find(o => o.v === postObjective)?.icon + ' ' + (OBJECTIVES.find(o => o.v === postObjective)?.l ?? postObjective) }] : [{ label: 'Objetivo', value: '—', highlight: true }]),
+                  ...(requestKind ? [{ label: 'Tipo', value: REQUEST_KINDS_FLAT.find((k) => k.v === requestKind)?.l ?? requestKind }] : []),
+                  { label: 'Material', value: sourceType === 'none' ? 'Lo crea el equipo' : sourceType === 'video' ? 'Vídeo propio' : 'Fotos propias' },
                   { label: 'Formato', value: { image: 'Foto', video: 'Vídeo/Reel', reel: 'Reel', carousel: 'Carrusel', story: 'Story' }[outputFormat] ?? outputFormat },
                   ...((outputFormat === 'video' || outputFormat === 'reel') ? [{ label: 'Duración', value: `${videoDuration}s` }] : []),
-                  ...(requestKind ? [{ label: 'Tipo', value: REQUEST_KINDS.find((k) => k.v === requestKind)?.l ?? requestKind }] : []),
-                  { label: sourceType === 'video' ? 'Vídeo subido' : 'Fotos tuyas', value: `${selectedMedia.length}` },
+                  ...(sourceType !== 'none' ? [{ label: 'Fotos tuyas', value: `${selectedMedia.length}` }] : []),
                   ...(extraGenerated > 0 ? [{ label: 'Generadas', value: `+${extraGenerated}` }] : []),
                   ...((outputFormat !== 'video' && outputFormat !== 'reel') ? [{ label: 'Total', value: `${finalQty} foto${finalQty === 1 ? '' : 's'}` }] : []),
                   { label: 'Urgencia', value: urgency === 'urgente' ? 'Urgente' : 'Flexible', highlight: urgency === 'urgente' },
                   ...(preferredDate ? [{ label: 'Para', value: new Date(preferredDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) }] : []),
                   { label: 'Plataformas', value: requestPlatforms.map(p => ({ instagram: 'IG', facebook: 'FB', tiktok: 'TK' }[p])).join(', ') },
                   ...(Object.values(perMedia).some((p) => p.note.trim()) ? [{ label: 'Contexto x foto', value: `${Object.values(perMedia).filter((p) => p.note.trim()).length}` }] : []),
-                  ...(Object.values(perMedia).some((p) => p.inspirationId) ? [{ label: 'Inspiración', value: `${Object.values(perMedia).filter((p) => p.inspirationId).length}` }] : []),
                 ].map(({ label, value, highlight }, i, arr) => (
                   <div key={label} style={{
                     padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
