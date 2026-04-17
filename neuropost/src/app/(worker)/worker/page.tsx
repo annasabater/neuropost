@@ -201,9 +201,19 @@ function OverviewTab() {
 // TAB 2: COLA (Queue)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
+type AiReview = {
+  score:          number;
+  matches_brief:  boolean;
+  matches_brand:  boolean;
+  issues:         string[];
+  recommendation: 'approve' | 'review' | 'regenerate';
+  summary:        string;
+};
+
 type QueueItem = ContentQueue & {
   posts?: { image_url: string | null; edited_image_url: string | null; caption: string | null; hashtags: string[]; format: string; platform: string[]; quality_score: number | null; client_notes_for_worker: string | null };
   brands?: { id: string; name: string; sector: string };
+  ai_review?: AiReview | null;
 };
 
 type RecreationRequest = {
@@ -437,6 +447,65 @@ function ColaTab() {
                   </div>
                 </div>
               )}
+
+              {/* AI Brand-kit Review */}
+              {selected.ai_review && (() => {
+                const rev = selected.ai_review;
+                const scoreColor = rev.score >= 7 ? '#10b981' : rev.score >= 5 ? '#f59e0b' : '#ef4444';
+                const recColor   = rev.recommendation === 'approve' ? '#10b981' : rev.recommendation === 'review' ? '#f59e0b' : '#ef4444';
+                const recLabel   = rev.recommendation === 'approve' ? 'Aprobar' : rev.recommendation === 'review' ? 'Revisar' : 'Regenerar';
+                return (
+                  <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, padding: 20, marginBottom: 20 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                      <h3 style={{ fontSize: 13, fontWeight: 700, color: C.muted, margin: 0 }}>ANÁLISIS IA — BRAND KIT</h3>
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: '3px 10px',
+                        background: `${recColor}18`, color: recColor,
+                        border: `1px solid ${recColor}40`,
+                      }}>
+                        {recLabel}
+                      </span>
+                    </div>
+
+                    {/* Score bar */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                      <div style={{ flex: 1, background: C.border, height: 8, overflow: 'hidden' }}>
+                        <div style={{ width: `${rev.score * 10}%`, background: scoreColor, height: '100%', transition: 'width 0.5s' }} />
+                      </div>
+                      <div style={{ fontSize: 18, fontWeight: 800, color: scoreColor, minWidth: 36 }}>{rev.score}/10</div>
+                    </div>
+
+                    {/* Yes/no checks */}
+                    <div style={{ display: 'flex', gap: 16, marginBottom: 14 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.text }}>
+                        <span style={{ fontSize: 14 }}>{rev.matches_brief ? '✅' : '❌'}</span>
+                        Coincide con el brief
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.text }}>
+                        <span style={{ fontSize: 14 }}>{rev.matches_brand ? '✅' : '❌'}</span>
+                        Coincide con brand kit
+                      </div>
+                    </div>
+
+                    {/* Issues */}
+                    {rev.issues.length > 0 && (
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{ fontSize: 11, color: C.muted, fontWeight: 700, marginBottom: 6 }}>PROBLEMAS DETECTADOS</div>
+                        <ul style={{ margin: 0, paddingLeft: 18 }}>
+                          {rev.issues.map((issue, i) => (
+                            <li key={i} style={{ fontSize: 12, color: '#ef4444', marginBottom: 3 }}>{issue}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Summary */}
+                    <div style={{ fontSize: 12, color: C.text, lineHeight: 1.5, fontStyle: 'italic', background: C.bg1, padding: '10px 12px', borderLeft: `3px solid ${scoreColor}` }}>
+                      {rev.summary}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Worker notes */}
               <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, padding: 20, marginBottom: 20 }}>

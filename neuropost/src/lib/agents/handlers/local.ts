@@ -30,6 +30,7 @@ import { analyzeCompetitor } from '@/agents/CompetitorAgent';
 import { generateSeasonalContent } from '@/agents/SeasonalAgent';
 import { analyzeReference, type AnalyzeReferenceInput } from '@/agents/InspirationAgent';
 import { generateRetentionEmail } from '@/agents/ChurnAgent';
+import Anthropic from '@anthropic-ai/sdk';
 
 import { registerHandler } from '../registry';
 import { requireBrandId } from '../helpers';
@@ -118,8 +119,9 @@ const imageGenerateHandler: AgentHandler = async (job) => {
     void trackCost(job, 'nanobanana', 'generate_image', 0.04, { model: 'nanobanana-v2', duration_seconds: genMs ? genMs / 1000 : undefined });
   }
 
-  // When triggered for a specific post: update post with generated image(s)
-  // and set status → needs_review so the user sees it immediately.
+  // When triggered for a specific post: update post with generated image(s),
+  // set status → pending_worker (hidden from client), create content_queue row,
+  // and queue an AI brand-kit review job.
   if (result.type === 'ok' && _post_id && job.brand_id) {
     const payload = result.outputs?.[0]?.payload as Record<string, unknown> | undefined;
     const primaryUrl     = result.outputs?.[0]?.preview_url;
@@ -134,16 +136,54 @@ const imageGenerateHandler: AgentHandler = async (job) => {
       // Build carousel_urls: primary + extras (for carrusel format)
       const allUrls = [primaryUrl, ...additionalUrls];
 
+      // 1. Update post — hidden from client until worker approves
       await db.from('posts').update({
         image_url:     primaryUrl,
         carousel_urls: allUrls.length > 1 ? allUrls : null,
-        status:        'pending',
+        status:        'pending_worker',
         ai_explanation: JSON.stringify({
           mode,
           enhanced_prompt: payload?.enhancedPrompt,
           all_urls:        allUrls,
         }),
       }).eq('id', _post_id);
+
+      // 2. Insert content_queue row so workers can see & review it
+      const { data: queueRow, error: queueErr } = await db
+        .from('content_queue')
+        .insert({
+          post_id:  _post_id,
+          brand_id: job.brand_id,
+          status:   'pending_worker',
+          priority: 'normal',
+        })
+        .select('id')
+        .single();
+
+      if (queueErr) {
+        console.error('[imageGenerateHandler] Failed to insert content_queue row:', queueErr);
+      }
+
+      // 3. Queue AI brand-kit review job (non-blocking)
+      try {
+        const { queueJob } = await import('../queue');
+        await queueJob({
+          brand_id:   job.brand_id,
+          agent_type: 'content',
+          action:     'review_image',
+          input: {
+            post_id:          _post_id,
+            brand_id:         job.brand_id,
+            image_url:        primaryUrl,
+            original_prompt:  _original_prompt ?? '',
+            _queue_id:        queueRow?.id ?? null,
+          },
+          priority:     60,
+          requested_by: 'agent',
+        });
+      } catch (reviewErr) {
+        console.error('[imageGenerateHandler] Failed to queue review_image job:', reviewErr);
+      }
     }
   }
 
@@ -360,6 +400,159 @@ const retentionEmailHandler: AgentHandler = async (job) => {
 };
 
 // -----------------------------------------------------------------------------
+// content:review_image → Claude Vision brand-kit check
+// -----------------------------------------------------------------------------
+// Called automatically after image generation. Loads post + brand data, runs
+// Claude Vision to compare the image against the brand kit, and writes the
+// result back to content_queue.ai_review.
+// Input: { post_id, brand_id, image_url, original_prompt, _queue_id }
+// -----------------------------------------------------------------------------
+const reviewImageHandler: AgentHandler = async (job) => {
+  const input = job.input as {
+    post_id:         string;
+    brand_id:        string;
+    image_url:       string;
+    original_prompt: string;
+    _queue_id:       string | null;
+  };
+
+  try {
+    const { createAdminClient } = await import('@/lib/supabase');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = createAdminClient() as any;
+
+    // 1. Load brand context
+    const { data: brand } = await db
+      .from('brands')
+      .select('name, sector, visual_style, brand_voice_doc, colors, rules')
+      .eq('id', input.brand_id)
+      .single();
+
+    if (!brand) {
+      return { type: 'fail', error: 'reviewImageHandler: brand not found' };
+    }
+
+    // 2. Build system prompt with brand context
+    const brandContext = [
+      `Marca: ${brand.name ?? 'desconocida'}`,
+      `Sector: ${brand.sector ?? 'desconocido'}`,
+      brand.visual_style ? `Estilo visual: ${brand.visual_style}` : null,
+      brand.colors       ? `Colores de marca: ${JSON.stringify(brand.colors)}` : null,
+      brand.rules        ? `Reglas de marca: ${brand.rules}` : null,
+      brand.brand_voice_doc ? `Descripción de marca: ${brand.brand_voice_doc}` : null,
+    ].filter(Boolean).join('\n');
+
+    const systemPrompt = `Eres un director de arte experto en branding visual. Tu tarea es evaluar si una imagen generada por IA es adecuada para publicarse en redes sociales en nombre de una marca.
+
+Contexto de la marca:
+${brandContext}
+
+Devuelve ÚNICAMENTE un objeto JSON válido con esta estructura exacta (sin texto adicional):
+{
+  "score": <número 0-10>,
+  "matches_brief": <true|false>,
+  "matches_brand": <true|false>,
+  "issues": [<lista de strings con problemas encontrados, puede estar vacía>],
+  "recommendation": <"approve"|"review"|"regenerate">,
+  "summary": "<resumen en 1-2 frases de la evaluación>"
+}
+
+Criterios de puntuación:
+- 8-10: Excelente, encaja perfectamente con la marca y el brief
+- 6-7: Bueno, pequeños ajustes podrían mejorar el resultado
+- 4-5: Aceptable pero con problemas notables
+- 0-3: No apto, regenerar
+Recommendation: "approve" si score >= 7, "review" si 5-6, "regenerate" si < 5`;
+
+    // 3. Call Claude Vision
+    const anthropic = new Anthropic();
+    const response = await anthropic.messages.create({
+      model:      'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      system:     systemPrompt,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            {
+              type:      'image',
+              source: {
+                type: 'url',
+                url:  input.image_url,
+              },
+            },
+            {
+              type: 'text',
+              text: `Brief original del cliente: "${input.original_prompt}"\n\nEvalúa esta imagen generada según los criterios indicados.`,
+            },
+          ],
+        },
+      ],
+    });
+
+    // 4. Parse the JSON result
+    const rawText = response.content[0]?.type === 'text' ? response.content[0].text : '';
+    let aiReview: {
+      score:           number;
+      matches_brief:   boolean;
+      matches_brand:   boolean;
+      issues:          string[];
+      recommendation:  'approve' | 'review' | 'regenerate';
+      summary:         string;
+    };
+
+    try {
+      // Extract JSON from response (strip any surrounding text)
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      aiReview = JSON.parse(jsonMatch?.[0] ?? rawText);
+    } catch {
+      return { type: 'fail', error: `reviewImageHandler: could not parse Claude response: ${rawText.slice(0, 200)}` };
+    }
+
+    // 5. Save result back to content_queue
+    if (input._queue_id) {
+      const updatePayload: Record<string, unknown> = { ai_review: aiReview };
+      // Auto-hint for workers when AI score is high
+      if (aiReview.score >= 7) {
+        updatePayload.status = 'auto_approved_ai';
+      }
+      const { error: updateErr } = await db
+        .from('content_queue')
+        .update(updatePayload)
+        .eq('id', input._queue_id);
+
+      if (updateErr) {
+        console.error('[reviewImageHandler] Failed to save ai_review:', updateErr);
+      }
+    } else {
+      // Fallback: find queue row by post_id
+      const updatePayload: Record<string, unknown> = { ai_review: aiReview };
+      if (aiReview.score >= 7) updatePayload.status = 'auto_approved_ai';
+      await db
+        .from('content_queue')
+        .update(updatePayload)
+        .eq('post_id', input.post_id)
+        .eq('status', 'pending_worker');
+    }
+
+    return {
+      type: 'ok',
+      outputs: [{
+        kind:    'analysis',
+        payload: aiReview as unknown as Record<string, unknown>,
+        model:   'claude-sonnet-4-20250514',
+      }],
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const transient = /timeout|rate.?limit|overloaded|503|504|ECONN|ETIMEDOUT|fetch failed/i.test(msg);
+    return transient
+      ? { type: 'retry', error: msg }
+      : { type: 'fail',  error: msg };
+  }
+};
+
+// -----------------------------------------------------------------------------
 // Register all local handlers
 // -----------------------------------------------------------------------------
 export function registerLocalAgentHandlers(): void {
@@ -371,6 +564,7 @@ export function registerLocalAgentHandlers(): void {
   registerHandler({ agent_type: 'content',   action: 'seasonal_content'    }, seasonalHandler);
   registerHandler({ agent_type: 'content',   action: 'adapt_trend'         }, adaptTrendHandler);
   registerHandler({ agent_type: 'content',   action: 'analyze_inspiration' }, inspirationHandler);
+  registerHandler({ agent_type: 'content',   action: 'review_image'        }, reviewImageHandler);
   registerHandler({ agent_type: 'analytics', action: 'detect_trends'       }, detectTrendsHandler);
   registerHandler({ agent_type: 'analytics', action: 'analyze_competitor'  }, competitorHandler);
   registerHandler({ agent_type: 'growth',    action: 'retention_email'     }, retentionEmailHandler);
