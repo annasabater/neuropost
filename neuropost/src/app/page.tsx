@@ -309,7 +309,7 @@ export default function LandingPage() {
           </li>
           <li><LanguageSelector /></li>
           <li><Link href="/login" className="nav-login">Entrar</Link></li>
-          <li><Link href="/register" className="nav-cta">Empezar gratis</Link></li>
+          <li><Link href="/register" className="nav-cta">Empezar</Link></li>
         </ul>
       </nav>
 
@@ -319,7 +319,7 @@ export default function LandingPage() {
           <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 20 }}>
             Tu equipo de redes sociales
           </div>
-          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.8rem, 6vw, 4.5rem)', textTransform: 'uppercase', letterSpacing: '-0.01em', lineHeight: 0.95, color: '#111111', marginBottom: 24 }}>
+          <h1 className="landing-h1" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.8rem, 6vw, 4.5rem)', textTransform: 'uppercase', letterSpacing: '-0.01em', lineHeight: 0.95, color: '#111111', marginBottom: 24 }}>
             Nos encargamos de <span style={{ color: '#0F766E' }}>tus redes</span> para que tú te encargues de tu negocio
           </h1>
           <p style={{ fontFamily: f, fontSize: 17, color: '#6b7280', lineHeight: 1.7, maxWidth: 560, margin: '0 auto 24px' }}>
@@ -367,7 +367,7 @@ export default function LandingPage() {
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 40, gap: 24, flexWrap: 'wrap' }}>
             <div>
               <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>Resultados reales</div>
-              <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#ffffff', lineHeight: 0.95 }}>
+              <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#ffffff', lineHeight: 0.95 }}>
                 Porque lo que no se ve,<br />no se vende
               </h2>
             </div>
@@ -389,7 +389,7 @@ export default function LandingPage() {
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
             <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>Portfolio</div>
-            <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
+            <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
               Lo que publicamos por ti
             </h2>
             <p style={{ fontFamily: f, fontSize: 15, color: '#6b7280', marginTop: 12 }}>Contenido real para negocios como el tuyo</p>
@@ -412,7 +412,7 @@ export default function LandingPage() {
       {/* ─── SECTORES — scroll horitzontal ─── */}
       <section id="sectores" style={{ padding: '80px 0', background: '#f5f5f5' }}>
         <div className="container" style={{ marginBottom: 40 }}>
-          <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
+          <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
             Funciona para cualquier negocio local
           </h2>
         </div>
@@ -434,7 +434,7 @@ export default function LandingPage() {
       <section id="como-funciona" style={{ padding: '80px 0' }}>
         <div className="container" style={{ marginBottom: 40 }}>
           <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>En 4 pasos</div>
-          <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
+          <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
             De cero a publicar<br />en menos de 10 minutos
           </h2>
         </div>
@@ -457,7 +457,7 @@ export default function LandingPage() {
               <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#14b8a6', marginBottom: 12 }}>
                 Tour del producto
               </div>
-              <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#ffffff', lineHeight: 0.95, marginBottom: 14 }}>
+              <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#ffffff', lineHeight: 0.95, marginBottom: 14 }}>
                 Mira la app
                 <br />
                 por dentro
@@ -540,7 +540,7 @@ export default function LandingPage() {
       <section className="pricing" id="precios" style={{ padding: '80px 0', background: '#f5f5f5' }}>
         <div className="container" style={{ marginBottom: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>Precios claros</div>
-          <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
+          <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
             Sin sorpresas. Cancela cuando quieras.
           </h2>
           <div style={{ display: 'inline-flex', background: '#ffffff', border: '1px solid var(--border)', borderRadius: '0', padding: '4px', gap: '4px', marginTop: 24 }}>
@@ -625,7 +625,7 @@ export default function LandingPage() {
                   background: featured ? '#ffffff' : '#111111', color: featured ? '#111111' : '#ffffff',
                   fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
                 }}>
-                  Empezar gratis →
+                  Empezar →
                 </Link>
               </div>
               );
@@ -647,7 +647,7 @@ export default function LandingPage() {
       <section id="testimonios" style={{ padding: '80px 0' }}>
         <div className="container" style={{ marginBottom: 40 }}>
           <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>Casos reales</div>
-          <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
+          <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
             Lo que dicen nuestros clientes
           </h2>
         </div>
@@ -682,7 +682,7 @@ export default function LandingPage() {
               <>
                 <div style={{ marginBottom: 42 }}>
                   <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>FAQ</div>
-                  <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(1.8rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95, marginBottom: 12 }}>
+                  <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(1.8rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95, marginBottom: 12 }}>
                     Respuestas sin rodeos,
                     <br />
                     con foco en tu negocio
@@ -866,14 +866,14 @@ export default function LandingPage() {
       {/* ─── CTA FINAL ─── */}
       <section style={{ padding: '80px 0', background: '#111111' }}>
         <div className="container" style={{ textAlign: 'center' }}>
-          <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', color: '#ffffff', lineHeight: 0.95, marginBottom: 12 }}>
+          <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', color: '#ffffff', lineHeight: 0.95, marginBottom: 12 }}>
             Tu competencia ya tiene<br />a alguien que <span style={{ color: '#0F766E' }}>lleva sus redes</span>
           </h2>
           
           <div style={{ display: 'flex', justifyContent: 'center', margin: '0 auto 16px' }}>
             <Link href="/register"
               style={{ display: 'inline-block', padding: '16px 40px', background: '#ffffff', color: '#111111', textDecoration: 'none', fontFamily: fc, fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
-              Crear cuenta gratis
+              Crear cuenta
             </Link>
           </div>
           

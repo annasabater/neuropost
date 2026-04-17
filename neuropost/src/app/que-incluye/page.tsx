@@ -466,7 +466,7 @@ export default function QueIncluyePage() {
               className="cta-btn"
               style={{ display: 'inline-block', padding: '16px 44px', background: '#0F766E', color: '#ffffff', textDecoration: 'none', fontFamily: fc, fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}
             >
-              Empezar gratis →
+              Empezar →
             </Link>
             <Link
               href="/pricing"

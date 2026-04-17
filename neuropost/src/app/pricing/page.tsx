@@ -859,7 +859,7 @@ export default function PricingPage() {
                       ))}
                     </ul>
                     <Link href="/register" className="plan-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
-                      Empezar gratis →
+                      Empezar →
                     </Link>
                   </div>
                 );
@@ -1070,7 +1070,7 @@ export default function PricingPage() {
                 display: 'inline-block',
               }}
             >
-              Crear cuenta gratis →
+              Crear cuenta →
             </Link>
             <Link
               href="/pricing#pricing-top"

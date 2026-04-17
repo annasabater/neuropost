@@ -1191,6 +1191,7 @@ h2 {
   .footer-newsletter-input { width: 100%; }
   .footer-bottom { flex-direction: column; align-items: flex-start; gap: 10px; }
   .footer-bottom-trust { text-align: left; }
+  .footer-bottom-bar { flex-direction: column; align-items: flex-start; gap: 10px; }
 }
 
 @media (max-width: 1200px) {
@@ -1223,6 +1224,11 @@ h2 {
   .footer-newsletter-form { flex-direction: column; border-radius: 8px; overflow: visible; border: none; gap: 8px; }
   .footer-newsletter-input { border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; width: 100%; box-sizing: border-box; }
   .footer-newsletter-btn { border-radius: 8px; width: 100%; }
+  .footer-bottom-bar { flex-direction: column; align-items: flex-start; gap: 8px; }
+
+  /* Landing page headings — reduce size on mobile */
+  .landing-h1 { font-size: clamp(1.8rem, 8vw, 2.4rem) !important; }
+  .landing-h2 { font-size: clamp(1.3rem, 6vw, 1.7rem) !important; }
 }
 
 @keyframes scroll-landing {

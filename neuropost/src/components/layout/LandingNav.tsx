@@ -78,7 +78,7 @@ export function LandingNav() {
         </li>
         <li><LanguageSelector /></li>
         <li><Link href="/login" className="nav-login">Entrar</Link></li>
-        <li><Link href="/register" className="nav-cta">Empezar gratis</Link></li>
+        <li><Link href="/register" className="nav-cta">Empezar</Link></li>
       </ul>
     </nav>
   );
