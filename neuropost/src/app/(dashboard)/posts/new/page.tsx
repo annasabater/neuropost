@@ -78,12 +78,18 @@ export default function NewPostPage() {
 
   // ── Quick-pick descriptions ─────────────────────────────────────────────
   const REQUEST_KINDS: { v: string; l: string; hint: string }[] = [
-    { v: 'promo',       l: 'Promoción / descuento', hint: 'Anuncia una promo, oferta o descuento limitado.' },
-    { v: 'post_normal', l: 'Post normal',            hint: 'Una publicación regular para tu feed.' },
-    { v: 'novedad',     l: 'Novedad / lanzamiento',  hint: 'Presenta un producto, servicio o novedad.' },
-    { v: 'evento',      l: 'Evento',                 hint: 'Comunica un evento próximo o especial.' },
-    { v: 'testimonio',  l: 'Testimonio / reseña',    hint: 'Destaca una opinión o caso de éxito.' },
-    { v: 'tips',        l: 'Tips / consejos',        hint: 'Contenido educativo o de valor para tu audiencia.' },
+    { v: 'promo',        l: 'Promoción / descuento',     hint: 'Anuncia una promo, oferta o descuento limitado.' },
+    { v: 'post_normal',  l: 'Post normal',               hint: 'Una publicación regular para tu feed.' },
+    { v: 'novedad',      l: 'Novedad / lanzamiento',     hint: 'Presenta un producto, servicio o novedad.' },
+    { v: 'evento',       l: 'Evento',                    hint: 'Comunica un evento próximo o especial.' },
+    { v: 'testimonio',   l: 'Testimonio / reseña',       hint: 'Destaca una opinión o caso de éxito de un cliente.' },
+    { v: 'tips',         l: 'Tips / consejos',           hint: 'Contenido educativo o de valor para tu audiencia.' },
+    { v: 'detras_camara',l: 'Detrás de cámara',          hint: 'Muestra el día a día o el proceso de tu negocio.' },
+    { v: 'producto',     l: 'Destacar producto',         hint: 'Centra el contenido en un producto o servicio específico.' },
+    { v: 'equipo',       l: 'Equipo / personas',         hint: 'Presenta a tu equipo o las personas detrás del negocio.' },
+    { v: 'temporada',    l: 'Temporada / fecha especial',hint: 'Contenido relacionado con una fecha o temporada especial.' },
+    { v: 'pregunta',     l: 'Pregunta a tu audiencia',   hint: 'Genera interacción con una pregunta o encuesta.' },
+    { v: 'colaboracion', l: 'Colaboración',              hint: 'Anuncia una colaboración con otra marca o persona.' },
   ];
   function pickKind(v: string, hint: string) {
     setRequestKind(v);
@@ -794,7 +800,7 @@ export default function NewPostPage() {
               <div style={{ padding: '18px 20px', display: 'flex', gap: 6 }}>
                 {([
                   { v: 'photos' as const, l: 'Foto(s)', icon: ImageIcon, desc: 'Sube una o varias imágenes' },
-                  { v: 'video' as const, l: 'Vídeo', icon: Video, desc: 'Sube un vídeo directamente' },
+                  ...(allowVideos ? [{ v: 'video' as const, l: 'Vídeo', icon: Video, desc: 'Sube un vídeo directamente' }] : []),
                   { v: 'none' as const, l: 'Sin archivo', icon: Sparkles, desc: 'La IA lo genera todo' },
                 ] as const).map(({ v, l, icon: Icon, desc }) => {
                   const active = sourceType === v;
@@ -837,7 +843,7 @@ export default function NewPostPage() {
               </div>
               <div style={{ padding: '18px 20px' }}>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  {availableOutputFormats.map(({ value, label, icon: Icon, desc }) => {
+                  {availableOutputFormats.map(({ value, label, icon: Icon }) => {
                     const active = outputFormat === value;
                     const disabled = value === 'video' && !allowVideos;
                     return (
@@ -852,7 +858,11 @@ export default function NewPostPage() {
                         <Icon size={18} style={{ color: active ? '#ffffff' : 'var(--text-tertiary)', flexShrink: 0 }} />
                         <div>
                           <span style={{ fontFamily: f, fontSize: 12, fontWeight: active ? 700 : 500, color: active ? '#ffffff' : 'var(--text-primary)', display: 'block' }}>{label}</span>
-                          <span style={{ fontFamily: f, fontSize: 10, color: active ? 'rgba(255,255,255,0.7)' : 'var(--text-tertiary)' }}>{disabled ? 'Disponible en Crecimiento' : desc}</span>
+                          {disabled && (
+                            <span style={{ fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-tertiary)', background: 'var(--bg-2)', padding: '2px 6px', display: 'inline-block', marginTop: 3 }}>
+                              Plan superior
+                            </span>
+                          )}
                         </div>
                       </button>
                     );
@@ -904,7 +914,7 @@ export default function NewPostPage() {
               </div>
             </div>
 
-            {/* STEP 3 — Describe tu contenido (global) */}
+            {/* STEP 3 — ¿Qué tipo de publicación quieres? */}
             <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
               <div style={{
                 padding: '16px 20px', background: 'var(--bg-1)',
@@ -913,9 +923,8 @@ export default function NewPostPage() {
               }}>
                 <StepNum n={3} />
                 <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
-                  Describe tu contenido
+                  ¿Qué tipo de publicación quieres?
                 </span>
-                <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>Descripción global</span>
               </div>
 
               {/* Quick-pick chips */}
@@ -941,13 +950,10 @@ export default function NewPostPage() {
                 <textarea
                   value={clientNote}
                   onChange={(e) => setClientNote(e.target.value)}
-                  placeholder="Ej: Promo del menú de otoño todos los viernes: 2x1 en entrantes. Tono cercano, invita a reservar."
+                  placeholder="Describe qué quieres en esta publicación, qué mensaje quieres transmitir, si hay texto específico que incluir, etc."
                   rows={3}
                   style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.7 }}
                 />
-                <p style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 6 }}>
-                  Esta descripción vale para todas las fotos. Luego podrás añadir un contexto específico a cada una.
-                </p>
               </div>
 
               {/* Global inspiration references */}
@@ -1084,8 +1090,8 @@ export default function NewPostPage() {
               </div>
             </div>
 
-            {/* STEP 2 — Tus fotos + ajustes */}
-            <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
+            {/* STEP 4 — Tus fotos + ajustes (only when sourceType !== 'none') */}
+            {sourceType !== 'none' && <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
               <div style={{
                 padding: '16px 20px', background: 'var(--bg-1)',
                 display: 'flex', alignItems: 'center', gap: 10,
@@ -1110,10 +1116,7 @@ export default function NewPostPage() {
                 <div style={{ borderTop: '1px solid var(--border)' }}>
                   <div style={{ padding: '14px 20px', background: 'var(--bg-1)' }}>
                     <span style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
-                      Contexto por imagen
-                    </span>
-                    <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 8 }}>
-                      opcional — pulsa en una foto para añadir un comentario o una referencia
+                      Describe qué quieres hacer con cada foto
                     </span>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '16px 20px' }}>
@@ -1164,16 +1167,16 @@ export default function NewPostPage() {
                           <img src={m.url} alt="" style={{ width: '100%', height: 'auto', maxHeight: 240, objectFit: 'contain', display: 'block', background: 'transparent' }} />
                         </div>
                         <div>
-                          <label style={labelStyle}>Contexto para esta imagen</label>
+                          <label style={labelStyle}>¿Qué quieres hacer con esta foto?</label>
                           <textarea
                             value={per.note}
                             onChange={(e) => setPer({ note: e.target.value })}
-                            placeholder="Ej: aquí destaca el plato del día y añade el precio con letras grandes."
+                            placeholder="¿Qué quieres hacer con esta foto? ¿Modificar algo, añadir texto, cambiar el estilo?"
                             rows={3}
                             style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, marginBottom: 14 }}
                           />
 
-                          <label style={labelStyle}>Inspiración (opcional)</label>
+                          <label style={labelStyle}>Inspiración</label>
                           {currentInspo ? (
                             <div style={{
                               padding: '10px 12px', border: '1px solid var(--accent)',
@@ -1267,9 +1270,9 @@ export default function NewPostPage() {
                   );
                 })()}
               </div>
-            </div>
+            </div>}
 
-            {/* STEP 3 — ¿Para cuándo? */}
+            {/* STEP 5 — ¿Para cuándo? */}
             <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
               <div style={{
                 padding: '16px 20px', background: 'var(--bg-1)',

@@ -132,13 +132,16 @@ export async function POST(request: Request) {
 async function autoStartPipeline(post: Post, brand: Brand): Promise<void> {
   let clientDesc = '';
   let inspirationId: string | null = null;
+  let perImageInspirationId: string | null = null;
   let videoDuration: number | null = null;
   let sourceFiles: string[] = [];
   try {
     const meta = JSON.parse(post.ai_explanation ?? '{}') as Record<string, unknown>;
-    clientDesc    = String(meta.global_description ?? meta.client_notes ?? post.caption ?? '');
-    const perImg  = meta.per_image as Array<{ inspiration_id?: string }> | undefined;
-    inspirationId = perImg?.[0]?.inspiration_id ?? null;
+    const perImg  = meta.per_image as Array<{ note?: string; inspiration_id?: string }> | undefined;
+    const perNote = perImg?.[0]?.note?.trim();
+    clientDesc    = perNote || String(meta.global_description ?? meta.client_notes ?? post.caption ?? '');
+    perImageInspirationId = perImg?.[0]?.inspiration_id ?? null;
+    inspirationId = perImageInspirationId ?? (meta.global_inspiration_ids as string[] | null)?.[0] ?? null;
     videoDuration = typeof meta.video_duration === 'number' ? meta.video_duration : null;
     sourceFiles   = Array.isArray(meta.source_files) ? (meta.source_files as string[]) : [];
   } catch {
