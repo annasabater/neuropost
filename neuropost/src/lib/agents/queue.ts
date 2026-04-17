@@ -72,7 +72,7 @@ export async function queueJob(input: QueueJobInput): Promise<AgentJob> {
       `${input.agent_type}:${input.action}`,
       { agent_job_id: job.id },
       {
-        jobId:    `supabase:${job.id}`,   // idempotency key
+        jobId:    `supabase_${job.id}`,   // idempotency key (no colons — BullMQ rejects them)
         priority: toBullPriority(priority),
         delay,
       },
@@ -131,7 +131,7 @@ export async function queueSubJobs(
         name:    `${job.agent_type}:${job.action}`,
         data:    { agent_job_id: job.id },
         opts: {
-          jobId:    `supabase:${job.id}`,
+          jobId:    `supabase_${job.id}`,
           priority: toBullPriority(sub.priority ?? parentJob.priority ?? 50),
           delay,
         },
