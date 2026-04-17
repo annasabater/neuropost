@@ -110,21 +110,19 @@ export async function runImageGenerateAgent(
         },
         {
           type: 'text',
-          text: `The user uploaded this photo and wants it professionally edited/recreated for Instagram.
-User description: "${input.userPrompt}"
+          text: `The user uploaded this photo and wants MINIMAL professional enhancements for Instagram. The photo must look essentially the same — same people, same place, same composition.
 
-Business sector: ${input.sector}
-Visual style: ${input.visualStyle} — ${STYLE_GUIDE[input.visualStyle]}
+User request: "${input.userPrompt}"
 Brand context: ${input.brandContext}
-Format: ${input.format ?? 'post'} (${width}×${height}px)
-${brandRules.length ? `\nBrand rules (must follow):\n${brandRules.map(r => `- ${r}`).join('\n')}\n` : ''}
+${brandRules.length ? `Brand rules:\n${brandRules.map(r => `- ${r}`).join('\n')}\n` : ''}
 
-Analyse the uploaded image and write an img2img edit prompt that:
-1. Preserves the key subject/product from the original photo
-2. Applies the brand visual style and user description as enhancements
-3. Improves lighting, composition, and professional quality
-4. Keeps it suitable for Instagram
+Write a Flux Kontext edit prompt that:
+1. KEEPS the exact same subjects, people, location and composition as the original
+2. Only improves: lighting quality, color grading, sharpness, professional finish
+3. Apply subtle brand color tones if needed (do NOT replace colors drastically)
+4. Make it look like a professional Instagram photo, not a different photo
 
+Start the prompt with: "Keep all subjects and composition exactly as in the original photo."
 Reply ONLY with the edit prompt in English, no explanations, no quotes.`,
         },
       ]
@@ -159,7 +157,9 @@ Reply ONLY with the enhanced prompt in English, no explanations, no quotes.`;
 
   // ── Step 2: Generate or edit with Nano Banana 2 ───────────────────────────────
   // img2img when user uploaded a photo; txt2img when generating from scratch.
-  const numOutputs = Math.min(Math.max(input.numOutputs ?? 1, 1), 4);
+  // For img2img (reference photo), always generate 1 output — multiple variations
+  // confuse the client since each edit looks different from the original.
+  const numOutputs = hasRefImage ? 1 : Math.min(Math.max(input.numOutputs ?? 1, 1), 4);
   const results: string[] = [];
 
   for (let i = 0; i < numOutputs; i++) {
