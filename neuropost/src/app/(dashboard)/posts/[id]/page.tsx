@@ -427,7 +427,7 @@ export default function PostDetailPage() {
               <video src={post.image_url} controls style={{ width: '100%', maxHeight: 640, objectFit: 'contain', display: 'block' }} />
             ) : (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={post.image_url} alt="" style={{ width: '100%', maxHeight: 640, objectFit: 'contain', display: 'block' }} />
+              <img src={post.image_url} alt="" style={{ width: '100%', maxHeight: 640, objectFit: 'contain', display: 'block', imageOrientation: 'from-image' }} />
             )}
           </div>
 
@@ -472,7 +472,7 @@ export default function PostDetailPage() {
                       <video src={url} style={{ width: 160, height: 160, objectFit: 'cover', display: 'block' }} />
                     ) : (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={url} alt={`Original ${i + 1}`} style={{ width: 160, height: 160, objectFit: 'cover', display: 'block' }} />
+                      <img src={url} alt={`Original ${i + 1}`} style={{ width: 160, height: 160, objectFit: 'cover', display: 'block', imageOrientation: 'from-image' }} />
                     )}
                   </div>
                 ))}

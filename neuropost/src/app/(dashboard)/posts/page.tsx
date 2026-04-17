@@ -63,7 +63,7 @@ function SortableQueuedFeedCell({ item, index }: { item: QueuedFeedItem; index: 
     }}>
       {item.imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={item.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        <img src={item.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', imageOrientation: 'from-image' }} />
       ) : (
         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 20 }}>+</div>
       )}
@@ -82,7 +82,7 @@ function PublishedFeedCell({ item }: { item: PublishedFeedItem }) {
     <div style={{ aspectRatio: '1', position: 'relative', overflow: 'hidden', background: 'var(--bg-1)' }}>
       {item.imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={item.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        <img src={item.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', imageOrientation: 'from-image' }} />
       ) : (
         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-tertiary)', fontSize: 20 }}>+</div>
       )}
@@ -418,7 +418,7 @@ export default function PostsPage() {
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={post.image_url} alt="" style={{
                           width: '100%', height: '100%', objectFit: 'cover', display: 'block',
-                          transition: 'transform 0.3s',
+                          transition: 'transform 0.3s', imageOrientation: 'from-image',
                         }} />
                       ) : (
                         <div style={{
@@ -584,7 +584,7 @@ export default function PostsPage() {
                     <div style={{ width: 36, height: 36, overflow: 'hidden', background: 'var(--bg-1)', flexShrink: 0 }}>
                       {item.imageUrl && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={item.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <img src={item.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', imageOrientation: 'from-image' }} />
                       )}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>

@@ -1134,7 +1134,7 @@ export default function NewPostPage() {
                             background: '#000', cursor: 'pointer',
                           }}>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', imageOrientation: 'from-image' }} />
                           <div style={{
                             position: 'absolute', bottom: 2, left: 2,
                             background: isOpen ? 'var(--accent)' : '#111827', color: '#ffffff',
@@ -1164,7 +1164,7 @@ export default function NewPostPage() {
                       <div style={{ borderTop: '1px solid var(--border)', padding: '18px 20px', display: 'grid', gridTemplateColumns: '200px 1fr', gap: 16, alignItems: 'start' }}>
                         <div>
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={m.url} alt="" style={{ width: '100%', height: 'auto', maxHeight: 240, objectFit: 'contain', display: 'block', background: 'transparent' }} />
+                          <img src={m.url} alt="" style={{ width: '100%', height: 'auto', maxHeight: 240, objectFit: 'contain', display: 'block', background: 'transparent', imageOrientation: 'from-image' }} />
                         </div>
                         <div>
                           <label style={labelStyle}>¿Qué quieres hacer con esta foto?</label>

@@ -182,7 +182,7 @@ export function MediaPicker({ selected, onChange, max = 10 }: MediaPickerProps) 
                       </>
                     ) : (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={item.url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
+                      <img src={item.url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block', imageOrientation: 'from-image' }} />
                     )}
                     {isSel && (
                       <div style={{
