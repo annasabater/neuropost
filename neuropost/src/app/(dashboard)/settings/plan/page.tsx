@@ -112,14 +112,16 @@ const PLANS: {
 }[] = [
   {
     id:            'starter',
-    name:          'Starter',
+    name:          'Esencial',
     monthlyPrice:   25,
     annualPrice:    21,
     annualSavings:  48,
     desc:          'Para presencia activa',
-    content:       ['✔ 2 fotos/semana', '✔ Carruseles hasta 3', '✔ Sin vídeo/reel'],
-    highlight:     'Ideal para empezar con redes',
+    content:       ['✔ 2 fotos/semana', '✔ Carruseles hasta 3', '✔ Sin vídeo/reel', '✔ Instagram + Facebook'],
+    highlight:     'Precio por 1 red social. +15 EUR/mes por red adicional.',
     perks: [
+      '1 red social incluida',
+      '+15 EUR/mes por red adicional',
       'Publicación programada',
       'Calendario avanzado',
       'Edición de contenido',
@@ -132,14 +134,17 @@ const PLANS: {
   },
   {
     id:            'pro',
-    name:          'Pro',
+    name:          'Crecimiento',
     monthlyPrice:   76,
     annualPrice:    63,
     annualSavings:  158,
     desc:          'Máximo alcance',
-    content:       ['✔ 4 fotos/semana', '✔ 2 vídeos/reels ≤90s/sem', '✔ Carruseles hasta 8'],
-    highlight:     'Vídeo/reel optimizados a ≤90s para máximo alcance en Instagram',
+    content:       ['✔ 4 fotos/semana', '✔ 2 vídeos/reels/sem', '✔ Carruseles hasta 8', '✔ IG + FB + TikTok'],
+    highlight:     'Vídeo/reel + TikTok. Precio por 1 red social.',
     perks: [
+      '1 red social incluida',
+      '+15 EUR/mes por red adicional',
+      'TikTok disponible',
       'Publicación programada',
       'Ideas basadas en tendencias y tu contenido',
       'Mejores horas para publicar',
@@ -149,18 +154,21 @@ const PLANS: {
       'Soporte prioritario',
     ],
     featured: true,
-    badge:    '⚡ Más popular',
+    badge:    'Más popular',
   },
   {
     id:            'total',
-    name:          'Total',
+    name:          'Profesional',
     monthlyPrice:   161,
     annualPrice:    133,
     annualSavings:  336,
     desc:          'Control completo',
-    content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels ≤90s/sem', '✔ Carruseles hasta 20'],
-    highlight:     'Conversión máxima de leads a ventas',
+    content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels/sem', '✔ Carruseles hasta 20', '✔ IG + FB + TikTok'],
+    highlight:     'Conversión máxima. Precio por 1 red social.',
     perks: [
+      '1 red social incluida',
+      '+15 EUR/mes por red adicional',
+      'TikTok disponible',
       'Publicación programada',
       'Ideas basadas en tendencias y tu contenido',
       'Mejores horas para publicar',
@@ -170,7 +178,7 @@ const PLANS: {
       'Soporte 24h',
     ],
     featured: false,
-    badge:    '🚀 Completo',
+    badge:    'Completo',
   },
 ];
 
@@ -183,6 +191,9 @@ export default function PlanPage() {
   const [upgrading, setUpgrading] = useState<SubscriptionPlan | null>(null);
   const [promoCodeId, setPromoCodeId] = useState<string | null>(null);
   const [, setDiscountText] = useState('');
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(
+    (brand?.subscribed_platforms as string[] | undefined)?.length ? (brand.subscribed_platforms as string[]) : ['instagram'],
+  );
   const refreshedRef = useRef(false);
 
   const [subStatus, setSubStatus] = useState<{
@@ -244,7 +255,11 @@ export default function PlanPage() {
       const res  = await fetch('/api/stripe/checkout', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ plan, ...(promoCodeId ? { promoCodeId } : {}) }),
+        body:    JSON.stringify({
+          plan,
+          platforms: selectedPlatforms,
+          ...(promoCodeId ? { promoCodeId } : {}),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Error');
@@ -489,6 +504,71 @@ export default function PlanPage() {
           );
         })}
       </div>
+      </div>
+
+      {/* ── Platform selector ── */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ border: '1px solid var(--border)', background: 'var(--bg)' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-1)' }}>
+            <h3 style={{ fontFamily: fc, fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, color: 'var(--text-primary)' }}>
+              Redes sociales
+            </h3>
+            <p style={{ fontFamily: f, fontSize: 12, color: 'var(--text-tertiary)', margin: '4px 0 0' }}>
+              1 red incluida en el precio base · +15 EUR/mes por cada red adicional
+            </p>
+          </div>
+          <div style={{ padding: '18px 20px', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {([
+              { id: 'instagram', label: 'Instagram', icon: '📷', always: true },
+              { id: 'facebook', label: 'Facebook', icon: '📘', always: false },
+              { id: 'tiktok', label: 'TikTok', icon: '🎵', always: false, requiresPlan: ['pro', 'total', 'agency'] as string[] },
+            ] as const).map(({ id, label, icon, always, requiresPlan }) => {
+              const active = selectedPlatforms.includes(id);
+              const planBlocked = requiresPlan && !requiresPlan.includes(currentPlan);
+              const disabled = always || planBlocked;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => {
+                    if (disabled) return;
+                    setSelectedPlatforms(prev =>
+                      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id],
+                    );
+                  }}
+                  style={{
+                    flex: 1, minWidth: 120, padding: '14px 18px',
+                    border: `2px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                    background: active ? 'rgba(15,118,110,0.06)' : 'var(--bg)',
+                    cursor: disabled && !always ? 'not-allowed' : always ? 'default' : 'pointer',
+                    opacity: planBlocked ? 0.5 : 1,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                    textAlign: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: 20 }}>{icon}</span>
+                  <span style={{ fontFamily: f, fontSize: 13, fontWeight: active ? 700 : 500, color: active ? 'var(--accent)' : 'var(--text-primary)' }}>
+                    {label}
+                  </span>
+                  <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)' }}>
+                    {always ? 'Incluida' : planBlocked ? 'Plan Crecimiento+' : active ? '+15 EUR/mes' : 'Añadir +15 EUR/mes'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {/* Price summary */}
+          {selectedPlatforms.length > 1 && (
+            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', background: 'var(--bg-1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontFamily: f, fontSize: 12, color: 'var(--text-secondary)' }}>
+                {selectedPlatforms.length} redes seleccionadas ({selectedPlatforms.length - 1} extra)
+              </span>
+              <span style={{ fontFamily: fc, fontSize: 14, fontWeight: 800, color: 'var(--accent)' }}>
+                +{(selectedPlatforms.length - 1) * 15} EUR/mes
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Coupon for upgrade */}

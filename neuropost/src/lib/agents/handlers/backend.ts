@@ -37,7 +37,29 @@ import { indexRecipe } from '@/lib/creative-library/repository';
 
 import { registerHandler } from '../registry';
 import { loadBrandContext, requireBrandId, toHandlerResult } from '../helpers';
-import type { AgentHandler } from '../types';
+import type { AgentHandler, AgentJob } from '../types';
+
+/** Fire-and-forget cost tracking for backend agent calls (Claude API). */
+async function trackClaudeCost(job: AgentJob, action: string, model: string, tokensIn?: number, tokensOut?: number) {
+  try {
+    // Claude Sonnet pricing: $3/M input, $15/M output
+    const costIn  = (tokensIn  ?? 500) * 0.000003;
+    const costOut = (tokensOut ?? 300) * 0.000015;
+    const { createAdminClient } = await import('@/lib/supabase');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = createAdminClient() as any;
+    await db.from('provider_costs').insert({
+      agent_job_id: job.id,
+      brand_id:     job.brand_id,
+      provider:     'claude',
+      action,
+      cost_usd:     costIn + costOut,
+      tokens_input:  tokensIn ?? null,
+      tokens_output: tokensOut ?? null,
+      model,
+    });
+  } catch { /* non-blocking */ }
+}
 
 // -----------------------------------------------------------------------------
 // content:plan_edit → EditorAgent (analyzes image, returns editing plan)
@@ -65,6 +87,10 @@ const copywriterHandler: AgentHandler = async (job) => {
     const input = job.input as unknown as CopywriterInput & { _post_id?: string; _auto_pipeline?: boolean };
     const result = await runCopywriterAgent(input, ctx);
     const handlerResult = toHandlerResult('caption', result, { model: 'copywriter-agent' });
+
+    // Track cost
+    const tokens = result.metadata?.tokensUsed;
+    void trackClaudeCost(job, 'generate_caption', 'claude-sonnet-4-20250514', tokens ? Math.round(tokens * 0.4) : undefined, tokens ? Math.round(tokens * 0.6) : undefined);
 
     // Auto-pipeline: save caption to post and notify client
     if (handlerResult.type === 'ok' && input._auto_pipeline && input._post_id && result.success && result.data) {

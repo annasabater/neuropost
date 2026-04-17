@@ -21,7 +21,7 @@ import { runOnce } from '@/lib/agents/runner';
 import '@/lib/agents/handlers';
 
 export const dynamic    = 'force-dynamic';
-export const maxDuration = 60; // seconds — BullMQ worker drains for 50s, then closes gracefully
+export const maxDuration = 300; // seconds — increased from 60s to support long-running video generation (HiggsField ~5min, RunwayML ~3min)
 
 export async function GET(request: Request) {
   const auth = request.headers.get('authorization');

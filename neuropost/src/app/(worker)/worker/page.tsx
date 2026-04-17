@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Check, X, Edit2, RefreshCw, SkipForward, ChevronLeft, ChevronRight, Radio, Pause, Play, AlertCircle, Info, AlertTriangle, BarChart, Clipboard } from 'lucide-react';
+import { Check, X, Edit2, RefreshCw, SkipForward, ChevronLeft, ChevronRight, Radio, Pause, Play, AlertCircle, Info, AlertTriangle, BarChart, Clipboard, UserCheck, Upload } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createBrowserClient } from '@/lib/supabase';
 
@@ -868,170 +868,369 @@ const SEVERITY_ICONS: Record<string, typeof Info> = {
   error: AlertCircle,
 };
 
+// ── Agent status types ──────────────────────────────────────────────────────
+type AgentStatus = {
+  key: string; label: string; provider: string; category: string;
+  pending: number; running: number; claimed: number;
+  done24h: number; error24h: number; successRate24h: number; avgTimeS24h: number;
+  done7d: number; error7d: number; successRate7d: number; avgTimeS7d: number;
+  runningJobs: Array<{ id: string; brand_id: string; created_at: string }>;
+};
+type AgentAlert = { severity: string; message: string; agent: string };
+type AgentKpis = { jobsToday: number; successRate: number; pending: number; running: number; claimed: number; errorsToday: number };
+
 function AgentesTab() {
+  const [view, setView] = useState<'dashboard' | 'feed'>('dashboard');
+  const [agents, setAgents] = useState<AgentStatus[]>([]);
+  const [kpis, setKpis] = useState<AgentKpis>({ jobsToday: 0, successRate: 100, pending: 0, running: 0, claimed: 0, errorsToday: 0 });
+  const [alerts, setAlerts] = useState<AgentAlert[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [catFilter, setCatFilter] = useState<string>('all');
+  // Feed state
   const [events, setEvents] = useState<FeedEvent[]>([]);
   const [paused, setPaused] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'attention'>('all');
   const [selectedAgent, setSelectedAgent] = useState<string>('all');
-  const [selected, setSelected] = useState<FeedEvent | null>(null);
 
+  // Load agent status
   useEffect(() => {
+    fetch('/api/worker/agents/status').then(r => r.json()).then(d => {
+      setAgents(d.agents ?? []);
+      setKpis(d.kpis ?? kpis);
+      setAlerts(d.alerts ?? []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Load feed (realtime)
+  useEffect(() => {
+    if (view !== 'feed') return;
     const sb = createBrowserClient();
     let mounted = true;
-
-    (async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data } = await (sb as any)
-        .from('agent_activity_feed')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(100);
-      if (mounted && data) setEvents(data);
-    })();
-
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const channel = (sb as any)
-      .channel('feed-live')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agent_activity_feed' }, (payload: { new: FeedEvent }) => {
-        if (paused || !mounted) return;
-        setEvents((prev) => [payload.new, ...prev].slice(0, 200));
-      })
-      .subscribe();
-
+    (async () => { const { data } = await (sb as any).from('agent_activity_feed').select('*').order('created_at', { ascending: false }).limit(100); if (mounted && data) setEvents(data); })();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const channel = (sb as any).channel('feed-live').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'agent_activity_feed' }, (payload: { new: FeedEvent }) => { if (!paused && mounted) setEvents(prev => [payload.new, ...prev].slice(0, 200)); }).subscribe();
     return () => { mounted = false; channel.unsubscribe(); };
-  }, [paused]);
+  }, [view, paused]);
 
-  const filtered = events.filter((e) => {
-    if (filter === 'attention' && !e.requires_attention) return false;
-    if (selectedAgent !== 'all' && e.agent !== selectedAgent) return false;
-    return true;
-  });
+  const categories = Array.from(new Set(agents.map(a => a.category)));
+  const filteredAgents = catFilter === 'all' ? agents : agents.filter(a => a.category === catFilter);
+  const feedFiltered = selectedAgent === 'all' ? events : events.filter(e => e.agent === selectedAgent);
 
-  const agents = Array.from(new Set(events.map((e) => e.agent)));
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: C.muted }}>Cargando estado de agentes...</div>;
+
+  return (
+    <div style={{ padding: 28, color: C.text, overflowY: 'auto', maxHeight: 'calc(100vh - 220px)' }}>
+      {/* View toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 0 }}>
+          <button onClick={() => setView('dashboard')} style={{ ...chipStyle(view === 'dashboard'), borderRight: 'none' }}>Dashboard</button>
+          <button onClick={() => setView('feed')} style={chipStyle(view === 'feed')}>Feed en vivo</button>
+        </div>
+        {view === 'feed' && (
+          <button onClick={() => setPaused(!paused)} style={{ padding: '6px 14px', background: paused ? C.accent2 : C.card, color: paused ? '#fff' : C.text, border: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+            {paused ? <Play size={12} /> : <Pause size={12} />} {paused ? 'Reanudar' : 'Pausar'}
+          </button>
+        )}
+      </div>
+
+      {view === 'dashboard' ? (
+        <>
+          {/* Alerts banner */}
+          {alerts.length > 0 && (
+            <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {alerts.map((a, i) => (
+                <div key={i} style={{ padding: '10px 16px', background: a.severity === 'critical' ? '#fef2f2' : '#fffbeb', border: `1px solid ${a.severity === 'critical' ? '#fecaca' : '#fde68a'}`, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, fontFamily: f }}>
+                  <AlertTriangle size={14} style={{ color: a.severity === 'critical' ? '#dc2626' : '#d97706', flexShrink: 0 }} />
+                  <span style={{ flex: 1 }}>{a.message}</span>
+                  <span style={{ fontSize: 10, color: C.muted }}>{a.agent}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Global KPIs */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '1px', background: C.border, border: `1px solid ${C.border}`, marginBottom: 24 }}>
+            {[
+              { label: 'Jobs hoy', value: kpis.jobsToday, color: C.accent2 },
+              { label: 'Tasa éxito', value: `${kpis.successRate}%`, color: kpis.successRate < 90 ? '#dc2626' : C.accent2 },
+              { label: 'En cola', value: kpis.pending, color: kpis.pending > 20 ? '#d97706' : C.accent2 },
+              { label: 'Procesando', value: kpis.running, color: C.accent2 },
+              { label: 'Reclamados', value: kpis.claimed, color: '#6366f1' },
+              { label: 'Errores hoy', value: kpis.errorsToday, color: kpis.errorsToday > 5 ? '#dc2626' : C.muted },
+            ].map(({ label, value, color }) => (
+              <div key={label} style={{ background: C.card, padding: '16px 20px', textAlign: 'center' }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color, fontFamily: fc }}>{value}</div>
+                <div style={{ fontSize: 10, color: C.muted, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Category filter */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+            <button onClick={() => setCatFilter('all')} style={chipStyle(catFilter === 'all')}>Todos ({agents.length})</button>
+            {categories.map(cat => {
+              const count = agents.filter(a => a.category === cat).length;
+              return <button key={cat} onClick={() => setCatFilter(cat)} style={chipStyle(catFilter === cat)}>{cat} ({count})</button>;
+            })}
+          </div>
+
+          {/* Agent cards grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
+            {filteredAgents.map(a => {
+              const isActive = a.running > 0 || a.pending > 0;
+              const hasErrors = a.error24h > 0;
+              const borderColor = hasErrors ? '#fecaca' : a.running > 0 ? C.accent2 : C.border;
+              return (
+                <div key={a.key} style={{ background: C.card, border: `1px solid ${borderColor}`, borderTop: `3px solid ${borderColor}`, padding: '16px 20px' }}>
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <div style={{ width: 8, height: 8, background: a.running > 0 ? '#22c55e' : a.pending > 0 ? '#eab308' : '#d1d5db' }} />
+                    <span style={{ fontFamily: fc, fontSize: 14, fontWeight: 700, flex: 1 }}>{a.label}</span>
+                    <span style={{ fontSize: 9, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{a.category}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>Proveedor: {a.provider}</div>
+
+                  {/* Status line */}
+                  <div style={{ display: 'flex', gap: 16, marginBottom: 10, fontSize: 12 }}>
+                    <span>{isActive ? 'Activo' : 'Idle'} · <strong>{a.pending}</strong> en cola</span>
+                    {a.running > 0 && <span style={{ color: C.accent2 }}>{a.running} procesando</span>}
+                    {a.claimed > 0 && <span style={{ color: '#6366f1' }}>{a.claimed} reclamados</span>}
+                  </div>
+
+                  {/* 24h metrics */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, padding: '10px 0', borderTop: `1px solid ${C.border}`, borderBottom: `1px solid ${C.border}`, marginBottom: 10 }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: C.accent2, fontFamily: fc }}>{a.done24h}</div>
+                      <div style={{ fontSize: 9, color: C.muted }}>OK 24h</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: a.error24h > 0 ? '#dc2626' : C.muted, fontFamily: fc }}>{a.error24h}</div>
+                      <div style={{ fontSize: 9, color: C.muted }}>Fail 24h</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: a.successRate24h < 90 ? '#dc2626' : C.accent2, fontFamily: fc }}>{a.successRate24h}%</div>
+                      <div style={{ fontSize: 9, color: C.muted }}>Éxito</div>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, fontFamily: fc }}>{a.avgTimeS24h}s</div>
+                      <div style={{ fontSize: 9, color: C.muted }}>Tiempo</div>
+                    </div>
+                  </div>
+
+                  {/* 7d summary line */}
+                  <div style={{ fontSize: 11, color: C.muted }}>
+                    7d: {a.done7d} OK · {a.error7d} fail · {a.successRate7d}% · {a.avgTimeS7d}s medio
+                  </div>
+
+                  {/* Queue bar */}
+                  {a.pending > 0 && (
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ height: 4, background: C.bg1, width: '100%' }}>
+                        <div style={{ height: 4, background: a.pending > 10 ? '#d97706' : C.accent2, width: `${Math.min(100, a.pending * 10)}%`, transition: 'width 0.3s' }} />
+                      </div>
+                      <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>{a.pending}/10 capacidad estimada</div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        /* Feed view — simplified version of old AgentesTab */
+        <>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
+            <button onClick={() => setSelectedAgent('all')} style={chipStyle(selectedAgent === 'all')}>Todos</button>
+            {Array.from(new Set(events.map(e => e.agent))).map(a => (
+              <button key={a} onClick={() => setSelectedAgent(a)} style={chipStyle(selectedAgent === a)}>{a}</button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {feedFiltered.length === 0 && <div style={{ padding: 48, textAlign: 'center', color: C.muted, fontSize: 13 }}>No hay eventos</div>}
+            {feedFiltered.map(e => {
+              const Icon = SEVERITY_ICONS[e.severity];
+              const color = SEVERITY_COLORS[e.severity];
+              return (
+                <div key={e.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderLeft: `3px solid ${color}`, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <Icon size={14} style={{ color, flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</p>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2 }}>
+                      <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase' }}>{e.agent}</span>
+                      {e.brand_name && <span style={{ fontSize: 10, color: C.accent2 }}>{e.brand_name}</span>}
+                      <span style={{ fontSize: 10, color: C.muted, marginLeft: 'auto' }}>{timeAgo(e.created_at)}</span>
+                    </div>
+                  </div>
+                  {e.requires_attention && <span style={{ background: '#dc2626', color: '#fff', fontSize: 9, padding: '2px 6px', fontWeight: 700 }}>!</span>}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TAB 5: MIS TAREAS RECLAMADAS
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+type ClaimedJob = {
+  id: string; brand_id: string; agent_type: string; action: string;
+  input: Record<string, unknown>; status: string; priority: number;
+  claimed_at: string; created_at: string;
+  brands?: { name?: string };
+};
+
+function ReclamadasTab() {
+  const [jobs, setJobs] = useState<ClaimedJob[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<ClaimedJob | null>(null);
+  const [completing, setCompleting] = useState(false);
+  const [uploadUrl, setUploadUrl] = useState('');
+  const [caption, setCaption] = useState('');
+
+  useEffect(() => {
+    fetch('/api/worker/jobs/claimed').then(r => r.json()).then(d => {
+      setJobs(d.jobs ?? []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, []);
+
+  async function handleComplete() {
+    if (!selected) return;
+    setCompleting(true);
+    try {
+      const isVideo = selected.action.includes('video');
+      const body: Record<string, unknown> = {
+        kind: isVideo ? 'video' : 'image',
+        payload: { manual: true, caption },
+      };
+      if (isVideo) body.video_url = uploadUrl;
+      else body.image_url = uploadUrl;
+      if (caption) body.caption = caption;
+
+      const res = await fetch(`/api/worker/jobs/${selected.id}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        toast.success('Tarea completada y enviada al cliente');
+        setJobs(prev => prev.filter(j => j.id !== selected.id));
+        setSelected(null);
+        setUploadUrl('');
+        setCaption('');
+      } else {
+        const d = await res.json();
+        toast.error(d.error ?? 'Error');
+      }
+    } catch { toast.error('Error de conexión'); }
+    setCompleting(false);
+  }
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: C.muted }}>Cargando tareas reclamadas...</div>;
 
   return (
     <div style={{ padding: 28, color: C.text }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Radio size={22} style={{ color: C.accent2 }} /> Feed de agentes
-          </h1>
-          <p style={{ color: C.muted, fontSize: 13, margin: '4px 0 0' }}>
-            Actividad en tiempo real de todos los agentes IA
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setPaused(!paused)} style={{
-            padding: '8px 16px', background: paused ? C.accent2 : C.card, color: paused ? '#fff' : C.text,
-            border: `1px solid ${C.border}`, borderRadius: 0, cursor: 'pointer', fontSize: 12, fontWeight: 600,
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}>
-            {paused ? <Play size={13} /> : <Pause size={13} />} {paused ? 'Reanudar' : 'Pausar'}
-          </button>
-        </div>
-      </div>
+      <h2 style={{ fontFamily: fc, fontSize: 22, fontWeight: 800, textTransform: 'uppercase', marginBottom: 8 }}>
+        Mis tareas reclamadas
+      </h2>
+      <p style={{ color: C.muted, fontSize: 13, marginBottom: 24 }}>
+        Tareas que has reclamado para gestionar manualmente en vez de dejar al agente IA.
+      </p>
 
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-        <button onClick={() => setFilter('all')} style={chipStyle(filter === 'all')}>Todos ({events.length})</button>
-        <button onClick={() => setFilter('attention')} style={chipStyle(filter === 'attention')}>
-          Requiere atención ({events.filter((e) => e.requires_attention).length})
-        </button>
-        <div style={{ width: 1, background: C.border, margin: '0 4px' }} />
-        <button onClick={() => setSelectedAgent('all')} style={chipStyle(selectedAgent === 'all')}>Todos los agentes</button>
-        {agents.map((a) => (
-          <button key={a} onClick={() => setSelectedAgent(a)} style={chipStyle(selectedAgent === a)}>{a}</button>
-        ))}
-      </div>
-
-      {/* Layout: feed + detail */}
-      <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 380px' : '1fr', gap: 16 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 'calc(100vh - 220px)', overflowY: 'auto' }}>
-          {filtered.length === 0 && (
-            <div style={{ padding: 48, textAlign: 'center', color: C.muted, fontSize: 13 }}>
-              No hay eventos
-            </div>
-          )}
-          {filtered.map((e) => {
-            const Icon = SEVERITY_ICONS[e.severity];
-            const color = SEVERITY_COLORS[e.severity];
-            return (
-              <div key={e.id} onClick={() => setSelected(e)} style={{
-                background: C.card, border: `1px solid ${C.border}`, borderLeft: `3px solid ${color}`,
-                borderRadius: 0, padding: '12px 16px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 12,
-                outline: selected?.id === e.id ? `2px solid ${C.accent2}` : 'none',
-              }}>
-                <Icon size={16} style={{ color, flexShrink: 0 }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {e.title}
-                  </p>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 2 }}>
-                    <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                      {e.agent}
-                    </span>
-                    {e.brand_name && (
-                      <span style={{ fontSize: 10, color: C.accent2 }}>{e.brand_name}</span>
-                    )}
-                    <span style={{ fontSize: 10, color: C.muted, marginLeft: 'auto' }}>
-                      {timeAgo(e.created_at)}
-                    </span>
+      {jobs.length === 0 ? (
+        <div style={{ padding: 48, textAlign: 'center', border: `1px solid ${C.border}`, background: C.card }}>
+          <UserCheck size={32} style={{ color: C.muted, marginBottom: 12 }} />
+          <p style={{ color: C.muted, fontSize: 14 }}>No tienes tareas reclamadas</p>
+          <p style={{ color: C.muted, fontSize: 12 }}>Ve a la cola de agentes y reclama una tarea pending para gestionarla manualmente.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 400px' : '1fr', gap: 20 }}>
+          {/* Job list */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {jobs.map(j => {
+              const brandName = (j.brands as { name?: string } | undefined)?.name ?? 'Cliente';
+              const actionLabel = j.action.replace(/_/g, ' ');
+              return (
+                <button key={j.id} type="button" onClick={() => { setSelected(j); setUploadUrl(''); setCaption(''); }} style={{
+                  width: '100%', textAlign: 'left', padding: '14px 18px',
+                  background: selected?.id === j.id ? 'rgba(15,118,110,0.06)' : C.card,
+                  border: `1px solid ${selected?.id === j.id ? C.accent2 : C.border}`,
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14,
+                }}>
+                  <div style={{ width: 8, height: 8, background: '#6366f1' }} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 2 }}>{brandName}</div>
+                    <div style={{ fontSize: 12, color: C.muted }}>{j.agent_type}:{actionLabel}</div>
                   </div>
-                </div>
-                {e.thumbnail_url && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={e.thumbnail_url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 0 }} />
-                )}
-                {e.requires_attention && (
-                  <span style={{ background: C.red, color: '#fff', fontSize: 9, padding: '2px 6px', borderRadius: 0, fontWeight: 700 }}>
-                    !
-                  </span>
-                )}
-              </div>
-            );
-          })}
-        </div>
+                  <div style={{ fontSize: 11, color: C.muted }}>{timeAgo(j.claimed_at)}</div>
+                </button>
+              );
+            })}
+          </div>
 
-        {/* Detail panel */}
-        {selected && (
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, padding: 20, height: 'fit-content', position: 'sticky', top: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Detalle</h3>
-              <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', color: C.muted, cursor: 'pointer' }}>
-                ✕
+          {/* Detail + completion form */}
+          {selected && (
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, padding: 24, height: 'fit-content', position: 'sticky', top: 20 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, marginBottom: 16 }}>Completar tarea</h3>
+
+              {/* Job context */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Agente</div>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{selected.agent_type}:{selected.action}</div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4 }}>Descripción del cliente</div>
+                <div style={{ fontSize: 13 }}>
+                  {String((selected.input as Record<string, unknown>)?.userPrompt ?? (selected.input as Record<string, unknown>)?.global_description ?? (selected.input as Record<string, unknown>)?.prompt ?? '(sin descripción)')}
+                </div>
+              </div>
+
+              {/* Upload URL */}
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+                  URL del archivo ({selected.action.includes('video') ? 'vídeo' : 'imagen'})
+                </div>
+                <input
+                  value={uploadUrl} onChange={e => setUploadUrl(e.target.value)}
+                  placeholder="https://... (URL del archivo subido)"
+                  style={{ width: '100%', padding: '10px 12px', border: `1px solid ${C.border}`, fontSize: 13, boxSizing: 'border-box', outline: 'none' }}
+                />
+              </div>
+
+              {/* Caption */}
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>Caption (opcional)</div>
+                <textarea
+                  value={caption} onChange={e => setCaption(e.target.value)}
+                  placeholder="Escribe el caption para el post..."
+                  rows={3}
+                  style={{ width: '100%', padding: '10px 12px', border: `1px solid ${C.border}`, fontSize: 13, resize: 'vertical', boxSizing: 'border-box', outline: 'none' }}
+                />
+              </div>
+
+              {/* Actions */}
+              <button
+                onClick={handleComplete}
+                disabled={completing || !uploadUrl.trim()}
+                style={{
+                  width: '100%', padding: '14px', background: uploadUrl.trim() ? C.accent : C.bg1,
+                  color: uploadUrl.trim() ? '#fff' : C.muted, border: 'none', cursor: uploadUrl.trim() ? 'pointer' : 'default',
+                  fontFamily: fc, fontSize: 14, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em',
+                  opacity: completing ? 0.6 : 1,
+                }}
+              >
+                {completing ? 'Enviando...' : 'Completar y enviar al cliente'}
               </button>
             </div>
-            <div style={{ marginBottom: 12 }}>
-              <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Agente</span>
-              <p style={{ fontSize: 13, fontWeight: 600, margin: '2px 0 0' }}>{selected.agent}</p>
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Evento</span>
-              <p style={{ fontSize: 13, margin: '2px 0 0' }}>{selected.title}</p>
-            </div>
-            {selected.brand_name && (
-              <div style={{ marginBottom: 12 }}>
-                <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Brand</span>
-                <p style={{ fontSize: 13, margin: '2px 0 0', color: C.accent2 }}>{selected.brand_name}</p>
-              </div>
-            )}
-            <div style={{ marginBottom: 12 }}>
-              <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Detalles</span>
-              <pre style={{ fontSize: 11, background: C.bg1, padding: 10, borderRadius: 0, marginTop: 4, overflow: 'auto', maxHeight: 240 }}>
-                {JSON.stringify(selected.details, null, 2)}
-              </pre>
-            </div>
-            <div>
-              <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Hora</span>
-              <p style={{ fontSize: 12, margin: '2px 0 0', color: C.muted }}>
-                {new Date(selected.created_at).toLocaleString('es-ES')}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1075,14 +1274,15 @@ function chipStyle(active: boolean): React.CSSProperties {
 // MAIN PAGE COMPONENT
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-type OperacionesTab = 'overview' | 'cola' | 'validacion' | 'agentes';
+type OperacionesTab = 'overview' | 'cola' | 'validacion' | 'agentes' | 'reclamadas';
 type IconProps = { size?: number; style?: React.CSSProperties };
 
 const OPERACIONES_TABS: { key: OperacionesTab; title: string; desc: string; icon: React.ComponentType<IconProps> }[] = [
   { key: 'overview', title: 'Estadísticas', desc: 'Resumen diario', icon: BarChart },
   { key: 'cola', title: 'Cola', desc: 'Validar contenido', icon: Clipboard },
   { key: 'validacion', title: 'Validación', desc: 'Revisar propuestas', icon: Check },
-  { key: 'agentes', title: 'Agentes', desc: 'Feed en vivo', icon: Radio },
+  { key: 'agentes', title: 'Agentes', desc: 'Observabilidad IA', icon: Radio },
+  { key: 'reclamadas', title: 'Mis tareas', desc: 'Intervención manual', icon: UserCheck },
 ];
 
 export default function WorkerOperacionesPage() {
@@ -1105,7 +1305,7 @@ export default function WorkerOperacionesPage() {
       </div>
 
       {/* Tab selector — Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: C.border, border: `1px solid ${C.border}`, margin: '40px', marginBottom: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: C.border, border: `1px solid ${C.border}`, margin: '40px', marginBottom: 0 }}>
         {OPERACIONES_TABS.map((s) => {
           const active = tab === s.key;
           const Icon = s.icon;
@@ -1146,6 +1346,7 @@ export default function WorkerOperacionesPage() {
         {tab === 'cola' && <ColaTab />}
         {tab === 'validacion' && <ValidacionTab />}
         {tab === 'agentes' && <AgentesTab />}
+        {tab === 'reclamadas' && <ReclamadasTab />}
       </div>
     </div>
   );

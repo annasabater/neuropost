@@ -6,6 +6,8 @@ import { ArrowLeft, Edit2, Trash2, Calendar, RefreshCw, AlertTriangle, TrendingU
 import Link from 'next/link';
 import { VersionsPanel } from '@/components/posts/VersionsPanel';
 import { AssetVersions } from '@/components/posts/AssetVersions';
+import { StatusProgressBar } from '@/components/posts/StatusProgressBar';
+import { TikTokDownload } from '@/components/posts/TikTokDownload';
 import { useAppStore } from '@/store/useAppStore';
 import type { Post, PostVersion } from '@/types';
 import toast from 'react-hot-toast';
@@ -577,6 +579,9 @@ export default function PostDetailPage() {
           padding: '20px 28px', borderBottom: '1px solid var(--border)',
           display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '18px 24px',
         }}>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <StatusProgressBar currentStatus={post.status} hasError={post.status === 'failed' || post.status === 'cancelled'} />
+          </div>
           <div>
             <p style={labelStyle}>Estado</p>
             <span className={`status-badge status-${post.status}`}>{STATUS_LABEL[post.status] ?? post.status}</span>
@@ -730,6 +735,18 @@ export default function PostDetailPage() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* TikTok manual publish helper */}
+        {Array.isArray(post.platform) && post.platform.includes('tiktok') && (post.format === 'video' || post.format === 'reel') && (post.video_url || post.image_url) && (
+          <div style={{ padding: '20px 28px', borderBottom: '1px solid var(--border)' }}>
+            <TikTokDownload
+              videoUrl={post.video_url ?? post.image_url!}
+              caption={post.caption}
+              hashtags={post.hashtags}
+              postId={post.id}
+            />
           </div>
         )}
 

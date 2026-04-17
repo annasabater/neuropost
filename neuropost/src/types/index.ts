@@ -33,7 +33,8 @@ export type SubscriptionPlan = 'starter' | 'pro' | 'total' | 'agency';
 export type VisualStyle     = 'creative' | 'elegant' | 'warm' | 'dynamic' | 'editorial' | 'dark' | 'fresh' | 'vintage';
 export type PostStatus      = 'request' | 'draft' | 'generated' | 'pending' | 'approved' | 'scheduled' | 'published' | 'failed' | 'cancelled' | 'needs_human_review';
 export type CategorySource  = 'template' | 'user' | 'ai_suggested';
-export type PostFormat      = 'image' | 'reel' | 'carousel' | 'story';
+export type PostFormat      = 'image' | 'video' | 'reel' | 'carousel' | 'story';
+export type SourceType      = 'photos' | 'video' | 'none';
 export type CommentStatus   = 'pending' | 'replied' | 'ignored' | 'escalated';
 export type Sentiment       = 'positive' | 'neutral' | 'negative';
 export type NotificationType = 'approval_needed' | 'published' | 'failed' | 'comment' | 'limit_reached' | 'meta_connected' | 'token_expired' | 'payment_failed' | 'plan_activated' | 'team_invite';
@@ -157,6 +158,8 @@ export interface Brand {
   stories_this_week:      number;
   videos_this_week:       number;
   token_refreshed_at:     string | null;
+  /** Platforms the client has subscribed to (paid for). Defaults to ['instagram']. */
+  subscribed_platforms:   Platform[];
   created_at:             string;
 }
 
@@ -224,6 +227,12 @@ export interface Post {
   is_story:           boolean;
   story_type:         StoryType | null;
   created_at:         string;
+  /** What the client uploaded: photos, a video, or nothing. */
+  source_type:        SourceType;
+  /** URL of the generated or uploaded video (for video/reel posts). */
+  video_url:          string | null;
+  /** Desired video duration in seconds (only for video/reel format). */
+  video_duration:     number | null;
   /** ISO date of the Monday of the week this post was created (UTC). */
   week_start:         string | null;
   /** Number of photos in this post (1 for single photo, N for carousel). */
@@ -754,12 +763,14 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, {
   autopilot:            boolean;  // Auto-publish approved proposals
   inspirationAccess:    boolean;  // Access to inspiration library
   carouselMaxPhotos:    number;   // Max photos per carousel
+  // ── Platform access ──
+  allowedPlatforms:     Platform[];  // Platforms available for this plan tier
+  tiktokAvailable:      boolean;     // Whether TikTok can be subscribed
 }> = {
-  // Values aligned with the pricing page (Starter 2, Pro 4+2, Total 20+10).
-  starter: { postsPerMonth: Infinity, postsPerWeek: 2,  storiesPerWeek: 0,  brands: 1,  platforms: 2, autoPublish: false, competitorAgent: false, trendsAgent: false, autoComments: false, autoProposalsPerWeek: 3,  videosPerWeek: 0,  requestsPerMonth: 2,        selfServiceActions: 10,       autopilot: false, inspirationAccess: true, carouselMaxPhotos: 3  },
-  pro:     { postsPerMonth: Infinity, postsPerWeek: 4,  storiesPerWeek: 3,  brands: 1,  platforms: 2, autoPublish: true,  competitorAgent: false, trendsAgent: false, autoComments: false, autoProposalsPerWeek: 6,  videosPerWeek: 2,  requestsPerMonth: 10,       selfServiceActions: 50,       autopilot: false, inspirationAccess: true, carouselMaxPhotos: 8  },
-  total:   { postsPerMonth: Infinity, postsPerWeek: 20, storiesPerWeek: 14, brands: 1,  platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true,  autoProposalsPerWeek: 30, videosPerWeek: 10, requestsPerMonth: Infinity, selfServiceActions: Infinity, autopilot: true,  inspirationAccess: true, carouselMaxPhotos: 20 },
-  agency:  { postsPerMonth: Infinity, postsPerWeek: 20, storiesPerWeek: 14, brands: 10, platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true,  autoProposalsPerWeek: 30, videosPerWeek: 10, requestsPerMonth: Infinity, selfServiceActions: Infinity, autopilot: true,  inspirationAccess: true, carouselMaxPhotos: 20 },
+  starter: { postsPerMonth: Infinity, postsPerWeek: 2,  storiesPerWeek: 0,  brands: 1,  platforms: 2, autoPublish: false, competitorAgent: false, trendsAgent: false, autoComments: false, autoProposalsPerWeek: 3,  videosPerWeek: 0,  requestsPerMonth: 2,        selfServiceActions: 10,       autopilot: false, inspirationAccess: true, carouselMaxPhotos: 3,  allowedPlatforms: ['instagram', 'facebook'],              tiktokAvailable: false },
+  pro:     { postsPerMonth: Infinity, postsPerWeek: 4,  storiesPerWeek: 3,  brands: 1,  platforms: 2, autoPublish: true,  competitorAgent: false, trendsAgent: false, autoComments: false, autoProposalsPerWeek: 6,  videosPerWeek: 2,  requestsPerMonth: 10,       selfServiceActions: 50,       autopilot: false, inspirationAccess: true, carouselMaxPhotos: 8,  allowedPlatforms: ['instagram', 'facebook', 'tiktok'],    tiktokAvailable: true  },
+  total:   { postsPerMonth: Infinity, postsPerWeek: 20, storiesPerWeek: 14, brands: 1,  platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true,  autoProposalsPerWeek: 30, videosPerWeek: 10, requestsPerMonth: Infinity, selfServiceActions: Infinity, autopilot: true,  inspirationAccess: true, carouselMaxPhotos: 20, allowedPlatforms: ['instagram', 'facebook', 'tiktok'],    tiktokAvailable: true  },
+  agency:  { postsPerMonth: Infinity, postsPerWeek: 20, storiesPerWeek: 14, brands: 10, platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true,  autoProposalsPerWeek: 30, videosPerWeek: 10, requestsPerMonth: Infinity, selfServiceActions: Infinity, autopilot: true,  inspirationAccess: true, carouselMaxPhotos: 20, allowedPlatforms: ['instagram', 'facebook', 'tiktok'],    tiktokAvailable: true  },
 };
 
 /** UI-facing metadata per plan.
@@ -779,13 +790,14 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, {
 export const PLAN_META: Record<SubscriptionPlan, {
   label:                    string;
   price:                    number;
+  extraPlatformPrice:       number;
   tagline:                  string;
   socialAccountsIncluded:   number;
 }> = {
-  starter: { label: 'Basic',   price: 21,  tagline: '2 posts de foto por semana · Generación con IA',            socialAccountsIncluded: 1 },
-  pro:     { label: 'Pro',     price: 63,  tagline: '4 fotos + 2 vídeos por semana · Soporte prioritario',        socialAccountsIncluded: 1 },
-  total:   { label: 'Premium', price: 133, tagline: 'Hasta 20 fotos + 10 vídeos por semana · 24h',                socialAccountsIncluded: 1 },
-  agency:  { label: 'Premium', price: 159, tagline: 'Todo de Premium · Hasta 10 marcas (grandfathered)',          socialAccountsIncluded: 1 },
+  starter: { label: 'Esencial',      price: 21,  extraPlatformPrice: 15, tagline: '2 posts de foto por semana · Generación con IA',            socialAccountsIncluded: 1 },
+  pro:     { label: 'Crecimiento',   price: 63,  extraPlatformPrice: 15, tagline: '4 fotos + 2 vídeos por semana · Soporte prioritario',        socialAccountsIncluded: 1 },
+  total:   { label: 'Profesional',   price: 133, extraPlatformPrice: 15, tagline: 'Hasta 20 fotos + 10 vídeos por semana · 24h',                socialAccountsIncluded: 1 },
+  agency:  { label: 'Profesional',   price: 159, extraPlatformPrice: 15, tagline: 'Todo de Profesional · Hasta 10 marcas (grandfathered)',       socialAccountsIncluded: 1 },
 };
 
 /** Add-on pricing. One extra connected social account = €15/mo each. */

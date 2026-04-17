@@ -796,7 +796,7 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
         <div className="preview-tabs">
           {platforms.map(p => (
             <button key={p} className={`preview-tab ${previewPlatform === p ? 'active' : ''}`} onClick={() => setPreviewPlatform(p)}>
-              {p === 'instagram' ? 'IG' : 'FB'} {p}
+              {{ instagram: 'IG', facebook: 'FB', tiktok: 'TK' }[p] ?? p.toUpperCase()} {p}
             </button>
           ))}
         </div>

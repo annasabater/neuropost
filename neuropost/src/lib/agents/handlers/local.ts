@@ -33,7 +33,27 @@ import { generateRetentionEmail } from '@/agents/ChurnAgent';
 
 import { registerHandler } from '../registry';
 import { requireBrandId } from '../helpers';
-import type { AgentHandler, HandlerResult } from '../types';
+import type { AgentHandler, AgentJob, HandlerResult } from '../types';
+
+/** Fire-and-forget cost tracking for external provider calls. */
+async function trackCost(job: AgentJob, provider: string, action: string, cost: number, extra?: { model?: string; duration_seconds?: number; tokens_input?: number; tokens_output?: number }) {
+  try {
+    const { createAdminClient } = await import('@/lib/supabase');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = createAdminClient() as any;
+    await db.from('provider_costs').insert({
+      agent_job_id: job.id,
+      brand_id:     job.brand_id,
+      provider,
+      action,
+      cost_usd:     cost,
+      model:        extra?.model ?? null,
+      duration_seconds: extra?.duration_seconds ?? null,
+      tokens_input:  extra?.tokens_input ?? null,
+      tokens_output: extra?.tokens_output ?? null,
+    });
+  } catch { /* non-blocking */ }
+}
 
 /**
  * Shared wrapper: runs a plain-return agent function and maps thrown errors
@@ -92,6 +112,12 @@ const imageGenerateHandler: AgentHandler = async (job) => {
     },
   );
 
+  // Track cost (NanoBanana ~$0.04 per image generation)
+  if (result.type === 'ok') {
+    const genMs = (result.outputs?.[0]?.payload as Record<string, unknown>)?.generationMs as number | undefined;
+    void trackCost(job, 'nanobanana', 'generate_image', 0.04, { model: 'nanobanana-v2', duration_seconds: genMs ? genMs / 1000 : undefined });
+  }
+
   // If this job was triggered for a specific post, auto-queue validate_image
   if (result.type === 'ok' && _post_id && job.brand_id) {
     const generatedUrl = result.outputs?.[0]?.preview_url;
@@ -127,7 +153,7 @@ const imageGenerateHandler: AgentHandler = async (job) => {
 // -----------------------------------------------------------------------------
 const videoGenerateHandler: AgentHandler = async (job) => {
   const input = { ...(job.input as unknown as VideoGenerateInput), brandId: job.brand_id ?? undefined };
-  return runPlain(
+  const result = await runPlain(
     () => runVideoGenerateAgent(input),
     'video',
     {
@@ -135,6 +161,11 @@ const videoGenerateHandler: AgentHandler = async (job) => {
       preview_url: (out) => out.videoUrl as string,
     },
   );
+  if (result.type === 'ok') {
+    const genMs = (result.outputs?.[0]?.payload as Record<string, unknown>)?.generationMs as number | undefined;
+    void trackCost(job, 'runway', 'generate_video', 0.25, { model: 'runway-gen4-turbo', duration_seconds: genMs ? genMs / 1000 : undefined });
+  }
+  return result;
 };
 
 // -----------------------------------------------------------------------------
@@ -148,7 +179,7 @@ const higgsPhotoHandler: AgentHandler = async (job) => {
     format:  'photo',
     brandId: job.brand_id ?? undefined,
   };
-  return runPlain(
+  const result = await runPlain(
     () => runHiggsFieldAgent(input),
     'image',
     {
@@ -156,6 +187,11 @@ const higgsPhotoHandler: AgentHandler = async (job) => {
       preview_url: (out) => out.mediaUrl as string,
     },
   );
+  if (result.type === 'ok') {
+    const genMs = (result.outputs?.[0]?.payload as Record<string, unknown>)?.generationMs as number | undefined;
+    void trackCost(job, 'higgsfield', 'generate_human_photo', 0.08, { model: 'higgsfield-photo', duration_seconds: genMs ? genMs / 1000 : undefined });
+  }
+  return result;
 };
 
 // -----------------------------------------------------------------------------
@@ -169,7 +205,7 @@ const higgsVideoHandler: AgentHandler = async (job) => {
     format:  'video',
     brandId: job.brand_id ?? undefined,
   };
-  return runPlain(
+  const result = await runPlain(
     () => runHiggsFieldAgent(input),
     'video',
     {
@@ -177,6 +213,11 @@ const higgsVideoHandler: AgentHandler = async (job) => {
       preview_url: (out) => out.mediaUrl as string,
     },
   );
+  if (result.type === 'ok') {
+    const genMs = (result.outputs?.[0]?.payload as Record<string, unknown>)?.generationMs as number | undefined;
+    void trackCost(job, 'higgsfield', 'generate_human_video', 0.30, { model: 'higgsfield-video', duration_seconds: genMs ? genMs / 1000 : undefined });
+  }
+  return result;
 };
 
 // -----------------------------------------------------------------------------

@@ -10,7 +10,8 @@ import ChangelogModal from '@/components/layout/ChangelogModal';
 import { WeeklyProposals } from '@/components/dashboard/WeeklyProposals';
 
 import { getUpcomingDatesForBrand } from '@/agents/SeasonalAgent';
-import { PLAN_LIMITS } from '@/types';
+import { PLAN_LIMITS, PLAN_META } from '@/types';
+import type { SubscriptionPlan } from '@/types';
 import InspirationTeaser from '@/components/inspiration/InspirationTeaser';
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
@@ -140,7 +141,7 @@ export default async function DashboardPage() {
             { label: t('metrics.published'), value: String(publishedThisMonth) },
             { label: t('metrics.scheduled'), value: String(scheduled) },
             { label: t('metrics.pending'),   value: String(pending) },
-            { label: t('metrics.plan'),      value: brand.plan, capitalize: true },
+            { label: t('metrics.plan'),      value: PLAN_META[brand.plan as SubscriptionPlan]?.label ?? brand.plan, capitalize: false },
           ].map(({ label, value, capitalize }) => (
             <div key={label} style={{
               background: 'var(--bg)', padding: '28px 24px',
@@ -170,43 +171,55 @@ export default async function DashboardPage() {
 
       <div className="dashboard-inner">
 
-      {/* ── Plan usage ── */}
-      {!isUnlimited && (
-        <div style={{
-          border: '1px solid var(--border)', padding: '16px 20px', marginBottom: 48,
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontFamily: f, fontWeight: 600, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>
-              {t('sections.planUsage')}
-            </span>
-            <span style={{ fontSize: 13, color: pct >= 80 ? 'var(--error)' : 'var(--text-secondary)', fontWeight: 500, fontFamily: f }}>
-              {publishedThisMonth} / {planLimit}
-            </span>
-          </div>
-          <div style={{ height: 2, background: 'var(--bg-2)', overflow: 'hidden' }}>
-            <div style={{
-              height: '100%', width: `${pct}%`,
-              background: pct >= 100 ? 'var(--error)' : pct >= 80 ? 'var(--warning)' : 'var(--text-primary)',
-              transition: 'width 0.4s ease',
-            }} />
-          </div>
-          {pct >= 80 && (
-            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: 12, color: 'var(--error)', fontWeight: 500, fontFamily: f }}>
-                {pct >= 100 ? t('planLimit.limitReached') : t('planLimit.nearLimit', { remaining: planLimit - publishedThisMonth })}
-              </p>
-              <Link href="/settings/plan" style={{
-                fontSize: 12, fontFamily: fc, fontWeight: 700,
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-                color: 'var(--text-primary)', textDecoration: 'underline',
-                textUnderlineOffset: 3,
-              }}>
-                {t('planLimit.upgrade')}
-              </Link>
+      {/* ── Plan usage — weekly counters ── */}
+      {(() => {
+        const postsWeek = brand.posts_this_week ?? 0;
+        const postsLimit = limits.postsPerWeek;
+        const postsPct = postsLimit === Infinity ? 0 : Math.min(100, Math.round((postsWeek / postsLimit) * 100));
+        const videosWeek = brand.videos_this_week ?? 0;
+        const videosLimit = limits.videosPerWeek;
+        const videosPct = videosLimit === 0 ? 0 : Math.min(100, Math.round((videosWeek / videosLimit) * 100));
+        const showVideos = videosLimit > 0;
+
+        return (
+          <div style={{
+            border: '1px solid var(--border)', marginBottom: 48,
+            display: 'grid', gridTemplateColumns: showVideos ? '1fr 1fr' : '1fr', gap: '1px', background: 'var(--border)',
+          }}>
+            {/* Posts this week */}
+            <div style={{ padding: '16px 20px', background: 'var(--bg)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ fontFamily: f, fontWeight: 600, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>
+                  Posts esta semana
+                </span>
+                <span style={{ fontSize: 13, color: postsPct >= 80 ? 'var(--error)' : 'var(--text-secondary)', fontWeight: 500, fontFamily: f }}>
+                  {postsWeek} / {postsLimit === Infinity ? '∞' : postsLimit}
+                </span>
+              </div>
+              <div style={{ height: 3, background: 'var(--bg-2)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${postsPct}%`, background: postsPct >= 100 ? 'var(--error)' : postsPct >= 80 ? 'var(--warning)' : 'var(--accent)', transition: 'width 0.4s ease' }} />
+              </div>
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Videos this week */}
+            {showVideos && (
+              <div style={{ padding: '16px 20px', background: 'var(--bg)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontFamily: f, fontWeight: 600, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>
+                    Vídeos esta semana
+                  </span>
+                  <span style={{ fontSize: 13, color: videosPct >= 80 ? 'var(--error)' : 'var(--text-secondary)', fontWeight: 500, fontFamily: f }}>
+                    {videosWeek} / {videosLimit}
+                  </span>
+                </div>
+                <div style={{ height: 3, background: 'var(--bg-2)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${videosPct}%`, background: videosPct >= 100 ? 'var(--error)' : videosPct >= 80 ? 'var(--warning)' : 'var(--accent)', transition: 'width 0.4s ease' }} />
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ══════════════════════════════════════════════════════════════════════
            3 MODES — Content Hub

@@ -14,7 +14,7 @@ const HIGGSFIELD_BASE = 'https://cloud.higgsfield.ai';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type HiggsAspectRatio = '1:1' | '9:16' | '16:9' | '4:5';
-export type HiggsDuration    = 3 | 5 | 8;
+export type HiggsDuration    = 3 | 5 | 6 | 8 | 10 | 15 | 20 | 30;
 
 export interface HiggsImageParams {
   prompt:            string;

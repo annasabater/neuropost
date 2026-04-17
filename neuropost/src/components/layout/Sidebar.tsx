@@ -12,6 +12,8 @@ import {
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { createBrowserClient } from '@/lib/supabase';
+import { PLAN_META } from '@/types';
+import type { SubscriptionPlan } from '@/types';
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
@@ -131,8 +133,8 @@ export function Sidebar() {
             <p style={{ fontFamily: f, fontSize: 12, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
               {brand?.name ?? 'Mi negocio'}
             </p>
-            <p style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', margin: 0, textTransform: 'capitalize' }}>
-              {brand?.plan ?? 'starter'}
+            <p style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {PLAN_META[(brand?.plan ?? 'starter') as SubscriptionPlan]?.label ?? 'Esencial'}
             </p>
           </div>
           <ChevronDown size={12} style={{ color: '#9ca3af', flexShrink: 0, transform: profileOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />

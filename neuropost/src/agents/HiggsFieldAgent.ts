@@ -34,7 +34,7 @@ export interface HiggsFieldInput {
   /** URL de imagen de referencia (opcional — para animar o mantener coherencia). */
   referenceImageUrl?: string;
   /** Duración del vídeo en segundos (sólo para format=video). */
-  durationSec?:      3 | 5 | 8;
+  durationSec?:      number;
   brandId?:          string;
   colors?:           BrandColors | null;
   /** Palabras/conceptos que NO deben aparecer en el prompt ni en el output. */

@@ -28,6 +28,7 @@ import {
 } from './queue';
 import { lookupHandler } from './registry';
 import type { AgentJob, HandlerResult } from './types';
+import { logAgentAction } from '@/lib/audit';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -44,8 +45,43 @@ export interface RunnerResult {
 }
 
 const DEFAULT_BATCH_SIZE   = 10;
-const DRAIN_DURATION_MS    = 50_000; // run worker for 50s (cron maxDuration = 60s)
+const DRAIN_DURATION_MS    = 290_000; // run worker for 290s (cron maxDuration = 300s, supports long video generation)
 const HANDLER_TIMEOUT_MS   = 45_000;
+
+// Long-running actions that need extended timeout (polling-based providers).
+// HiggsField: image ~2min, video ~5min. RunwayML: ~2-3min.
+const LONG_TIMEOUT_ACTIONS = new Set([
+  'generate_human_photo',
+  'generate_human_video',
+  'generate_video',
+]);
+const LONG_HANDLER_TIMEOUT_MS = 330_000; // 5.5 minutes
+
+/** Determine the timeout for a given job based on its action. */
+function timeoutForJob(job: AgentJob): number {
+  return LONG_TIMEOUT_ACTIONS.has(job.action) ? LONG_HANDLER_TIMEOUT_MS : HANDLER_TIMEOUT_MS;
+}
+
+/** Fire-and-forget worker notification on job state transitions. */
+async function notifyJobEvent(job: AgentJob, event: 'completed' | 'failed' | 'needs_review', detail?: string) {
+  if (!job.brand_id) return;
+  try {
+    const db: DB = createAdminClient();
+    const label = `${job.agent_type}:${job.action}`;
+    const msgs: Record<string, string> = {
+      completed:    `${label} completado para tu cliente`,
+      failed:       `${label} falló: ${detail ?? 'error desconocido'}`,
+      needs_review: `${label} necesita revisión humana: ${detail ?? ''}`,
+    };
+    await db.from('worker_notifications').insert({
+      type:       event === 'failed' ? 'agent_error' : event === 'needs_review' ? 'needs_review' : 'agent_done',
+      message:    msgs[event] ?? label,
+      brand_id:   job.brand_id,
+      read:       false,
+      metadata:   { job_id: job.id, agent: label, event },
+    });
+  } catch { /* non-blocking */ }
+}
 
 // ─── Stats accumulator (shared across parallel BullMQ jobs in one cron tick) ─
 
@@ -85,7 +121,7 @@ async function processJob(job: AgentJob): Promise<void> {
   try {
     result = await withTimeout(
       handler(job),
-      HANDLER_TIMEOUT_MS,
+      timeoutForJob(job),
       `${job.agent_type}:${job.action}`,
     );
   } catch (err) {
@@ -107,12 +143,16 @@ async function processJob(job: AgentJob): Promise<void> {
         if (result.outputs?.length) await saveOutputs(job, result.outputs);
         if (result.sub_jobs?.length) await queueSubJobs(job, result.sub_jobs);
         await finalizeJob(job.id, 'done');
+        void notifyJobEvent(job, 'completed');
+        void logAgentAction(`${job.agent_type}:${job.action}`, 'generate', 'agent_job',
+          `${job.agent_type}:${job.action} completado`, { resource_id: job.id, brand_id: job.brand_id ?? undefined });
         _stats.done++;
         break;
       }
       case 'needs_review': {
         if (result.outputs?.length) await saveOutputs(job, result.outputs);
         await finalizeJob(job.id, 'needs_review', result.reason);
+        void notifyJobEvent(job, 'needs_review', result.reason);
         _stats.needsReview++;
         break;
       }
@@ -129,6 +169,10 @@ async function processJob(job: AgentJob): Promise<void> {
       }
       case 'fail': {
         await finalizeJob(job.id, 'error', result.error);
+        void notifyJobEvent(job, 'failed', result.error);
+        void logAgentAction(`${job.agent_type}:${job.action}`, 'update', 'agent_job',
+          `${job.agent_type}:${job.action} falló: ${result.error?.slice(0, 100)}`,
+          { resource_id: job.id, brand_id: job.brand_id ?? undefined, severity: 'warning' });
         _stats.errored++;
         throw new Error(result.error); // BullMQ marks job as failed
       }
@@ -161,8 +205,8 @@ async function bullProcessor(bullJob: BullJob<AgentBullJob>): Promise<void> {
   }
   const job = row as AgentJob;
 
-  // Skip jobs already processed by another runner instance
-  if (job.status === 'done' || job.status === 'error' || job.status === 'cancelled') {
+  // Skip jobs already processed by another runner instance or claimed manually
+  if (job.status === 'done' || job.status === 'error' || job.status === 'cancelled' || job.status === 'claimed') {
     return;
   }
 

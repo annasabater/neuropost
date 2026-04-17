@@ -3,8 +3,11 @@
 import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { X, Edit2, Save, Send, MessageCircle, LifeBuoy, BookOpen, Sparkles, Plus, Flag, Upload, Share2 } from 'lucide-react';
+import { X, Edit2, Save, Send, MessageCircle, LifeBuoy, BookOpen, Sparkles, Plus, Flag, Upload, Share2, Settings, BarChart3 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { StatusProgressBar } from '@/components/posts/StatusProgressBar';
+import { PLAN_META } from '@/types';
+import type { SubscriptionPlan } from '@/types';
 
 const C = {
   bg: '#ffffff',
@@ -98,7 +101,7 @@ const REQUEST_STATUS: Record<string, { label: string; color: string }> = {
   rejected:    { label: 'Rechazada',   color: '#6b7280' },
 };
 
-const TABS = ['Resumen', 'Contenido', 'Comunicaciones', 'Actividad', 'Notas'];
+const TABS = ['Resumen', 'Contenido', 'Solicitudes', 'Comunicación', 'Config', 'Analytics'];
 const CONTENT_STATES = [
   { id: 'preparing', label: 'En preparación', icon: '📋' },
   { id: 'pending', label: 'En pendiente', icon: '⏳' },
@@ -608,8 +611,9 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
               {brand.name}
             </h1>
             <p style={{ fontSize: 14, color: C.muted, margin: 0, marginBottom: 12, fontFamily: f }}>
-              Plan {String(brand.plan).toUpperCase()}
+              Plan <strong style={{ color: C.accent }}>{PLAN_META[brand.plan as SubscriptionPlan]?.label ?? brand.plan}</strong>
               {brand.ig_username && ` · @${brand.ig_username}`}
+              {brand.created_at && ` · Desde ${new Date(brand.created_at).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' })}`}
             </p>
 
             {/* CONTACTO */}
@@ -1006,8 +1010,46 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
         </div>
       )}
 
-      {/* TAB 2: COMUNICACIONES */}
+      {/* TAB 2: SOLICITUDES */}
       {tab === 2 && (
+        <div>
+          <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 16, fontFamily: fc, textTransform: 'uppercase', color: C.text }}>
+            Solicitudes del cliente
+          </h3>
+          {requests.length === 0 ? (
+            <div style={{ padding: 32, textAlign: 'center', border: `1px solid ${C.border}`, background: C.card, color: C.muted, fontSize: 13 }}>
+              Sin solicitudes
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {requests.map((req) => {
+                const st = REQUEST_STATUS[req.status] ?? { label: req.status, color: C.muted };
+                return (
+                  <div key={req.id} style={{ border: `1px solid ${C.border}`, background: C.card, padding: '16px 20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                      <div>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: C.text, fontFamily: f }}>{req.title ?? 'Recreación'}</span>
+                        <span style={{ marginLeft: 10, fontSize: 10, padding: '2px 8px', background: `${st.color}18`, color: st.color, fontWeight: 700, textTransform: 'uppercase' }}>{st.label}</span>
+                      </div>
+                      <span style={{ fontSize: 11, color: C.muted }}>{timeAgo(req.created_at)}</span>
+                    </div>
+                    {req.description && <p style={{ fontSize: 13, color: C.muted, margin: '0 0 10px', lineHeight: 1.5 }}>{req.description}</p>}
+                    {req.worker_response && (
+                      <div style={{ background: C.bg2, borderLeft: `2px solid ${C.accent}`, padding: '8px 12px', fontSize: 12, color: C.accent, marginBottom: 10 }}>
+                        Respuesta: {req.worker_response}
+                      </div>
+                    )}
+                    <StatusProgressBar currentStatus={req.status} compact />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: COMUNICACIÓN (chat + notas) */}
+      {tab === 3 && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 24 }}>
           {/* Chat con cliente */}
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, display: 'flex', flexDirection: 'column', height: 560 }}>
@@ -1149,96 +1191,116 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
         </div>
       )}
 
-      {/* TAB 3: ACTIVIDAD */}
-      {tab === 3 && (
-        <div style={{ background: C.card, border: `1px solid ${C.border}`, padding: 24, borderRadius: 0 }}>
-          {activity.length === 0 ? (
-            <p style={{ color: C.muted, fontSize: 13, margin: 0, fontFamily: f }}>Sin actividad registrada.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {activity.map((event, idx) => (
-                <div key={event.id} style={{ padding: '16px 0', borderBottom: idx !== activity.length - 1 ? `1px solid ${C.border}` : 'none' }}>
-                  <div style={{ fontSize: 13, color: C.text, fontWeight: 700, marginBottom: 4, fontFamily: f }}>
-                    {event.action.replace(/_/g, ' ')}
-                  </div>
-                  <div style={{ fontSize: 12, color: C.muted, fontFamily: f }}>
-                    {timeAgo(event.created_at)}
-                  </div>
+      {/* TAB 4: CONFIG */}
+      {tab === 4 && (
+        <div>
+          <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 16, fontFamily: fc, textTransform: 'uppercase', color: C.text }}>
+            Configuración del cliente
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+            {/* Brand info */}
+            <div style={{ border: `1px solid ${C.border}`, background: C.card, padding: 20 }}>
+              <h4 style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, fontFamily: fc }}>Datos del negocio</h4>
+              {[
+                { label: 'Sector', value: String(brand.sector ?? '—') },
+                { label: 'Plan', value: PLAN_META[brand.plan as SubscriptionPlan]?.label ?? brand.plan },
+                { label: 'Desde', value: brand.created_at ? new Date(brand.created_at).toLocaleDateString('es-ES') : '—' },
+                { label: 'Token Meta', value: brand.meta_token_expires_at ? `Caduca ${new Date(brand.meta_token_expires_at).toLocaleDateString('es-ES')}` : 'No conectado' },
+              ].map(({ label, value }) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: `1px solid ${C.border}`, fontSize: 13, fontFamily: f }}>
+                  <span style={{ color: C.muted }}>{label}</span>
+                  <span style={{ color: C.text, fontWeight: 600 }}>{value}</span>
                 </div>
               ))}
             </div>
-          )}
-        </div>
-      )}
 
-      {/* TAB 4: NOTAS */}
-      {tab === 4 && (
-        <div>
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, padding: 24, marginBottom: 24 }}>
-            <h3 style={{ fontSize: 12, fontWeight: 700, color: C.muted, margin: '0 0 12px 0', textTransform: 'uppercase', letterSpacing: 0.5, fontFamily: fc }}>
-              Añadir nota interna
-            </h3>
+            {/* Quick links */}
+            <div style={{ border: `1px solid ${C.border}`, background: C.card, padding: 20 }}>
+              <h4 style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, fontFamily: fc }}>Recursos</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {[
+                  { href: `/worker/clientes/${brandId}/biblioteca`, label: 'Biblioteca de fotos', icon: BookOpen },
+                  { href: `/worker/clientes/${brandId}/inspiracion`, label: 'Referencias de inspiración', icon: Sparkles },
+                  { href: `/worker/clientes/${brandId}/plataformas`, label: 'Plataformas conectadas', icon: Share2 },
+                ].map(({ href, label, icon: Icon }) => (
+                  <Link key={href} href={href} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                    border: `1px solid ${C.border}`, background: C.bg1, textDecoration: 'none',
+                    color: C.text, fontSize: 13, fontWeight: 600, fontFamily: f,
+                  }}>
+                    <Icon size={15} style={{ color: C.accent }} /> {label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Internal notes */}
+          <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 12, fontFamily: fc, textTransform: 'uppercase', color: C.text }}>
+            Notas internas
+          </h3>
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, padding: 20, marginBottom: 16 }}>
             <textarea
               value={newNote}
               onChange={(e) => setNewNote(e.target.value)}
               placeholder="Escribe una nota interna (no visible para el cliente)..."
               rows={3}
-              style={{
-                width: '100%',
-                background: C.bg1,
-                border: `1px solid ${C.border}`,
-                borderRadius: 0,
-                padding: '12px 14px',
-                color: C.text,
-                fontSize: 13,
-                resize: 'vertical',
-                outline: 'none',
-                boxSizing: 'border-box',
-                fontFamily: f,
-                marginBottom: 12,
-              }}
+              style={{ width: '100%', background: C.bg1, border: `1px solid ${C.border}`, padding: '10px 12px', color: C.text, fontSize: 13, resize: 'vertical', outline: 'none', boxSizing: 'border-box', fontFamily: f, marginBottom: 10 }}
             />
-            <button
-              onClick={addNote}
-              style={{
-                padding: '10px 20px',
-                background: C.accent,
-                color: '#fff',
-                border: 'none',
-                borderRadius: 0,
-                fontWeight: 700,
-                fontSize: 13,
-                cursor: 'pointer',
-                fontFamily: f,
-              }}
-            >
+            <button onClick={addNote} style={{ padding: '8px 16px', background: C.accent, color: '#fff', border: 'none', fontWeight: 700, fontSize: 12, cursor: 'pointer', fontFamily: f }}>
               + Añadir nota
             </button>
           </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {notes.map((note) => (
-              <div
-                key={note.id}
-                style={{
-                  background: C.card,
-                  border: `1px solid ${note.is_pinned ? C.accent : C.border}`,
-                  borderRadius: 0,
-                  padding: 16,
-                  borderLeft: note.is_pinned ? `4px solid ${C.accent}` : '4px solid transparent',
-                }}
-              >
-                {note.is_pinned && (
-                  <div style={{ fontSize: 11, fontWeight: 700, color: C.accent, marginBottom: 8, textTransform: 'uppercase', fontFamily: fc }}>
-                    Fijada
-                  </div>
-                )}
-                <div style={{ fontSize: 13, color: C.text, lineHeight: 1.6, marginBottom: 8, fontFamily: f }}>
-                  {note.note}
+              <div key={note.id} style={{ background: C.card, border: `1px solid ${note.is_pinned ? C.accent : C.border}`, padding: 14, borderLeft: note.is_pinned ? `3px solid ${C.accent}` : '3px solid transparent' }}>
+                {note.is_pinned && <div style={{ fontSize: 10, fontWeight: 700, color: C.accent, marginBottom: 6, textTransform: 'uppercase', fontFamily: fc }}>Fijada</div>}
+                <div style={{ fontSize: 13, color: C.text, lineHeight: 1.5, marginBottom: 6, fontFamily: f }}>{note.note}</div>
+                <div style={{ fontSize: 11, color: C.muted, fontFamily: f }}>{note.workers?.full_name || 'Worker'} · {timeAgo(note.created_at)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: ANALYTICS */}
+      {tab === 5 && (
+        <div>
+          <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 16, fontFamily: fc, textTransform: 'uppercase', color: C.text }}>
+            Analytics del cliente
+          </h3>
+          {/* Activity timeline */}
+          <div style={{ border: `1px solid ${C.border}`, background: C.card, marginBottom: 24 }}>
+            <div style={{ padding: '14px 20px', borderBottom: `1px solid ${C.border}`, background: C.bg1 }}>
+              <h4 style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0, fontFamily: fc }}>Actividad reciente</h4>
+            </div>
+            <div style={{ padding: '16px 20px' }}>
+              {activity.length === 0 ? (
+                <p style={{ color: C.muted, fontSize: 13, margin: 0, fontFamily: f }}>Sin actividad registrada.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {activity.map((event, idx) => (
+                    <div key={event.id} style={{ padding: '10px 0', borderBottom: idx !== activity.length - 1 ? `1px solid ${C.border}` : 'none' }}>
+                      <div style={{ fontSize: 13, color: C.text, fontWeight: 600, fontFamily: f }}>{event.action.replace(/_/g, ' ')}</div>
+                      <div style={{ fontSize: 11, color: C.muted, fontFamily: f }}>{timeAgo(event.created_at)}</div>
+                    </div>
+                  ))}
                 </div>
-                <div style={{ fontSize: 12, color: C.muted, fontFamily: f }}>
-                  {note.workers?.full_name || 'Worker'} · {timeAgo(note.created_at)}
-                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Posts summary */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: C.border, border: `1px solid ${C.border}` }}>
+            {[
+              { label: 'Total posts', value: posts.length },
+              { label: 'Publicados', value: posts.filter(p => p.status === 'published').length },
+              { label: 'Pendientes', value: posts.filter(p => p.status === 'pending' || p.status === 'request').length },
+              { label: 'Solicitudes', value: requests.length },
+            ].map(({ label, value }) => (
+              <div key={label} style={{ background: C.card, padding: '16px', textAlign: 'center' }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: C.accent, fontFamily: fc }}>{value}</div>
+                <div style={{ fontSize: 10, color: C.muted, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: f }}>{label}</div>
               </div>
             ))}
           </div>

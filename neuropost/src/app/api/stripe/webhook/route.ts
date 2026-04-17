@@ -34,13 +34,22 @@ export async function POST(request: Request) {
              : 'starter';
       }
 
+      // Extract subscribed platforms from subscription metadata
+      let subscribedPlatforms: string[] = ['instagram'];
+      try {
+        const sub = await import('@/lib/stripe').then(m => m.getStripeClient().subscriptions.retrieve(session.subscription as string));
+        const metaPlatforms = sub.metadata?.platforms;
+        if (metaPlatforms) subscribedPlatforms = JSON.parse(metaPlatforms) as string[];
+      } catch { /* fallback to instagram only */ }
+
       const { data: brand } = await supabase
         .from('brands')
         .update({
           stripe_customer_id:     session.customer as string,
           stripe_subscription_id: session.subscription as string,
           plan,
-          plan_started_at: new Date().toISOString(),
+          plan_started_at:        new Date().toISOString(),
+          subscribed_platforms:   subscribedPlatforms,
         })
         .eq('user_id', userId)
         .select('id')

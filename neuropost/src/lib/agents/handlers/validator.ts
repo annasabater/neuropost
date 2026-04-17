@@ -345,6 +345,151 @@ const validateImageHandler: AgentHandler = async (job: AgentJob): Promise<Handle
   }
 };
 
+// =============================================================================
+// content:validate_video — Video validator agent
+// =============================================================================
+// Validates a generated video by extracting key frames and analyzing them
+// with Claude Vision. Fewer retries than images (videos are more expensive).
+// Max retries: 1 (2 total attempts). Then escalates to human review.
+
+const VIDEO_MAX_RETRIES = 1;
+
+interface VideoValidationInput {
+  post_id:         string;
+  video_url:       string;
+  thumbnail_url?:  string;
+  original_prompt: string;
+  duration?:       number;
+  attempt_number?: number;
+}
+
+const VIDEO_SYSTEM_PROMPT = `Eres un validador de vídeo/reel para redes sociales de un negocio local.
+Analiza el frame clave del vídeo generado y determina si es coherente con el sector del negocio.
+
+Responde SOLO con un JSON válido:
+{
+  "approved": true | false,
+  "confidence": 0.0-1.0,
+  "issues": ["descripción del problema"] | [],
+  "suggested_prompt_fix": "prompt mejorado si approved=false" | null
+}
+
+Criterios de RECHAZO: artefactos visuales graves, contenido fuera del sector del negocio, contenido ofensivo.
+Criterios de APROBACIÓN: coherente con el sector, calidad aceptable para redes. En caso de duda, aprueba.`;
+
+const validateVideoHandler: AgentHandler = async (job: AgentJob): Promise<HandlerResult> => {
+  const input = job.input as unknown as VideoValidationInput;
+  const db: DB = createAdminClient();
+  const attemptNumber = input.attempt_number ?? 1;
+
+  // Use thumbnail if available (cheaper than extracting frames)
+  const frameUrl = input.thumbnail_url ?? input.video_url;
+
+  try {
+    // Load brand context for sector info
+    let sectorInfo = '';
+    if (job.brand_id) {
+      const { data: brand } = await db.from('brands').select('sector, name').eq('id', job.brand_id).single();
+      if (brand) sectorInfo = `Negocio: ${brand.name}, sector: ${brand.sector}`;
+    }
+
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 300,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'url', url: frameUrl } },
+          { type: 'text', text: `${VIDEO_SYSTEM_PROMPT}\n\n${sectorInfo}\nPrompt original: "${input.original_prompt}"` },
+        ],
+      }],
+    });
+
+    const raw = response.content[0].type === 'text' ? response.content[0].text : '{}';
+    let result: ValidationResult;
+    try {
+      result = JSON.parse(raw.replace(/```json?\n?|```/g, '').trim());
+    } catch {
+      result = { approved: true, confidence: 0.6, issues: [], suggested_prompt_fix: null };
+    }
+
+    if (result.approved || result.confidence >= MIN_CONFIDENCE) {
+      // Video approved — update post
+      await db.from('posts').update({
+        status: 'pending',
+        video_url: input.video_url,
+        thumbnail_url: input.thumbnail_url ?? null,
+      }).eq('id', input.post_id);
+
+      return {
+        type: 'ok',
+        outputs: [{
+          kind: 'analysis',
+          payload: { ...result, approved: true, attempt_number: attemptNumber, media_type: 'video' } as unknown as Record<string, unknown>,
+          model: 'claude-haiku-4-5-20251001',
+        }],
+      };
+    }
+
+    // Video rejected
+    if (attemptNumber > VIDEO_MAX_RETRIES) {
+      // Exhausted — escalate to human review
+      await db.from('posts').update({ status: 'needs_human_review' }).eq('id', input.post_id);
+      await db.from('notifications').insert({
+        brand_id: job.brand_id,
+        type: 'failed',
+        message: `Post ${input.post_id}: vídeo rechazado tras ${attemptNumber} intentos. Requiere revisión humana.`,
+        read: false,
+        metadata: { post_id: input.post_id, issues: result.issues, media_type: 'video' },
+      });
+
+      return {
+        type: 'ok',
+        outputs: [{
+          kind: 'analysis',
+          payload: { ...result, approved: false, attempt_number: attemptNumber, escalated: true, media_type: 'video' } as unknown as Record<string, unknown>,
+          model: 'claude-haiku-4-5-20251001',
+        }],
+      };
+    }
+
+    // Retry: queue regeneration + new validation
+    const newPrompt = result.suggested_prompt_fix ?? input.original_prompt;
+    await db.from('agent_jobs').insert({
+      brand_id: job.brand_id,
+      agent_type: 'content',
+      action: 'generate_human_video',
+      input: {
+        userPrompt: newPrompt,
+        format: 'video',
+        sector: 'restaurante',
+        visualStyle: 'warm',
+        brandContext: '',
+        brandId: job.brand_id,
+        _post_id: input.post_id,
+        _original_prompt: newPrompt,
+      },
+      status: 'pending',
+      priority: job.priority ?? 50,
+      parent_job_id: job.id,
+    });
+
+    return {
+      type: 'ok',
+      outputs: [{
+        kind: 'analysis',
+        payload: { ...result, approved: false, attempt_number: attemptNumber, retrying: true, media_type: 'video' } as unknown as Record<string, unknown>,
+        model: 'claude-haiku-4-5-20251001',
+      }],
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    const transient = /timeout|rate.?limit|overloaded|503|504|ECONN/i.test(msg);
+    return transient ? { type: 'retry', error: msg } : { type: 'fail', error: msg };
+  }
+};
+
 export function registerValidatorHandlers(): void {
   registerHandler({ agent_type: 'content', action: 'validate_image' }, validateImageHandler);
+  registerHandler({ agent_type: 'content', action: 'validate_video' }, validateVideoHandler);
 }

@@ -18,7 +18,8 @@ export type AgentJobStatus =
   | 'done'
   | 'error'
   | 'needs_review'
-  | 'cancelled';
+  | 'cancelled'
+  | 'claimed';
 
 export type AgentJobRequester = 'client' | 'worker' | 'cron' | 'agent' | 'system';
 
@@ -39,6 +40,9 @@ export interface AgentJob {
   started_at:     string | null;
   finished_at:    string | null;
   error:          string | null;
+  claimed_by:     string | null;
+  claimed_at:     string | null;
+  processing_timeline: Array<{ at: string; event: string; detail: string }>;
   created_at:     string;
 }
 
