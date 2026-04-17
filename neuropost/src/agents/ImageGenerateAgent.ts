@@ -110,20 +110,18 @@ export async function runImageGenerateAgent(
         },
         {
           type: 'text',
-          text: `The user uploaded this photo and wants MINIMAL professional enhancements for Instagram. The photo must look essentially the same — same people, same place, same composition.
+          text: `The user wants to apply ONLY this specific change to their photo: "${input.userPrompt}"
 
-User request: "${input.userPrompt}"
-Brand context: ${input.brandContext}
-${brandRules.length ? `Brand rules:\n${brandRules.map(r => `- ${r}`).join('\n')}\n` : ''}
+Write a single Flux Kontext instruction that:
+1. Starts with "In this exact photo,"
+2. Describes ONLY the specific change requested, nothing else
+3. Does NOT mention improving quality, lighting, style, or anything not requested
+4. Does NOT describe or re-create the people, background or composition
 
-Write a Flux Kontext edit prompt that:
-1. KEEPS the exact same subjects, people, location and composition as the original
-2. Only improves: lighting quality, color grading, sharpness, professional finish
-3. Apply subtle brand color tones if needed (do NOT replace colors drastically)
-4. Make it look like a professional Instagram photo, not a different photo
+Example good prompt: "In this exact photo, add several tennis balls scattered on the court floor in the background."
+Example bad prompt: "Professional padel photo with two players and tennis balls..." (this creates a new image)
 
-Start the prompt with: "Keep all subjects and composition exactly as in the original photo."
-Reply ONLY with the edit prompt in English, no explanations, no quotes.`,
+Reply ONLY with the single instruction sentence in English, no explanations, no quotes.`,
         },
       ]
     : `The user wants to generate this image for Instagram:
