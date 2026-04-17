@@ -7,7 +7,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { generateImage, editImage } from '@/lib/imageGeneration';
-import type { NanoBananaQuality } from '@/lib/nanoBanana';
+import type { ImageQuality } from '@/lib/imageGeneration';
 import type { VisualStyle, SocialSector, BrandColors } from '@/types';
 
 const anthropic = new Anthropic();
@@ -23,7 +23,7 @@ export interface ImageGenerateInput {
   forbiddenWords?: string[];
   /** If true, no emojis/emoticons should appear in the generated image. */
   noEmojis?:       boolean;
-  quality?:        NanoBananaQuality;
+  quality?:        ImageQuality;
   format?:         'post' | 'story' | 'reel_cover';
   brandId?:        string;        // if provided, uploads to Supabase
   /**

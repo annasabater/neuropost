@@ -157,25 +157,23 @@ export async function incrementPostCounter(brandId: string): Promise<void> {
 
 // ─── Image quality by plan ────────────────────────────────────────────────────
 
-import type { NanoBananaQuality } from './nanoBanana';
+import type { ImageQuality } from './imageGeneration';
 
-export const IMAGE_QUALITY_BY_PLAN: Record<SubscriptionPlan, NanoBananaQuality> = {
-  starter: 'fast',   // quick and economical
-  pro:     'pro',    // standard quality
-  total:   'pro',    // standard quality + priority
-  agency:  'ultra',  // maximum 4K quality
+export const IMAGE_QUALITY_BY_PLAN: Record<SubscriptionPlan, ImageQuality> = {
+  starter: 'standard',
+  pro:     'pro',
+  total:   'pro',
+  agency:  'pro',
 };
 
-export const IMAGE_QUALITY_LABEL: Record<NanoBananaQuality, string> = {
-  fast:  'Generació estàndard',
-  pro:   'Generació Pro (qualitat alta)',
-  ultra: 'Generació Ultra (màxima qualitat 4K)',
+export const IMAGE_QUALITY_LABEL: Record<ImageQuality, string> = {
+  standard: 'Generació estàndard',
+  pro:      'Generació Pro (qualitat alta)',
 };
 
-export const IMAGE_QUALITY_TIME: Record<NanoBananaQuality, string> = {
-  fast:  '~5 seg',
-  pro:   '~10 seg',
-  ultra: '~15 seg',
+export const IMAGE_QUALITY_TIME: Record<ImageQuality, string> = {
+  standard: '~20 seg',
+  pro:      '~30 seg',
 };
 
 /** Increment story counter after successful story publish. */
