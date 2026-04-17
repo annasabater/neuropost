@@ -31,8 +31,8 @@ const STATUS_DOT: Record<string, string> = {
 };
 
 const STATUS_LABEL_CAL: Record<string, string> = {
-  scheduled: 'Programado', published: 'Publicado', approved: 'Aprobado',
-  pending: 'Pendiente', draft: 'Borrador', request: 'En preparación',
+  scheduled: 'Programado', published: 'Publicado', approved: 'Para revisar',
+  pending: 'Para revisar', draft: 'En preparación', request: 'En preparación',
 };
 
 const EVENT_COLOR: Record<string, { bg: string; text: string; dot: string }> = {

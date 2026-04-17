@@ -353,7 +353,7 @@ export default function InspiracionPage() {
     <div className="page-content dashboard-unified-page" style={{ maxWidth: 1000 }}>
 
       {/* ── Header ────────────────────────────────────────────────────────── */}
-      <div className="dashboard-unified-header" style={{ padding: '48px 0 24px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
+      <div className="dashboard-unified-header inspi-header" style={{ padding: '48px 0 24px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
         <div>
           <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 10 }}>
             Inspiración
@@ -365,6 +365,7 @@ export default function InspiracionPage() {
         <button
           type="button"
           onClick={() => setShowAdd(true)}
+          className="inspi-header-cta"
           style={{ background: '#0D9488', color: '#fff', border: 'none', padding: '10px 22px', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
         >
           <Plus size={14} /> Guardar referencia
@@ -372,9 +373,9 @@ export default function InspiracionPage() {
       </div>
 
       {/* ── Filter bar ─────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 3, borderBottom: '1px solid var(--border)' }}>
+      <div className="inspi-filter-bar" style={{ display: 'flex', alignItems: 'center', gap: 0, marginBottom: 3, borderBottom: '1px solid var(--border)' }}>
         {/* Scope tabs */}
-        <div style={{ display: 'flex', flex: 1 }}>
+        <div className="inspi-scope-tabs" style={{ display: 'flex', flex: 1 }}>
           {SCOPE_PILLS.map(s => {
             const active = scope === s.key;
             return (
@@ -407,7 +408,7 @@ export default function InspiracionPage() {
         </div>
 
         {/* Search + Format — right side */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 4 }}>
+        <div className="inspi-search-format" style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 4 }}>
           {/* Search */}
           <div style={{ position: 'relative' }}>
             <Search size={12} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
@@ -415,6 +416,7 @@ export default function InspiracionPage() {
               type="text"
               value={search}
               placeholder="Buscar…"
+              className="inspi-search-input"
               onChange={e => {
                 const v = e.target.value;
                 setSearch(v);
@@ -441,7 +443,7 @@ export default function InspiracionPage() {
           </div>
 
           {/* Format pills */}
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div className="inspi-format-pills" style={{ display: 'flex', gap: 4 }}>
             {(['', 'image', 'carousel', 'video'] as const).map(fmt => (
               <button
                 key={fmt || 'all'}

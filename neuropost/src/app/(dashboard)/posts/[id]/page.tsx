@@ -171,8 +171,8 @@ export default function PostDetailPage() {
   };
 
   const STATUS_LABEL: Record<string, string> = {
-    request: 'En preparación', draft: 'Borrador', generated: 'Generado',
-    pending: 'Pendiente', approved: 'Aprobado', scheduled: 'Programado',
+    request: 'En preparación', draft: 'En preparación', generated: 'Para revisar',
+    pending: 'Para revisar', approved: 'Para revisar', scheduled: 'Programado',
     published: 'Publicado', failed: 'Fallido', cancelled: 'Cancelado',
   };
 
@@ -281,7 +281,7 @@ export default function PostDetailPage() {
   // ── Unified layout for ALL states ──
   const STATUS_BANNER: Record<string, { bg: string; border: string; icon: string; title: string; subtitle: string }> = {
     request:   { bg: 'var(--accent-soft)', border: 'var(--accent)', icon: '✦', title: 'En preparación', subtitle: 'Nuestro equipo está preparando tu contenido. Te avisaremos cuando esté listo.' },
-    draft:     { bg: 'var(--bg-1)', border: 'var(--border-dark)', icon: '✎', title: 'Pendiente', subtitle: 'Revisa la propuesta. Si no te convence, devuélvelo a En preparación.' },
+    draft:     { bg: 'var(--bg-1)', border: 'var(--border-dark)', icon: '✎', title: 'Para revisar', subtitle: 'Revisa la propuesta. Si no te convence, devuélvelo a En preparación.' },
     generated: { bg: 'var(--accent-soft)', border: 'var(--accent)', icon: '✦', title: 'Generado por IA', subtitle: 'Revisa el contenido y apruébalo o modifícalo' },
     pending:   { bg: 'var(--bg-1)', border: 'var(--border-dark)', icon: '✎', title: 'Propuesta lista para revisar', subtitle: postMeta?.worker_notes ? String(postMeta.worker_notes) : originalImages.length > 0 ? 'Tu equipo ha procesado el contenido. Compara la versión original con la propuesta y decide.' : 'Tu equipo ha preparado esta propuesta. Acéptala o pide una nueva versión.' },
     approved:  { bg: 'var(--accent-soft)', border: 'var(--accent)', icon: '✓', title: 'Aprobado', subtitle: 'Listo para programar o publicar' },
@@ -572,9 +572,9 @@ export default function PostDetailPage() {
         )}
 
         {/* Parameters grid */}
-        <div style={{
+        <div className="post-detail-params" style={{
           padding: '20px 28px', borderBottom: '1px solid var(--border)',
-          display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '18px 24px',
+          display: 'flex', flexWrap: 'wrap', gap: '16px 32px', alignItems: 'flex-start',
         }}>
           <div>
             <p style={labelStyle}>Estado</p>
@@ -624,7 +624,7 @@ export default function PostDetailPage() {
         {/* Schedule date+time picker */}
         {post.status !== 'published' && post.status !== 'cancelled' && post.status !== 'request' && (
           <div style={{ padding: '20px 28px', borderBottom: '1px solid var(--border)' }}>
-            <p style={labelStyle}><Calendar size={11} style={{ marginRight: 4, verticalAlign: -1 }} />Fecha y hora de publicación</p>
+            <p style={labelStyle}>Fecha y hora de publicación</p>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
               <input type="date" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} style={inputBase} />
               <input type="time" value={scheduleTime} onChange={(e) => setScheduleTime(e.target.value)} style={inputBase} />
@@ -840,9 +840,8 @@ export default function PostDetailPage() {
         {/* Footer */}
         <div style={{
           padding: '16px 28px', background: 'var(--bg-1)',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          display: 'flex', justifyContent: 'flex-end', alignItems: 'center',
         }}>
-          <span className={`status-badge status-${post.status}`}>{STATUS_LABEL[post.status] ?? post.status}</span>
           <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>
             Creado el {new Date(post.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}
           </p>

@@ -1,7 +1,7 @@
 // =============================================================================
-// NEUROPOST — Image generation via Replicate (Flux Dev)
-// txt2img: black-forest-labs/flux-dev
-// img2img: black-forest-labs/flux-dev (with image prompt)
+// NEUROPOST — Image generation via Replicate
+// txt2img: black-forest-labs/flux-pro  (photorealistic)
+// img2img: black-forest-labs/flux-kontext-pro  (edit preserving subject)
 // =============================================================================
 
 export type ImageQuality = 'standard' | 'pro';
@@ -50,23 +50,27 @@ async function pollPrediction(pollUrl: string, token: string): Promise<string> {
   throw new Error('Replicate prediction timed out after 120s');
 }
 
-// ─── txt2img (Flux Dev) ───────────────────────────────────────────────────────
+// ─── txt2img (Flux Pro — photorealistic) ─────────────────────────────────────
 
 export async function generateImage(params: GenerateImageParams): Promise<ImageResponse> {
   const token = getToken();
   const t0    = Date.now();
 
-  const res = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-dev/predictions', {
+  // flux-pro uses a versioned endpoint
+  const res = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-pro/predictions', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({
       input: {
-        prompt:        params.prompt,
-        width:         params.width         ?? 1024,
-        height:        params.height        ?? 1024,
-        output_format: params.output_format ?? 'jpg',
-        num_outputs:   1,
-        num_inference_steps: params.quality === 'pro' ? 28 : 20,
+        prompt:          params.prompt,
+        width:           params.width         ?? 1024,
+        height:          params.height        ?? 1024,
+        output_format:   params.output_format ?? 'jpg',
+        // Flux Pro params (no num_inference_steps — model handles quality internally)
+        // guidance: higher = more prompt-adherent, lower = more creative
+        guidance:        3,
+        // prompt_upsampling: false prevents the model from "hallucinating" extra details
+        prompt_upsampling: false,
       },
     }),
   });
@@ -103,6 +107,9 @@ export async function editImage(params: EditImageParams): Promise<ImageResponse>
         prompt:        params.prompt,
         input_image:   params.imageUrl,
         output_format: 'jpg',
+        // guidance: lower = preserves original photo more faithfully
+        // default is 2.5; we lower it to 2 so edits are more conservative
+        guidance:      2,
       },
     }),
   });

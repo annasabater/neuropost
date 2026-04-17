@@ -117,7 +117,7 @@ export default function RegisterPage() {
     const { data, error } = await supabase.auth.signUp({
       email:    emailRef.current!.value,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      options: { emailRedirectTo: `${window.location.origin}/auth/confirm` },
     });
     setLoading(false);
     if (error) { toast.error(error.message); return; }

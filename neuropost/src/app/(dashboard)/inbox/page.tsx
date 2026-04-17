@@ -286,7 +286,15 @@ function InboxInner() {
     }
   }, [tab, setNotifications]);
 
-  useEffect(() => { chatBottom.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  const chatInitialScrollDone = useRef(false);
+  useEffect(() => {
+    if (!chatLoading && messages.length > 0 && !chatInitialScrollDone.current) {
+      chatInitialScrollDone.current = true;
+      chatBottom.current?.scrollIntoView({ behavior: 'instant' });
+    } else if (chatInitialScrollDone.current) {
+      chatBottom.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, chatLoading]);
 
   async function createTicket() {
     const finalSubject = ticketForm.subject === 'Otro' ? ticketForm.customSubject.trim() : ticketForm.subject;
@@ -376,8 +384,6 @@ function InboxInner() {
     setChatSending(false);
   }
 
-  const lastMsg = messages[messages.length - 1];
-
   return (
     <div className="page-content dashboard-unified-page" style={{ maxWidth: 1000 }}>
       {/* Header */}
@@ -389,13 +395,13 @@ function InboxInner() {
       </div>
 
       {/* Tab selector — 3 cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', marginBottom: 20 }}>
+      <div className="inbox-tab-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', marginBottom: 20 }}>
         {TABS.map((s) => {
           const active = tab === s.key;
           const Icon = s.icon;
           const badge = s.key === 'notificaciones' ? unreadNotifications : 0;
           return (
-            <button key={s.key} onClick={() => setTab(s.key)} style={{
+            <button key={s.key} onClick={() => setTab(s.key)} className="inbox-tab-btn" style={{
               padding: '24px 20px', background: active ? 'var(--accent)' : '#ffffff',
               border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
             }}>
@@ -404,7 +410,7 @@ function InboxInner() {
                 {badge > 0 && <span style={{ fontSize: 10, background: active ? 'rgba(255,255,255,0.25)' : 'var(--accent)', color: '#fff', padding: '1px 6px', fontFamily: f, fontWeight: 700 }}>{badge}</span>}
               </div>
               <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 15, textTransform: 'uppercase', color: active ? '#ffffff' : '#111827', marginBottom: 4 }}>{s.title}</p>
-              <p style={{ fontFamily: f, fontSize: 12, color: active ? 'rgba(255,255,255,0.5)' : '#9ca3af' }}>{s.desc}</p>
+              <p className="inbox-tab-desc" style={{ fontFamily: f, fontSize: 12, color: active ? 'rgba(255,255,255,0.5)' : '#9ca3af' }}>{s.desc}</p>
             </button>
           );
         })}
@@ -453,67 +459,57 @@ function InboxInner() {
         </div>
       )}
 
-      {/* ── MENSAJES — two-column inbox layout ── */}
+      {/* ── MENSAJES — single-column chat with date separators ── */}
       {tab === 'mensajes' && (
-        <div style={{ border: '1px solid #e5e7eb', display: 'flex', height: 500 }}>
-          {/* Left: conversation list */}
-          <div style={{ width: 240, borderRight: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid #e5e7eb' }}>
-              <input placeholder="Buscar conversación..." style={{ width: '100%', padding: '7px 10px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 12, outline: 'none', background: '#f9fafb', color: '#111827', boxSizing: 'border-box' }} readOnly />
+        <div style={{ border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', height: 520 }}>
+          {/* Chat header */}
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 32, height: 32, background: '#0F766E', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ fontFamily: fc, fontSize: 13, fontWeight: 900, color: '#fff' }}>NP</span>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-              {/* NeuroPost team conversation — always shown */}
-              <div style={{ padding: '14px 16px', background: '#f0fdfa', borderBottom: '1px solid #e5e7eb', cursor: 'default' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#0F766E', flexShrink: 0 }} />
-                  <span style={{ fontFamily: f, fontSize: 13, fontWeight: 700, color: '#111827', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    Equipo NeuroPost
-                  </span>
-                  {lastMsg && (
-                    <span style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', flexShrink: 0 }}>
-                      {new Date(lastMsg.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  )}
-                </div>
-                <p style={{ fontFamily: f, fontSize: 11, color: '#6b7280', margin: 0, paddingLeft: 16, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {lastMsg ? lastMsg.message : 'Respondemos en minutos'}
-                </p>
-              </div>
+            <div>
+              <p style={{ fontFamily: f, fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>Equipo NeuroPost</p>
+              <p style={{ fontFamily: f, fontSize: 11, color: '#9ca3af', margin: 0 }}>Respondemos en minutos</p>
             </div>
           </div>
 
-          {/* Right: active chat */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            {/* Chat header */}
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 32, height: 32, background: '#0F766E', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <span style={{ fontFamily: fc, fontSize: 13, fontWeight: 900, color: '#fff' }}>NP</span>
+          {/* Messages with date separators */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', background: '#f9fafb' }}>
+            {chatLoading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
+                {[180, 140, 200].map((w, i) => <div key={i} style={{ width: w, height: 28, background: '#e5e7eb', alignSelf: i % 2 ? 'flex-start' : 'flex-end' }} />)}
               </div>
-              <div>
-                <p style={{ fontFamily: f, fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>Equipo NeuroPost</p>
-                <p style={{ fontFamily: f, fontSize: 11, color: '#9ca3af', margin: 0 }}>Respondemos en minutos</p>
+            ) : messages.length === 0 ? (
+              <div style={{ textAlign: 'center', marginTop: 80 }}>
+                <p style={{ fontFamily: f, fontWeight: 600, fontSize: 15, color: '#111827', marginBottom: 4 }}>Tu equipo está listo</p>
+                <p style={{ fontFamily: f, fontSize: 13, color: '#9ca3af' }}>Envía un mensaje y te respondemos en menos de 2h</p>
               </div>
-            </div>
-
-            {/* Messages */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', background: '#f9fafb' }}>
-              {chatLoading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
-                  {[180, 140, 200].map((w, i) => <div key={i} style={{ width: w, height: 28, background: '#e5e7eb', alignSelf: i % 2 ? 'flex-start' : 'flex-end' }} />)}
-                </div>
-              ) : messages.length === 0 ? (
-                <div style={{ textAlign: 'center', marginTop: 80 }}>
-                  <p style={{ fontFamily: f, fontWeight: 600, fontSize: 15, color: '#111827', marginBottom: 4 }}>Tu equipo está listo</p>
-                  <p style={{ fontFamily: f, fontSize: 13, color: '#9ca3af' }}>Envía un mensaje y te respondemos en menos de 2h</p>
-                </div>
-              ) : (
-                messages.map((msg) => (
+            ) : (() => {
+              // Group messages by date for WhatsApp-style separators
+              const today = new Date().toDateString();
+              const yesterday = new Date(Date.now() - 86400000).toDateString();
+              const rendered: React.ReactNode[] = [];
+              let lastDateStr = '';
+              messages.forEach((msg) => {
+                const d = new Date(msg.created_at).toDateString();
+                if (d !== lastDateStr) {
+                  lastDateStr = d;
+                  const label = d === today ? 'Hoy' : d === yesterday ? 'Ayer' : new Date(msg.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+                  rendered.push(
+                    <div key={`sep-${d}`} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '14px 0 10px' }}>
+                      <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
+                      <span style={{ fontFamily: f, fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap', background: '#f9fafb', padding: '0 4px' }}>{label}</span>
+                      <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
+                    </div>
+                  );
+                }
+                rendered.push(
                   <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: msg.sender_type === 'client' ? 'flex-end' : 'flex-start', marginBottom: 10 }}>
                     {msg.sender_type === 'client' && operatorDisplayName && (
                       <span style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', marginBottom: 2, paddingRight: 2 }}>{operatorDisplayName}</span>
                     )}
                     <div style={{
-                      maxWidth: '65%',
+                      maxWidth: '75%',
                       background: msg.sender_type === 'client' ? '#ffffff' : '#e6f6f3',
                       border: `1px solid ${msg.sender_type === 'client' ? '#e5e7eb' : '#6fb7aa'}`,
                       padding: '10px 14px',
@@ -525,22 +521,23 @@ function InboxInner() {
                       </p>
                     </div>
                   </div>
-                ))
-              )}
-              <div ref={chatBottom} />
-            </div>
+                );
+              });
+              return rendered;
+            })()}
+            <div ref={chatBottom} />
+          </div>
 
-            {/* Input */}
-            <div style={{ borderTop: '1px solid #e5e7eb', padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center', background: '#ffffff' }}>
-              <input value={chatText} onChange={(e) => setChatText(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }}
-                placeholder="Escribe un mensaje..."
-                style={{ flex: 1, padding: '10px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', color: '#111827', background: '#f9fafb' }} />
-              <button onClick={sendChat} disabled={!chatText.trim()}
-                style={{ width: 36, height: 36, background: chatText.trim() ? '#0F766E' : '#e5e7eb', border: 'none', cursor: chatText.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Send size={14} color="#ffffff" />
-              </button>
-            </div>
+          {/* Input */}
+          <div style={{ borderTop: '1px solid #e5e7eb', padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center', background: '#ffffff' }}>
+            <input value={chatText} onChange={(e) => setChatText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }}
+              placeholder="Escribe un mensaje..."
+              style={{ flex: 1, padding: '10px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', color: '#111827', background: '#f9fafb' }} />
+            <button type="button" onClick={sendChat} disabled={!chatText.trim()}
+              style={{ width: 36, height: 36, background: chatText.trim() ? '#0F766E' : '#e5e7eb', border: 'none', cursor: chatText.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Send size={14} color="#ffffff" />
+            </button>
           </div>
         </div>
       )}

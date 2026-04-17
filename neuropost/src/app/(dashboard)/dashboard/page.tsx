@@ -110,7 +110,7 @@ export default async function DashboardPage() {
         <div className="dashboard-inner">
           <IncidentBanner />
         {/* ── Greeting ── */}
-        <div style={{ padding: '48px 0 40px' }}>
+        <div className="dashboard-greeting" style={{ padding: '48px 0 40px' }}>
           <h1 style={{
             fontFamily: fc, fontWeight: 900,
             fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
@@ -121,18 +121,13 @@ export default async function DashboardPage() {
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontFamily: f }}>
             {t('subtitle')}
-            {pending > 0 && (
-              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                {' — '}{pending} {t('metrics.pending')}
-              </span>
-            )}
           </p>
         </div>
 
         <TrendsBanner />
 
         {/* ── Metrics — Nike 1px gap grid ── */}
-        <div data-tour="dashboard-metrics" style={{
+        <div data-tour="dashboard-metrics" className="dashboard-metrics-grid" style={{
           display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px',
           background: 'var(--border)', border: '1px solid var(--border)',
           marginBottom: 48,
@@ -147,7 +142,7 @@ export default async function DashboardPage() {
               background: 'var(--bg)', padding: '28px 24px',
               transition: 'background 0.15s',
             }}>
-              <p style={{
+              <p className="dash-metric-value" style={{
                 fontFamily: fc, fontWeight: 900, fontSize: '3rem',
                 letterSpacing: '-0.02em', lineHeight: 1,
                 color: 'var(--text-primary)',
@@ -182,7 +177,7 @@ export default async function DashboardPage() {
         const showVideos = videosLimit > 0;
 
         return (
-          <div style={{
+          <div className="dashboard-plan-usage" style={{
             border: '1px solid var(--border)', marginBottom: 48,
             display: 'grid', gridTemplateColumns: showVideos ? '1fr 1fr' : '1fr', gap: '1px', background: 'var(--border)',
           }}>
@@ -224,7 +219,7 @@ export default async function DashboardPage() {
       {/* ══════════════════════════════════════════════════════════════════════
            3 MODES — Content Hub
          ══════════════════════════════════════════════════════════════════════ */}
-      <h2 style={{
+      <h2 className="dashboard-content-hub-heading" style={{
         fontFamily: f, fontSize: 10, fontWeight: 600,
         textTransform: 'uppercase', letterSpacing: '0.14em',
         color: 'var(--accent)', marginBottom: 16,
@@ -233,7 +228,7 @@ export default async function DashboardPage() {
         {t('sections.contentHub')}
       </h2>
 
-      <div style={{
+      <div className="dashboard-content-hub" style={{
         display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px',
         background: 'var(--border)', border: '1px solid var(--border)',
         marginBottom: 48,
@@ -396,7 +391,7 @@ export default async function DashboardPage() {
                 {t('sections.upcomingDates')}
               </h2>
             </div>
-            <div style={{
+            <div className="dashboard-upcoming-dates" style={{
               display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1px', background: 'var(--border)',
               border: '1px solid var(--border)', marginBottom: 48,
             }}>
@@ -437,7 +432,7 @@ export default async function DashboardPage() {
       }}>
         {t('sections.quickActions')}
       </h2>
-      <div style={{
+      <div className="dashboard-quick-actions" style={{
         display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px',
         background: 'var(--border)', border: '1px solid var(--border)',
         marginBottom: 48,

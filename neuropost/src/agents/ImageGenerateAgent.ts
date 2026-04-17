@@ -110,27 +110,26 @@ export async function runImageGenerateAgent(
   } else {
     const claudeMsg = await anthropic.messages.create({
       model:      'claude-sonnet-4-20250514',
-      max_tokens: 400,
+      max_tokens: 300,
       messages:   [{
         role: 'user',
-        content: `The user wants to generate this image for Instagram:
+        content: `You are a prompt engineer for a photorealistic image generator (Flux Pro).
+
+The user's request (DO NOT change the subject or add elements they didn't ask for):
 "${input.userPrompt}"
 
-Business sector: ${input.sector}
-Visual style: ${input.visualStyle} — ${STYLE_GUIDE[input.visualStyle]}
-Brand context: ${input.brandContext}
-Format: ${input.format ?? 'post'} (${width}×${height}px)
-${brandRules.length ? `\nBrand rules (must follow):\n${brandRules.map(r => `- ${r}`).join('\n')}\n` : ''}
-Improve this prompt to get the best possible image for Instagram.
+Context:
+- Sector: ${input.sector}
+- Visual style: ${input.visualStyle} — ${STYLE_GUIDE[input.visualStyle]}
+- Brand: ${input.brandContext}
+${brandRules.length ? `- Rules:\n${brandRules.map(r => `  • ${r}`).join('\n')}` : ''}
 
-Requirements:
-- Photo type (product shot, lifestyle, flat lay, overhead...)
-- Lighting (natural light, studio light, golden hour, dramatic...)
-- Composition (centered, rule of thirds, overhead, close-up...)
-- Quality keywords (photorealistic, 4K, professional photography...)
-- Style specific to the sector and visual style
-
-Reply ONLY with the enhanced prompt in English, no explanations, no quotes.`,
+Your task: translate the user's request into a concise Flux Pro prompt.
+RULES:
+1. Keep EXACTLY what the user asked for — do not add new subjects, objects or scenes they didn't mention.
+2. Only add: lighting style, camera angle, and 2-3 quality keywords (e.g. "photorealistic, sharp focus, professional photography").
+3. Apply the visual style subtly through lighting and mood — not by changing the subject.
+4. Maximum 80 words. English only. No explanations, no quotes.`,
       }],
     });
     enhancedPrompt = claudeMsg.content[0].type === 'text'
