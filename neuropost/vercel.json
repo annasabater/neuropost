@@ -1,7 +1,7 @@
 {
   "crons": [
-    { "path": "/api/cron/agent-queue-runner",   "schedule": "* * * * *"     },
-    { "path": "/api/cron/process-agent-replies", "schedule": "* * * * *"    },
+    { "path": "/api/cron/agent-queue-runner",   "schedule": "0 0 31 2 *"    },
+    { "path": "/api/cron/process-agent-replies", "schedule": "0 0 31 2 *"   },
     { "path": "/api/cron/health-check",         "schedule": "*/5 * * * *"   },
     { "path": "/api/cron/publish-scheduled",    "schedule": "0 * * * *"     },
     { "path": "/api/cron/sync-comments",        "schedule": "0 * * * *"     },
