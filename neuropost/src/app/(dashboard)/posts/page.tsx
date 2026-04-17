@@ -104,6 +104,7 @@ export default function PostsPage() {
   const searchParams = useSearchParams();
 
   const [posts, setPosts_] = useState<Post[]>([]);
+  const [visibleCount, setVisibleCount] = useState(10);
   // 'proposal' is a synthetic filter: posts the worker team proposed (marked
   // via ai_explanation.from_worker) and that are still awaiting client decision.
   const initialFilter = (searchParams.get('filter') ?? 'all') as PostStatus | 'all' | 'proposal';
@@ -149,7 +150,7 @@ export default function PostsPage() {
   ];
 
   useEffect(() => {
-    fetch('/api/posts?limit=50')
+    fetch('/api/posts?limit=100')
       .then((r) => r.json())
       .then((json) => { const list = json.posts ?? []; setPosts_(list); setPosts(list); })
       .finally(() => setLoading(false));
@@ -198,6 +199,8 @@ export default function PostsPage() {
     : filter === 'proposal' ? proposalPosts
     : filter === 'pending' ? posts.filter((p) => p.status === 'pending' || p.status === 'draft')
     : posts.filter((p) => p.status === filter);
+  const visiblePosts = filtered.slice(0, visibleCount);
+  const hasMore = filtered.length > visibleCount;
   const gridQueued = queuedItems.slice(0, 9);
   const gridPublished = publishedItems.slice(0, Math.max(0, 9 - gridQueued.length));
 
@@ -306,7 +309,7 @@ export default function PostsPage() {
             return (
               <button
                 key={sf.value}
-                onClick={() => setFilter(sf.value)}
+                onClick={() => { setFilter(sf.value); setVisibleCount(10); }}
                 style={{
                   padding: '7px 16px', cursor: 'pointer',
                   fontFamily: f, fontSize: 12, fontWeight: 600,
@@ -400,7 +403,7 @@ export default function PostsPage() {
               gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
               gap: 16,
             }}>
-              {filtered.map((post) => {
+              {visiblePosts.map((post) => {
                 const sc = STATUS_COLORS[post.status] ?? STATUS_COLORS.draft;
                 return (
                   <Link key={post.id} href={`/posts/${post.id}`} className="post-card-hover" style={{
@@ -469,6 +472,25 @@ export default function PostsPage() {
                   </Link>
                 );
               })}
+            </div>
+          )}
+
+          {/* ── Cargar más ── */}
+          {hasMore && (
+            <div style={{ display: 'flex', justifyContent: 'center', marginTop: 24 }}>
+              <button
+                type="button"
+                onClick={() => setVisibleCount(v => v + 10)}
+                style={{
+                  background: 'transparent', border: '2px solid var(--border)',
+                  color: 'var(--text-primary)', padding: '10px 32px',
+                  fontFamily: fc, fontSize: 13, fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '0.08em',
+                  cursor: 'pointer',
+                }}
+              >
+                Cargar 10 más ({filtered.length - visibleCount} restantes)
+              </button>
             </div>
           )}
 
