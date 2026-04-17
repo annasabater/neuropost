@@ -99,32 +99,21 @@ export async function runImageGenerateAgent(
 
   const hasRefImage = !!input.referenceImageUrl;
 
-  // ── Step 1: Claude enhances the prompt ───────────────────────────────────────
-  // When the user uploaded their own photo, Claude analyses it via vision first
-  // so the enhanced prompt describes what to preserve and what to improve.
-  const claudeContent: Anthropic.MessageParam['content'] = hasRefImage
-    ? [
-        {
-          type:   'image',
-          source: { type: 'url', url: input.referenceImageUrl! },
-        },
-        {
-          type: 'text',
-          text: `The user wants to apply ONLY this specific change to their photo: "${input.userPrompt}"
+  // ── Step 1: Determine the prompt ─────────────────────────────────────────────
+  // img2img: send the user's prompt directly to Replicate — no Claude in between.
+  //          The user knows what they want; we don't translate or enhance it.
+  // txt2img: Claude enhances the prompt for better generation quality.
+  let enhancedPrompt: string;
 
-Write a single Flux Kontext instruction that:
-1. Starts with "In this exact photo,"
-2. Describes ONLY the specific change requested, nothing else
-3. Does NOT mention improving quality, lighting, style, or anything not requested
-4. Does NOT describe or re-create the people, background or composition
-
-Example good prompt: "In this exact photo, add several tennis balls scattered on the court floor in the background."
-Example bad prompt: "Professional padel photo with two players and tennis balls..." (this creates a new image)
-
-Reply ONLY with the single instruction sentence in English, no explanations, no quotes.`,
-        },
-      ]
-    : `The user wants to generate this image for Instagram:
+  if (hasRefImage) {
+    enhancedPrompt = input.userPrompt;
+  } else {
+    const claudeMsg = await anthropic.messages.create({
+      model:      'claude-sonnet-4-20250514',
+      max_tokens: 400,
+      messages:   [{
+        role: 'user',
+        content: `The user wants to generate this image for Instagram:
 "${input.userPrompt}"
 
 Business sector: ${input.sector}
@@ -132,7 +121,7 @@ Visual style: ${input.visualStyle} — ${STYLE_GUIDE[input.visualStyle]}
 Brand context: ${input.brandContext}
 Format: ${input.format ?? 'post'} (${width}×${height}px)
 ${brandRules.length ? `\nBrand rules (must follow):\n${brandRules.map(r => `- ${r}`).join('\n')}\n` : ''}
-Improve this prompt to get the best possible image for Instagram with Nano Banana 2.
+Improve this prompt to get the best possible image for Instagram.
 
 Requirements:
 - Photo type (product shot, lifestyle, flat lay, overhead...)
@@ -141,17 +130,13 @@ Requirements:
 - Quality keywords (photorealistic, 4K, professional photography...)
 - Style specific to the sector and visual style
 
-Reply ONLY with the enhanced prompt in English, no explanations, no quotes.`;
-
-  const promptMsg = await anthropic.messages.create({
-    model:      'claude-sonnet-4-20250514',
-    max_tokens: 400,
-    messages:   [{ role: 'user', content: claudeContent }],
-  });
-
-  const enhancedPrompt = promptMsg.content[0].type === 'text'
-    ? promptMsg.content[0].text.trim()
-    : input.userPrompt;
+Reply ONLY with the enhanced prompt in English, no explanations, no quotes.`,
+      }],
+    });
+    enhancedPrompt = claudeMsg.content[0].type === 'text'
+      ? claudeMsg.content[0].text.trim()
+      : input.userPrompt;
+  }
 
   // ── Step 2: Generate or edit with Nano Banana 2 ───────────────────────────────
   // img2img when user uploaded a photo; txt2img when generating from scratch.
