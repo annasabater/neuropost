@@ -44,8 +44,8 @@ export async function POST(
     }
 
     // Audit log
-    void logWorkerAction(worker.id, worker.display_name ?? 'Worker', 'claim', 'agent_job',
-      `${worker.display_name ?? 'Worker'} reclamó Job ${jobId.slice(0, 8)} (${updated.agent_type}:${updated.action})`,
+    void logWorkerAction(worker.id, worker.full_name ?? 'Worker', 'claim', 'agent_job',
+      `${worker.full_name ?? 'Worker'} reclamó Job ${jobId.slice(0, 8)} (${updated.agent_type}:${updated.action})`,
       { resource_id: jobId, brand_id: updated.brand_id ?? undefined });
 
     // Log the claim as a notification
@@ -53,7 +53,7 @@ export async function POST(
     if (brandId) {
       await db.from('worker_notifications').insert({
         type: 'job_claimed',
-        message: `${worker.display_name ?? 'Worker'} reclamó tarea ${updated.agent_type}:${updated.action}`,
+        message: `${worker.full_name ?? 'Worker'} reclamó tarea ${updated.agent_type}:${updated.action}`,
         brand_id: brandId,
         brand_name: null,
         read: false,

@@ -30,7 +30,7 @@ export function WorkerTopNav({
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     async function fetchUnread() {
@@ -69,7 +69,7 @@ export function WorkerTopNav({
 
   function handleSearchInput(val: string) {
     setSearchQuery(val);
-    clearTimeout(debounceRef.current);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => doSearch(val), 300);
   }
 

@@ -187,7 +187,7 @@ export async function GET(req: NextRequest) {
       saasMetrics: { arpu, ltv, cac, ltvCacRatio: cac > 0 ? Math.round(ltv / cac * 10) / 10 : 0, paybackMonths: arpu > 0 ? Math.round(cac / arpu * 10) / 10 : 0 },
       snapshots,
       alerts,
-      fixedCosts: fixedCosts.map(c => ({ id: (c as { id: string }).id, category: c.category, name: c.name, amount: Number(c.amount_eur) })),
+      fixedCosts: fixedCosts.map(c => ({ id: (c as unknown as { id: string }).id, category: c.category, name: c.name, amount: Number(c.amount_eur) })),
       period,
     });
   } catch (err) {

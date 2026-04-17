@@ -192,7 +192,7 @@ export default function PlanPage() {
   const [promoCodeId, setPromoCodeId] = useState<string | null>(null);
   const [, setDiscountText] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(
-    (brand?.subscribed_platforms as string[] | undefined)?.length ? (brand.subscribed_platforms as string[]) : ['instagram'],
+    (brand?.subscribed_platforms as string[] | undefined)?.length ? (brand?.subscribed_platforms as string[]) : ['instagram'],
   );
   const refreshedRef = useRef(false);
 
@@ -519,10 +519,10 @@ export default function PlanPage() {
           </div>
           <div style={{ padding: '18px 20px', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             {([
-              { id: 'instagram', label: 'Instagram', icon: '📷', always: true },
-              { id: 'facebook', label: 'Facebook', icon: '📘', always: false },
-              { id: 'tiktok', label: 'TikTok', icon: '🎵', always: false, requiresPlan: ['pro', 'total', 'agency'] as string[] },
-            ] as const).map(({ id, label, icon, always, requiresPlan }) => {
+              { id: 'instagram', label: 'Instagram', icon: '📷', always: true, requiresPlan: null as string[] | null },
+              { id: 'facebook', label: 'Facebook', icon: '📘', always: false, requiresPlan: null as string[] | null },
+              { id: 'tiktok', label: 'TikTok', icon: '🎵', always: false, requiresPlan: ['pro', 'total', 'agency'] as string[] | null },
+            ]).map(({ id, label, icon, always, requiresPlan }) => {
               const active = selectedPlatforms.includes(id);
               const planBlocked = requiresPlan && !requiresPlan.includes(currentPlan);
               const disabled = always || planBlocked;

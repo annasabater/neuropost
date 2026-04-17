@@ -132,7 +132,7 @@ export default function FinanzasPage() {
                 <Pie data={expenseBreakdown} dataKey="amount" nameKey="category" cx="50%" cy="50%" innerRadius={45} outerRadius={80} paddingAngle={2}>
                   {expenseBreakdown.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                 </Pie>
-                <Tooltip formatter={(v: number) => `${v.toFixed(0)} EUR/mes`} />
+                <Tooltip formatter={(v: unknown) => `${Number(v).toFixed(0)} EUR/mes`} />
               </PieChart>
             </ResponsiveContainer>
             <div style={{ flex: 1 }}>
@@ -157,7 +157,7 @@ export default function FinanzasPage() {
               <BarChart data={planBreakdown} layout="vertical">
                 <XAxis type="number" hide />
                 <YAxis dataKey="plan" type="category" width={100} tick={{ fontSize: 12, fontFamily: f }} />
-                <Tooltip formatter={(v: number, name: string) => [name === 'clients' ? `${v} clientes` : `${v} EUR`, name === 'clients' ? 'Clientes' : 'MRR']} />
+                <Tooltip formatter={(v: unknown, name: unknown) => [name === 'clients' ? `${Number(v)} clientes` : `${Number(v)} EUR`, name === 'clients' ? 'Clientes' : 'MRR']} />
                 <Bar dataKey="clients" fill={C.accent2} name="Clientes" />
               </BarChart>
             </ResponsiveContainer>
@@ -180,7 +180,7 @@ export default function FinanzasPage() {
             <BarChart data={byProvider}>
               <XAxis dataKey="provider" tick={{ fontSize: 11, fontFamily: f }} />
               <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v: number) => `$${v.toFixed(2)}`} />
+              <Tooltip formatter={(v: unknown) => `$${Number(v).toFixed(2)}`} />
               <Bar dataKey="costUSD" fill={C.accent2} name="Coste USD" />
             </BarChart>
           </ResponsiveContainer>

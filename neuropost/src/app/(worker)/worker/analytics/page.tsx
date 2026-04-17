@@ -298,12 +298,12 @@ function CostesTab() {
       {/* KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: C.border, border: `1px solid ${C.border}`, marginBottom: 24 }}>
         {[
-          { label: 'Coste hoy', value: `$${kpis.costToday.toFixed(2)}` },
-          { label: 'Coste mes', value: `$${kpis.costMonth.toFixed(2)}` },
-          { label: 'Coste/cliente', value: `$${kpis.costPerClient.toFixed(2)}/mes` },
-          { label: 'Clientes activos', value: kpis.activeClients },
-        ].map(({ label, value }) => (
-          <KpiCard key={label} icon={DollarSign} label={label} value={String(value)} color={C.accent2} />
+          { label: 'Coste hoy', value: `$${kpis.costToday.toFixed(2)}`, sub: '' },
+          { label: 'Coste mes', value: `$${kpis.costMonth.toFixed(2)}`, sub: '' },
+          { label: 'Coste/cliente', value: `$${kpis.costPerClient.toFixed(2)}/mes`, sub: '' },
+          { label: 'Clientes activos', value: String(kpis.activeClients), sub: '' },
+        ].map(({ label, value, sub }) => (
+          <KpiCard key={label} icon={DollarSign} label={label} value={value} sub={sub} color={C.accent2} />
         ))}
       </div>
 

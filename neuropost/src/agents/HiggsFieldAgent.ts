@@ -130,7 +130,7 @@ Write ONLY the prompt. No explanation.`.trim();
       prompt:               enhancedPrompt,
       negative_prompt:      'blurry, shaky, watermark, text overlay, logo, low quality',
       aspect_ratio:         ASPECT_RATIO.video,
-      duration:             input.durationSec ?? 5,
+      duration:             (input.durationSec ?? 5) as import('@/lib/higgsfield').HiggsDuration,
       reference_image_url:  input.referenceImageUrl,
     });
     rawUrl = result.videoUrl;
