@@ -137,7 +137,7 @@ const imageGenerateHandler: AgentHandler = async (job) => {
       await db.from('posts').update({
         image_url:     primaryUrl,
         carousel_urls: allUrls.length > 1 ? allUrls : null,
-        status:        'pending_worker',
+        status:        'pending',
         ai_explanation: JSON.stringify({
           mode,
           enhanced_prompt: payload?.enhancedPrompt,
