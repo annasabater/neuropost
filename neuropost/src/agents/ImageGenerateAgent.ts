@@ -6,7 +6,7 @@
 // =============================================================================
 
 import Anthropic from '@anthropic-ai/sdk';
-import { generateImage } from '@/lib/imageGeneration';
+import { generateImage, editImage } from '@/lib/imageGeneration';
 import type { NanoBananaQuality } from '@/lib/nanoBanana';
 import type { VisualStyle, SocialSector, BrandColors } from '@/types';
 
@@ -26,13 +26,26 @@ export interface ImageGenerateInput {
   quality?:        NanoBananaQuality;
   format?:         'post' | 'story' | 'reel_cover';
   brandId?:        string;        // if provided, uploads to Supabase
+  /**
+   * When the user uploaded their own photo, this is its URL.
+   * The agent will use img2img mode: analyse the image with Claude Vision
+   * and then pass it to NanoBanana img2img so the output is derived from
+   * the user's photo rather than generated from scratch.
+   */
+  referenceImageUrl?: string;
+  /** img2img strength (0.0 = keep original, 1.0 = ignore it). Default 0.65 */
+  editStrength?:   number;
+  /** How many output images to generate (1–4). Default 1. */
+  numOutputs?:     number;
 }
 
 export interface ImageGenerateOutput {
-  imageUrl:       string;
-  enhancedPrompt: string;
-  creditsUsed:    number;
-  generationMs?:  number;
+  imageUrl:        string;
+  additionalUrls?: string[];   // extra images when numOutputs > 1
+  enhancedPrompt:  string;
+  creditsUsed:     number;
+  generationMs?:   number;
+  mode?:           'txt2img' | 'img2img';
 }
 
 // ─── Dimensions per format ────────────────────────────────────────────────────
@@ -84,13 +97,38 @@ export async function runImageGenerateAgent(
     brandRules.push('Do NOT include emoji characters or cartoonish icons in the image.');
   }
 
-  // ── Step 1: Claude enhances the prompt ──────────────────────────────────────
-  const promptMsg = await anthropic.messages.create({
-    model:      'claude-sonnet-4-20250514',
-    max_tokens: 400,
-    messages: [{
-      role:    'user',
-      content: `The user wants to generate this image for Instagram:
+  const hasRefImage = !!input.referenceImageUrl;
+
+  // ── Step 1: Claude enhances the prompt ───────────────────────────────────────
+  // When the user uploaded their own photo, Claude analyses it via vision first
+  // so the enhanced prompt describes what to preserve and what to improve.
+  const claudeContent: Anthropic.MessageParam['content'] = hasRefImage
+    ? [
+        {
+          type:   'image',
+          source: { type: 'url', url: input.referenceImageUrl! },
+        },
+        {
+          type: 'text',
+          text: `The user uploaded this photo and wants it professionally edited/recreated for Instagram.
+User description: "${input.userPrompt}"
+
+Business sector: ${input.sector}
+Visual style: ${input.visualStyle} — ${STYLE_GUIDE[input.visualStyle]}
+Brand context: ${input.brandContext}
+Format: ${input.format ?? 'post'} (${width}×${height}px)
+${brandRules.length ? `\nBrand rules (must follow):\n${brandRules.map(r => `- ${r}`).join('\n')}\n` : ''}
+
+Analyse the uploaded image and write an img2img edit prompt that:
+1. Preserves the key subject/product from the original photo
+2. Applies the brand visual style and user description as enhancements
+3. Improves lighting, composition, and professional quality
+4. Keeps it suitable for Instagram
+
+Reply ONLY with the edit prompt in English, no explanations, no quotes.`,
+        },
+      ]
+    : `The user wants to generate this image for Instagram:
 "${input.userPrompt}"
 
 Business sector: ${input.sector}
@@ -107,54 +145,82 @@ Requirements:
 - Quality keywords (photorealistic, 4K, professional photography...)
 - Style specific to the sector and visual style
 
-Reply ONLY with the enhanced prompt in English, no explanations, no quotes.`,
-    }],
+Reply ONLY with the enhanced prompt in English, no explanations, no quotes.`;
+
+  const promptMsg = await anthropic.messages.create({
+    model:      'claude-sonnet-4-20250514',
+    max_tokens: 400,
+    messages:   [{ role: 'user', content: claudeContent }],
   });
 
   const enhancedPrompt = promptMsg.content[0].type === 'text'
     ? promptMsg.content[0].text.trim()
     : input.userPrompt;
 
-  // ── Step 2: Generate with Nano Banana 2 ─────────────────────────────────────
-  const result = await generateImage({
-    prompt:          enhancedPrompt,
-    negative_prompt: NEGATIVE_PROMPT,
-    width,
-    height,
-    quality:         input.quality ?? 'pro',
-    output_format:   'jpg',
-  });
+  // ── Step 2: Generate or edit with Nano Banana 2 ───────────────────────────────
+  // img2img when user uploaded a photo; txt2img when generating from scratch.
+  const numOutputs = Math.min(Math.max(input.numOutputs ?? 1, 1), 4);
+  const results: string[] = [];
 
-  // ── Step 3: Upload to Supabase Storage if brandId provided ──────────────────
-  let finalUrl = result.image_url;
-
-  if (input.brandId) {
-    try {
-      const { createServerClient } = await import('@/lib/supabase');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const supabase = await createServerClient() as any;
-
-      const imageRes  = await fetch(result.image_url);
-      const imageBlob = await imageRes.blob();
-      const fileName  = `generated/nb2-${Date.now()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}.jpg`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('assets')
-        .upload(fileName, imageBlob, { contentType: 'image/jpeg', upsert: false });
-
-      if (!uploadError) {
-        const { data: { publicUrl } } = supabase.storage.from('assets').getPublicUrl(fileName);
-        finalUrl = publicUrl;
-      }
-    } catch (uploadErr) {
-      console.warn('Supabase upload failed, returning direct URL:', uploadErr);
+  for (let i = 0; i < numOutputs; i++) {
+    let r: Awaited<ReturnType<typeof generateImage>>;
+    if (hasRefImage) {
+      r = await editImage({
+        imageUrl:  input.referenceImageUrl!,
+        prompt:    enhancedPrompt,
+        strength:  input.editStrength ?? 0.65,
+        quality:   input.quality ?? 'pro',
+      });
+    } else {
+      r = await generateImage({
+        prompt:          enhancedPrompt,
+        negative_prompt: NEGATIVE_PROMPT,
+        width,
+        height,
+        quality:         input.quality ?? 'pro',
+        output_format:   'jpg',
+      });
     }
+    results.push(r.image_url);
+  }
+
+  // Use first result as primary; pack extras into additionalUrls
+  const result = { image_url: results[0], generation_time: 0, credits_used: numOutputs };
+
+  // ── Step 3: Upload all results to Supabase Storage ───────────────────────────
+  const uploadedUrls: string[] = [];
+
+  for (const rawUrl of results) {
+    let finalUrl = rawUrl;
+    if (input.brandId) {
+      try {
+        const { createAdminClient } = await import('@/lib/supabase');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const supabase = createAdminClient() as any;
+        const imageRes  = await fetch(rawUrl);
+        const imageBlob = await imageRes.blob();
+        const prefix = hasRefImage ? 'edited' : 'generated';
+        const fileName = `${prefix}/nb2-${Date.now()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from('assets')
+          .upload(fileName, imageBlob, { contentType: 'image/jpeg', upsert: false });
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage.from('assets').getPublicUrl(fileName);
+          finalUrl = publicUrl;
+        }
+      } catch (uploadErr) {
+        console.warn('Supabase upload failed, returning direct URL:', uploadErr);
+      }
+    }
+    uploadedUrls.push(finalUrl);
   }
 
   return {
-    imageUrl:       finalUrl,
+    imageUrl:        uploadedUrls[0],
+    additionalUrls:  uploadedUrls.slice(1),
     enhancedPrompt,
-    creditsUsed:    result.credits_used,
-    generationMs:   Date.now() - start,
+    creditsUsed:     result.credits_used,
+    generationMs:    Date.now() - start,
+    mode:            hasRefImage ? 'img2img' : 'txt2img',
   };
 }

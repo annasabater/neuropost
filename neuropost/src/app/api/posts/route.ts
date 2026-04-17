@@ -223,16 +223,36 @@ async function autoStartPipeline(post: Post, brand: Brand): Promise<void> {
       requested_by: 'client',
     });
   } else {
-    // Path C: image provided → validate first
+    // Path C: user uploaded a photo → img2img via NanoBanana
+    // Claude Vision analyses the photo, enhances the prompt, NanaBanana edits it.
+    // Result lands in needs_review so the user sees it immediately.
+    const numOutputs = (() => {
+      try {
+        const meta = JSON.parse(post.ai_explanation ?? '{}') as Record<string, unknown>;
+        const extra = typeof meta.extra_photos === 'number' ? meta.extra_photos : 0;
+        return Math.min(1 + extra, 4);
+      } catch { return 1; }
+    })();
     await queueJob({
       brand_id:    post.brand_id,
       agent_type:  'content',
-      action:      'validate_image',
+      action:      'generate_image',
       input: {
-        post_id:         post.id,
-        image_url:       post.image_url,
-        original_prompt: basePrompt,
-        attempt_number:  1,
+        userPrompt:        basePrompt,
+        sector:            brand.sector       ?? 'restaurante',
+        visualStyle:       brand.visual_style ?? 'warm',
+        brandContext:      brand.brand_voice_doc
+          ?? `${brand.name} — sector ${brand.sector}, tono ${brand.tone ?? 'cercano'}`,
+        colors:            brand.colors ?? null,
+        forbiddenWords:    (brand.rules as { forbiddenWords?: string[] } | null)?.forbiddenWords ?? [],
+        noEmojis:          brand.visual_style === 'elegant' || brand.visual_style === 'dark',
+        format:            post.format === 'story' ? 'story'
+                         : post.format === 'reel'  ? 'reel_cover' : 'post',
+        brandId:           post.brand_id,
+        // img2img: pass user's uploaded photo as reference
+        referenceImageUrl: sourceFiles[0] ?? post.image_url ?? undefined,
+        editStrength:      0.65,
+        numOutputs,
         ...pipelineMeta,
       },
       priority:     80,

@@ -118,30 +118,32 @@ const imageGenerateHandler: AgentHandler = async (job) => {
     void trackCost(job, 'nanobanana', 'generate_image', 0.04, { model: 'nanobanana-v2', duration_seconds: genMs ? genMs / 1000 : undefined });
   }
 
-  // If this job was triggered for a specific post, auto-queue validate_image
+  // When triggered for a specific post: update post with generated image(s)
+  // and set status → needs_review so the user sees it immediately.
   if (result.type === 'ok' && _post_id && job.brand_id) {
-    const generatedUrl = result.outputs?.[0]?.preview_url;
-    if (generatedUrl) {
+    const payload = result.outputs?.[0]?.payload as Record<string, unknown> | undefined;
+    const primaryUrl     = result.outputs?.[0]?.preview_url;
+    const additionalUrls = (payload?.additionalUrls as string[] | undefined) ?? [];
+    const mode           = payload?.mode as string | undefined;
+
+    if (primaryUrl) {
       const { createAdminClient } = await import('@/lib/supabase');
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const db = createAdminClient() as any;
-      await db.from('agent_jobs').insert({
-        brand_id:      job.brand_id,
-        agent_type:    'content',
-        action:        'validate_image',
-        input: {
-          post_id:         _post_id,
-          image_url:       generatedUrl,
-          original_prompt: _original_prompt ?? agentInput.userPrompt ?? '',
-          attempt_number:  1,
-          _photo_index:    _photo_index ?? 0,
-        },
-        status:        'pending',
-        priority:      job.priority ?? 70,
-        max_attempts:  3,
-        requested_by:  'agent',
-        parent_job_id: job.id,
-      });
+
+      // Build carousel_urls: primary + extras (for carrusel format)
+      const allUrls = [primaryUrl, ...additionalUrls];
+
+      await db.from('posts').update({
+        image_url:     primaryUrl,
+        carousel_urls: allUrls.length > 1 ? allUrls : null,
+        status:        'needs_review',
+        ai_explanation: JSON.stringify({
+          mode,
+          enhanced_prompt: payload?.enhancedPrompt,
+          all_urls:        allUrls,
+        }),
+      }).eq('id', _post_id);
     }
   }
 
