@@ -86,32 +86,30 @@ export async function generateImage(params: GenerateImageParams): Promise<ImageR
   };
 }
 
-// ─── img2img (Flux Dev with image_prompt) ─────────────────────────────────────
-// Uses flux-dev's image_prompt input to condition generation on the reference photo.
+// ─── img2img (Flux Kontext Pro) ───────────────────────────────────────────────
+// Flux Kontext Pro is designed for image editing: it preserves the original
+// subject/product and applies the prompt as targeted modifications.
+// Much better than flux-dev image_prompt for keeping the original photo intact.
 
 export async function editImage(params: EditImageParams): Promise<ImageResponse> {
   const token  = getToken();
   const t0     = Date.now();
-  const strength = params.strength ?? 0.65;
 
-  const res = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-dev/predictions', {
+  const res = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({
       input: {
-        prompt:              params.prompt,
-        image_prompt:        params.imageUrl,
-        image_prompt_strength: strength,
-        output_format:       'jpg',
-        num_outputs:         1,
-        num_inference_steps: params.quality === 'pro' ? 28 : 20,
+        prompt:        params.prompt,
+        input_image:   params.imageUrl,
+        output_format: 'jpg',
       },
     }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({})) as { detail?: string };
-    throw new Error(`Replicate img2img error: ${err.detail ?? res.statusText}`);
+    throw new Error(`Replicate Kontext error: ${err.detail ?? res.statusText}`);
   }
 
   const prediction = await res.json() as { id: string; urls: { get: string } };
