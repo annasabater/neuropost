@@ -11,6 +11,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
     "@parcel/watcher": "^2.5.6",
+    "@parcel/watcher-linux-x64-glibc": "^2.5.6",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
