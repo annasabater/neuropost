@@ -37,7 +37,7 @@ const HELP_TEXT = `🎨 *NeuroPost Inspiration Bot*
 Envíame fotos carruseles o vídeos y los añadiré al banco\\.
 
 *Para reels de Instagram o TikTok:*
-1\\. Pega el link en [@instasave\\_bot](https://t.me/instasave_bot) \\(Instagram\\) o [@tiktokdownloader\\_bot](https://t.me/tiktokdownloader_bot) \\(TikTok\\)
+1\\. Pega el link en [@Savetelbot](https://t.me/Savetelbot) \\(Instagram\\) o [@tiktokdownloader\\_bot](https://t.me/tiktokdownloader_bot) \\(TikTok\\)
 2\\. Cuando te devuelva el vídeo reenvíamelo aquí
 3\\. Yo lo proceso como si fuera tuyo
 
@@ -53,7 +53,7 @@ Nota: vídeos hasta 20 MB \\(límite de Telegram Bot API\\)\\.`;
 // Detect social URLs in plain-text messages to guide the user
 const URL_PATTERNS: { re: RegExp; name: string; helper: string }[] = [
   { re: /instagram\.com\/(reel|p|tv)\//i,   name: 'Instagram',
-    helper: 'pega el link en @instasave_bot, espera el vídeo, y reenvíamelo aquí' },
+    helper: 'pega el link en @Savetelbot, espera el vídeo, y reenvíamelo aquí' },
   { re: /tiktok\.com\/.*\/video\/|vm\.tiktok|vt\.tiktok/i, name: 'TikTok',
     helper: 'pega el link en @tiktokdownloader_bot, espera el vídeo, y reenvíamelo aquí' },
   { re: /pinterest\.com\/pin\/|pin\.it\//i, name: 'Pinterest',
