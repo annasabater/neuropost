@@ -4140,3 +4140,495 @@ h2 {
     padding-top: 16px;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   IG-LAYOUT — Instagram-inspired sidebar + bottom nav
+   Replaces .dash-root layout classes. All ig-* classes live here.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Root shell ── */
+.ig-root {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg);
+  /* inherit all dash-root CSS vars */
+  --ig-sidebar-w: 228px;
+  --ig-topbar-h: 44px;
+  --ig-bottom-nav-h: 60px;
+}
+
+/* ── Sidebar ── */
+.ig-sidebar {
+  width: var(--ig-sidebar-w);
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ── Sidebar header ── */
+.ig-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 16px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.ig-logo {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.ig-sidebar-close {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  padding: 4px;
+  line-height: 1;
+}
+
+/* ── Create button ── */
+.ig-create-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 9px 12px;
+  background: var(--text-primary);
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-barlow-condensed), 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  text-decoration: none;
+  transition: opacity 0.15s;
+  box-sizing: border-box;
+}
+.ig-create-btn:hover { opacity: 0.85; }
+
+/* ── Nav ── */
+.ig-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.ig-nav::-webkit-scrollbar { display: none; }
+.ig-nav { -ms-overflow-style: none; scrollbar-width: none; }
+
+.ig-nav-group {
+  margin-bottom: 4px;
+}
+
+.ig-nav-group-label {
+  font-family: var(--font-barlow), 'Barlow', sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-tertiary);
+  padding: 10px 10px 4px;
+}
+
+.ig-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-family: var(--font-barlow), 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.12s, color 0.12s;
+  position: relative;
+}
+.ig-nav-item:hover {
+  background: var(--bg-1);
+  color: var(--text-primary);
+}
+.ig-nav-item.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+.ig-nav-item.active .ig-nav-icon svg { color: var(--accent); }
+
+.ig-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.ig-nav-label { flex: 1; }
+
+/* ── Profile footer ── */
+.ig-sidebar-footer {
+  flex-shrink: 0;
+  padding: 10px 8px;
+  border-top: 1px solid var(--border);
+  position: relative;
+}
+
+.ig-profile-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.ig-profile-btn:hover { background: var(--bg-1); }
+
+.ig-avatar {
+  width: 30px;
+  height: 30px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-barlow), 'Barlow', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.ig-profile-info {
+  flex: 1;
+  text-align: left;
+  min-width: 0;
+}
+
+.ig-profile-name {
+  font-family: var(--font-barlow), 'Barlow', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
+}
+
+.ig-profile-plan {
+  font-family: var(--font-barlow), 'Barlow', sans-serif;
+  font-size: 10px;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.ig-profile-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  margin-bottom: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  z-index: 100;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.10);
+}
+
+.ig-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  text-decoration: none;
+  color: var(--text-secondary);
+  font-family: var(--font-barlow), 'Barlow', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  border-bottom: 1px solid var(--bg-1);
+  transition: background 0.1s;
+  width: 100%;
+  background: none;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  cursor: pointer;
+}
+.ig-dropdown-item:hover { background: var(--bg-1); color: var(--text-primary); }
+.ig-dropdown-logout { color: var(--text-tertiary); border-bottom: none; }
+
+/* ── Main content area ── */
+.ig-main {
+  flex: 1;
+  margin-left: var(--ig-sidebar-w);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  transition: margin-left 0.25s;
+}
+
+/* ── Top bar (reuse existing TopNav styles, just adjust height) ── */
+.dash-topbar {
+  height: var(--ig-topbar-h) !important;
+}
+
+/* ── Page content ── */
+.ig-content {
+  flex: 1;
+  /* same padding as old dash-main */
+  --dash-main-pad: 28px;
+}
+
+/* Keep all existing .dash-main page rules working under .ig-content */
+.ig-content > .page-content { padding: 0 var(--dash-main-pad); }
+.ig-content > .page-content.dashboard-page { padding: 0; }
+.ig-content > .page-content.dashboard-unified-page { padding: 0; max-width: 100%; }
+
+/* ── Overlay ── */
+.ig-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  z-index: 45;
+}
+
+/* ── Bottom nav (mobile only) ── */
+.ig-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--ig-bottom-nav-h);
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+  z-index: 50;
+  padding: 0 4px;
+  align-items: center;
+  justify-content: space-around;
+}
+
+.ig-bottom-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-decoration: none;
+  color: var(--text-tertiary);
+  padding: 6px 10px;
+  flex: 1;
+  transition: color 0.12s;
+  position: relative;
+}
+.ig-bottom-item.active { color: var(--accent); }
+
+.ig-bottom-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ig-bottom-label {
+  font-family: var(--font-barlow), 'Barlow', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ig-bottom-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 8px;
+  font-weight: 700;
+  min-width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  font-family: var(--font-barlow), 'Barlow', sans-serif;
+}
+
+/* nav badge (sidebar) */
+.ig-root .nav-badge {
+  background: var(--accent);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  margin-left: auto;
+  font-family: var(--font-barlow), 'Barlow', sans-serif;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+  .ig-root { --ig-sidebar-w: 200px; }
+}
+
+@media (max-width: 767px) {
+  /* Hide desktop sidebar */
+  .ig-sidebar {
+    transform: translateX(-100%);
+  }
+  .ig-root.sidebar-open .ig-sidebar {
+    transform: translateX(0);
+  }
+  .ig-root.sidebar-open .ig-overlay {
+    display: block;
+  }
+  .ig-sidebar-close { display: flex; }
+
+  /* Full width main */
+  .ig-main {
+    margin-left: 0 !important;
+    padding-bottom: var(--ig-bottom-nav-h);
+  }
+
+  /* Show bottom nav */
+  .ig-bottom-nav { display: flex; }
+
+  /* Show hamburger in topbar */
+  .sidebar-toggle-btn { display: flex !important; }
+
+  /* Compact topbar */
+  .dash-topbar { padding: 0 12px !important; }
+
+  /* Page padding compact on mobile */
+  .ig-content > .page-content { padding: 0 16px; }
+}
+
+@media (min-width: 768px) {
+  /* Hide mobile close button on desktop */
+  .ig-sidebar-close { display: none; }
+  /* Hide hamburger on desktop */
+  .sidebar-toggle-btn { display: none !important; }
+}
+
+/* Dark mode overrides for ig-layout */
+[data-theme="dark"] .ig-root .ig-sidebar { border-right-color: var(--border); }
+[data-theme="dark"] .ig-root .ig-profile-dropdown { box-shadow: 0 -4px 20px rgba(0,0,0,0.4); }
+
+/* ── ig-content inherits all dash-main rules ── */
+.ig-content {
+  --dash-main-pad: 28px;
+  padding: 0 var(--dash-main-pad);
+  flex: 1;
+}
+.ig-content > .page-content:not(.dashboard-page) {
+  padding-top: 0;
+  padding-bottom: 60px;
+}
+.ig-content > .page-content.dashboard-page { padding: 0; }
+.ig-content > .page-content.dashboard-unified-page {
+  padding: 0;
+  max-width: 100%;
+}
+
+/* ig-root needs same CSS vars as dash-root */
+.ig-root {
+  --bg:          #ffffff;
+  --bg-1:        #f5f5f5;
+  --bg-2:        #ebebeb;
+  --bg-3:        #e0e0e0;
+  --bg-4:        #d4d4d4;
+  --text-primary:   #111111;
+  --text-secondary: #6B7280;
+  --text-tertiary:  #9CA3AF;
+  --text-inv:       #ffffff;
+  --accent:      #0F766E;
+  --accent-dark: #0D5E58;
+  --accent-soft: rgba(15,118,110,0.08);
+  --accent-bg:   #f0fdfa;
+  --border:      #E5E7EB;
+  --border-dark: #D1D5DB;
+  --success:     #2d7d32;
+  --success-dim: #e8f5e9;
+  --warning:     #e65100;
+  --warning-dim: #fff3e0;
+  --error:       #c62828;
+  --error-dim:   #ffebee;
+  --info:        #1565c0;
+  --info-dim:    #e3f2fd;
+  --surface:     var(--bg-1);
+  --surface-2:   var(--bg-2);
+  --surface-3:   var(--bg-3);
+  --text-1:      var(--text-primary);
+  --text-2:      var(--text-secondary);
+  --text-3:      var(--text-tertiary);
+  --orange:      var(--accent);
+  --orange-dim:  var(--accent-soft);
+  --orange-glow: rgba(15,118,110,0.25);
+  --green:       var(--success);
+  --green-dim:   var(--success-dim);
+  --yellow:      var(--warning);
+  --yellow-dim:  var(--warning-dim);
+  --red:         var(--error);
+  --red-dim:     var(--error-dim);
+  --blue:        var(--info);
+  --blue-dim:    var(--info-dim);
+  --r-sm: 0px; --r-md: 0px; --r-lg: 0px; --r-xl: 0px; --r-full: 0px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.10);
+  --shadow-lg: 0 4px 20px rgba(0,0,0,0.12);
+}
+
+[data-theme="dark"] .ig-root {
+  --bg:          #0d1117;
+  --bg-1:        #161b22;
+  --bg-2:        #1c2128;
+  --bg-3:        #21262d;
+  --bg-4:        #2d333b;
+  --text-primary:   #e6edf3;
+  --text-secondary: #8b949e;
+  --text-tertiary:  #484f58;
+  --text-inv:       #0d1117;
+  --border:      #21262d;
+  --border-dark: #30363d;
+  --accent-bg:   rgba(15,118,110,0.14);
+  --success-dim: rgba(45,125,50,0.18);
+  --error-dim:   rgba(198,40,40,0.18);
+}
+
+@media (max-width: 1200px) {
+  .ig-content { --dash-main-pad: clamp(16px, 3vw, 28px); }
+}
+@media (max-width: 767px) {
+  .ig-content { --dash-main-pad: 16px; padding: 0 var(--dash-main-pad); }
+  .ig-content > .page-content:not(.dashboard-page) { padding-top: 0; }
+}
+@media (max-width: 480px) {
+  .ig-content { --dash-main-pad: 12px; }
+}

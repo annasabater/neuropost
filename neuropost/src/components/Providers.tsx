@@ -15,11 +15,17 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const supabase = createBrowserClient();
 
     async function loadBrand() {
-      // Only fetch brand if user is authenticated
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      // getUser() validates the JWT server-side — safer than getSession()
+      // If the refresh token is invalid it returns an error (no exception thrown)
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
         setBrand(null);
         setBrandLoading(false);
+        // If the token is genuinely invalid, sign out cleanly to clear stale cookies
+        if (error?.message?.includes('Refresh Token')) {
+          await supabase.auth.signOut();
+          window.location.replace('/login');
+        }
         return;
       }
       setBrandLoading(true);
@@ -40,7 +46,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     loadBrand();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
-      if (event === 'SIGNED_IN') {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         loadBrand();
       }
       if (event === 'SIGNED_OUT') {
