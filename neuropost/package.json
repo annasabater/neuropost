@@ -17,6 +17,7 @@
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@neuropost/agents": "*",
     "@parcel/watcher": "^2.5.6",
+    "@parcel/watcher-linux-x64-glibc": "^2.5.6",
     "@sentry/nextjs": "^10.47.0",
     "@stripe/stripe-js": "^9.0.1",
     "@supabase/ssr": "^0.10.0",
