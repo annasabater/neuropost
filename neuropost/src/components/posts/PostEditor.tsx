@@ -84,6 +84,11 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ── Video generation state ──
+  const [generatingVideo, setGeneratingVideo] = useState(false);
+  const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
+  const [videoPrompt, setVideoPrompt] = useState('');
+
   const FORMATS: { value: PostFormat; label: string }[] = [
     { value: 'image', label: t('formats.image') },
     { value: 'reel', label: 'Video' },
@@ -212,6 +217,27 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
       setHashtags([...data.hashtags.branded, ...data.hashtags.niche, ...data.hashtags.broad].slice(0, 15));
     } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
     finally { setGenerating(false); }
+  }
+
+  async function generateVideo() {
+    setGeneratingVideo(true); setError(null);
+    try {
+      const referenceImageUrl = activeSlot?.url && !activeSlot.url.startsWith('blob:')
+        ? activeSlot.url
+        : undefined;
+      const res = await fetch('/api/agents/video-generate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userPrompt:        videoPrompt || activeSlot?.context || 'Animate this image with smooth natural motion',
+          referenceImageUrl,
+          duration:          5,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error ?? 'Error al generar el vídeo');
+      setGeneratedVideoUrl(json.data.videoUrl);
+    } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
+    finally { setGeneratingVideo(false); }
   }
 
   async function handleSave() {
@@ -631,6 +657,70 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
             ))}
           </div>
         </div>
+
+        {/* Video generation — only shown when format=reel */}
+        {format === 'reel' && (
+          <div className="editor-section">
+            <p className="editor-section-title">Generar vídeo con IA (Kling v2)</p>
+            <textarea
+              value={videoPrompt}
+              onChange={(e) => setVideoPrompt(e.target.value)}
+              placeholder="Describe el movimiento o escena del vídeo... (opcional, se usará el contexto de la imagen si está vacío)"
+              rows={3}
+              style={{
+                width: '100%', padding: '10px 12px', border: '1px solid var(--border)',
+                fontFamily: f, fontSize: 12, color: 'var(--text-primary)', outline: 'none',
+                boxSizing: 'border-box', background: 'var(--bg)', resize: 'vertical', lineHeight: 1.5,
+                marginBottom: 8,
+              }}
+            />
+            {!activeSlot?.url || activeSlot.url.startsWith('blob:') ? (
+              <p style={{ fontFamily: f, fontSize: 11, color: '#b45309', marginBottom: 8 }}>
+                Para generar vídeo, la imagen debe estar subida a la biblioteca (no local). Guarda primero la imagen.
+              </p>
+            ) : null}
+            <button
+              type="button"
+              disabled={generatingVideo || !activeSlot?.url || activeSlot.url.startsWith('blob:')}
+              onClick={generateVideo}
+              style={{
+                padding: '10px 20px', background: generatingVideo ? 'var(--border)' : '#111827',
+                color: generatingVideo ? 'var(--text-tertiary)' : '#ffffff', border: 'none',
+                fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase',
+                letterSpacing: '0.06em', cursor: generatingVideo ? 'not-allowed' : 'pointer',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              <Play size={13} /> {generatingVideo ? 'Generando vídeo… (~60s)' : 'Generar vídeo'}
+            </button>
+
+            {generatedVideoUrl && (
+              <div style={{ marginTop: 12 }}>
+                <p style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--accent)', marginBottom: 6 }}>
+                  Vídeo generado
+                </p>
+                <video
+                  src={generatedVideoUrl}
+                  controls
+                  style={{ width: '100%', maxHeight: 300, background: '#000', display: 'block' }}
+                />
+                <a
+                  href={generatedVideoUrl}
+                  download="reel.mp4"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 8,
+                    padding: '7px 14px', border: '1px solid var(--accent)', color: 'var(--accent)',
+                    fontFamily: f, fontSize: 11, fontWeight: 600, textDecoration: 'none',
+                  }}
+                >
+                  Descargar MP4
+                </a>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Platforms */}
         <div className="editor-section editor-row">

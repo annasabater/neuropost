@@ -6,7 +6,6 @@ import { runVideoGenerateAgent } from '@/agents/VideoGenerateAgent';
 import { checkRateLimit } from '@/lib/ratelimit';
 import { checkVideoLimit, incrementVideoCounter } from '@/lib/plan-limits';
 import type { VisualStyle, SocialSector, Brand, BrandRules } from '@/types';
-import type { RunwayDuration } from '@/lib/runway';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -26,8 +25,8 @@ export async function POST(request: Request) {
 
     const body = await request.json() as {
       userPrompt:         string;
-      referenceImageUrl?: string;   // optional: animate an existing photo
-      duration?:          RunwayDuration;
+      referenceImageUrl?: string;   // required for Kling img2video
+      duration?:          5 | 10;
     };
 
     if (!body.userPrompt?.trim()) {
@@ -82,10 +81,11 @@ export async function POST(request: Request) {
       action:      'reel_generated',
       entity_type: 'video',
       details:     {
-        runway_task_id: result.runwayTaskId,
-        duration_sec:   result.durationSec,
-        generation_ms:  result.generationMs,
-        has_reference:  !!body.referenceImageUrl,
+        provider:      'kling-v2',
+        duration_sec:  result.durationSec,
+        generation_ms: result.generationMs,
+        credits_used:  result.creditsUsed,
+        has_reference: !!body.referenceImageUrl,
       },
     });
 
@@ -93,10 +93,10 @@ export async function POST(request: Request) {
       success: true,
       data: {
         videoUrl:       result.videoUrl,
-        runwayTaskId:   result.runwayTaskId,
         enhancedPrompt: result.enhancedPrompt,
         durationSec:    result.durationSec,
         generationMs:   result.generationMs,
+        creditsUsed:    result.creditsUsed,
       },
     });
   } catch (err) {
