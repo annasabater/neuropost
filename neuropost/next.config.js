@@ -20,7 +20,14 @@ const nextConfig = {
 
   transpilePackages: ['@neuropost/agents'],
 
-  serverExternalPackages: ['ioredis', 'bullmq'],
+  // ffmpeg/sharp/bullmq use native bindings or dynamic requires at runtime
+  // that Turbopack can't bundle. Keep them out of the bundle.
+  serverExternalPackages: [
+    'ioredis',
+    'bullmq',
+    '@ffmpeg-installer/ffmpeg',
+    'fluent-ffmpeg',
+  ],
 
   images: {
     remotePatterns: [
