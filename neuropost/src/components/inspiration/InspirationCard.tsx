@@ -1,17 +1,25 @@
 'use client';
 
 import { useState } from 'react';
-import { Heart, ImageIcon, Film, LayoutGrid, Video, Send } from 'lucide-react';
+import {
+  Heart, ImageIcon, Film, LayoutGrid, Video, Send, Bookmark, Play,
+} from 'lucide-react';
 
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type InspirationOrigin = 'editorial' | 'user_saved' | 'ai_generated';
+export type InspirationOrigin = 'editorial' | 'user_saved' | 'ai_generated' | 'bank';
+export type InspirationSource = 'legacy' | 'bank';
 
 export type InspirationItem = {
   id:                string;
-  type:              string;
+  /** When absent, legacy-only callers can omit; we default to 'legacy'. */
+  source?:           InspirationSource;
+  type?:             string;
+  media_type?:       'image' | 'carousel' | 'video';
+  media_urls?:       string[];
+  video_frames_urls?: string[];
   source_url:        string | null;
   thumbnail_url:     string | null;
   title:             string | null;
@@ -20,12 +28,17 @@ export type InspirationItem = {
   tags:              string[];
   format:            string | null;
   is_favorite:       boolean;
+  /** New unified flags — optional for back-compat with legacy callers. */
+  is_saved?:            boolean;
+  saved_collection_ids?: string[];
   classified_at:     string | null;
   usage_count:       number;
   description_short: string | null;
   reusability_score: number | null;
   origin:            InspirationOrigin | null;
   source_handle:     string | null;
+  dominant_colors?:  string[] | null;
+  mood?:             string | null;
   created_at:        string;
   recreation?: {
     id: string;
@@ -45,6 +58,12 @@ const FORMAT_META: Record<string, { label: string; icon: React.ReactNode }> = {
   carousel: { label: 'Carrusel', icon: <LayoutGrid size={8} /> },
   carrusel: { label: 'Carrusel', icon: <LayoutGrid size={8} /> },
 };
+
+function resolveFormatMeta(item: InspirationItem) {
+  // Prefer unified media_type (from bank + view) then legacy type/format
+  const key = (item.media_type ?? item.type ?? item.format ?? '').toLowerCase();
+  return FORMAT_META[key];
+}
 
 // ─── Recreation status strip ──────────────────────────────────────────────────
 
@@ -74,24 +93,34 @@ function RecreationStrip({ status }: { status: string }) {
 
 interface Props {
   item:        InspirationItem;
-  onFavorite?: (id: string, val: boolean) => void;
+  onFavorite?: (id: string, val: boolean, item: InspirationItem) => void;
+  onSave?:     (item: InspirationItem, anchor: DOMRect) => void;
   onRequest?:  (item: InspirationItem) => void;
+  /** When provided, the card is clickable and opens the fullscreen viewer. */
+  onOpen?:     (item: InspirationItem) => void;
 }
 
-export function InspirationCard({ item, onFavorite, onRequest }: Props) {
-  const [hover,    setHover]    = useState(false);
-  const [favHover, setFavHover] = useState(false);
-  const [sendHover, setSendHover] = useState(false);
+export function InspirationCard({ item, onFavorite, onSave, onRequest, onOpen }: Props) {
+  const [hover,      setHover]      = useState(false);
+  const [favHover,   setFavHover]   = useState(false);
+  const [saveHover,  setSaveHover]  = useState(false);
+  const [sendHover,  setSendHover]  = useState(false);
 
-  const typeKey = item.type?.toLowerCase() ?? '';
-  const fmtMeta = FORMAT_META[typeKey];
-
-  const title = item.title ?? 'Sin titulo';
+  const fmtMeta  = resolveFormatMeta(item);
+  const title    = item.title ?? 'Sin titulo';
+  const slides   = item.media_urls ?? [];
+  const isVideo    = item.media_type === 'video';
+  const isCarousel = item.media_type === 'carousel' && slides.length > 1;
 
   return (
     <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
+      onClick={(e) => {
+        // Don't hijack clicks on inner buttons
+        if ((e.target as HTMLElement).closest('button')) return;
+        onOpen?.(item);
+      }}
       style={{
         background: 'var(--bg)',
         border: `1px solid ${hover ? '#d1d5db' : 'var(--border)'}`,
@@ -100,6 +129,7 @@ export function InspirationCard({ item, onFavorite, onRequest }: Props) {
         overflow: 'hidden',
         transition: 'border-color 0.15s, box-shadow 0.15s',
         boxShadow: hover ? '0 4px 16px rgba(0,0,0,0.08)' : 'none',
+        cursor: onOpen ? 'pointer' : 'default',
       }}
     >
       {/* ── Thumbnail ──────────────────────────────────────────────────────── */}
@@ -125,7 +155,7 @@ export function InspirationCard({ item, onFavorite, onRequest }: Props) {
           </div>
         )}
 
-        {/* Gradient — always subtle, stronger at bottom for badges */}
+        {/* Gradient */}
         <div style={{
           position: 'absolute', inset: 0,
           background: 'linear-gradient(to bottom, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.0) 50%, rgba(0,0,0,0.55) 100%)',
@@ -147,18 +177,52 @@ export function InspirationCard({ item, onFavorite, onRequest }: Props) {
           </span>
         )}
 
-        {/* Heart + Send — top right, TikTok style: icons only, no background */}
-        <div style={{
-          position: 'absolute', top: 8, right: 8,
-          display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center',
-        }}>
-          {/* Heart */}
+        {/* Carousel slide counter — bottom left */}
+        {isCarousel && (
+          <span style={{
+            position: 'absolute', top: 7, left: fmtMeta ? 78 : 7,
+            background: 'rgba(0,0,0,0.55)', color: '#fff',
+            padding: '3px 7px',
+            fontFamily: fc, fontSize: 8, fontWeight: 700,
+            letterSpacing: '0.06em',
+          }}>
+            1/{slides.length}
+          </span>
+        )}
+
+        {/* Video play chip — center */}
+        {isVideo && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            pointerEvents: 'none',
+          }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: '50%',
+              background: 'rgba(0,0,0,0.55)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Play size={22} color="#fff" fill="#fff" strokeWidth={0} />
+            </div>
+          </div>
+        )}
+
+        {/* Heart + Bookmark + Send — top right */}
+        <div
+          className="insp-actions"
+          style={{
+            position: 'absolute', top: 8, right: 8,
+            display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center',
+          }}
+        >
           {onFavorite && (
             <button
               type="button"
-              onClick={() => onFavorite(item.id, !item.is_favorite)}
+              onClick={() => onFavorite(item.id, !item.is_favorite, item)}
               onMouseEnter={() => setFavHover(true)}
               onMouseLeave={() => setFavHover(false)}
+              aria-label={item.is_favorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+              title={item.is_favorite ? 'Quitar de favoritos' : 'Añadir a favoritos'}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -166,7 +230,6 @@ export function InspirationCard({ item, onFavorite, onRequest }: Props) {
                 transform: favHover ? 'scale(1.18)' : 'scale(1)',
                 transition: 'transform 0.12s',
               }}
-              title={item.is_favorite ? 'Quitar de favoritos' : 'Guardar en favoritos'}
             >
               <Heart
                 size={22}
@@ -177,13 +240,43 @@ export function InspirationCard({ item, onFavorite, onRequest }: Props) {
             </button>
           )}
 
-          {/* Send / Solicitar */}
+          {onSave && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                onSave(item, rect);
+              }}
+              onMouseEnter={() => setSaveHover(true)}
+              onMouseLeave={() => setSaveHover(false)}
+              aria-label={item.is_saved ? 'Editar guardado' : 'Guardar referencia'}
+              title={item.is_saved ? 'Editar guardado' : 'Guardar referencia'}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))',
+                transform: saveHover ? 'scale(1.18)' : 'scale(1)',
+                transition: 'transform 0.12s',
+              }}
+            >
+              <Bookmark
+                size={20}
+                color={item.is_saved || saveHover ? '#0F766E' : '#fff'}
+                fill={item.is_saved ? '#0F766E' : 'none'}
+                strokeWidth={item.is_saved ? 0 : 1.8}
+              />
+            </button>
+          )}
+
           {onRequest && (
             <button
               type="button"
-              onClick={() => onRequest(item)}
+              onClick={(e) => { e.stopPropagation(); onRequest(item); }}
               onMouseEnter={() => setSendHover(true)}
               onMouseLeave={() => setSendHover(false)}
+              aria-label="Enviar solicitud de recreación"
+              title="Enviar solicitud"
               style={{
                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -191,22 +284,21 @@ export function InspirationCard({ item, onFavorite, onRequest }: Props) {
                 transform: sendHover ? 'scale(1.18)' : 'scale(1)',
                 transition: 'transform 0.12s',
               }}
-              title="Solicitar a Neuropost"
             >
-              <Send
-                size={19}
-                color={sendHover ? '#0D9488' : '#fff'}
-                strokeWidth={1.8}
-              />
+              <Send size={19} color={sendHover ? '#0D9488' : '#fff'} strokeWidth={1.8} />
             </button>
           )}
         </div>
-
 
         {/* Recreation status strip */}
         {item.recreation && <RecreationStrip status={item.recreation.status} />}
       </div>
 
+      <style>{`
+        @media (max-width: 767px) {
+          .insp-actions { opacity: 1 !important; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { Plus, X, Search, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { Plus, X, Search, ChevronLeft, ChevronRight, Sparkles, FolderPlus, Pencil, Trash2, FolderOpen } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MediaPicker, type SelectedMedia } from '@/components/posts/MediaPicker';
 import { useAppStore } from '@/store/useAppStore';
@@ -17,6 +17,7 @@ import { PLAN_LIMITS } from '@/types';
 import { createBrowserClient } from '@/lib/supabase';
 import { SEASON_CHIPS, FORMAT_CHIPS } from '@/components/inspiration/TagChipsBar';
 import { InspirationCard, type InspirationItem } from '@/components/inspiration/InspirationCard';
+import { SavePopover, type Collection } from '@/components/inspiration/SavePopover';
 
 // All known tags for smart search matching
 const ALL_TAGS = [...SEASON_CHIPS, ...FORMAT_CHIPS];
@@ -37,33 +38,14 @@ const FORMAT_LABEL: Record<string, string> = {
 
 // ─── Scope pills ──────────────────────────────────────────────────────────────
 
-type Scope = 'all' | 'favorites' | 'user_saved' | 'editorial' | 'ai_generated' | 'telegram_bank';
+type Scope = 'all' | 'favorites' | 'guardadas' | 'sugerencias';
 
 const SCOPE_PILLS: { key: Scope; label: string }[] = [
-  { key: 'all',            label: 'Todo' },
-  { key: 'favorites',      label: 'Favoritos' },
-  { key: 'user_saved',     label: 'Guardadas' },
-  { key: 'editorial',      label: 'Sugerencias' },
-  { key: 'telegram_bank',  label: 'Banco' },
+  { key: 'all',          label: 'Todo' },
+  { key: 'favorites',    label: 'Favoritos' },
+  { key: 'guardadas',    label: 'Guardadas' },
+  { key: 'sugerencias',  label: 'Sugerencias' },
 ];
-
-// ─── Inspiration Bank item (from /api/inspiration/bank/list) ─────────────────
-type BankItem = {
-  id:               string;
-  media_type:       'image' | 'carousel' | 'video';
-  media_urls:       string[];
-  thumbnail_url:    string | null;
-  video_frames_urls: string[];
-  category:         string;
-  tags:             string[];
-  dominant_colors:  string[];
-  mood:             string | null;
-  source_platform:  string | null;
-  source_url:       string | null;
-  created_at:       string;
-};
-
-type BankTab = 'foryou' | 'all';
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -83,31 +65,26 @@ export default function InspiracionPage() {
   const [mediaFmt, setMediaFmt] = useState('');   // '' | 'image' | 'carousel' | 'video'
   const [tags,     setTags]     = useState<string[]>([]);
 
-  // ── Telegram bank state (separate from the normal items list) ──────────────
-  const [bankItems,   setBankItems]   = useState<BankItem[]>([]);
-  const [bankLoading, setBankLoading] = useState(false);
-  const [bankTab,     setBankTab]     = useState<BankTab>('foryou');
+  // ── Fullscreen viewer state (image/carousel/video for bank items) ─────────
+  const [viewerOpen,  setViewerOpen]  = useState(false);
+  const [viewerItem,  setViewerItem]  = useState<InspirationItem | null>(null);
+  const [viewerSlide, setViewerSlide] = useState(0);
 
-  // ── Bank viewer state (full-size preview) ─────────────────────────────────
-  const [viewerOpen,   setViewerOpen]   = useState(false);
-  const [viewerItem,   setViewerItem]   = useState<BankItem | null>(null);
-  const [viewerSlide,  setViewerSlide]  = useState(0);
-
-  function openViewer(item: BankItem) {
+  function openViewer(item: InspirationItem) {
     setViewerItem(item);
     setViewerSlide(0);
     setViewerOpen(true);
   }
 
-  // ── Remix modal state ──────────────────────────────────────────────────────
+  // ── Remix modal state (only bank items can be remixed) ────────────────────
   const [remixOpen,      setRemixOpen]      = useState(false);
-  const [remixItem,      setRemixItem]      = useState<BankItem | null>(null);
+  const [remixItem,      setRemixItem]      = useState<InspirationItem | null>(null);
   const [remixPrompt,    setRemixPrompt]    = useState('');
   const [remixFormat,    setRemixFormat]    = useState<'image' | 'carousel' | 'reel'>('image');
   const [remixRunning,   setRemixRunning]   = useState(false);
   const [remixResult,    setRemixResult]    = useState<{ imageUrl: string; postId: string | null } | null>(null);
 
-  function openRemix(item: BankItem) {
+  function openRemix(item: InspirationItem) {
     setRemixItem(item);
     setRemixPrompt('');
     setRemixFormat('image');
@@ -138,13 +115,36 @@ export default function InspiracionPage() {
     }
   }
 
+  // ── Save popover state (from card's Bookmark click) ──────────────────────
+  const [saveAnchor, setSaveAnchor] = useState<DOMRect | null>(null);
+  const [saveItem,   setSaveItem]   = useState<InspirationItem | null>(null);
+
+  // ── Collections (for Guardadas tab + SavePopover dropdown) ───────────────
+  const [collections,    setCollections]    = useState<Collection[]>([]);
+  const [unfiledCount,   setUnfiledCount]   = useState(0);
+  const [totalSavedCount, setTotalSavedCount] = useState(0);
+  const [activeCollection, setActiveCollection] = useState<string>('all'); // 'all' | 'unfiled' | uuid
+
+  const loadCollections = useCallback(async () => {
+    try {
+      const res = await fetch('/api/inspiracion/collections');
+      if (!res.ok) return;
+      const json = await res.json() as {
+        collections: Collection[]; unfiled_count: number; total_count: number;
+      };
+      setCollections(json.collections ?? []);
+      setUnfiledCount(json.unfiled_count ?? 0);
+      setTotalSavedCount(json.total_count ?? 0);
+    } catch { /* silent */ }
+  }, []);
+
   // ── Search debounce ref ────────────────────────────────────────────────────
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
   const fetchItems = useCallback(async (opts?: {
     scope?: Scope; search?: string; mediaFmt?: string;
-    tags?: string[]; page?: number;
+    tags?: string[]; page?: number; collection?: string;
   }) => {
     setLoading(true);
     const p = new URLSearchParams();
@@ -153,12 +153,14 @@ export default function InspiracionPage() {
     const mf = opts?.mediaFmt !== undefined ? opts.mediaFmt : mediaFmt;
     const tg = opts?.tags     !== undefined ? opts.tags     : tags;
     const pg = opts?.page     ?? 1;
+    const co = opts?.collection ?? (s === 'guardadas' ? activeCollection : undefined);
 
     p.set('scope', s);
     p.set('page',  String(pg));
     if (mf)           p.set('media_type', mf);
     if (q.trim())     p.set('search', q.trim());
     if (tg.length > 0) p.set('tags', tg.join(','));
+    if (co)           p.set('collection', co);
 
     try {
       const res  = await fetch(`/api/inspiracion/list?${p}`);
@@ -166,36 +168,15 @@ export default function InspiracionPage() {
       if (res.ok) { setItems(json.items ?? []); setPages(json.pages ?? 1); }
     } catch { /* silent */ }
     finally { setLoading(false); }
-  }, [scope, search, mediaFmt, tags]);
+  }, [scope, search, mediaFmt, tags, activeCollection]);
 
-  useEffect(() => { fetchItems(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { fetchItems(); loadCollections(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ── Fetch Telegram bank ────────────────────────────────────────────────────
-  const fetchBank = useCallback(async (opts?: { tab?: BankTab; search?: string }) => {
-    setBankLoading(true);
-    const tab = opts?.tab ?? bankTab;
-    const q   = opts?.search !== undefined ? opts.search : search;
-    const p   = new URLSearchParams();
-    if (tab === 'all')  p.set('scope', 'all');
-    if (q.trim())       p.set('search', q.trim());
-    p.set('limit', '60');
-    try {
-      const res = await fetch(`/api/inspiration/bank/list?${p}`);
-      if (res.ok) {
-        const json = await res.json() as { items: BankItem[] };
-        setBankItems(json.items ?? []);
-      } else {
-        setBankItems([]);
-      }
-    } catch { setBankItems([]); }
-    finally { setBankLoading(false); }
-  }, [bankTab, search]);
-
-  // Refetch bank whenever the tab changes while in telegram_bank scope
+  // Reload the grid whenever the user changes collection (Guardadas tab)
   useEffect(() => {
-    if (scope === 'telegram_bank') fetchBank({ tab: bankTab });
+    if (scope === 'guardadas') fetchItems({ collection: activeCollection });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scope, bankTab]);
+  }, [activeCollection, scope]);
 
   // Realtime recreation updates
   const supabase = useMemo(() => createBrowserClient(), []);
@@ -238,18 +219,38 @@ export default function InspiracionPage() {
     fetchItems(next);
   }
 
-  // ── Favorite toggle ────────────────────────────────────────────────────────
-  async function handleFavorite(id: string, val: boolean) {
-    // Optimistic
+  // ── Favorite toggle (unified — works for legacy + bank items) ─────────────
+  async function handleFavorite(id: string, val: boolean, item: InspirationItem) {
+    const source = item.source ?? 'legacy';
+    // Optimistic update
     setItems(prev => prev.map(i => i.id === id ? { ...i, is_favorite: val } : i));
-    const res = await fetch(`/api/inspiracion/referencias/${id}`, {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ is_favorite: val }),
-    });
-    if (!res.ok) {
+    try {
+      const res = await fetch('/api/inspiracion/favorite', {
+        method: val ? 'POST' : 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ source, item_id: id }),
+      });
+      if (!res.ok) throw new Error('Favorite failed');
+    } catch {
       setItems(prev => prev.map(i => i.id === id ? { ...i, is_favorite: !val } : i));
       toast.error('Error al actualizar');
     }
+  }
+
+  // ── Save popover callbacks ────────────────────────────────────────────────
+  function openSavePopover(item: InspirationItem, anchor: DOMRect) {
+    setSaveItem(item);
+    setSaveAnchor(anchor);
+  }
+  function closeSavePopover() {
+    setSaveItem(null);
+    setSaveAnchor(null);
+  }
+  function handleSavedChange(itemId: string, isSaved: boolean, collectionIds: string[]) {
+    setItems(prev => prev.map(i => i.id === itemId
+      ? { ...i, is_saved: isSaved, saved_collection_ids: collectionIds }
+      : i));
+    loadCollections(); // refresh counts
   }
 
   // ── "Pedir esta pieza" modal ───────────────────────────────────────────────
@@ -567,19 +568,27 @@ export default function InspiracionPage() {
         </div>
       </div>
 
-      {/* ── Sub-tabs for Telegram bank scope ───────────────────────────────── */}
-      {scope === 'telegram_bank' && (
-        <div style={{ display: 'flex', gap: 6, marginTop: 14, marginBottom: 6 }}>
+      {/* ── Collections sidebar (only on Guardadas tab) ───────────────────── */}
+      {scope === 'guardadas' && (
+        <div
+          className="insp-coll-bar"
+          style={{
+            marginTop: 14, marginBottom: 10,
+            display: 'flex', alignItems: 'center', gap: 8,
+            flexWrap: 'wrap',
+          }}
+        >
           {([
-            { key: 'foryou', label: 'Para ti' },
-            { key: 'all',    label: 'Explorar todo' },
-          ] as { key: BankTab; label: string }[]).map(t => {
-            const active = bankTab === t.key;
+            { id: 'all',     label: `Todas las guardadas`, count: totalSavedCount },
+            { id: 'unfiled', label: 'Sin colección',        count: unfiledCount },
+            ...collections.map(c => ({ id: c.id, label: c.name, count: c.item_count ?? 0 })),
+          ]).map(c => {
+            const active = activeCollection === c.id;
             return (
               <button
-                key={t.key}
+                key={c.id}
                 type="button"
-                onClick={() => setBankTab(t.key)}
+                onClick={() => setActiveCollection(c.id)}
                 style={{
                   padding: '6px 14px',
                   border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
@@ -588,111 +597,46 @@ export default function InspiracionPage() {
                   color: active ? '#fff' : 'var(--text-secondary)',
                   fontFamily: f, fontSize: 12, fontWeight: active ? 700 : 500,
                   cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
                   transition: 'all 0.12s',
                 }}
               >
-                {t.label}
+                {c.id === 'all' ? <FolderOpen size={12} /> : null}
+                {c.label} <span style={{ opacity: 0.75, fontWeight: 400 }}>({c.count})</span>
               </button>
             );
           })}
+          <button
+            type="button"
+            onClick={async () => {
+              const name = window.prompt('Nombre de la nueva colección')?.trim();
+              if (!name) return;
+              try {
+                const res = await fetch('/api/inspiracion/collections', {
+                  method: 'POST', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ name }),
+                });
+                const json = await res.json();
+                if (!res.ok) { toast.error(json.error ?? 'Error'); return; }
+                toast.success('Colección creada');
+                await loadCollections();
+                setActiveCollection(json.collection.id);
+              } catch { toast.error('Error'); }
+            }}
+            style={{
+              padding: '6px 12px',
+              border: '1px dashed var(--border)', borderRadius: 99,
+              background: 'transparent', color: 'var(--text-tertiary)',
+              fontFamily: f, fontSize: 12, cursor: 'pointer',
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}
+          >
+            <FolderPlus size={12} /> Nueva colección
+          </button>
         </div>
       )}
 
-      {/* ── Results — Telegram bank branch ─────────────────────────────────── */}
-      {scope === 'telegram_bank' ? (
-        <div id="inspi-results" style={{ marginTop: 16 }}>
-          {bankLoading && bankItems.length === 0 ? (
-            <div style={{ padding: '80px 0', textAlign: 'center' }}>
-              <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-tertiary)' }}>Cargando banco…</p>
-            </div>
-          ) : bankItems.length === 0 ? (
-            <div style={{ padding: '100px 20px', textAlign: 'center' }}>
-              <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 18, textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 8 }}>
-                Banco vacío
-              </p>
-              <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-tertiary)', maxWidth: 360, margin: '0 auto' }}>
-                {bankTab === 'foryou'
-                  ? 'Aún no hay referencias para tu sector. Prueba con "Explorar todo".'
-                  : 'El banco se alimenta automáticamente desde el bot de Telegram del equipo.'}
-              </p>
-            </div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
-              {bankItems.map(bi => (
-                <div
-                  key={bi.id}
-                  className="bank-card"
-                  style={{
-                    position: 'relative',
-                    aspectRatio: '1',
-                    background: 'var(--bg-2)',
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => openViewer(bi)}
-                >
-                  {bi.thumbnail_url || bi.media_urls[0] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={bi.thumbnail_url ?? bi.media_urls[0]}
-                      alt={bi.mood ?? bi.category}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    />
-                  ) : null}
-                  {/* Carousel/video slide count pill */}
-                  {bi.media_type === 'carousel' && bi.media_urls.length > 1 && (
-                    <div style={{
-                      position: 'absolute', top: 6, left: 6,
-                      padding: '2px 8px',
-                      background: 'rgba(0,0,0,0.65)',
-                      color: '#fff',
-                      fontFamily: fc, fontSize: 10, fontWeight: 700,
-                      letterSpacing: '0.06em',
-                    }}>
-                      1/{bi.media_urls.length}
-                    </div>
-                  )}
-                  {/* Bottom meta strip */}
-                  <div style={{
-                    position: 'absolute', bottom: 0, left: 0, right: 0,
-                    padding: '20px 10px 8px',
-                    background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
-                  }}>
-                    <p style={{
-                      fontFamily: fc, fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-                      letterSpacing: '0.08em', color: '#fff', margin: 0,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
-                      {bi.category}
-                    </p>
-                    {bi.tags.length > 0 && (
-                      <p style={{
-                        fontFamily: f, fontSize: 10, color: 'rgba(255,255,255,0.8)', margin: 0,
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                      }}>
-                        {bi.tags.slice(0, 3).join(' · ')}
-                      </p>
-                    )}
-                  </div>
-                  {/* Media-type badge */}
-                  {bi.media_type !== 'image' && (
-                    <div style={{
-                      position: 'absolute', top: 6, right: 6,
-                      padding: '2px 7px',
-                      background: 'rgba(0,0,0,0.7)',
-                      color: '#fff',
-                      fontFamily: fc, fontSize: 9, fontWeight: 700,
-                      textTransform: 'uppercase', letterSpacing: '0.06em',
-                    }}>
-                      {bi.media_type}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      ) : (
+      {/* ── Results ────────────────────────────────────────────────────────── */}
       <div id="inspi-results" style={{ marginTop: 16 }}>
         {loading && items.length === 0 ? (
           <div style={{ padding: '80px 0', textAlign: 'center' }}>
@@ -701,26 +645,37 @@ export default function InspiracionPage() {
         ) : displayItems.length === 0 ? (
           <div style={{ padding: '100px 20px', textAlign: 'center' }}>
             <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 18, textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 8 }}>
-              {scope === 'favorites' ? 'Sin favoritos aún' : 'Sin referencias'}
+              {scope === 'favorites'   ? 'Sin favoritos aún' :
+               scope === 'guardadas'   ? 'Sin referencias guardadas' :
+               scope === 'sugerencias' ? 'Sin sugerencias para tu sector' :
+               'Todavía no hay nada aquí'}
             </p>
-            <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-tertiary)', maxWidth: 320, margin: '0 auto 24px' }}>
+            <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-tertiary)', maxWidth: 360, margin: '0 auto 24px' }}>
               {scope === 'favorites'
-                ? 'Marca con el corazon lo que te guste y aparecera aqui.'
-                : 'Guarda una referencia para empezar.'}
+                ? 'Pulsa ❤️ en cualquier imagen para añadirla.'
+                : scope === 'guardadas'
+                ? 'Pulsa 🔖 para empezar tu biblioteca privada.'
+                : scope === 'sugerencias'
+                ? `No hay sugerencias para ${brand?.sector ?? 'tu sector'}. Explora "Todo" mientras tanto.`
+                : 'Los contenidos aparecerán a medida que se añadan referencias.'}
             </p>
-            <button type="button" onClick={() => setShowAdd(true)} style={{ background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', padding: '10px 22px', fontFamily: fc, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', cursor: 'pointer' }}>
-              Guardar referencia
-            </button>
+            {(scope === 'all' || scope === 'favorites') && (
+              <button type="button" onClick={() => setShowAdd(true)} style={{ background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', padding: '10px 22px', fontFamily: fc, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', cursor: 'pointer' }}>
+                Guardar referencia
+              </button>
+            )}
           </div>
         ) : (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
               {displayItems.map((item, idx) => (
                 <InspirationCard
-                  key={`${item.id}-${idx}`}
+                  key={`${item.source ?? 'legacy'}-${item.id}-${idx}`}
                   item={item}
                   onFavorite={handleFavorite}
+                  onSave={openSavePopover}
                   onRequest={openRequest}
+                  onOpen={item.source === 'bank' ? openViewer : undefined}
                 />
               ))}
             </div>
@@ -741,6 +696,17 @@ export default function InspiracionPage() {
           </>
         )}
       </div>
+
+      {/* ── Save popover (rendered via portal-style fixed positioning) ─────── */}
+      {saveItem && saveAnchor && (
+        <SavePopover
+          item={saveItem}
+          anchor={saveAnchor}
+          collections={collections}
+          onClose={closeSavePopover}
+          onCollectionsChange={(next) => setCollections(next)}
+          onSavedChange={handleSavedChange}
+        />
       )}
 
       {/* ══════════════════════════════════════════════════════════════════════
@@ -926,8 +892,9 @@ export default function InspiracionPage() {
            MODAL: Viewer (full-size preview for image / carousel / video)
          ══════════════════════════════════════════════════════════════════════ */}
       {viewerOpen && viewerItem && (() => {
-        const slides = viewerItem.media_urls.length > 0
-          ? viewerItem.media_urls
+        const urls = viewerItem.media_urls ?? [];
+        const slides = urls.length > 0
+          ? urls
           : viewerItem.thumbnail_url ? [viewerItem.thumbnail_url] : [];
         const totalSlides = slides.length;
         const currentUrl  = slides[viewerSlide] ?? viewerItem.thumbnail_url ?? '';
@@ -946,13 +913,13 @@ export default function InspiracionPage() {
             }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                 <p style={{ fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
-                  {viewerItem.category}
+                  {viewerItem.category ?? viewerItem.title ?? 'Referencia'}
                   {isCarousel && <span style={{ marginLeft: 8, opacity: 0.7 }}>· {viewerSlide + 1}/{totalSlides}</span>}
                   {isVideo && <span style={{ marginLeft: 8, opacity: 0.7 }}>· Vídeo</span>}
                 </p>
-                {viewerItem.tags.length > 0 && (
+                {(viewerItem.tags ?? []).length > 0 && (
                   <p style={{ fontFamily: f, fontSize: 11, color: 'rgba(255,255,255,0.7)', margin: 0 }}>
-                    {viewerItem.tags.slice(0, 5).join(' · ')}
+                    {(viewerItem.tags ?? []).slice(0, 5).join(' · ')}
                   </p>
                 )}
               </div>
@@ -1005,7 +972,7 @@ export default function InspiracionPage() {
               {/* Media */}
               {isVideo ? (
                 <video
-                  src={viewerItem.media_urls[0]}
+                  src={(viewerItem.media_urls ?? [])[0]}
                   poster={viewerItem.thumbnail_url ?? undefined}
                   controls
                   autoPlay
@@ -1016,7 +983,7 @@ export default function InspiracionPage() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={currentUrl}
-                  alt={viewerItem.mood ?? viewerItem.category}
+                  alt={viewerItem.mood ?? viewerItem.category ?? viewerItem.title ?? ''}
                   style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }}
                 />
               )}
