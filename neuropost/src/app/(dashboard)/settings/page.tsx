@@ -34,10 +34,71 @@ export default function SettingsPage() {
   const [showName,      setShowName]      = useState(true);
   const [savingPersonal, setSavingPersonal] = useState(false);
 
-  // Notifications
+  // Notifications — legacy brand fields (kept for back-compat)
   const [notifyPublish,  setNotifyPublish]  = useState(false);
   const [notifyComments, setNotifyComments] = useState(false);
   const [savingNotifs,   setSavingNotifs]   = useState(false);
+
+  // Extended notification_preferences (20+ toggles + language + frequency)
+  type NotifPrefs = {
+    approval_needed_email?:       boolean;
+    ticket_reply_email?:          boolean;
+    chat_message_email?:          boolean;
+    recreation_ready_email?:      boolean;
+    comment_pending_email?:       boolean;
+    token_expired_email?:         boolean;
+    post_published_email?:        boolean;
+    post_failed_email?:           boolean;
+    payment_failed_email?:        boolean;
+    trial_ending_email?:          boolean;
+    limit_reached_email?:         boolean;
+    reactivation_email?:          boolean;
+    no_content_email?:            boolean;
+    onboarding_incomplete_email?: boolean;
+    no_social_connected_email?:   boolean;
+    plan_unused_email?:           boolean;
+    weekly_report_email?:         boolean;
+    monthly_report_email?:        boolean;
+    daily_digest_email?:          boolean;
+    marketing_email?:             boolean;
+    product_updates_email?:       boolean;
+    newsletter_email?:            boolean;
+    email_language?:              string | null;
+    max_frequency?:               'immediate' | 'daily' | 'weekly';
+  };
+  const [prefs,        setPrefs]        = useState<NotifPrefs | null>(null);
+  const prefsSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load prefs once on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/settings/notifications');
+        if (!res.ok) return;
+        const json = await res.json() as { preferences: NotifPrefs };
+        setPrefs(json.preferences ?? {});
+      } catch { /* silent */ }
+    })();
+  }, []);
+
+  /** Debounced PATCH — updates local state immediately, persists after 500ms. */
+  function updatePref<K extends keyof NotifPrefs>(key: K, value: NotifPrefs[K]) {
+    setPrefs(prev => ({ ...(prev ?? {}), [key]: value }));
+    if (prefsSaveTimer.current) clearTimeout(prefsSaveTimer.current);
+    prefsSaveTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/settings/notifications', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [key]: value }),
+        });
+        if (!res.ok) throw new Error('Save failed');
+        toast.success('Guardado', { duration: 1200 });
+      } catch {
+        toast.error('No se pudo guardar');
+      }
+    }, 500);
+  }
 
   // Account
   const [userEmail,       setUserEmail]       = useState('');
@@ -670,62 +731,233 @@ export default function SettingsPage() {
               <Bell size={18} />{t('notifSection.title')}
             </h2>
             <p className="notif-subtitle">
-              {t('notifSection.subtitle')}
+              Elige qué emails quieres recibir. Los cambios se guardan automáticamente.
             </p>
 
-            <div className="notif-list">
-              {/* notify_email_publish toggle */}
-              <div className="notif-card">
-                <div>
-                  <p className="notif-card-title">
-                    {t('notifSection.publishTitle')}
-                  </p>
-                  <p className="notif-card-desc">
-                    {t('notifSection.publishDesc')}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={notifyPublish ? 'true' : 'false'}
-                  aria-label={t('notifSection.publishTitle')}
-                  title={t('notifSection.publishTitle')}
-                  onClick={() => setNotifyPublish((v) => !v)}
-                  className={`notif-switch ${notifyPublish ? 'is-on' : ''}`}
-                >
-                  <span className="notif-switch-thumb" />
-                </button>
-              </div>
+            {(() => {
+              // Default value when preferences row hasn't loaded yet. Marketing
+              // family defaults to false at table level; reminder family to true.
+              const get = (key: keyof NotifPrefs, fallback: boolean): boolean => {
+                const v = prefs?.[key];
+                if (typeof v === 'boolean') return v;
+                return fallback;
+              };
 
-              {/* notify_email_comments toggle */}
-              <div className="notif-card">
-                <div>
-                  <p className="notif-card-title">
-                    {t('notifSection.commentsTitle')}
-                  </p>
-                  <p className="notif-card-desc">
-                    {t('notifSection.commentsDesc')}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={notifyComments ? 'true' : 'false'}
-                  aria-label={t('notifSection.commentsTitle')}
-                  title={t('notifSection.commentsTitle')}
-                  onClick={() => setNotifyComments((v) => !v)}
-                  className={`notif-switch ${notifyComments ? 'is-on' : ''}`}
-                >
-                  <span className="notif-switch-thumb" />
-                </button>
-              </div>
-            </div>
+              const groups: Array<{
+                title: string; desc: string;
+                items: Array<{ key: keyof NotifPrefs; label: string; desc: string; defaultOn: boolean }>;
+              }> = [
+                {
+                  title: 'Acción requerida',
+                  desc: 'Cuando tú tienes que hacer algo para avanzar.',
+                  items: [
+                    { key: 'approval_needed_email',  label: 'Contenido listo para aprobar', desc: 'Cuando la IA genera un post que espera tu validación', defaultOn: true },
+                    { key: 'ticket_reply_email',     label: 'Respuestas de soporte',        desc: 'Cuando respondemos a uno de tus tickets',              defaultOn: true },
+                    { key: 'chat_message_email',     label: 'Mensajes del equipo',          desc: 'Cuando te escribimos por chat (solo si no lo lees en 24h)', defaultOn: true },
+                    { key: 'recreation_ready_email', label: 'Recreaciones listas',          desc: 'Cuando una imagen recreada está lista para revisar',    defaultOn: true },
+                    { key: 'comment_pending_email',  label: 'Comentarios pendientes',       desc: 'Comentarios en Instagram que llevan >24h sin responder', defaultOn: false },
+                  ],
+                },
+                {
+                  title: 'Alertas técnicas',
+                  desc: 'Para que nada se rompa sin avisar.',
+                  items: [
+                    { key: 'token_expired_email',   label: 'Conexión caducada',          desc: 'Cuando IG/FB/TikTok desconectan tu cuenta',         defaultOn: true },
+                    { key: 'post_published_email',  label: 'Post publicado',              desc: 'Cuando un post programado sale a tu red',           defaultOn: true },
+                    { key: 'post_failed_email',     label: 'Fallo al publicar',          desc: 'Cuando un post programado no puede publicarse',     defaultOn: true },
+                    { key: 'payment_failed_email',  label: 'Pago fallido',               desc: 'Cuando Stripe no puede cobrar tu suscripción',       defaultOn: true },
+                    { key: 'trial_ending_email',    label: 'Fin de prueba',              desc: '3 días antes de que se acabe tu periodo de prueba', defaultOn: true },
+                    { key: 'limit_reached_email',   label: 'Límite alcanzado',           desc: 'Cuando agotas tu cuota semanal del plan',            defaultOn: true },
+                  ],
+                },
+                {
+                  title: 'Recordatorios',
+                  desc: 'Recordatorios amables si dejas cosas a medias.',
+                  items: [
+                    { key: 'reactivation_email',           label: 'Te echamos de menos',   desc: 'Cuando llevas 7, 14 o 30 días sin entrar',        defaultOn: true },
+                    { key: 'no_content_email',             label: 'Sin contenido',          desc: 'Si llevas más de una semana y tu biblioteca está vacía', defaultOn: true },
+                    { key: 'onboarding_incomplete_email',  label: 'Configuración pendiente', desc: 'Si no terminaste de configurar tu marca',        defaultOn: true },
+                    { key: 'no_social_connected_email',    label: 'Redes sin conectar',    desc: 'Si no has conectado ninguna red social',          defaultOn: true },
+                    { key: 'plan_unused_email',            label: 'Plan sin usar',         desc: 'Si pagas un plan y llevas semanas sin publicar',   defaultOn: true },
+                  ],
+                },
+                {
+                  title: 'Resúmenes e informes',
+                  desc: 'Email con tus métricas agregadas.',
+                  items: [
+                    { key: 'weekly_report_email',  label: 'Informe semanal',  desc: 'Cada lunes con los números de la semana pasada',  defaultOn: true },
+                    { key: 'monthly_report_email', label: 'Informe mensual',  desc: 'El día 1 de cada mes con el resumen del mes anterior', defaultOn: true },
+                    { key: 'daily_digest_email',   label: 'Resumen diario',   desc: 'Un email al día con todo lo que ha pasado',       defaultOn: false },
+                  ],
+                },
+                {
+                  title: 'Marketing (opt-in explícito)',
+                  desc: 'Novedades, ofertas y contenido útil. Solo los enviamos si nos das permiso.',
+                  items: [
+                    { key: 'marketing_email',         label: 'Comunicaciones comerciales', desc: 'Ofertas, descuentos y promociones',   defaultOn: false },
+                    { key: 'product_updates_email',   label: 'Novedades del producto',     desc: 'Cuando añadimos funciones nuevas',     defaultOn: false },
+                    { key: 'newsletter_email',        label: 'Newsletter',                  desc: 'Consejos de redes sociales mensuales', defaultOn: false },
+                  ],
+                },
+              ];
 
-            <div className="notif-actions">
-              <button className="btn-primary" onClick={saveNotifications} disabled={savingNotifs}>
-                {savingNotifs ? <><span className="loading-spinner" />{t('saving')}</> : <><Save size={16} />{t('notifSection.save')}</>}
-              </button>
-            </div>
+              return (
+                <>
+                  {groups.map(group => (
+                    <div key={group.title} style={{ marginBottom: 32 }}>
+                      <h3 style={{
+                        fontFamily: "var(--font-barlow-condensed), sans-serif",
+                        fontSize: 13, fontWeight: 700, textTransform: 'uppercase',
+                        letterSpacing: '0.08em', color: 'var(--text-primary)',
+                        margin: '0 0 4px', paddingBottom: 8,
+                        borderBottom: '1px solid var(--border)',
+                      }}>
+                        {group.title}
+                      </h3>
+                      <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '0 0 12px' }}>
+                        {group.desc}
+                      </p>
+                      <div className="notif-list">
+                        {group.items.map(item => {
+                          const on = get(item.key, item.defaultOn);
+                          return (
+                            <div key={item.key} className="notif-card">
+                              <div>
+                                <p className="notif-card-title">{item.label}</p>
+                                <p className="notif-card-desc">{item.desc}</p>
+                              </div>
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={on ? 'true' : 'false'}
+                                aria-label={item.label}
+                                title={item.label}
+                                onClick={() => updatePref(item.key, !on as never)}
+                                className={`notif-switch ${on ? 'is-on' : ''}`}
+                              >
+                                <span className="notif-switch-thumb" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* ── Config: language + frequency ── */}
+                  <div style={{ marginBottom: 24 }}>
+                    <h3 style={{
+                      fontFamily: "var(--font-barlow-condensed), sans-serif",
+                      fontSize: 13, fontWeight: 700, textTransform: 'uppercase',
+                      letterSpacing: '0.08em', color: 'var(--text-primary)',
+                      margin: '0 0 4px', paddingBottom: 8,
+                      borderBottom: '1px solid var(--border)',
+                    }}>
+                      Configuración
+                    </h3>
+                    <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '0 0 16px' }}>
+                      Idioma y frecuencia de los emails.
+                    </p>
+
+                    {/* Language */}
+                    <div className="form-group" style={{ marginBottom: 16 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                        Idioma de los emails
+                      </label>
+                      <select
+                        value={prefs?.email_language ?? ''}
+                        onChange={e => updatePref('email_language', e.target.value || null)}
+                        style={{
+                          width: '100%', padding: '10px 12px',
+                          border: '1px solid var(--border)', background: 'var(--bg)',
+                          color: 'var(--text-primary)', fontSize: 14,
+                          fontFamily: 'var(--font-barlow), sans-serif',
+                        }}
+                      >
+                        <option value="">Usar mi idioma de cuenta</option>
+                        <option value="es">Español</option>
+                        <option value="en">English</option>
+                        <option value="fr">Français</option>
+                        <option value="pt">Português</option>
+                      </select>
+                    </div>
+
+                    {/* Frequency */}
+                    <div className="form-group">
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                        Frecuencia máxima
+                      </label>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {([
+                          { v: 'immediate', l: 'Al instante' },
+                          { v: 'daily',     l: 'Resumen diario' },
+                          { v: 'weekly',    l: 'Resumen semanal' },
+                        ] as const).map(({ v, l }) => {
+                          const active = (prefs?.max_frequency ?? 'immediate') === v;
+                          return (
+                            <button
+                              key={v}
+                              type="button"
+                              onClick={() => updatePref('max_frequency', v)}
+                              style={{
+                                flex: 1, padding: '10px 12px',
+                                border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                                background: active ? 'var(--accent)' : 'var(--bg)',
+                                color: active ? '#fff' : 'var(--text-secondary)',
+                                fontSize: 12, fontWeight: active ? 700 : 500,
+                                cursor: 'pointer',
+                                fontFamily: 'var(--font-barlow), sans-serif',
+                              }}
+                            >
+                              {l}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, lineHeight: 1.5 }}>
+                        Si eliges <em>diario</em> o <em>semanal</em>, agrupamos todas las notificaciones pendientes en un único email.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Legacy compat toggles — kept for callers that still read brands.notify_email_* */}
+                  <details style={{ marginTop: 12, color: 'var(--text-tertiary)' }}>
+                    <summary style={{ cursor: 'pointer', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                      Ajustes heredados (compatibilidad)
+                    </summary>
+                    <div className="notif-list" style={{ marginTop: 12 }}>
+                      <div className="notif-card">
+                        <div>
+                          <p className="notif-card-title">{t('notifSection.publishTitle')}</p>
+                          <p className="notif-card-desc">{t('notifSection.publishDesc')}</p>
+                        </div>
+                        <button type="button" role="switch" aria-checked={notifyPublish ? 'true' : 'false'}
+                          onClick={() => setNotifyPublish(v => !v)}
+                          className={`notif-switch ${notifyPublish ? 'is-on' : ''}`}>
+                          <span className="notif-switch-thumb" />
+                        </button>
+                      </div>
+                      <div className="notif-card">
+                        <div>
+                          <p className="notif-card-title">{t('notifSection.commentsTitle')}</p>
+                          <p className="notif-card-desc">{t('notifSection.commentsDesc')}</p>
+                        </div>
+                        <button type="button" role="switch" aria-checked={notifyComments ? 'true' : 'false'}
+                          onClick={() => setNotifyComments(v => !v)}
+                          className={`notif-switch ${notifyComments ? 'is-on' : ''}`}>
+                          <span className="notif-switch-thumb" />
+                        </button>
+                      </div>
+                      <div className="notif-actions" style={{ marginTop: 12 }}>
+                        <button className="btn-primary" onClick={saveNotifications} disabled={savingNotifs}>
+                          {savingNotifs ? <><span className="loading-spinner" />{t('saving')}</> : <><Save size={16} />{t('notifSection.save')}</>}
+                        </button>
+                      </div>
+                    </div>
+                  </details>
+                </>
+              );
+            })()}
           </div>
 
           {/* ── Redes sociales ── */}

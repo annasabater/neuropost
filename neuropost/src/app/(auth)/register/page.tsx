@@ -47,6 +47,7 @@ export default function RegisterPage() {
   const [confirmTouched, setConfirmTouched] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const emailRef  = useRef<HTMLInputElement>(null);
   const router    = useRouter();
   const params    = useSearchParams();
@@ -117,7 +118,15 @@ export default function RegisterPage() {
     const { data, error } = await supabase.auth.signUp({
       email:    emailRef.current!.value,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/auth/confirm` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/confirm`,
+        // Persist GDPR consent on the auth user so the onboarding flow can
+        // copy it onto the brand row + notification_preferences.
+        data: {
+          marketing_consent:    marketingConsent,
+          marketing_consent_at: marketingConsent ? new Date().toISOString() : null,
+        },
+      },
     });
     setLoading(false);
     if (error) { toast.error(error.message); return; }
@@ -274,6 +283,32 @@ export default function RegisterPage() {
               </ul>
             </div>
           )}
+
+          {/* Marketing consent — GDPR opt-in (optional) */}
+          <label
+            htmlFor="marketingConsent"
+            style={{
+              display: 'flex', alignItems: 'flex-start', gap: 10,
+              marginTop: 8, marginBottom: 4,
+              fontSize: '0.82rem', color: 'var(--text-secondary)',
+              cursor: 'pointer', lineHeight: 1.5,
+            }}
+          >
+            <input
+              id="marketingConsent"
+              type="checkbox"
+              checked={marketingConsent}
+              onChange={(e) => setMarketingConsent(e.target.checked)}
+              style={{
+                width: 16, height: 16, marginTop: 2, flexShrink: 0,
+                accentColor: 'var(--accent)', cursor: 'pointer',
+              }}
+            />
+            <span>
+              Acepto recibir comunicaciones comerciales de NeuroPost
+              (novedades, newsletter, ofertas). Puedo darme de baja en cualquier momento.
+            </span>
+          </label>
 
           <button
             type="submit"

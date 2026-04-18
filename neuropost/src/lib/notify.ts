@@ -98,7 +98,8 @@ export async function notify(
     const { data: { user } } = await db.auth.admin.getUserById(brand.user_id);
     if (!user?.email) return;
 
-    // 4. Send email based on type
+    // 4. Send email based on type — include brandId so the email layer can
+    // resolve preferences/footer via canSendEmail/markEmailSent.
     const { sendNotificationEmail } = await import('./email');
     await sendNotificationEmail({
       to:        user.email,
@@ -106,6 +107,7 @@ export async function notify(
       type,
       message,
       metadata,
+      brandId,
     });
   } catch (emailErr) {
     // Email failure must never block the caller
