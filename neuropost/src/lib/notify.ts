@@ -4,14 +4,14 @@
 // Single entry point for all notifications.
 //   1. Always insert the in-app notification row
 //   2. Per-type dispatch to email:
-//      - chat_message → defer 24h via email_queue (N6 processor sends only if
-//        the underlying chat row still has read_at = null)
-//      - comment      → handled by a separate cron (comment-pending-reminder)
-//                       that scans comments table; notify() does NOT send
-//                       email directly for this type
-//      - anything else with a mapped EmailType → send immediately via
-//        sendNotificationEmail(), which handles canSendEmail + language +
-//        unsubscribe footer + markEmailSent.
+//      - chat_message → enqueue with send_at = now()+24h (processor sends only
+//        if the underlying chat row is still unread). Not affected by
+//        max_frequency because it already has its own delay rule.
+//      - comment      → owned by /api/cron/comment-pending-reminder (not here)
+//      - everything else mapped in TYPE_TO_EMAIL:
+//          · max_frequency='immediate' → send now via sendNotificationEmail
+//          · max_frequency='daily'/'weekly' → enqueue email_queue with
+//            send_at = next digest window in the brand timezone
 //
 // Usage:
 //   await notify(brandId, 'approval_needed', 'Tu contenido está listo', {
@@ -19,7 +19,8 @@
 //   });
 
 import { createAdminClient } from '@/lib/supabase';
-import type { EmailType } from './email/preferences';
+import { canSendEmail, type EmailType } from './email/preferences';
+import { enqueueEmail } from './email/queue';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -50,20 +51,12 @@ const TYPE_TO_EMAIL: Partial<Record<NotifType, EmailType>> = {
   recreation_ready:          'recreation_ready',
   limit_reached:             'limit_reached',
   token_expired:             'token_expired',
-  tiktok_reconnect_required: 'token_expired',      // same email, different notif
+  tiktok_reconnect_required: 'token_expired',
   payment_failed:            'payment_failed',
-  // NOTE: `comment` intentionally NOT here. It's handled by the
-  // comment-pending-reminder cron to enforce the >24h-silent rule without
-  // spamming on every new comment.
-  // NOTE: `meta_connected`, `plan_activated`, `team_invite` are handled
-  // elsewhere (Stripe webhook, team invite route) — no email from notify().
+  // `comment` handled by the reminder cron.
 };
 
-const DEFERRED_TYPES: ReadonlySet<EmailType> = new Set<EmailType>([
-  'chat_message',
-]);
-
-const DEFER_MS = 24 * 60 * 60 * 1000; // 24h
+const DEFER_24H_MS = 24 * 60 * 60 * 1000;
 
 interface NotifyOpts {
   /** Skip email even if preferences allow it. */
@@ -94,42 +87,56 @@ export async function notify(
   if (!emailType) return;
 
   try {
-    // 2. Deferred types → email_queue (processor in N6 checks preconditions)
-    if (DEFERRED_TYPES.has(emailType)) {
-      await db.from('email_queue').insert({
-        brand_id:   brandId,
-        email_type: emailType,
-        // Subject + preview are rendered at send time by the processor using
-        // the brand's language; leave a placeholder here so NOT NULL holds.
-        subject: '(deferred)',
-        preview: message.slice(0, 100),
-        payload: {
-          notif_type: type,
-          message,
-          metadata,
-        },
-        send_at: new Date(Date.now() + DEFER_MS).toISOString(),
-        status:  'pending',
+    // Resolve preferences + timezone for this brand
+    const gate = await canSendEmail(brandId, emailType);
+    if (!gate.allowed) {
+      // canSendEmail already logged the reason
+      return;
+    }
+
+    // Get brand timezone for digest scheduling
+    const { data: brand } = await db
+      .from('brands')
+      .select('timezone')
+      .eq('id', brandId)
+      .maybeSingle();
+    const tz = (brand?.timezone as string | null) || 'Europe/Madrid';
+
+    const basePayload = { notif_type: type, message, metadata };
+
+    // 2. chat_message → always queue with +24h delay (read_at check at send)
+    if (emailType === 'chat_message') {
+      await enqueueEmail({
+        brandId,
+        emailType:  'chat_message',
+        payload:    basePayload,
+        frequency:  gate.frequency,     // if daily/weekly, sendAt may be later
+        tz,
+        delayMs:    DEFER_24H_MS,        // floor of 24h
+        preview:    message.slice(0, 100),
       });
       return;
     }
 
-    // 3. Immediate types → send via the shared email layer
-    const { data: brand } = await db
-      .from('brands')
-      .select('name, user_id')
-      .eq('id', brandId)
-      .single();
-    if (!brand) return;
+    // 3. Digest mode (daily/weekly) → queue, do NOT send now
+    if (gate.frequency !== 'immediate') {
+      await enqueueEmail({
+        brandId,
+        emailType,
+        payload:   basePayload,
+        frequency: gate.frequency,
+        tz,
+        preview:   message.slice(0, 100),
+      });
+      return;
+    }
 
-    const { data: userRes } = await db.auth.admin.getUserById(brand.user_id);
-    const recipient = userRes?.user?.email;
-    if (!recipient) return;
-
+    // 4. Immediate mode → send now
+    if (!gate.email) return;
     const { sendNotificationEmail } = await import('./email');
     await sendNotificationEmail({
-      to:        recipient,
-      brandName: brand.name ?? 'Tu negocio',
+      to:        gate.email,
+      brandName: gate.brandName ?? 'Tu negocio',
       type,
       message,
       metadata,

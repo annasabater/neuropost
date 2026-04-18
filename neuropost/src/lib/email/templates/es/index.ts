@@ -358,6 +358,37 @@ export const templates: EmailTemplates = {
     };
   },
 
+  digest: ({ brandName, frequency, items }): TemplateOutput => {
+    const appUrl = APP_URL();
+    const title  = frequency === 'daily' ? 'Tu resumen diario' : 'Tu resumen semanal';
+    const lead   = frequency === 'daily'
+      ? `Esto es lo que ha pasado hoy en ${brandName}:`
+      : `Esto es lo que ha pasado esta semana en ${brandName}:`;
+    const rows = items.map(it => {
+      const label = it.label ?? it.type;
+      const link  = it.href ? `<a href="${appUrl}${it.href}" style="color:#ff6b35;text-decoration:none">Ver →</a>` : '';
+      return `
+        <li style="margin-bottom:14px">
+          <div style="font-weight:700;color:#1a1a1a;font-size:14px;margin-bottom:2px">${label}</div>
+          <div style="color:#555;font-size:13px;line-height:1.5">${it.message}</div>
+          ${link ? `<div style="margin-top:4px;font-size:13px">${link}</div>` : ''}
+        </li>`;
+    }).join('');
+    const subject = frequency === 'daily'
+      ? `Tu resumen diario · ${items.length} ${items.length === 1 ? 'aviso' : 'avisos'}`
+      : `Tu resumen semanal · ${items.length} ${items.length === 1 ? 'aviso' : 'avisos'}`;
+    return {
+      subject,
+      preview: items.length > 0 ? items[0].message.slice(0, 100) : 'Sin novedades',
+      html: `
+        <h1 style="${STYLE.h1}">${title}</h1>
+        <p style="${STYLE.p}">${lead}</p>
+        <ul style="list-style:none;padding:0;margin:24px 0">${rows}</ul>
+        <a href="${appUrl}/dashboard" style="${STYLE.btn}">Ir al dashboard →</a>
+      `,
+    };
+  },
+
   genericNotification: ({ brandName, type, message }): TemplateOutput => {
     const title   = NOTIF_TITLES[type] ?? 'Notificación de NeuroPost';
     const cta     = NOTIF_CTA[type];

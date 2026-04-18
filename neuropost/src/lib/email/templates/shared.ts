@@ -111,6 +111,23 @@ export interface PlanUnusedProps {
   daysIdle:  number;
 }
 
+export interface DigestItem {
+  /** Gated EmailType the original notification mapped to. */
+  type:    string;
+  /** Short human label per row. Falls back to type when missing. */
+  label?:  string;
+  /** Plain-text body shown under the label. */
+  message: string;
+  /** Optional deep link (relative path, e.g. /posts). */
+  href?:   string;
+}
+
+export interface DigestProps {
+  brandName: string;
+  frequency: 'daily' | 'weekly';
+  items:     DigestItem[];
+}
+
 // ─── Shared template "registry" shape ──────────────────────────────────────
 
 export interface EmailTemplates {
@@ -129,4 +146,5 @@ export interface EmailTemplates {
   noSocialConnected:       (p: NoSocialConnectedProps)      => TemplateOutput;
   noContent:               (p: NoContentProps)              => TemplateOutput;
   planUnused:              (p: PlanUnusedProps)             => TemplateOutput;
+  digest:                  (p: DigestProps)                 => TemplateOutput;
 }
