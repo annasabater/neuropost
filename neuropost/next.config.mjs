@@ -1,10 +1,5 @@
 // @ts-check
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import createNextIntlPlugin from 'next-intl/plugin';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -26,12 +21,6 @@ const nextConfig = {
   // ioredis and bullmq use native Node.js modules (net, tls, crypto).
   // Exclude them from Next.js bundling so they run as-is in the Node runtime.
   serverExternalPackages: ['ioredis', 'bullmq'],
-
-  // Raíz del monorepo npm workspaces — Next 16 lo necesita explícito cuando el
-  // package.json raíz declara workspaces y el lockfile vive un nivel arriba.
-  turbopack: {
-    root: path.join(__dirname, '..'),
-  },
 
   images: {
     remotePatterns: [
