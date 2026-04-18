@@ -18,6 +18,7 @@
     "@neuropost/agents": "*",
     "@parcel/watcher": "^2.5.6",
     "@parcel/watcher-linux-x64-glibc": "^2.5.6",
+    "@swc/core-linux-x64-gnu": "*",
     "@sentry/nextjs": "^10.47.0",
     "@stripe/stripe-js": "^9.0.1",
     "@supabase/ssr": "^0.10.0",
