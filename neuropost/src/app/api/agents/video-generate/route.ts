@@ -1,4 +1,7 @@
 import { NextResponse } from 'next/server';
+
+// Kling v2 takes ~60s — extend the function timeout to 300s (Vercel max)
+export const maxDuration = 300;
 import { rateLimitAgents } from '@/lib/ratelimit';
 import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
