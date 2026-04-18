@@ -18,7 +18,7 @@ from supabase import create_client
 TELEGRAM_TOKEN = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT  = os.environ["TELEGRAM_CHANNEL_ID"]
 SUPABASE_URL   = os.environ["NEXT_PUBLIC_SUPABASE_URL"]
-SUPABASE_KEY   = os.environ["SUPABASE_SERVICE_KEY"]
+SUPABASE_KEY   = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 

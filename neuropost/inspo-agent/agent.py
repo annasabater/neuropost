@@ -22,7 +22,7 @@ from supabase import create_client
 PINTEREST_TOKEN = os.environ["PINTEREST_ACCESS_TOKEN"]
 ANTHROPIC_KEY   = os.environ["ANTHROPIC_API_KEY"]
 SUPABASE_URL    = os.environ["NEXT_PUBLIC_SUPABASE_URL"]
-SUPABASE_KEY    = os.environ["SUPABASE_SERVICE_KEY"]
+SUPABASE_KEY    = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
 TELEGRAM_TOKEN  = os.environ["TELEGRAM_BOT_TOKEN"]
 TELEGRAM_CHAT   = os.environ["TELEGRAM_CHANNEL_ID"]  # @neuropost_inspo o -100xxx
 
