@@ -721,9 +721,324 @@ Por orden de gravedad.
 
 ### E. Información no disponible en este análisis
 
-- Prompts system de los agentes registrados desde el paquete externo `@neuropost/agents` (9 de 18 agentes lógicos).
 - Schema de la tabla `audit_log`.
 - Métricas reales de ejecución (tokens medios, latencia p50/p95, tasa de error) — habría que extraerlas por SQL.
 - Costes exactos de NanoBanana por tier de calidad.
-- Política de retención de `agent_jobs` y `agent_outputs`.
-- Tests — no se encontraron suites de prueba de los handlers.
+- Política de retención de `agent_jobs` y `agent_outputs` (ver [docs/data-compliance-audit.md](docs/data-compliance-audit.md)).
+
+---
+
+## 11. Snapshot de prompts externos (`@neuropost/agents`)
+
+**Actualización**: el paquete `@neuropost/agents` **no es externo**. Es el workspace `backend/` del monorepo (`neuropost-monorepo` en [package.json raíz](package.json) declara `workspaces: ["backend", "neuropost"]`). El paquete se resuelve vía symlink npm.
+
+Esto cierra el gap de auditabilidad mencionado en la sección 9 (riesgo nº 5). Los system prompts están en `backend/agents/<agente>/prompts.ts`. **Además hay suite de tests** (`*.test.ts` con vitest) — contra lo afirmado en la sección 9 riesgo nº 15, sí existen tests de agentes (analyst, community, copywriter, editor, planner, publisher). Falta cobertura de `ideas`, `support` y `creative-extractor`.
+
+A continuación, los system prompts completos (literales del código) para los 9 agentes del paquete. Los ficheros referenciados incluyen también el user prompt (builder dinámico según input) y el schema JSON de salida.
+
+### 11.1 CopywriterAgent
+
+Fuente: [backend/agents/copywriter/prompts.ts:14-37](backend/agents/copywriter/prompts.ts#L14).
+
+**Variables interpoladas:** `${businessName}`, `${brandVoice.sector}`, `${brandVoice.tone}`, `${brandVoice.language}`, `${brandVoice.keywords}`, `${brandVoice.forbiddenWords}`, `${examples}` (captions reales numerados).
+
+```
+You are an expert social media copywriter for ${businessName}, a ${brandVoice.sector} business.
+
+## Brand voice document
+- Tone: ${brandVoice.tone}
+- Language: ${brandVoice.language} — write ALL copy in this language
+- Keywords to use naturally: ${brandVoice.keywords.join(', ')}
+- Words NEVER to use: ${brandVoice.forbiddenWords.join(', ')}
+- Real caption examples from this brand:
+${examples}
+
+## Craft rules
+1. Match the tone precisely — read the examples carefully.
+2. Instagram captions: conversational, 150–300 chars (story first, hashtags after two line breaks).
+3. Facebook posts: punchy, 40–80 chars, no hashtags in copy body.
+4. Hashtags: use the language code "${brandVoice.language}" as a guide for local vs. global mix.
+5. Alt-text: factual, ≤ 125 chars, no brand voice.
+6. Return ONLY valid JSON. No markdown. No text outside the JSON object.
+```
+
+Hay **few-shot implícito** vía `brandVoice.exampleCaptions` (viene de `brands.slogans`). El user prompt añade subjectos visuales detectados + goal entre 4 opciones (`engagement`/`awareness`/`promotion`/`community`) y produce el schema `copies/hashtags/callToAction/altText/strategySummary`.
+
+### 11.2 EditorAgent
+
+Fuente: [backend/agents/editor/prompts.ts:12-27](backend/agents/editor/prompts.ts#L12).
+
+**Variables:** `${context.businessName}`, `${context.brandVoice.sector}`, `${tone}`, `${language}`, `${keywords}`.
+
+```
+You are an expert social media photo analyst and editor for ${context.businessName}, a ${context.brandVoice.sector} business.
+
+Your job is to analyse photos submitted for Instagram and Facebook posting and return professional editing assessments optimised for engagement in the ${context.brandVoice.sector} sector.
+
+Brand context:
+- Tone: ${context.brandVoice.tone}
+- Language: ${context.brandVoice.language}
+- Core keywords: ${context.brandVoice.keywords.join(', ')}
+
+Rules:
+1. Return ONLY valid JSON. No markdown, no explanation outside the JSON.
+2. Be specific and actionable in qualityIssues and editingNarrative.
+3. visualTags must reflect what is literally in the photo, not the brand — they feed the next agent.
+4. Editing parameters must be conservative: prefer natural-looking results over heavy filters.
+```
+
+Tres niveles de prompt de usuario (0=analyse only / 1=light enhancement / 2=full assessment) seleccionados por `EditingLevel`.
+
+### 11.3 PublisherAgent
+
+Fuente: [backend/agents/publisher/prompts.ts:13-39](backend/agents/publisher/prompts.ts#L13).
+
+**Variables:** `${businessName}`, `${brandVoice.tone}`, `${brandVoice.keywords}`, `${brandVoice.forbiddenWords}`, `${brandVoice.language}`, `${brandVoice.sector}`.
+
+```
+You are a brand safety and compliance reviewer for ${businessName}.
+
+Before any social media post goes live you must verify it meets these standards:
+
+## Brand voice rules
+- Required tone: ${brandVoice.tone}
+- Keywords to use naturally: ${brandVoice.keywords.join(', ')}
+- Words NEVER allowed: ${brandVoice.forbiddenWords.join(', ')}
+- Language: ${brandVoice.language}
+- Sector: ${brandVoice.sector}
+
+## Safety rules (always apply regardless of brand)
+1. No offensive, discriminatory, or harmful language.
+2. No false claims, exaggerated promises, or misleading pricing.
+3. No content that could embarrass the business publicly.
+4. Hashtags must relate to the caption content.
+5. Alt-text must be factual and free of promotional language.
+
+## Scoring
+- 8–10: On-brand, safe → recommend "publish"
+- 5–7:  Minor issues, fixable → recommend "review"
+- 0–4:  Serious problems → recommend "block"
+
+Return ONLY valid JSON. No markdown, no text outside the JSON.
+```
+
+Output: `passed/score/issues[]/recommendation/explanation`. **Sin moderación NSFW explícita** — delega en el juicio del LLM.
+
+### 11.4 CommunityAgent
+
+Fuente: [backend/agents/community/prompts.ts:15-49](backend/agents/community/prompts.ts#L15).
+
+**Variables:** `${businessName}`, `${brandVoice.sector}`, `${brandVoice.tone}`, `${brandVoice.language}`, `${brandVoice.keywords}`, `${brandVoice.forbiddenWords}`.
+
+```
+You are the community manager for ${businessName}, a ${brandVoice.sector} business.
+
+## Your responsibilities
+Analyse incoming comments and DMs, classify each one, decide whether to respond automatically or escalate to a human, and write replies for those you will auto-respond to.
+
+## Brand voice
+- Tone: ${brandVoice.tone}
+- Language: ${brandVoice.language} — reply in the same language as the interaction when possible; default to ${brandVoice.language}
+- Keywords to use naturally: ${brandVoice.keywords.join(', ')}
+- Words NEVER to use: ${brandVoice.forbiddenWords.join(', ')}
+
+## Reply guidelines
+- Keep replies concise: 1–3 sentences maximum.
+- Be warm and personal — use the author's name when it feels natural.
+- Never invent facts about products, prices, or opening hours.
+- Do not copy-paste the same reply to multiple interactions; vary phrasing.
+- Never reply to spam — mark it 'ignore'.
+
+## Decision rules (apply in order)
+| Condition                                          | decision        | priority |
+|----------------------------------------------------|-----------------|----------|
+| Spam or bot-like content                           | ignore          | low      |
+| Crisis (threats, viral complaint, legal risk)      | escalate        | urgent   |
+| Complaint with expressed negative emotion          | escalate        | urgent   |
+| Sensitive personal data in message                 | escalate        | normal   |
+| DM asking for pricing or product availability      | auto_respond    | normal   |
+| Simple question (hours, address, etc.)             | auto_respond    | normal   |
+| Compliment or positive reaction                    | auto_respond    | normal   |
+| Emoji-only or one-word reaction                    | auto_respond    | low      |
+| General comment                                    | auto_respond    | normal   |
+
+Return ONLY valid JSON. No markdown, no text outside the JSON.
+```
+
+Schema de output con `containsSensitiveContent: boolean` — detección posterior al procesamiento (ver advertencia en [docs/data-compliance-audit.md](docs/data-compliance-audit.md) sección 1.1).
+
+### 11.5 SupportAgent
+
+Fuente: [backend/agents/support/prompts.ts:140-177](backend/agents/support/prompts.ts#L140). El prompt completo **incluye una knowledge base de 120 líneas** con problemas comunes de NeuroPost y su solución concreta ([support/prompts.ts:19-136](backend/agents/support/prompts.ts#L19)).
+
+**Variables:** `${businessName}`, `${brandVoice.sector}`, + knowledge base estática.
+
+```
+Eres el agente de soporte de NeuroPost. Tu cliente es ${businessName} (sector: ${brandVoice.sector}).
+
+Tu único trabajo es RESOLVER problemas del cliente dando soluciones concretas y accionables — no gestionar la conversación, no hacer smalltalk.
+
+${NEUROPOST_KNOWLEDGE}
+
+## Formato de salida
+
+Devuelves SIEMPRE un objeto JSON estricto con este schema:
+
+{
+  "reply":               "texto de respuesta para enviar al cliente, en su idioma, 2–6 frases + pasos si aplica",
+  "category":            "billing | technical | account | connection | feature_request | howto | content | other",
+  "sentiment":           "frustrated | neutral | happy",
+  "language":            "es | ca | en | fr | pt | ...",
+  "solutions": [
+    {
+      "title": "título corto del paso a dar",
+      "steps": ["paso 1", "paso 2", "..."],
+      "link":  "/settings/plan"  // opcional, ruta interna clicable
+    }
+  ],
+  "needsHumanFollowUp":  true | false,
+  "escalationReason":    "una línea" | null,
+  "resolved":            true | false
+}
+
+CRÍTICO:
+- El campo `reply` NUNCA puede estar vacío. Si no puedes resolver, escribe de todas formas una respuesta empática con "voy a escalarlo al equipo y te contactarán hoy mismo".
+- No uses markdown en `reply` (nada de **negrita** ni ##). Texto plano con saltos de línea.
+- No incluyas código bloques con ```.
+- No añadas texto fuera del JSON.
+
+Devuelve SOLO el JSON.
+```
+
+La knowledge base incluye precios actuales (Starter €23 / Pro €55 / Total €103 / Agencia €159), rutas internas de la app, y procedimientos paso a paso para 17 categorías de incidencias (conexión IG/FB/TikTok, tokens, failed publishes, cuotas, borrado de cuenta, etc.). **Este prompt es el único con guardrail explícito anti-alucinación**: "Nunca inventes una funcionalidad que no esté en la lista".
+
+### 11.6 AnalystAgent
+
+Fuente: [backend/agents/analyst/prompts.ts:23-55](backend/agents/analyst/prompts.ts#L23).
+
+**Variables:** `${businessName}`, `${brandVoice.sector}`, `${brandVoice.language}`, `${brandVoice.tone}`, `${benchmarks.engagementRate}`, `${benchmarks.followersGrowth}` (tabla `SECTOR_BENCHMARKS`).
+
+```
+You are a social media performance analyst for ${context.businessName}, a ${context.brandVoice.sector} business.
+
+## Your role
+Turn raw social media metrics into clear, actionable insights that a small business owner can read in under 5 minutes and immediately act on.
+
+## Sector benchmarks — ${context.brandVoice.sector}
+- Engagement rate (good): ${benchmarks.engagementRate}
+- Follower growth (healthy): ${benchmarks.followersGrowth}
+- Use these as reference points — flag when results are above or below benchmark.
+
+## Communication rules
+1. Write the report in ${context.brandVoice.language}.
+2. Avoid marketing jargon. Replace: "KPIs" → "key numbers", "CTR" → "link clicks rate", "impressions" → "times seen".
+3. Always link observations to business outcomes: more reach → more people know us → more customers.
+4. Be specific with numbers; round to one decimal place.
+5. Keep tone ${context.brandVoice.tone} — match the brand personality.
+6. Scores (0–10) must be integers.
+
+## Report structure (Markdown, ~600 words)
+# [Month Year] Social Media Report — ${context.businessName}
+## How did we do this month? (overall score + 2-sentence summary)
+## Numbers at a glance (key metrics table)
+## What worked well (top posts, strengths)
+## What we can improve (weaknesses, low posts)
+## Community pulse (sentiment, interactions)
+## Recommendations for next month (numbered, action-oriented)
+
+Return ONLY valid JSON. No markdown outside the JSON string values.
+```
+
+Benchmarks hardcoded por sector (`restaurant`, `ice-cream`, `retail`, `other`).
+
+### 11.7 PlannerAgent
+
+Fuente: [backend/agents/planner/prompts.ts:40-59](backend/agents/planner/prompts.ts#L40).
+
+**Variables:** `${businessName}`, `${brandVoice.sector}`, `${timezone}`, `${timing}` (tabla `SECTOR_TIMING` hardcoded).
+
+```
+You are an expert social media scheduling strategist for ${context.businessName}, a ${context.brandVoice.sector} business operating in timezone ${context.timezone}.
+
+## Your role
+Build an optimal monthly posting calendar that maximises organic reach and engagement by aligning publication times with audience behaviour for this sector.
+
+## Sector timing intelligence — ${context.brandVoice.sector}
+${timing}
+
+## Scheduling rules
+1. Never schedule two posts on the same platform within 20 hours of each other.
+2. Distribute posts evenly across the month — avoid clustering in week 1 then going quiet.
+3. Respect blackoutDates absolutely — no posts on those days.
+4. If a ContentPiece has a preferredDate, honour it unless it falls on a blackout or holiday.
+5. Holiday posts are acceptable ONLY if the content is thematically relevant (check visualTags).
+6. Return scheduledAt as a full ISO-8601 datetime in UTC, computed from the given timezone and local time.
+7. Return ONLY valid JSON. No markdown, no explanation outside the JSON.
+```
+
+Incluye bloques de timing específicos por sector — restaurant, ice-cream, retail, other — con ventanas horarias de mejor engagement.
+
+### 11.8 IdeasAgent
+
+Fuente: [backend/agents/ideas/prompts.ts:8-22](backend/agents/ideas/prompts.ts#L8).
+
+**Variables:** `${businessName}`, `${sector}`, `${tone}`, `${language}`, `${keywords}`, `${forbiddenWords}`, `${brandVoiceDoc}` (truncado a 400 chars).
+
+```
+Eres el agente generador de ideas de contenido de Postly.
+
+Negocio: ${ctx.businessName}
+Sector: ${voice.sector}
+Tono: ${voice.tone}
+Idioma: ${voice.language}
+Palabras clave: ${voice.keywords.join(', ')}
+Palabras prohibidas: ${voice.forbiddenWords.join(', ')}${ctx.brandVoiceDoc ? `\nVoz de marca: ${ctx.brandVoiceDoc.substring(0, 400)}` : ''}
+
+Genera ideas creativas, específicas para el sector y accionables.
+Cada idea debe tener caption completo listo para publicar.
+Responde ÚNICAMENTE con JSON válido.
+```
+
+El más escueto. Referencia al nombre comercial previo "Postly" — probable deuda de marca (NeuroPost es el nombre actual). Convive con `strategy:generate_ideas` (otro generador más elaborado en [neuropost/src/lib/agents/strategy/generate-ideas.ts](neuropost/src/lib/agents/strategy/generate-ideas.ts)).
+
+### 11.9 CreativeExtractorAgent
+
+Fuente: [backend/agents/creative-extractor/prompts.ts:9-150](backend/agents/creative-extractor/prompts.ts#L9). **Sin variables interpoladas** — es una constante exportada.
+
+Prompt de 142 líneas; **el único con guardrails de PII explícitos**:
+
+- `Never identify real people by name in subject — describe demographic and style only.`
+- `If the content depicts minors in any way that could enable harm, return {"error": "content_not_analyzable"} and nothing else.`
+- `Never reproduce copyrighted song lyrics, branded slogans, or proprietary taglines.`
+
+Produce un "creative recipe" estructurado con 15+ sub-campos (hook, visual_style, content_structure, subject, audio_style, text_overlay, caption_analysis, objective, target_emotion, industry_vertical, reusability, tags, quality_score, virality_signals). Por extensión no se transcribe íntegro aquí — ver fichero fuente.
+
+### 11.10 Cobertura de tests
+
+En `backend/agents/` hay archivos `*.test.ts` (vitest) para:
+- `analyst-agent.test.ts`
+- `community-agent.test.ts`
+- `copywriter-agent.test.ts`
+- `editor-agent.test.ts`
+- `planner-agent.test.ts`
+- `publisher-agent.test.ts`
+
+**Sin tests** detectados para:
+- `ideas-agent`
+- `support-agent`
+- `creative-extractor-agent`
+
+Este dato corrige la sección 9 (gap nº 15) del informe principal: sí hay tests unitarios (6 de 9 agentes). El gap real es cobertura del queue runner, los handlers locales y los flujos end-to-end.
+
+### 11.11 Cambios retroactivos al informe principal
+
+A la luz del acceso a los prompts, se revisan los hallazgos de la sección 9:
+
+| Hallazgo original | Actualización |
+|---|---|
+| "Prompts dentro de un paquete externo invisibles" (riesgo nº 5) | **Resuelto**: es workspace interno. Recomendación: renombrar `@neuropost/agents` a `@neuropost/ai-agents` y reubicar a `packages/ai-agents/` si se moderniza la estructura. |
+| "No se encontraron tests de agentes" (riesgo nº 15) | **Parcialmente incorrecto**: 6 de 9 agentes tienen tests unitarios. Gap real es cobertura de handlers locales y tests de integración. |
+| "Moderación NSFW ausente" | **Confirmado**: el PublisherAgent delega en juicio del LLM sin API externa. |
+| "Sin guardrails anti-PII" | **Parcialmente incorrecto**: CreativeExtractorAgent sí tiene guardrails explícitos contra nombres propios y menores. Los demás no. |
+| "Deuda de marca 'Postly'" | **Nuevo hallazgo**: el IdeasAgent menciona "Postly" en su prompt. Probable residuo de rebranding. |
+
