@@ -1,38 +1,36 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ProgressLink } from '@/components/ui/ProgressLink';
 import {
-  LayoutDashboard, Image, Flame, Calendar, Upload, Camera,
-  BarChart3, Archive, MessageSquare, Lightbulb,
-  Settings, LogOut, ChevronDown, Palette, Plus, X,
+  LayoutDashboard, Calendar, MessageSquare, BarChart3,
+  Settings, LogOut, X, Image, Archive,
+  Flame, Plus, Upload, ChevronDown, Link2, CreditCard, Palette,
+  Sparkles, Send, Paintbrush, Camera,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { createBrowserClient } from '@/lib/supabase';
 import { PLAN_META } from '@/types';
 import type { SubscriptionPlan } from '@/types';
 
-const f  = "var(--font-barlow), 'Barlow', sans-serif";
+const f = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
-type NavGroup = {
-  label: string;
-  items: { href: string; label: string; icon: React.ComponentType<{ size?: number }>; badge?: number }[];
-};
-
 export function Sidebar() {
-  const pathname        = usePathname();
-  const t               = useTranslations('nav');
-  const brand           = useAppStore((s) => s.brand);
-  const sidebarOpen     = useAppStore((s) => s.sidebarOpen);
-  const toggleSidebar   = useAppStore((s) => s.toggleSidebar);
-  const unreadComments  = useAppStore((s) => s.unreadComments);
+  const pathname = usePathname();
+  const router = useRouter();
+  const t = useTranslations('nav');
+  const brand = useAppStore((s) => s.brand);
+  const sidebarOpen = useAppStore((s) => s.sidebarOpen);
+  const toggleSidebar = useAppStore((s) => s.toggleSidebar);
+  const unreadComments = useAppStore((s) => s.unreadComments);
 
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
+  // Close dropdowns on outside click
   useEffect(() => {
     function handler(e: MouseEvent) {
       if (profileRef.current && !profileRef.current.contains(e.target as Node)) setProfileOpen(false);
@@ -41,7 +39,18 @@ export function Sidebar() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const closeAndNav = () => { if (sidebarOpen) toggleSidebar(); setProfileOpen(false); };
+  const nav = (href: string) => { if (sidebarOpen) toggleSidebar(); setProfileOpen(false); };
+
+  function NavItem({ href, label, icon: Icon, badge }: { href: string; label: string; icon: React.ComponentType<{ size?: number }>; badge?: number }) {
+    const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
+    return (
+      <ProgressLink href={href} className={`dash-nav-item${active ? ' active' : ''}`} onClick={() => nav(href)}>
+        <Icon size={15} />
+        <span>{label}</span>
+        {badge != null && badge > 0 && <span className="nav-badge">{badge}</span>}
+      </ProgressLink>
+    );
+  }
 
   async function handleLogout() {
     const supabase = createBrowserClient();
@@ -49,139 +58,114 @@ export function Sidebar() {
     window.location.href = '/';
   }
 
-  const NAV_GROUPS: NavGroup[] = [
-    {
-      label: '',
-      items: [
-        { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
-      ],
-    },
-    {
-      label: 'Contenido',
-      items: [
-        { href: '/posts',      label: t('posts'),       icon: Image },
-        { href: '/ideas',      label: 'Ideas',           icon: Lightbulb },
-        { href: '/inspiracion',label: t('inspiration'),  icon: Flame },
-        { href: '/calendar',   label: t('calendar'),     icon: Calendar },
-      ],
-    },
-    {
-      label: 'Comunidad',
-      items: [
-        { href: '/inbox',    label: 'Inbox',    icon: MessageSquare, badge: unreadComments },
-        { href: '/historial',label: t('history'), icon: Archive },
-      ],
-    },
-    {
-      label: 'Marca',
-      items: [
-        { href: '/biblioteca', label: 'Biblioteca', icon: Upload },
-        { href: '/feed',       label: 'Feed',        icon: Camera },
-      ],
-    },
-    {
-      label: 'Analítica',
-      items: [
-        { href: '/analytics', label: t('analytics'), icon: BarChart3 },
-      ],
-    },
-  ];
-
-  function NavItem({ href, label, icon: Icon, badge }: { href: string; label: string; icon: React.ComponentType<{ size?: number }>; badge?: number }) {
-    const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
-    return (
-      <ProgressLink
-        href={href}
-        onClick={closeAndNav}
-        className={`ig-nav-item${active ? ' active' : ''}`}
-      >
-        <span className="ig-nav-icon"><Icon size={18} /></span>
-        <span className="ig-nav-label">{label}</span>
-        {badge != null && badge > 0 && (
-          <span className="nav-badge">{badge}</span>
-        )}
-      </ProgressLink>
-    );
-  }
-
   return (
-    <aside className={`ig-sidebar${sidebarOpen ? ' open' : ''}`}>
-
+    <aside className="dash-sidebar">
       {/* ── Header ── */}
-      <div className="ig-sidebar-header">
-        <ProgressLink href="/dashboard" className="ig-logo" onClick={closeAndNav}>
-          <span style={{ fontFamily: fc, fontWeight: 900, fontSize: 18, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-primary)' }}>
-            Neuro<span style={{ color: 'var(--accent)' }}>Post</span>
-          </span>
-        </ProgressLink>
-        <button className="ig-sidebar-close" onClick={toggleSidebar} aria-label="Cerrar menú">
+      <div className="dash-sidebar-header">
+        <ProgressLink href="/dashboard" className="dash-logo">NeuroPost</ProgressLink>
+        <button className="sidebar-close-btn" onClick={toggleSidebar} aria-label="Cerrar menú">
           <X size={18} />
         </button>
       </div>
 
-      {/* ── Create button ── */}
-      <div style={{ padding: '8px 12px 4px', flexShrink: 0 }}>
+      {/* ── Create button — direct link ── */}
+      <div style={{ padding: '8px 8px 4px', flexShrink: 0 }}>
         <ProgressLink
           href="/posts/new"
-          onClick={closeAndNav}
-          className="ig-create-btn"
+          onClick={() => nav('/posts/new')}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            padding: '9px 12px', background: '#111827', color: '#ffffff', border: 'none',
+            fontFamily: fc, fontSize: 14, fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: '0.06em', cursor: 'pointer', width: '100%',
+            transition: 'background 0.15s', textDecoration: 'none', boxSizing: 'border-box',
+          }}
         >
-          <Plus size={15} />
-          <span>Crear post</span>
+          <Plus size={15} /> Crear
         </ProgressLink>
       </div>
 
       {/* ── Navigation ── */}
-      <nav className="ig-nav">
-        {NAV_GROUPS.map((group, gi) => (
-          <div key={gi} className="ig-nav-group">
-            {group.label && (
-              <p className="ig-nav-group-label">{group.label}</p>
-            )}
-            {group.items.map((item) => (
-              <NavItem key={item.href} {...item} />
-            ))}
-          </div>
-        ))}
-      </nav>
+      <div className="dash-nav">
+        {/* Inicio */}
+        <NavItem href="/dashboard" label={t('dashboard')} icon={LayoutDashboard} />
 
-      {/* ── Profile footer ── */}
-      <div ref={profileRef} className="ig-sidebar-footer">
+        {/* Contenido */}
+        <div className="dash-nav-group-label">Contenido</div>
+        <NavItem href="/posts" label={t('posts')} icon={Image} />
+        <NavItem href="/inspiracion" label={t('inspiration')} icon={Flame} />
+        <NavItem href="/calendar" label={t('calendar')} icon={Calendar} />
+
+        {/* Biblioteca */}
+        <div className="dash-nav-group-label">Biblioteca</div>
+        <NavItem href="/biblioteca" label="Contenido" icon={Upload} />
+        <NavItem href="/feed" label="Feed" icon={Camera} />
+
+        {/* Rendimiento */}
+        <div className="dash-nav-group-label">Rendimiento</div>
+        <NavItem href="/analytics" label={t('analytics')} icon={BarChart3} />
+
+        {/* Otros */}
+        <div className="dash-nav-group-label">Otros</div>
+        <NavItem href="/historial" label={t('history')} icon={Archive} />
+        <NavItem href="/inbox" label="Inbox" icon={MessageSquare} badge={unreadComments} />
+      </div>
+
+      {/* ── Profile section ── */}
+      <div ref={profileRef} className="dash-sidebar-footer" style={{ position: 'relative' }}>
         <button
           onClick={() => setProfileOpen(!profileOpen)}
-          className="ig-profile-btn"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+            padding: '10px 10px', background: 'none', border: 'none', cursor: 'pointer',
+            transition: 'background 0.15s',
+          }}
         >
-          <div className="ig-avatar">
+          {/* Avatar */}
+          <div style={{
+            width: 28, height: 28, background: '#f3f4f6', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            fontFamily: f, fontSize: 11, fontWeight: 700, color: '#6b7280', flexShrink: 0,
+          }}>
             {brand?.name?.charAt(0).toUpperCase() ?? 'N'}
           </div>
-          <div className="ig-profile-info">
-            <p className="ig-profile-name">{brand?.name ?? 'Mi negocio'}</p>
-            <p className="ig-profile-plan">
+          <div style={{ flex: 1, textAlign: 'left', minWidth: 0 }}>
+            <p style={{ fontFamily: f, fontSize: 12, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
+              {brand?.name ?? 'Mi negocio'}
+            </p>
+            <p style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
               {PLAN_META[(brand?.plan ?? 'starter') as SubscriptionPlan]?.label ?? 'Esencial'}
             </p>
           </div>
-          <ChevronDown
-            size={12}
-            style={{
-              color: 'var(--text-tertiary)', flexShrink: 0,
-              transform: profileOpen ? 'rotate(180deg)' : 'none',
-              transition: 'transform 0.15s',
-            }}
-          />
+          <ChevronDown size={12} style={{ color: '#9ca3af', flexShrink: 0, transform: profileOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
         </button>
 
+        {/* Profile dropdown */}
         {profileOpen && (
-          <div className="ig-profile-dropdown">
+          <div style={{
+            position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: 4,
+            background: '#ffffff', border: '1px solid #e5e7eb', zIndex: 100,
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.12)',
+          }}>
             {[
-              { href: '/brand',    label: 'Brand Kit', icon: Palette },
-              { href: '/settings', label: 'Ajustes',   icon: Settings },
+              { href: '/brand', label: 'Brand Kit', icon: Palette },
+              { href: '/settings', label: 'Ajustes', icon: Settings },
             ].map(({ href, label, icon: Icon }) => (
-              <ProgressLink key={href} href={href} onClick={closeAndNav} className="ig-dropdown-item">
-                <Icon size={14} style={{ color: 'var(--text-tertiary)' }} />
+              <ProgressLink key={href} href={href} onClick={() => nav(href)} style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+                textDecoration: 'none', color: '#374151', fontFamily: f, fontSize: 13,
+                fontWeight: 500, transition: 'background 0.1s', borderBottom: '1px solid #f3f4f6',
+              }}>
+                <Icon size={14} style={{ color: '#9ca3af' }} />
                 {label}
               </ProgressLink>
             ))}
-            <button onClick={handleLogout} className="ig-dropdown-item ig-dropdown-logout">
+            <button onClick={handleLogout} style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+              width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+              color: '#9ca3af', fontFamily: f, fontSize: 13, fontWeight: 500,
+              transition: 'background 0.1s',
+            }}>
               <LogOut size={14} />
               Cerrar sesión
             </button>
@@ -189,36 +173,5 @@ export function Sidebar() {
         )}
       </div>
     </aside>
-  );
-}
-
-// ── Bottom navigation for mobile ──────────────────────────────────────────────
-export function BottomNav() {
-  const pathname       = usePathname();
-  const unreadComments = useAppStore((s) => s.unreadComments);
-
-  const BOTTOM_ITEMS = [
-    { href: '/dashboard',  label: 'Inicio',    icon: LayoutDashboard },
-    { href: '/posts',      label: 'Posts',     icon: Image },
-    { href: '/inspiracion',label: 'Inspirar',  icon: Flame },
-    { href: '/inbox',      label: 'Inbox',     icon: MessageSquare, badge: unreadComments },
-    { href: '/analytics',  label: 'Stats',     icon: BarChart3 },
-  ];
-
-  return (
-    <nav className="ig-bottom-nav">
-      {BOTTOM_ITEMS.map(({ href, label, icon: Icon, badge }) => {
-        const active = pathname === href || (href !== '/dashboard' && pathname.startsWith(href));
-        return (
-          <ProgressLink key={href} href={href} className={`ig-bottom-item${active ? ' active' : ''}`}>
-            <span className="ig-bottom-icon">
-              <Icon size={22} />
-              {badge != null && badge > 0 && <span className="ig-bottom-badge">{badge}</span>}
-            </span>
-            <span className="ig-bottom-label">{label}</span>
-          </ProgressLink>
-        );
-      })}
-    </nav>
   );
 }
