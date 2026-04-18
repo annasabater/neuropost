@@ -31,7 +31,8 @@ const BOOL_DEFAULTS: Record<string, boolean> = {
   token_expired_email:         true,
   post_failed_email:           true,
   payment_failed_email:        true,
-  trial_ending_email:          true,
+  // trial_ending_email intentionally omitted from the UI whitelist —
+  // NeuroPost no longer uses a trial period. Column preserved in DB.
   limit_reached_email:         true,
 
   // Reminders

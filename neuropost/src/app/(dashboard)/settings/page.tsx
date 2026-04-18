@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Save, ExternalLink, CreditCard, Bell, Lock, Trash2, Sun, Moon, Globe } from 'lucide-react';
+import {
+  Save, ExternalLink, CreditCard, Bell, Lock, Trash2, Sun, Moon, Globe,
+  AlertCircle, Wrench, BarChart3, Megaphone, Settings as SettingsIcon, ChevronDown,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAppStore } from '@/store/useAppStore';
 import { createBrowserClient } from '@/lib/supabase';
@@ -69,6 +72,29 @@ export default function SettingsPage() {
   const [prefs,        setPrefs]        = useState<NotifPrefs | null>(null);
   const prefsSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Accordion — which group is open (only one at a time)
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+
+  // Inline "✓ Guardado" pulse by group id
+  const [savedPulse, setSavedPulse] = useState<string | null>(null);
+  const savedPulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Restore last-opened group from localStorage
+  useEffect(() => {
+    try {
+      const last = window.localStorage.getItem('neuropost.prefs.openGroup');
+      if (last) setOpenGroup(last);
+    } catch { /* ignore */ }
+  }, []);
+
+  function toggleGroup(id: string) {
+    setOpenGroup(prev => {
+      const next = prev === id ? null : id;
+      try { window.localStorage.setItem('neuropost.prefs.openGroup', next ?? ''); } catch { /* ignore */ }
+      return next;
+    });
+  }
+
   // Load prefs once on mount
   useEffect(() => {
     (async () => {
@@ -81,8 +107,16 @@ export default function SettingsPage() {
     })();
   }, []);
 
-  /** Debounced PATCH — updates local state immediately, persists after 500ms. */
-  function updatePref<K extends keyof NotifPrefs>(key: K, value: NotifPrefs[K]) {
+  /**
+   * Debounced PATCH — updates local state immediately, persists after 500ms.
+   * Shows an inline "✓ Guardado" pulse next to the group counter when
+   * `groupId` is provided. No full-screen toast (redesign spec).
+   */
+  function updatePref<K extends keyof NotifPrefs>(
+    key:     K,
+    value:   NotifPrefs[K],
+    groupId?: string,
+  ) {
     setPrefs(prev => ({ ...(prev ?? {}), [key]: value }));
     if (prefsSaveTimer.current) clearTimeout(prefsSaveTimer.current);
     prefsSaveTimer.current = setTimeout(async () => {
@@ -93,7 +127,11 @@ export default function SettingsPage() {
           body: JSON.stringify({ [key]: value }),
         });
         if (!res.ok) throw new Error('Save failed');
-        toast.success('Guardado', { duration: 1200 });
+        if (groupId) {
+          setSavedPulse(groupId);
+          if (savedPulseTimer.current) clearTimeout(savedPulseTimer.current);
+          savedPulseTimer.current = setTimeout(() => setSavedPulse(null), 2000);
+        }
       } catch {
         toast.error('No se pudo guardar');
       }
@@ -743,88 +781,131 @@ export default function SettingsPage() {
                 return fallback;
               };
 
+              // 'trial_ending_email' intentionally excluded — NeuroPost no
+              // longer uses a trial period. Column kept in DB for future use.
+              // Legacy 'notify_email_*' toggles removed; values migrated by
+              // supabase/migrations/20260419_consolidate_notification_prefs.sql.
               const groups: Array<{
-                title: string; desc: string;
+                id: string;
+                title: string;
+                icon: React.ComponentType<{ size?: number; color?: string }>;
                 items: Array<{ key: keyof NotifPrefs; label: string; desc: string; defaultOn: boolean }>;
               }> = [
                 {
+                  id: 'action',
                   title: 'Acción requerida',
-                  desc: 'Cuando tú tienes que hacer algo para avanzar.',
+                  icon: AlertCircle,
                   items: [
-                    { key: 'approval_needed_email',  label: 'Contenido listo para aprobar', desc: 'Cuando la IA genera un post que espera tu validación', defaultOn: true },
-                    { key: 'ticket_reply_email',     label: 'Respuestas de soporte',        desc: 'Cuando respondemos a uno de tus tickets',              defaultOn: true },
+                    { key: 'approval_needed_email',  label: 'Contenido listo para aprobar', desc: 'Cuando la IA genera un post que espera tu validación',      defaultOn: true },
+                    { key: 'ticket_reply_email',     label: 'Respuestas de soporte',        desc: 'Cuando respondemos a uno de tus tickets',                   defaultOn: true },
                     { key: 'chat_message_email',     label: 'Mensajes del equipo',          desc: 'Cuando te escribimos por chat (solo si no lo lees en 24h)', defaultOn: true },
-                    { key: 'recreation_ready_email', label: 'Recreaciones listas',          desc: 'Cuando una imagen recreada está lista para revisar',    defaultOn: true },
-                    { key: 'comment_pending_email',  label: 'Comentarios pendientes',       desc: 'Comentarios en Instagram que llevan >24h sin responder', defaultOn: false },
+                    { key: 'recreation_ready_email', label: 'Recreaciones listas',          desc: 'Cuando una imagen recreada está lista para revisar',        defaultOn: true },
+                    { key: 'comment_pending_email',  label: 'Comentarios pendientes',       desc: 'Comentarios en Instagram que llevan >24h sin responder',    defaultOn: false },
                   ],
                 },
                 {
+                  id: 'technical',
                   title: 'Alertas técnicas',
-                  desc: 'Para que nada se rompa sin avisar.',
+                  icon: Wrench,
                   items: [
-                    { key: 'token_expired_email',   label: 'Conexión caducada',          desc: 'Cuando IG/FB/TikTok desconectan tu cuenta',         defaultOn: true },
-                    { key: 'post_published_email',  label: 'Post publicado',              desc: 'Cuando un post programado sale a tu red',           defaultOn: true },
-                    { key: 'post_failed_email',     label: 'Fallo al publicar',          desc: 'Cuando un post programado no puede publicarse',     defaultOn: true },
-                    { key: 'payment_failed_email',  label: 'Pago fallido',               desc: 'Cuando Stripe no puede cobrar tu suscripción',       defaultOn: true },
-                    { key: 'trial_ending_email',    label: 'Fin de prueba',              desc: '3 días antes de que se acabe tu periodo de prueba', defaultOn: true },
-                    { key: 'limit_reached_email',   label: 'Límite alcanzado',           desc: 'Cuando agotas tu cuota semanal del plan',            defaultOn: true },
+                    { key: 'token_expired_email',   label: 'Conexión caducada',    desc: 'Cuando IG/FB/TikTok desconectan tu cuenta',      defaultOn: true },
+                    { key: 'post_published_email',  label: 'Post publicado',       desc: 'Cuando un post programado sale a tu red',        defaultOn: true },
+                    { key: 'post_failed_email',     label: 'Fallo al publicar',    desc: 'Cuando un post programado no puede publicarse',  defaultOn: true },
+                    { key: 'payment_failed_email',  label: 'Pago fallido',         desc: 'Cuando Stripe no puede cobrar tu suscripción',   defaultOn: true },
+                    { key: 'limit_reached_email',   label: 'Límite alcanzado',     desc: 'Cuando agotas tu cuota semanal del plan',         defaultOn: true },
                   ],
                 },
                 {
+                  id: 'reminders',
                   title: 'Recordatorios',
-                  desc: 'Recordatorios amables si dejas cosas a medias.',
+                  icon: Bell,
                   items: [
-                    { key: 'reactivation_email',           label: 'Te echamos de menos',   desc: 'Cuando llevas 7, 14 o 30 días sin entrar',        defaultOn: true },
-                    { key: 'no_content_email',             label: 'Sin contenido',          desc: 'Si llevas más de una semana y tu biblioteca está vacía', defaultOn: true },
-                    { key: 'onboarding_incomplete_email',  label: 'Configuración pendiente', desc: 'Si no terminaste de configurar tu marca',        defaultOn: true },
-                    { key: 'no_social_connected_email',    label: 'Redes sin conectar',    desc: 'Si no has conectado ninguna red social',          defaultOn: true },
-                    { key: 'plan_unused_email',            label: 'Plan sin usar',         desc: 'Si pagas un plan y llevas semanas sin publicar',   defaultOn: true },
+                    { key: 'reactivation_email',           label: 'Te echamos de menos',     desc: 'Cuando llevas 7, 14 o 30 días sin entrar',              defaultOn: true },
+                    { key: 'no_content_email',             label: 'Sin contenido',            desc: 'Si llevas más de una semana con la biblioteca casi vacía', defaultOn: true },
+                    { key: 'onboarding_incomplete_email',  label: 'Configuración pendiente',  desc: 'Si no terminaste de configurar tu marca',               defaultOn: true },
+                    { key: 'no_social_connected_email',    label: 'Redes sin conectar',       desc: 'Si no has conectado ninguna red social',                defaultOn: true },
+                    { key: 'plan_unused_email',            label: 'Plan sin usar',            desc: 'Si pagas un plan y llevas semanas sin publicar',         defaultOn: true },
                   ],
                 },
                 {
+                  id: 'reports',
                   title: 'Resúmenes e informes',
-                  desc: 'Email con tus métricas agregadas.',
+                  icon: BarChart3,
                   items: [
-                    { key: 'weekly_report_email',  label: 'Informe semanal',  desc: 'Cada lunes con los números de la semana pasada',  defaultOn: true },
+                    { key: 'weekly_report_email',  label: 'Informe semanal',  desc: 'Cada lunes con los números de la semana pasada',       defaultOn: true },
                     { key: 'monthly_report_email', label: 'Informe mensual',  desc: 'El día 1 de cada mes con el resumen del mes anterior', defaultOn: true },
-                    { key: 'daily_digest_email',   label: 'Resumen diario',   desc: 'Un email al día con todo lo que ha pasado',       defaultOn: false },
+                    { key: 'daily_digest_email',   label: 'Resumen diario',   desc: 'Un email al día con todo lo que ha pasado',            defaultOn: false },
                   ],
                 },
                 {
-                  title: 'Marketing (opt-in explícito)',
-                  desc: 'Novedades, ofertas y contenido útil. Solo los enviamos si nos das permiso.',
+                  id: 'marketing',
+                  title: 'Marketing (opt-in)',
+                  icon: Megaphone,
                   items: [
-                    { key: 'marketing_email',         label: 'Comunicaciones comerciales', desc: 'Ofertas, descuentos y promociones',   defaultOn: false },
-                    { key: 'product_updates_email',   label: 'Novedades del producto',     desc: 'Cuando añadimos funciones nuevas',     defaultOn: false },
-                    { key: 'newsletter_email',        label: 'Newsletter',                  desc: 'Consejos de redes sociales mensuales', defaultOn: false },
+                    { key: 'marketing_email',       label: 'Comunicaciones comerciales', desc: 'Ofertas, descuentos y promociones',    defaultOn: false },
+                    { key: 'product_updates_email', label: 'Novedades del producto',     desc: 'Cuando añadimos funciones nuevas',      defaultOn: false },
+                    { key: 'newsletter_email',      label: 'Newsletter',                 desc: 'Consejos de redes sociales mensuales',  defaultOn: false },
                   ],
                 },
               ];
 
-              return (
-                <>
-                  {groups.map(group => (
-                    <div key={group.title} style={{ marginBottom: 32 }}>
-                      <h3 style={{
-                        fontFamily: "var(--font-barlow-condensed), sans-serif",
-                        fontSize: 13, fontWeight: 700, textTransform: 'uppercase',
-                        letterSpacing: '0.08em', color: 'var(--text-primary)',
-                        margin: '0 0 4px', paddingBottom: 8,
-                        borderBottom: '1px solid var(--border)',
-                      }}>
-                        {group.title}
-                      </h3>
-                      <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '0 0 12px' }}>
-                        {group.desc}
-                      </p>
-                      <div className="notif-list">
-                        {group.items.map(item => {
+              // Reusable accordion group shell — rendered below for each item
+              // in `groups` plus the 'config' group (language + frequency).
+              const renderGroup = (g: typeof groups[number]) => {
+                const isOpen = openGroup === g.id;
+                const Icon   = g.icon;
+                const active = g.items.filter(i => get(i.key, i.defaultOn)).length;
+                const total  = g.items.length;
+                const counterColor =
+                  active === 0     ? 'var(--text-tertiary)'
+                  : active === total ? 'var(--accent)'
+                  : 'var(--text-secondary)';
+                const counterExtra = active === 0 ? { textDecoration: 'line-through' } as const : {};
+
+                return (
+                  <div key={g.id} className="pref-group">
+                    <button
+                      type="button"
+                      className={`pref-group-head${isOpen ? ' is-open' : ''}`}
+                      aria-expanded={isOpen}
+                      aria-controls={`pref-content-${g.id}`}
+                      onClick={() => toggleGroup(g.id)}
+                    >
+                      <span className="pref-group-head-left">
+                        <Icon size={18} />
+                        <span className="pref-group-title">{g.title}</span>
+                      </span>
+                      <span className="pref-group-head-right">
+                        {savedPulse === g.id && (
+                          <span className="pref-group-saved" aria-live="polite">✓ Guardado</span>
+                        )}
+                        <span className="pref-group-counter" style={{ color: counterColor, ...counterExtra }}>
+                          {active} de {total} activos
+                        </span>
+                        <ChevronDown
+                          size={18}
+                          className="pref-group-chev"
+                          style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }}
+                        />
+                      </span>
+                    </button>
+                    <div
+                      id={`pref-content-${g.id}`}
+                      className={`pref-group-content${isOpen ? ' is-open' : ''}`}
+                      aria-hidden={!isOpen}
+                    >
+                      <div className="pref-group-inner">
+                        {g.items.map((item, idx) => {
                           const on = get(item.key, item.defaultOn);
+                          const isLast = idx === g.items.length - 1;
                           return (
-                            <div key={item.key} className="notif-card">
-                              <div>
-                                <p className="notif-card-title">{item.label}</p>
-                                <p className="notif-card-desc">{item.desc}</p>
+                            <div
+                              key={item.key}
+                              className={`pref-item${isLast ? ' is-last' : ''}`}
+                            >
+                              <div className="pref-item-text">
+                                <p className="pref-item-title">{item.label}</p>
+                                <p className="pref-item-desc">{item.desc}</p>
                               </div>
                               <button
                                 type="button"
@@ -832,7 +913,7 @@ export default function SettingsPage() {
                                 aria-checked={on ? 'true' : 'false'}
                                 aria-label={item.label}
                                 title={item.label}
-                                onClick={() => updatePref(item.key, !on as never)}
+                                onClick={() => updatePref(item.key, !on as never, g.id)}
                                 className={`notif-switch ${on ? 'is-on' : ''}`}
                               >
                                 <span className="notif-switch-thumb" />
@@ -842,120 +923,194 @@ export default function SettingsPage() {
                         })}
                       </div>
                     </div>
-                  ))}
+                  </div>
+                );
+              };
 
-                  {/* ── Config: language + frequency ── */}
-                  <div style={{ marginBottom: 24 }}>
-                    <h3 style={{
-                      fontFamily: "var(--font-barlow-condensed), sans-serif",
-                      fontSize: 13, fontWeight: 700, textTransform: 'uppercase',
-                      letterSpacing: '0.08em', color: 'var(--text-primary)',
-                      margin: '0 0 4px', paddingBottom: 8,
-                      borderBottom: '1px solid var(--border)',
-                    }}>
-                      Configuración
-                    </h3>
-                    <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '0 0 16px' }}>
-                      Idioma y frecuencia de los emails.
-                    </p>
+              // Config group — rendered with its own content, not items.
+              const configOpen = openGroup === 'config';
 
-                    {/* Language */}
-                    <div className="form-group" style={{ marginBottom: 16 }}>
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
-                        Idioma de los emails
-                      </label>
-                      <select
-                        value={prefs?.email_language ?? ''}
-                        onChange={e => updatePref('email_language', e.target.value || null)}
-                        style={{
-                          width: '100%', padding: '10px 12px',
-                          border: '1px solid var(--border)', background: 'var(--bg)',
-                          color: 'var(--text-primary)', fontSize: 14,
-                          fontFamily: 'var(--font-barlow), sans-serif',
-                        }}
-                      >
-                        <option value="">Usar mi idioma de cuenta</option>
-                        <option value="es">Español</option>
-                        <option value="en">English</option>
-                        <option value="fr">Français</option>
-                        <option value="pt">Português</option>
-                      </select>
-                    </div>
+              return (
+                <div className="pref-groups">
+                  <style>{`
+                    .pref-groups { display: flex; flex-direction: column; gap: 8px; }
+                    .pref-group { border: 1px solid var(--border); background: var(--bg); }
+                    .pref-group-head {
+                      width: 100%;
+                      display: flex; align-items: center; justify-content: space-between;
+                      gap: 16px;
+                      padding: 16px 20px;
+                      background: var(--bg-2);
+                      border: none;
+                      border-left: 3px solid transparent;
+                      cursor: pointer;
+                      text-align: left;
+                      transition: background 0.15s, border-color 0.15s;
+                    }
+                    .pref-group-head:hover { background: var(--bg-3); }
+                    .pref-group-head.is-open { background: var(--bg-2); border-left-color: var(--accent); }
+                    .pref-group-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+                    .pref-group-head-left {
+                      display: flex; align-items: center; gap: 12px;
+                      color: var(--accent);
+                      min-width: 0;
+                    }
+                    .pref-group-title {
+                      font-family: var(--font-barlow-condensed), sans-serif;
+                      font-size: 14px; font-weight: 700;
+                      text-transform: uppercase; letter-spacing: 0.08em;
+                      color: var(--text-primary);
+                      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                    }
+                    .pref-group-head-right {
+                      display: flex; align-items: center; gap: 14px;
+                      font-family: var(--font-barlow), sans-serif;
+                    }
+                    .pref-group-counter { font-size: 13px; white-space: nowrap; }
+                    .pref-group-saved {
+                      font-size: 11px; font-weight: 600; color: var(--accent);
+                      animation: pref-fade 2s ease forwards;
+                    }
+                    @keyframes pref-fade {
+                      0% { opacity: 0; transform: translateY(-2px); }
+                      15% { opacity: 1; transform: translateY(0); }
+                      80% { opacity: 1; }
+                      100% { opacity: 0; }
+                    }
+                    .pref-group-chev { color: var(--text-tertiary); transition: transform 0.2s; }
 
-                    {/* Frequency */}
-                    <div className="form-group">
-                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
-                        Frecuencia máxima
-                      </label>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        {([
-                          { v: 'immediate', l: 'Al instante' },
-                          { v: 'daily',     l: 'Resumen diario' },
-                          { v: 'weekly',    l: 'Resumen semanal' },
-                        ] as const).map(({ v, l }) => {
-                          const active = (prefs?.max_frequency ?? 'immediate') === v;
-                          return (
-                            <button
-                              key={v}
-                              type="button"
-                              onClick={() => updatePref('max_frequency', v)}
-                              style={{
-                                flex: 1, padding: '10px 12px',
-                                border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                                background: active ? 'var(--accent)' : 'var(--bg)',
-                                color: active ? '#fff' : 'var(--text-secondary)',
-                                fontSize: 12, fontWeight: active ? 700 : 500,
-                                cursor: 'pointer',
-                                fontFamily: 'var(--font-barlow), sans-serif',
-                              }}
-                            >
-                              {l}
-                            </button>
-                          );
-                        })}
+                    .pref-group-content {
+                      max-height: 0; overflow: hidden;
+                      transition: max-height 300ms ease;
+                    }
+                    .pref-group-content.is-open { max-height: 2000px; }
+                    .pref-group-inner { padding: 8px 20px 20px; }
+
+                    .pref-item {
+                      display: flex; align-items: center; gap: 16px;
+                      padding: 14px 0;
+                      border-bottom: 1px solid var(--border);
+                    }
+                    .pref-item.is-last { border-bottom: none; }
+                    .pref-item-text { flex: 1; min-width: 0; }
+                    .pref-item-title {
+                      margin: 0 0 2px; font-weight: 600; font-size: 14px;
+                      color: var(--text-primary);
+                      font-family: var(--font-barlow), sans-serif;
+                    }
+                    .pref-item-desc {
+                      margin: 0; font-size: 12px; color: var(--text-secondary);
+                      line-height: 1.5; font-family: var(--font-barlow), sans-serif;
+                    }
+
+                    @media (max-width: 767px) {
+                      .pref-group-head { flex-wrap: wrap; padding: 14px 16px; }
+                      .pref-group-head-right { flex-wrap: wrap; gap: 10px; margin-left: 30px; }
+                      .pref-group-counter { font-size: 12px; }
+                      .pref-group-inner { padding: 8px 16px 18px; }
+                      .pref-item { flex-direction: row; gap: 12px; }
+                      .pref-item-title { font-size: 13px; }
+                    }
+                  `}</style>
+
+                  {groups.map(renderGroup)}
+
+                  {/* ── Configuration group (language + frequency) ── */}
+                  <div className="pref-group">
+                    <button
+                      type="button"
+                      className={`pref-group-head${configOpen ? ' is-open' : ''}`}
+                      aria-expanded={configOpen}
+                      aria-controls="pref-content-config"
+                      onClick={() => toggleGroup('config')}
+                    >
+                      <span className="pref-group-head-left">
+                        <SettingsIcon size={18} />
+                        <span className="pref-group-title">Configuración</span>
+                      </span>
+                      <span className="pref-group-head-right">
+                        {savedPulse === 'config' && (
+                          <span className="pref-group-saved" aria-live="polite">✓ Guardado</span>
+                        )}
+                        <ChevronDown
+                          size={18}
+                          className="pref-group-chev"
+                          style={{ transform: configOpen ? 'rotate(180deg)' : 'rotate(0)' }}
+                        />
+                      </span>
+                    </button>
+                    <div
+                      id="pref-content-config"
+                      className={`pref-group-content${configOpen ? ' is-open' : ''}`}
+                      aria-hidden={!configOpen}
+                    >
+                      <div className="pref-group-inner">
+                        {/* Language */}
+                        <div className="form-group" style={{ marginBottom: 20 }}>
+                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                            Idioma de los emails
+                          </label>
+                          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 8px', lineHeight: 1.5 }}>
+                            Si lo dejas vacío, usamos el idioma de tu cuenta.
+                          </p>
+                          <select
+                            value={prefs?.email_language ?? ''}
+                            onChange={e => updatePref('email_language', e.target.value || null, 'config')}
+                            style={{
+                              width: '100%', padding: '10px 12px',
+                              border: '1px solid var(--border)', background: 'var(--bg)',
+                              color: 'var(--text-primary)', fontSize: 14,
+                              fontFamily: 'var(--font-barlow), sans-serif',
+                            }}
+                          >
+                            <option value="">Usar mi idioma de cuenta</option>
+                            <option value="es">Español</option>
+                            <option value="en">English</option>
+                            <option value="fr">Français</option>
+                            <option value="pt">Português</option>
+                          </select>
+                        </div>
+
+                        {/* Frequency */}
+                        <div className="form-group">
+                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
+                            Frecuencia máxima
+                          </label>
+                          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 8px', lineHeight: 1.5 }}>
+                            Con <em>diario</em> o <em>semanal</em> agrupamos los avisos en un único email.
+                          </p>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            {([
+                              { v: 'immediate', l: 'Al instante' },
+                              { v: 'daily',     l: 'Resumen diario' },
+                              { v: 'weekly',    l: 'Resumen semanal' },
+                            ] as const).map(({ v, l }) => {
+                              const active = (prefs?.max_frequency ?? 'immediate') === v;
+                              return (
+                                <button
+                                  key={v}
+                                  type="button"
+                                  onClick={() => updatePref('max_frequency', v, 'config')}
+                                  style={{
+                                    flex: 1, padding: '10px 12px',
+                                    border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                                    background: active ? 'var(--accent)' : 'var(--bg)',
+                                    color: active ? '#fff' : 'var(--text-secondary)',
+                                    fontSize: 12, fontWeight: active ? 700 : 500,
+                                    cursor: 'pointer',
+                                    fontFamily: 'var(--font-barlow), sans-serif',
+                                  }}
+                                >
+                                  {l}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
-                      <p style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6, lineHeight: 1.5 }}>
-                        Si eliges <em>diario</em> o <em>semanal</em>, agrupamos todas las notificaciones pendientes en un único email.
-                      </p>
                     </div>
                   </div>
-
-                  {/* Legacy compat toggles — kept for callers that still read brands.notify_email_* */}
-                  <details style={{ marginTop: 12, color: 'var(--text-tertiary)' }}>
-                    <summary style={{ cursor: 'pointer', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                      Ajustes heredados (compatibilidad)
-                    </summary>
-                    <div className="notif-list" style={{ marginTop: 12 }}>
-                      <div className="notif-card">
-                        <div>
-                          <p className="notif-card-title">{t('notifSection.publishTitle')}</p>
-                          <p className="notif-card-desc">{t('notifSection.publishDesc')}</p>
-                        </div>
-                        <button type="button" role="switch" aria-checked={notifyPublish ? 'true' : 'false'}
-                          onClick={() => setNotifyPublish(v => !v)}
-                          className={`notif-switch ${notifyPublish ? 'is-on' : ''}`}>
-                          <span className="notif-switch-thumb" />
-                        </button>
-                      </div>
-                      <div className="notif-card">
-                        <div>
-                          <p className="notif-card-title">{t('notifSection.commentsTitle')}</p>
-                          <p className="notif-card-desc">{t('notifSection.commentsDesc')}</p>
-                        </div>
-                        <button type="button" role="switch" aria-checked={notifyComments ? 'true' : 'false'}
-                          onClick={() => setNotifyComments(v => !v)}
-                          className={`notif-switch ${notifyComments ? 'is-on' : ''}`}>
-                          <span className="notif-switch-thumb" />
-                        </button>
-                      </div>
-                      <div className="notif-actions" style={{ marginTop: 12 }}>
-                        <button className="btn-primary" onClick={saveNotifications} disabled={savingNotifs}>
-                          {savingNotifs ? <><span className="loading-spinner" />{t('saving')}</> : <><Save size={16} />{t('notifSection.save')}</>}
-                        </button>
-                      </div>
-                    </div>
-                  </details>
-                </>
+                </div>
               );
             })()}
           </div>
