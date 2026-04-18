@@ -34,16 +34,40 @@ interface TelegramUpdate {
 
 const HELP_TEXT = `🎨 *NeuroPost Inspiration Bot*
 
-Envíame fotos, carruseles o vídeos y los añadiré al banco.
+Envíame fotos carruseles o vídeos y los añadiré al banco\\.
 
-Comandos:
-/start — esta ayuda
-/help — esta ayuda
-/stats — cuántos items hay en el banco
-/recent — últimos 10 items
-/delete <id> — borra un item por id
+*Para reels de Instagram o TikTok:*
+1\\. Pega el link en [@instasave\\_bot](https://t.me/instasave_bot) \\(Instagram\\) o [@tiktokdownloader\\_bot](https://t.me/tiktokdownloader_bot) \\(TikTok\\)
+2\\. Cuando te devuelva el vídeo reenvíamelo aquí
+3\\. Yo lo proceso como si fuera tuyo
 
-Nota: vídeos hasta 20 MB (límite de Telegram Bot API).`;
+*Comandos:*
+/start \\- esta ayuda
+/help \\- esta ayuda
+/stats \\- cuántos items hay en el banco
+/recent \\- últimos 10 items
+/delete \\<id\\> \\- borra un item por id
+
+Nota: vídeos hasta 20 MB \\(límite de Telegram Bot API\\)\\.`;
+
+// Detect social URLs in plain-text messages to guide the user
+const URL_PATTERNS: { re: RegExp; name: string; helper: string }[] = [
+  { re: /instagram\.com\/(reel|p|tv)\//i,   name: 'Instagram',
+    helper: 'pega el link en @instasave_bot, espera el vídeo, y reenvíamelo aquí' },
+  { re: /tiktok\.com\/.*\/video\/|vm\.tiktok|vt\.tiktok/i, name: 'TikTok',
+    helper: 'pega el link en @tiktokdownloader_bot, espera el vídeo, y reenvíamelo aquí' },
+  { re: /pinterest\.com\/pin\/|pin\.it\//i, name: 'Pinterest',
+    helper: 'abre el pin, toca el botón compartir → copiar imagen, y envíame la imagen aquí' },
+  { re: /youtube\.com\/|youtu\.be\//i,      name: 'YouTube',
+    helper: 'YouTube no está soportado — usa Instagram, TikTok o Pinterest' },
+];
+
+function detectSocialUrl(text: string): { name: string; helper: string } | null {
+  for (const p of URL_PATTERNS) {
+    if (p.re.test(text)) return { name: p.name, helper: p.helper };
+  }
+  return null;
+}
 
 // ─── Command handlers ───────────────────────────────────────────────────────
 
@@ -227,8 +251,15 @@ export async function POST(request: Request) {
 
     // ── Plain text fallback ──
     if (text) {
-      await sendTelegramMessage(msg.chat.id,
-        'Envíame una foto, carrusel o vídeo. Usa /help para ver los comandos.');
+      const social = detectSocialUrl(text);
+      if (social) {
+        await sendTelegramMessage(msg.chat.id,
+          `🔗 Detecté un link de ${social.name}. No puedo bajarlo directo, pero ${social.helper}.`,
+          { reply_to_message_id: msg.message_id });
+      } else {
+        await sendTelegramMessage(msg.chat.id,
+          'Envíame una foto, carrusel o vídeo. Usa /help para ver los comandos.');
+      }
     }
 
     return NextResponse.json({ ok: true }, { status: 200 });
