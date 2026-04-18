@@ -37,14 +37,33 @@ const FORMAT_LABEL: Record<string, string> = {
 
 // ─── Scope pills ──────────────────────────────────────────────────────────────
 
-type Scope = 'all' | 'favorites' | 'user_saved' | 'editorial' | 'ai_generated';
+type Scope = 'all' | 'favorites' | 'user_saved' | 'editorial' | 'ai_generated' | 'telegram_bank';
 
 const SCOPE_PILLS: { key: Scope; label: string }[] = [
-  { key: 'all',          label: 'Todo' },
-  { key: 'favorites',    label: 'Favoritos' },
-  { key: 'user_saved',   label: 'Guardadas' },
-  { key: 'editorial',    label: 'Sugerencias' },
+  { key: 'all',            label: 'Todo' },
+  { key: 'favorites',      label: 'Favoritos' },
+  { key: 'user_saved',     label: 'Guardadas' },
+  { key: 'editorial',      label: 'Sugerencias' },
+  { key: 'telegram_bank',  label: 'Banco' },
 ];
+
+// ─── Inspiration Bank item (from /api/inspiration/bank/list) ─────────────────
+type BankItem = {
+  id:               string;
+  media_type:       'image' | 'carousel' | 'video';
+  media_urls:       string[];
+  thumbnail_url:    string | null;
+  video_frames_urls: string[];
+  category:         string;
+  tags:             string[];
+  dominant_colors:  string[];
+  mood:             string | null;
+  source_platform:  string | null;
+  source_url:       string | null;
+  created_at:       string;
+};
+
+type BankTab = 'foryou' | 'all';
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -63,6 +82,11 @@ export default function InspiracionPage() {
   const [search,   setSearch]   = useState('');
   const [mediaFmt, setMediaFmt] = useState('');   // '' | 'image' | 'carousel' | 'video'
   const [tags,     setTags]     = useState<string[]>([]);
+
+  // ── Telegram bank state (separate from the normal items list) ──────────────
+  const [bankItems,   setBankItems]   = useState<BankItem[]>([]);
+  const [bankLoading, setBankLoading] = useState(false);
+  const [bankTab,     setBankTab]     = useState<BankTab>('foryou');
 
   // ── Search debounce ref ────────────────────────────────────────────────────
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -95,6 +119,33 @@ export default function InspiracionPage() {
   }, [scope, search, mediaFmt, tags]);
 
   useEffect(() => { fetchItems(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Fetch Telegram bank ────────────────────────────────────────────────────
+  const fetchBank = useCallback(async (opts?: { tab?: BankTab; search?: string }) => {
+    setBankLoading(true);
+    const tab = opts?.tab ?? bankTab;
+    const q   = opts?.search !== undefined ? opts.search : search;
+    const p   = new URLSearchParams();
+    if (tab === 'all')  p.set('scope', 'all');
+    if (q.trim())       p.set('search', q.trim());
+    p.set('limit', '60');
+    try {
+      const res = await fetch(`/api/inspiration/bank/list?${p}`);
+      if (res.ok) {
+        const json = await res.json() as { items: BankItem[] };
+        setBankItems(json.items ?? []);
+      } else {
+        setBankItems([]);
+      }
+    } catch { setBankItems([]); }
+    finally { setBankLoading(false); }
+  }, [bankTab, search]);
+
+  // Refetch bank whenever the tab changes while in telegram_bank scope
+  useEffect(() => {
+    if (scope === 'telegram_bank') fetchBank({ tab: bankTab });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scope, bankTab]);
 
   // Realtime recreation updates
   const supabase = useMemo(() => createBrowserClient(), []);
@@ -466,7 +517,117 @@ export default function InspiracionPage() {
         </div>
       </div>
 
-      {/* ── Results ────────────────────────────────────────────────────────── */}
+      {/* ── Sub-tabs for Telegram bank scope ───────────────────────────────── */}
+      {scope === 'telegram_bank' && (
+        <div style={{ display: 'flex', gap: 6, marginTop: 14, marginBottom: 6 }}>
+          {([
+            { key: 'foryou', label: 'Para ti' },
+            { key: 'all',    label: 'Explorar todo' },
+          ] as { key: BankTab; label: string }[]).map(t => {
+            const active = bankTab === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setBankTab(t.key)}
+                style={{
+                  padding: '6px 14px',
+                  border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                  borderRadius: 99,
+                  background: active ? 'var(--accent)' : 'transparent',
+                  color: active ? '#fff' : 'var(--text-secondary)',
+                  fontFamily: f, fontSize: 12, fontWeight: active ? 700 : 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.12s',
+                }}
+              >
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ── Results — Telegram bank branch ─────────────────────────────────── */}
+      {scope === 'telegram_bank' ? (
+        <div id="inspi-results" style={{ marginTop: 16 }}>
+          {bankLoading && bankItems.length === 0 ? (
+            <div style={{ padding: '80px 0', textAlign: 'center' }}>
+              <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-tertiary)' }}>Cargando banco…</p>
+            </div>
+          ) : bankItems.length === 0 ? (
+            <div style={{ padding: '100px 20px', textAlign: 'center' }}>
+              <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 18, textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 8 }}>
+                Banco vacío
+              </p>
+              <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-tertiary)', maxWidth: 360, margin: '0 auto' }}>
+                {bankTab === 'foryou'
+                  ? 'Aún no hay referencias para tu sector. Prueba con "Explorar todo".'
+                  : 'El banco se alimenta automáticamente desde el bot de Telegram del equipo.'}
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
+              {bankItems.map(bi => (
+                <div
+                  key={bi.id}
+                  style={{
+                    position: 'relative',
+                    aspectRatio: '1',
+                    background: 'var(--bg-2)',
+                    overflow: 'hidden',
+                    cursor: 'default',
+                  }}
+                >
+                  {bi.thumbnail_url || bi.media_urls[0] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={bi.thumbnail_url ?? bi.media_urls[0]}
+                      alt={bi.mood ?? bi.category}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                    />
+                  ) : null}
+                  {/* Bottom meta strip */}
+                  <div style={{
+                    position: 'absolute', bottom: 0, left: 0, right: 0,
+                    padding: '20px 10px 8px',
+                    background: 'linear-gradient(transparent, rgba(0,0,0,0.75))',
+                  }}>
+                    <p style={{
+                      fontFamily: fc, fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                      letterSpacing: '0.08em', color: '#fff', margin: 0,
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {bi.category}
+                    </p>
+                    {bi.tags.length > 0 && (
+                      <p style={{
+                        fontFamily: f, fontSize: 10, color: 'rgba(255,255,255,0.8)', margin: 0,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {bi.tags.slice(0, 3).join(' · ')}
+                      </p>
+                    )}
+                  </div>
+                  {/* Media-type badge */}
+                  {bi.media_type !== 'image' && (
+                    <div style={{
+                      position: 'absolute', top: 6, right: 6,
+                      padding: '2px 7px',
+                      background: 'rgba(0,0,0,0.7)',
+                      color: '#fff',
+                      fontFamily: fc, fontSize: 9, fontWeight: 700,
+                      textTransform: 'uppercase', letterSpacing: '0.06em',
+                    }}>
+                      {bi.media_type}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
       <div id="inspi-results" style={{ marginTop: 16 }}>
         {loading && items.length === 0 ? (
           <div style={{ padding: '80px 0', textAlign: 'center' }}>
@@ -515,6 +676,7 @@ export default function InspiracionPage() {
           </>
         )}
       </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════════════
            MODAL: Pedir esta pieza
