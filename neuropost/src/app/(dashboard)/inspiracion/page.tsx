@@ -189,14 +189,25 @@ export default function InspiracionPage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         'postgres_changes' as any,
         { event: 'UPDATE', schema: 'public', table: 'recreation_requests', filter: `brand_id=eq.${brand.id}` },
-        (payload: { new: { id: string; status: string; generated_images?: string[] } }) => {
+        (payload: { new: {
+          id: string;
+          status: string;
+          generated_images?: string[];
+          generation_history?: { prediction_id: string; images: string[]; generated_at: string; version: number }[];
+        } }) => {
           const u = payload.new;
           const patch = (list: InspirationItem[]) =>
             list.map(i => i.recreation?.id === u.id
-              ? { ...i, recreation: { ...i.recreation!, status: u.status, generated_images: u.generated_images ?? [] } }
+              ? { ...i, recreation: {
+                  ...i.recreation!,
+                  status:             u.status,
+                  generated_images:   u.generated_images ?? [],
+                  generation_history: u.generation_history ?? i.recreation?.generation_history ?? [],
+                } }
               : i);
           setItems(patch);
           if (u.status === 'revisar') toast.success('¡Tu recreación está lista para revisar!');
+          if (u.status === 'failed')  toast.error('Tu recreación no se pudo completar.');
         },
       )
       .subscribe();

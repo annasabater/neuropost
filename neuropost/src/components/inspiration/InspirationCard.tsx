@@ -4,6 +4,7 @@ import { useState } from 'react';
 import {
   Heart, ImageIcon, Film, LayoutGrid, Video, Send, Bookmark, Play,
 } from 'lucide-react';
+import { RecreationVersions } from './RecreationVersions';
 
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
@@ -46,6 +47,12 @@ export type InspirationItem = {
     id: string;
     status: string;
     generated_images?: string[] | null;
+    generation_history?: {
+      prediction_id: string;
+      images:        string[];
+      generated_at:  string;
+      version:       number;
+    }[] | null;
   } | null;
 };
 
@@ -295,6 +302,15 @@ export function InspirationCard({ item, onFavorite, onSave, onRequest, onOpen }:
         {/* Recreation status strip */}
         {item.recreation && <RecreationStrip status={item.recreation.status} />}
       </div>
+
+      {/* Version selector — only when client has >1 generated versions */}
+      {item.recreation?.generation_history && item.recreation.generation_history.length > 1 && (
+        <RecreationVersions
+          recreationId={item.recreation.id}
+          history={item.recreation.generation_history}
+          activeImages={item.recreation.generated_images}
+        />
+      )}
 
       <style>{`
         @media (max-width: 767px) {
