@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import {
   Save, ExternalLink, CreditCard, Bell, Lock, Trash2, Sun, Moon, Globe,
-  AlertCircle, Wrench, BarChart3, Megaphone, Settings as SettingsIcon, ChevronDown,
+  AlertCircle, Wrench, BarChart3, Megaphone, ChevronDown,
 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAppStore } from '@/store/useAppStore';
@@ -796,11 +796,10 @@ export default function SettingsPage() {
                   title: 'Acción requerida',
                   icon: AlertCircle,
                   items: [
-                    { key: 'approval_needed_email',  label: 'Contenido listo para aprobar', desc: 'Cuando la IA genera un post que espera tu validación',      defaultOn: true },
+                    { key: 'approval_needed_email',  label: 'Contenido listo para aprobar', desc: 'Cuando NeuroPost genera un post que espera tu validación',  defaultOn: true },
                     { key: 'ticket_reply_email',     label: 'Respuestas de soporte',        desc: 'Cuando respondemos a uno de tus tickets',                   defaultOn: true },
                     { key: 'chat_message_email',     label: 'Mensajes del equipo',          desc: 'Cuando te escribimos por chat (solo si no lo lees en 24h)', defaultOn: true },
                     { key: 'recreation_ready_email', label: 'Recreaciones listas',          desc: 'Cuando una imagen recreada está lista para revisar',        defaultOn: true },
-                    { key: 'comment_pending_email',  label: 'Comentarios pendientes',       desc: 'Comentarios en Instagram que llevan >24h sin responder',    defaultOn: false },
                   ],
                 },
                 {
@@ -811,20 +810,6 @@ export default function SettingsPage() {
                     { key: 'token_expired_email',   label: 'Conexión caducada',    desc: 'Cuando IG/FB/TikTok desconectan tu cuenta',      defaultOn: true },
                     { key: 'post_published_email',  label: 'Post publicado',       desc: 'Cuando un post programado sale a tu red',        defaultOn: true },
                     { key: 'post_failed_email',     label: 'Fallo al publicar',    desc: 'Cuando un post programado no puede publicarse',  defaultOn: true },
-                    { key: 'payment_failed_email',  label: 'Pago fallido',         desc: 'Cuando Stripe no puede cobrar tu suscripción',   defaultOn: true },
-                    { key: 'limit_reached_email',   label: 'Límite alcanzado',     desc: 'Cuando agotas tu cuota semanal del plan',         defaultOn: true },
-                  ],
-                },
-                {
-                  id: 'reminders',
-                  title: 'Recordatorios',
-                  icon: Bell,
-                  items: [
-                    { key: 'reactivation_email',           label: 'Te echamos de menos',     desc: 'Cuando llevas 7, 14 o 30 días sin entrar',              defaultOn: true },
-                    { key: 'no_content_email',             label: 'Sin contenido',            desc: 'Si llevas más de una semana con la biblioteca casi vacía', defaultOn: true },
-                    { key: 'onboarding_incomplete_email',  label: 'Configuración pendiente',  desc: 'Si no terminaste de configurar tu marca',               defaultOn: true },
-                    { key: 'no_social_connected_email',    label: 'Redes sin conectar',       desc: 'Si no has conectado ninguna red social',                defaultOn: true },
-                    { key: 'plan_unused_email',            label: 'Plan sin usar',            desc: 'Si pagas un plan y llevas semanas sin publicar',         defaultOn: true },
                   ],
                 },
                 {
@@ -927,9 +912,6 @@ export default function SettingsPage() {
                 );
               };
 
-              // Config group — rendered with its own content, not items.
-              const configOpen = openGroup === 'config';
-
               return (
                 <div className="pref-groups">
                   <style>{`
@@ -1014,102 +996,6 @@ export default function SettingsPage() {
                   `}</style>
 
                   {groups.map(renderGroup)}
-
-                  {/* ── Configuration group (language + frequency) ── */}
-                  <div className="pref-group">
-                    <button
-                      type="button"
-                      className={`pref-group-head${configOpen ? ' is-open' : ''}`}
-                      aria-expanded={configOpen}
-                      aria-controls="pref-content-config"
-                      onClick={() => toggleGroup('config')}
-                    >
-                      <span className="pref-group-head-left">
-                        <SettingsIcon size={18} />
-                        <span className="pref-group-title">Configuración</span>
-                      </span>
-                      <span className="pref-group-head-right">
-                        {savedPulse === 'config' && (
-                          <span className="pref-group-saved" aria-live="polite">✓ Guardado</span>
-                        )}
-                        <ChevronDown
-                          size={18}
-                          className="pref-group-chev"
-                          style={{ transform: configOpen ? 'rotate(180deg)' : 'rotate(0)' }}
-                        />
-                      </span>
-                    </button>
-                    <div
-                      id="pref-content-config"
-                      className={`pref-group-content${configOpen ? ' is-open' : ''}`}
-                      aria-hidden={!configOpen}
-                    >
-                      <div className="pref-group-inner">
-                        {/* Language */}
-                        <div className="form-group" style={{ marginBottom: 20 }}>
-                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
-                            Idioma de los emails
-                          </label>
-                          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 8px', lineHeight: 1.5 }}>
-                            Si lo dejas vacío, usamos el idioma de tu cuenta.
-                          </p>
-                          <select
-                            value={prefs?.email_language ?? ''}
-                            onChange={e => updatePref('email_language', e.target.value || null, 'config')}
-                            style={{
-                              width: '100%', padding: '10px 12px',
-                              border: '1px solid var(--border)', background: 'var(--bg)',
-                              color: 'var(--text-primary)', fontSize: 14,
-                              fontFamily: 'var(--font-barlow), sans-serif',
-                            }}
-                          >
-                            <option value="">Usar mi idioma de cuenta</option>
-                            <option value="es">Español</option>
-                            <option value="en">English</option>
-                            <option value="fr">Français</option>
-                            <option value="pt">Português</option>
-                          </select>
-                        </div>
-
-                        {/* Frequency */}
-                        <div className="form-group">
-                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
-                            Frecuencia máxima
-                          </label>
-                          <p style={{ fontSize: 11, color: 'var(--text-tertiary)', margin: '0 0 8px', lineHeight: 1.5 }}>
-                            Con <em>diario</em> o <em>semanal</em> agrupamos los avisos en un único email.
-                          </p>
-                          <div style={{ display: 'flex', gap: 6 }}>
-                            {([
-                              { v: 'immediate', l: 'Al instante' },
-                              { v: 'daily',     l: 'Resumen diario' },
-                              { v: 'weekly',    l: 'Resumen semanal' },
-                            ] as const).map(({ v, l }) => {
-                              const active = (prefs?.max_frequency ?? 'immediate') === v;
-                              return (
-                                <button
-                                  key={v}
-                                  type="button"
-                                  onClick={() => updatePref('max_frequency', v, 'config')}
-                                  style={{
-                                    flex: 1, padding: '10px 12px',
-                                    border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                                    background: active ? 'var(--accent)' : 'var(--bg)',
-                                    color: active ? '#fff' : 'var(--text-secondary)',
-                                    fontSize: 12, fontWeight: active ? 700 : 500,
-                                    cursor: 'pointer',
-                                    fontFamily: 'var(--font-barlow), sans-serif',
-                                  }}
-                                >
-                                  {l}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
                 </div>
               );
             })()}

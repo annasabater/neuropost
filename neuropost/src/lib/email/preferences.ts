@@ -46,6 +46,13 @@ export const TRANSACTIONAL_TYPES = new Set<string>([
   'team_invite',
   'urgent_ticket',
   'security_alert',
+  // Always delivered — user cannot disable (UI toggle removed).
+  'payment_failed',
+  'limit_reached',
+  'plan_unused',
+  'no_social_connected',
+  'onboarding_incomplete',
+  'no_content',
 ]);
 
 export type SupportedLanguage = 'es' | 'en' | 'fr' | 'pt';
