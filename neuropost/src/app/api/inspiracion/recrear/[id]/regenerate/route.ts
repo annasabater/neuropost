@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server';
 import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
 import { startReplicatePrediction } from '@/lib/replicate';
+import { checkRegenerationLimit, incrementRegenerationCount } from '@/lib/plan-limits';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -38,6 +39,16 @@ export async function POST(
       return NextResponse.json({ error: 'Recreation not found' }, { status: 404 });
     }
 
+    // Enforce per-plan regeneration quota
+    const quota = await checkRegenerationLimit(brand.id, id);
+    if (!quota.allowed) {
+      return NextResponse.json(
+        { error: quota.reason, used: quota.used, limit: quota.limit, upgradeUrl: quota.upgradeUrl },
+        { status: 429 },
+      );
+    }
+    await incrementRegenerationCount(id);
+
     // Reset to preparacion
     await db
       .from('recreation_requests')
@@ -65,7 +76,7 @@ export async function POST(
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? (process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
       : 'http://localhost:3000');
-    const webhookUrl = `${baseUrl}/api/webhooks/replicate?secret=${process.env.REPLICATE_WEBHOOK_SECRET ?? ''}`;
+    const webhookUrl = `${baseUrl}/api/webhooks/replicate`;
 
     startReplicatePrediction({
       prompt: replicatePrompt,
