@@ -9,7 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
-import { Plus, X, Search } from 'lucide-react';
+import { Plus, X, Search, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MediaPicker, type SelectedMedia } from '@/components/posts/MediaPicker';
 import { useAppStore } from '@/store/useAppStore';
@@ -87,6 +87,17 @@ export default function InspiracionPage() {
   const [bankItems,   setBankItems]   = useState<BankItem[]>([]);
   const [bankLoading, setBankLoading] = useState(false);
   const [bankTab,     setBankTab]     = useState<BankTab>('foryou');
+
+  // ── Bank viewer state (full-size preview) ─────────────────────────────────
+  const [viewerOpen,   setViewerOpen]   = useState(false);
+  const [viewerItem,   setViewerItem]   = useState<BankItem | null>(null);
+  const [viewerSlide,  setViewerSlide]  = useState(0);
+
+  function openViewer(item: BankItem) {
+    setViewerItem(item);
+    setViewerSlide(0);
+    setViewerOpen(true);
+  }
 
   // ── Remix modal state ──────────────────────────────────────────────────────
   const [remixOpen,      setRemixOpen]      = useState(false);
@@ -618,7 +629,7 @@ export default function InspiracionPage() {
                     overflow: 'hidden',
                     cursor: 'pointer',
                   }}
-                  onClick={() => openRemix(bi)}
+                  onClick={() => openViewer(bi)}
                 >
                   {bi.thumbnail_url || bi.media_urls[0] ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -628,17 +639,19 @@ export default function InspiracionPage() {
                       style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     />
                   ) : null}
-                  {/* Hover CTA — "Remezclar" */}
-                  <div style={{
-                    position: 'absolute', top: 6, left: 6,
-                    padding: '3px 9px',
-                    background: 'var(--accent)',
-                    color: '#fff',
-                    fontFamily: fc, fontSize: 10, fontWeight: 700,
-                    textTransform: 'uppercase', letterSpacing: '0.07em',
-                  }}>
-                    Remezclar
-                  </div>
+                  {/* Carousel/video slide count pill */}
+                  {bi.media_type === 'carousel' && bi.media_urls.length > 1 && (
+                    <div style={{
+                      position: 'absolute', top: 6, left: 6,
+                      padding: '2px 8px',
+                      background: 'rgba(0,0,0,0.65)',
+                      color: '#fff',
+                      fontFamily: fc, fontSize: 10, fontWeight: 700,
+                      letterSpacing: '0.06em',
+                    }}>
+                      1/{bi.media_urls.length}
+                    </div>
+                  )}
                   {/* Bottom meta strip */}
                   <div style={{
                     position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -908,6 +921,160 @@ export default function InspiracionPage() {
           </div>
         </div>
       )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+           MODAL: Viewer (full-size preview for image / carousel / video)
+         ══════════════════════════════════════════════════════════════════════ */}
+      {viewerOpen && viewerItem && (() => {
+        const slides = viewerItem.media_urls.length > 0
+          ? viewerItem.media_urls
+          : viewerItem.thumbnail_url ? [viewerItem.thumbnail_url] : [];
+        const totalSlides = slides.length;
+        const currentUrl  = slides[viewerSlide] ?? viewerItem.thumbnail_url ?? '';
+        const isVideo     = viewerItem.media_type === 'video';
+        const isCarousel  = viewerItem.media_type === 'carousel' && totalSlides > 1;
+
+        return (
+          <div style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 1050,
+            display: 'flex', flexDirection: 'column', padding: 0,
+          }}>
+            {/* ── Top bar ── */}
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '14px 18px', color: '#fff',
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <p style={{ fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
+                  {viewerItem.category}
+                  {isCarousel && <span style={{ marginLeft: 8, opacity: 0.7 }}>· {viewerSlide + 1}/{totalSlides}</span>}
+                  {isVideo && <span style={{ marginLeft: 8, opacity: 0.7 }}>· Vídeo</span>}
+                </p>
+                {viewerItem.tags.length > 0 && (
+                  <p style={{ fontFamily: f, fontSize: 11, color: 'rgba(255,255,255,0.7)', margin: 0 }}>
+                    {viewerItem.tags.slice(0, 5).join(' · ')}
+                  </p>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewerOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#fff', padding: 6 }}
+              >
+                <X size={22} />
+              </button>
+            </div>
+
+            {/* ── Media area ── */}
+            <div style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+              position: 'relative', padding: '0 12px', overflow: 'hidden',
+            }}>
+              {/* Prev/next for carousels */}
+              {isCarousel && viewerSlide > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setViewerSlide(s => Math.max(0, s - 1))}
+                  style={{
+                    position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+                    width: 44, height: 44, borderRadius: 99,
+                    background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', zIndex: 2,
+                  }}
+                >
+                  <ChevronLeft size={24} />
+                </button>
+              )}
+              {isCarousel && viewerSlide < totalSlides - 1 && (
+                <button
+                  type="button"
+                  onClick={() => setViewerSlide(s => Math.min(totalSlides - 1, s + 1))}
+                  style={{
+                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
+                    width: 44, height: 44, borderRadius: 99,
+                    background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', zIndex: 2,
+                  }}
+                >
+                  <ChevronRight size={24} />
+                </button>
+              )}
+
+              {/* Media */}
+              {isVideo ? (
+                <video
+                  src={viewerItem.media_urls[0]}
+                  poster={viewerItem.thumbnail_url ?? undefined}
+                  controls
+                  autoPlay
+                  playsInline
+                  style={{ maxWidth: '100%', maxHeight: '100%', display: 'block', background: '#000' }}
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={currentUrl}
+                  alt={viewerItem.mood ?? viewerItem.category}
+                  style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', display: 'block' }}
+                />
+              )}
+            </div>
+
+            {/* ── Slide dots (only for carousels) ── */}
+            {isCarousel && (
+              <div style={{
+                display: 'flex', justifyContent: 'center', gap: 6, padding: '12px 0',
+              }}>
+                {slides.map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setViewerSlide(i)}
+                    style={{
+                      width: 8, height: 8, borderRadius: 99,
+                      background: i === viewerSlide ? '#fff' : 'rgba(255,255,255,0.35)',
+                      border: 'none', cursor: 'pointer', padding: 0,
+                    }}
+                    aria-label={`Slide ${i + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* ── Bottom actions ── */}
+            <div style={{
+              display: 'flex', gap: 1, padding: '0 18px 18px',
+            }}>
+              <button
+                type="button"
+                onClick={() => setViewerOpen(false)}
+                style={{
+                  flex: 1, padding: 14,
+                  background: 'rgba(255,255,255,0.1)', color: '#fff', border: 'none',
+                  fontFamily: f, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                }}
+              >
+                Cerrar
+              </button>
+              <button
+                type="button"
+                onClick={() => { setViewerOpen(false); openRemix(viewerItem); }}
+                style={{
+                  flex: 2, padding: 14,
+                  background: 'var(--accent)', color: '#fff', border: 'none',
+                  fontFamily: fc, fontSize: 13, fontWeight: 700,
+                  textTransform: 'uppercase', letterSpacing: '0.07em', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                }}
+              >
+                <Sparkles size={16} /> Remezclar
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ══════════════════════════════════════════════════════════════════════
            MODAL: Remezclar desde banco
