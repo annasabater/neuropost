@@ -171,9 +171,12 @@ export async function POST(request: Request) {
     const msg    = update.message;
     if (!msg) return NextResponse.json({ ok: true }, { status: 200 });
 
-    const ownerId = Number(process.env.TELEGRAM_OWNER_ID ?? '0');
-    if (!ownerId || msg.from?.id !== ownerId) {
-      await sendTelegramMessage(msg.chat.id, '⛔ No autorizado.');
+    const allowedIds = (process.env.TELEGRAM_ALLOWED_IDS ?? process.env.TELEGRAM_OWNER_ID ?? '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+    const fromId = msg.from?.id;
+    if (!fromId || !allowedIds.includes(String(fromId))) {
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
@@ -207,6 +210,7 @@ export async function POST(request: Request) {
         payload: { file_id: largest.file_id, caption: msg.caption ?? null },
         telegram_chat_id:    msg.chat.id,
         telegram_message_id: msg.message_id,
+        telegram_user_id:    fromId,
         media_group_id:      msg.media_group_id ?? null,
         status: 'pending',
       });
@@ -229,6 +233,7 @@ export async function POST(request: Request) {
                    duration: msg.video.duration ?? null },
         telegram_chat_id:    msg.chat.id,
         telegram_message_id: msg.message_id,
+        telegram_user_id:    fromId,
         status: 'pending',
       });
       if (error) {

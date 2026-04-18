@@ -85,6 +85,7 @@ async function processSinglePhoto(supabase: DB, job: QueueJob) {
       dominant_colors:  analysis.dominant_colors,
       mood:             analysis.mood,
       source_platform:  media.sourcePlatform,
+      telegram_user_id: job.telegram_user_id,
     })
     .select('id')
     .single();
@@ -166,6 +167,7 @@ async function processCarousel(supabase: DB, jobs: QueueJob[]) {
       dominant_colors:  analysis.dominant_colors,
       mood:             analysis.mood,
       source_platform:  'telegram_direct',
+      telegram_user_id: jobs[0].telegram_user_id,
     })
     .select('id')
     .single();
@@ -241,6 +243,7 @@ async function processVideo(supabase: DB, job: QueueJob) {
       dominant_colors:    analysis.dominant_colors,
       mood:               analysis.mood,
       source_platform:    'telegram_direct',
+      telegram_user_id:   job.telegram_user_id,
     })
     .select('id')
     .single();

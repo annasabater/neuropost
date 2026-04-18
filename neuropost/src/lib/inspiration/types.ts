@@ -60,6 +60,7 @@ export interface QueueJob {
   payload:              Record<string, unknown>;
   telegram_chat_id:     number | null;
   telegram_message_id:  number | null;
+  telegram_user_id:     number | null;
   media_group_id:       string | null;
   status:               IngestionStatus;
   attempts:             number;
