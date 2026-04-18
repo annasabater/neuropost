@@ -17,8 +17,6 @@
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "@neuropost/agents": "*",
     "@parcel/watcher": "^2.5.6",
-    "@parcel/watcher-linux-x64-glibc": "^2.5.6",
-    "@swc/core-linux-x64-gnu": "*",
     "@sentry/nextjs": "^10.47.0",
     "@stripe/stripe-js": "^9.0.1",
     "@supabase/ssr": "^0.10.0",
@@ -59,5 +57,9 @@
     "eslint-config-next": "16.2.2",
     "tailwindcss": "^4.2.2",
     "typescript": "5.9.3"
+  },
+  "optionalDependencies": {
+    "@parcel/watcher-linux-x64-glibc": "^2.5.6",
+    "@swc/core-linux-x64-gnu": "*"
   }
 }
