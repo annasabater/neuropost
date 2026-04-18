@@ -52,5 +52,8 @@
     "eslint-config-next": "16.2.2",
     "tailwindcss": "^4.2.2",
     "typescript": "5.9.3"
+  },
+  "optionalDependencies": {
+    "@parcel/watcher": "^2.5.6"
   }
 }
