@@ -10,6 +10,8 @@ const PUBLIC_API = [
   '/api/cron/',
   '/api/auth/',
   '/auth/callback',
+  '/api/telegram/webhook',      // Telegram POST → validated via x-telegram-bot-api-secret-token
+  '/api/inspiration/ingest',    // Cron → validated via Authorization: Bearer ${CRON_SECRET}
 ];
 
 const PROTECTED = [

@@ -2,39 +2,56 @@
 // NEUROPOST — Register the Telegram webhook against production
 // Usage: npx tsx scripts/setup-telegram-webhook.ts
 //
-// Requires these env vars (in .env.local or the shell):
-//   TELEGRAM_BOT_TOKEN
-//   TELEGRAM_WEBHOOK_SECRET
-//   NEXT_PUBLIC_APP_URL   (e.g. https://neuropost-one.vercel.app)
+// Reads .env.local from the neuropost/ directory (no dotenv dep needed).
 // =============================================================================
 
 /* eslint-disable no-console */
 
-import { config } from 'dotenv';
+import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-// Load .env.local from the project root relative to this script
-config({ path: resolve(process.cwd(), '.env.local') });
+// ─── Load .env.local manually (no dotenv dependency) ────────────────────────
+
+function loadEnvLocal() {
+  const envPath = resolve(process.cwd(), '.env.local');
+  if (!existsSync(envPath)) return;
+  const raw = readFileSync(envPath, 'utf-8');
+  for (const line of raw.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    let val   = trimmed.slice(eq + 1).trim();
+    // Strip matching surrounding quotes
+    if ((val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    if (!(key in process.env)) process.env[key] = val;
+  }
+}
 
 async function main() {
-  const token      = process.env.TELEGRAM_BOT_TOKEN;
-  const secret     = process.env.TELEGRAM_WEBHOOK_SECRET;
-  const appUrl     = process.env.NEXT_PUBLIC_APP_URL;
+  loadEnvLocal();
+
+  const token  = process.env.TELEGRAM_BOT_TOKEN;
+  const secret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
   if (!token)  throw new Error('TELEGRAM_BOT_TOKEN is not set');
   if (!secret) throw new Error('TELEGRAM_WEBHOOK_SECRET is not set');
   if (!appUrl) throw new Error('NEXT_PUBLIC_APP_URL is not set');
 
   const webhookUrl = `${appUrl.replace(/\/$/, '')}/api/telegram/webhook`;
-
   console.log(`→ Registering Telegram webhook: ${webhookUrl}`);
 
   const res = await fetch(`https://api.telegram.org/bot${token}/setWebhook`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      url:            webhookUrl,
-      secret_token:   secret,
+      url:             webhookUrl,
+      secret_token:    secret,
       allowed_updates: ['message'],
       drop_pending_updates: true,
     }),
@@ -42,16 +59,11 @@ async function main() {
 
   const body = await res.json();
   console.log(JSON.stringify(body, null, 2));
+  if (!res.ok || !body.ok) process.exit(1);
 
-  if (!res.ok || !body.ok) {
-    process.exit(1);
-  }
-
-  // Verify
   const info = await fetch(`https://api.telegram.org/bot${token}/getWebhookInfo`);
-  const infoJson = await info.json();
   console.log('\ngetWebhookInfo:');
-  console.log(JSON.stringify(infoJson, null, 2));
+  console.log(JSON.stringify(await info.json(), null, 2));
 }
 
 main().catch(err => {
