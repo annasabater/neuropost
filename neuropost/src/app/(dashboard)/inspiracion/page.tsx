@@ -88,6 +88,45 @@ export default function InspiracionPage() {
   const [bankLoading, setBankLoading] = useState(false);
   const [bankTab,     setBankTab]     = useState<BankTab>('foryou');
 
+  // ── Remix modal state ──────────────────────────────────────────────────────
+  const [remixOpen,      setRemixOpen]      = useState(false);
+  const [remixItem,      setRemixItem]      = useState<BankItem | null>(null);
+  const [remixPrompt,    setRemixPrompt]    = useState('');
+  const [remixFormat,    setRemixFormat]    = useState<'image' | 'carousel' | 'reel'>('image');
+  const [remixRunning,   setRemixRunning]   = useState(false);
+  const [remixResult,    setRemixResult]    = useState<{ imageUrl: string; postId: string | null } | null>(null);
+
+  function openRemix(item: BankItem) {
+    setRemixItem(item);
+    setRemixPrompt('');
+    setRemixFormat('image');
+    setRemixResult(null);
+    setRemixOpen(true);
+  }
+
+  async function submitRemix() {
+    if (!remixItem) return;
+    if (!remixPrompt.trim()) { toast.error('Escribe qué quieres generar'); return; }
+    setRemixRunning(true);
+    try {
+      const res = await fetch(`/api/inspiration/bank/${remixItem.id}/remix`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_prompt: remixPrompt, format: remixFormat }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        toast.error(json.error ?? 'Error al generar');
+        return;
+      }
+      setRemixResult({ imageUrl: json.data.imageUrl, postId: json.data.postId });
+      toast.success('Imagen generada — revísala en Posts');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error');
+    } finally {
+      setRemixRunning(false);
+    }
+  }
+
   // ── Search debounce ref ────────────────────────────────────────────────────
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -571,13 +610,15 @@ export default function InspiracionPage() {
               {bankItems.map(bi => (
                 <div
                   key={bi.id}
+                  className="bank-card"
                   style={{
                     position: 'relative',
                     aspectRatio: '1',
                     background: 'var(--bg-2)',
                     overflow: 'hidden',
-                    cursor: 'default',
+                    cursor: 'pointer',
                   }}
+                  onClick={() => openRemix(bi)}
                 >
                   {bi.thumbnail_url || bi.media_urls[0] ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -587,6 +628,17 @@ export default function InspiracionPage() {
                       style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                     />
                   ) : null}
+                  {/* Hover CTA — "Remezclar" */}
+                  <div style={{
+                    position: 'absolute', top: 6, left: 6,
+                    padding: '3px 9px',
+                    background: 'var(--accent)',
+                    color: '#fff',
+                    fontFamily: fc, fontSize: 10, fontWeight: 700,
+                    textTransform: 'uppercase', letterSpacing: '0.07em',
+                  }}>
+                    Remezclar
+                  </div>
                   {/* Bottom meta strip */}
                   <div style={{
                     position: 'absolute', bottom: 0, left: 0, right: 0,
@@ -849,6 +901,109 @@ export default function InspiracionPage() {
                   <button type="button" onClick={() => { setShowAdd(false); resetAdd(); }} style={{ flex: 1, padding: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: f, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
                   <button type="button" onClick={handleAdd} disabled={addSaving} style={{ flex: 2, padding: 12, border: 'none', background: '#111827', color: '#fff', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', opacity: addSaving ? 0.5 : 1 }}>
                     {addSaving ? 'Enviando…' : 'Enviar solicitud →'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+           MODAL: Remezclar desde banco
+         ══════════════════════════════════════════════════════════════════════ */}
+      {remixOpen && remixItem && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div style={{ background: 'var(--bg)', padding: 32, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 style={{ fontFamily: fc, fontSize: 18, fontWeight: 800, textTransform: 'uppercase', color: 'var(--text-primary)' }}>
+                Remezclar referencia
+              </h2>
+              <button type="button" onClick={() => setRemixOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4 }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Reference preview */}
+            {(remixItem.thumbnail_url || remixItem.media_urls[0]) && (
+              <div style={{ marginBottom: 16 }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={remixItem.thumbnail_url ?? remixItem.media_urls[0]}
+                  alt="" style={{ width: '100%', maxHeight: 220, objectFit: 'cover', display: 'block', border: '1px solid var(--border)' }} />
+                <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>
+                  {remixItem.category} · {remixItem.tags.slice(0, 4).join(' · ')}
+                </p>
+              </div>
+            )}
+
+            {remixResult ? (
+              <>
+                <div style={{ marginBottom: 16 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={remixResult.imageUrl} alt="Generada"
+                    style={{ width: '100%', maxHeight: 360, objectFit: 'cover', display: 'block', border: '1px solid var(--accent)' }} />
+                </div>
+                <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
+                  Imagen generada. {remixResult.postId
+                    ? 'La tienes guardada como post pendiente.'
+                    : 'No se pudo guardar el post — la imagen sigue disponible arriba.'}
+                </p>
+                <div style={{ display: 'flex', gap: 1 }}>
+                  <button type="button" onClick={() => { setRemixResult(null); setRemixPrompt(''); }}
+                    style={{ flex: 1, padding: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: f, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    Generar otra
+                  </button>
+                  <button type="button" onClick={() => setRemixOpen(false)}
+                    style={{ flex: 1, padding: 12, border: 'none', background: 'var(--accent)', color: '#fff', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer' }}>
+                    Cerrar
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Format */}
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 8 }}>
+                    Formato
+                  </label>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {(['image', 'carousel', 'reel'] as const).map(fmt => {
+                      const active = remixFormat === fmt;
+                      return (
+                        <button key={fmt} type="button" onClick={() => setRemixFormat(fmt)}
+                          style={{ padding: '8px 14px', border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`, background: active ? 'var(--accent)' : 'var(--bg)', color: active ? '#fff' : 'var(--text-secondary)', fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                          {FORMAT_LABEL[fmt]}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Prompt */}
+                <div style={{ marginBottom: 20 }}>
+                  <label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 8 }}>
+                    Qué quieres generar
+                  </label>
+                  <textarea
+                    value={remixPrompt}
+                    onChange={e => setRemixPrompt(e.target.value)}
+                    placeholder="Ej: Mismo estilo pero con mi producto en primer plano, tono más cálido…"
+                    rows={4}
+                    style={{ width: '100%', padding: '12px 14px', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: f, fontSize: 13, outline: 'none', boxSizing: 'border-box', resize: 'vertical' }}
+                  />
+                  <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>
+                    La referencia se usa como guía de estilo — tu descripción manda sobre el contenido.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: 1 }}>
+                  <button type="button" onClick={() => setRemixOpen(false)}
+                    style={{ flex: 1, padding: 12, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: f, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                    Cancelar
+                  </button>
+                  <button type="button" onClick={submitRemix} disabled={remixRunning}
+                    style={{ flex: 2, padding: 12, border: 'none', background: '#111827', color: '#fff', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', opacity: remixRunning ? 0.5 : 1 }}>
+                    {remixRunning ? 'Generando…' : 'Generar →'}
                   </button>
                 </div>
               </>
