@@ -72,31 +72,57 @@ export async function runVideoGenerateAgent(
     brandRules.push('No emoji-like icons or cartoonish overlays.');
   }
 
-  // ── Step 1: Claude writes the optimal Kling prompt ───────────────────────
-  const promptMsg = await anthropic.messages.create({
-    model:      'claude-sonnet-4-20250514',
-    max_tokens: 350,
-    messages: [{
-      role:    'user',
-      content: `Write a cinematic video prompt for Kling v2 AI to generate an Instagram Reel.
+  // ── Step 1: Claude writes the Kling prompt using Vision ──────────────────
+  // Vision-first approach: Claude sees the image, describes what's already there,
+  // then applies the user's motion request ON TOP — without reinventing the scene.
+  type ContentBlock =
+    | { type: 'image'; source: { type: 'url'; url: string } }
+    | { type: 'text'; text: string };
 
-User request: "${input.userPrompt}"
-Sector: ${input.sector}
-Visual style: ${input.visualStyle} — ${VIDEO_STYLE_GUIDE[input.visualStyle]}
-Brand context: ${input.brandContext}
-Duration: ${duration} seconds
-Format: 9:16 vertical (Instagram Reel)
-${input.referenceImageUrl ? 'A reference image will be provided — animate and extend it realistically.' : 'Generate motion from the provided image.'}
-${brandRules.length ? `\nBrand rules:\n${brandRules.map(r => `- ${r}`).join('\n')}\n` : ''}
-Requirements for Kling v2:
-- Describe the scene motion, camera movement and lighting precisely
-- Use cinematic language: "slow dolly forward", "rack focus", "golden hour sunlight"
-- Focus on realistic, smooth natural motion
-- No text overlays or logos in the scene
-- Keep it achievable in ${duration} seconds
+  const hasUserRequest = input.userPrompt.trim().length > 0;
+
+  const visionContent: ContentBlock[] = [];
+
+  if (input.referenceImageUrl) {
+    visionContent.push({
+      type: 'image',
+      source: { type: 'url', url: input.referenceImageUrl },
+    });
+  }
+
+  visionContent.push({
+    type: 'text',
+    text: `You are a video prompt engineer for Kling v2 AI (img2video).
+
+${input.referenceImageUrl
+  ? `FIRST: Look at this image carefully. Identify: the main subject, the setting, the mood, colors, and lighting. This image is the FIRST FRAME of the video — preserve it completely.
+
+THEN: Write a ${duration}-second Kling v2 video prompt that:
+1. Keeps the scene EXACTLY as it appears in the image (same subject, same setting, same mood)
+2. Applies ONLY this motion/change the user requested: "${hasUserRequest ? input.userPrompt : 'smooth natural ambient motion, subtle camera drift'}"
+3. Does NOT add new elements, people, or locations that aren't in the image`
+  : `Write a ${duration}-second Kling v2 video prompt based on this request: "${input.userPrompt}"`}
+
+Context:
+- Sector: ${input.sector}
+- Visual style: ${input.visualStyle} — ${VIDEO_STYLE_GUIDE[input.visualStyle]}
+- Brand: ${input.brandContext}
+${brandRules.length ? `- Brand rules:\n${brandRules.map(r => `  • ${r}`).join('\n')}` : ''}
+
+Prompt requirements:
+- Describe camera movement precisely: "slow dolly in", "static shot", "gentle pan left"
+- Describe what moves in the scene and how (hair, steam, leaves, liquid, etc.)
+- Realistic, smooth motion only — no surreal or impossible physics
+- No text overlays or logos
+- Format: 9:16 vertical Reel, ${duration} seconds
 
 Reply ONLY with the video prompt in English. 2-3 sentences max.`,
-    }],
+  });
+
+  const promptMsg = await anthropic.messages.create({
+    model:      'claude-sonnet-4-20250514',
+    max_tokens: 250,
+    messages:   [{ role: 'user', content: visionContent as Anthropic.MessageParam['content'] }],
   });
 
   const enhancedPrompt = promptMsg.content[0].type === 'text'

@@ -98,16 +98,67 @@ export async function runImageGenerateAgent(
   }
 
   const hasRefImage = !!input.referenceImageUrl;
+  const hasUserRequest = input.userPrompt.trim().length > 0;
 
-  // ── Step 1: Determine the prompt ─────────────────────────────────────────────
-  // img2img: send the user's prompt directly to Replicate — no Claude in between.
-  //          The user knows what they want; we don't translate or enhance it.
-  // txt2img: Claude enhances the prompt for better generation quality.
+  // ── Step 1: Build the prompt ──────────────────────────────────────────────────
+  //
+  // img2img mode (user has a reference image):
+  //   - Claude FIRST describes what it sees in the image (Vision)
+  //   - Then applies ONLY the user's adjustment on top — preserving the original
+  //   - Brand kit is used only as guardrails (forbidden words, no emojis)
+  //   - Result: the output stays close to the original, small targeted change
+  //
+  // txt2img mode (generating from scratch):
+  //   - Claude builds a full prompt guided by brand kit + style
+  //   - Brand palette, visual style, sector all matter here
+  //
   let enhancedPrompt: string;
 
   if (hasRefImage) {
-    enhancedPrompt = input.userPrompt;
+    // ── img2img: Vision analysis + minimal adjustment ─────────────────────────
+    // Build multimodal content: image first, then instructions
+    type ContentBlock =
+      | { type: 'image'; source: { type: 'url'; url: string } }
+      | { type: 'text'; text: string };
+
+    const visionContent: ContentBlock[] = [
+      {
+        type: 'image',
+        source: { type: 'url', url: input.referenceImageUrl! },
+      },
+      {
+        type: 'text',
+        text: `You are an image editing prompt engineer for Flux Pro img2img.
+
+FIRST: Describe what you see in this image in detail (subject, composition, colors, lighting, background, mood). This description is the BASE that must be preserved.
+
+THEN: Apply ONLY this specific adjustment the user requested:
+"${hasUserRequest ? input.userPrompt : 'No specific change requested — improve quality and lighting slightly'}"
+
+RULES (critical):
+1. The subject, product, and overall scene must remain IDENTICAL to the original image.
+2. Only modify what the user explicitly asked for. Nothing else.
+3. Do NOT rewrite the entire scene based on brand guidelines — those are guardrails only.
+4. Brand guardrails (apply ONLY as restrictions, not as style overrides):
+${brandRules.length ? brandRules.map(r => `   • ${r}`).join('\n') : '   • None'}
+5. Output: a single Flux Pro img2img prompt. Start directly with the scene description. Max 100 words. English only. No explanations.
+
+Format: "[what already exists in the image], [the adjustment applied], photorealistic, professional photography"`,
+      },
+    ];
+
+    const visionMsg = await anthropic.messages.create({
+      model:      'claude-sonnet-4-20250514',
+      max_tokens: 200,
+      messages:   [{ role: 'user', content: visionContent as Anthropic.MessageParam['content'] }],
+    });
+
+    enhancedPrompt = visionMsg.content[0].type === 'text'
+      ? visionMsg.content[0].text.trim()
+      : input.userPrompt;
+
   } else {
+    // ── txt2img: full brand-guided generation ─────────────────────────────────
     const claudeMsg = await anthropic.messages.create({
       model:      'claude-sonnet-4-20250514',
       max_tokens: 300,
@@ -150,7 +201,9 @@ RULES:
       r = await editImage({
         imageUrl:  input.referenceImageUrl!,
         prompt:    enhancedPrompt,
-        strength:  input.editStrength ?? 0.65,
+        // Lower default strength now that Vision builds a precise prompt —
+        // preserves more of the original image, applies only the requested change.
+        strength:  input.editStrength ?? 0.45,
         quality:   input.quality ?? 'pro',
       });
     } else {
