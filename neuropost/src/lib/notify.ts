@@ -63,6 +63,18 @@ interface NotifyOpts {
   skipEmail?: boolean;
 }
 
+// Types worth durably retrying if email dispatch fails transiently.
+// Only types that have a TYPE_TO_EMAIL mapping — transactional ones
+// (plan_activated, team_invite) go through a separate always-on pipeline.
+const CRITICAL_TYPES = new Set<NotifType>([
+  'approval_needed',
+  'published',
+  'failed',
+  'recreation_ready',
+  'payment_failed',
+  'ticket_reply',
+]);
+
 export async function notify(
   brandId:  string,
   type:     NotifType,
@@ -72,7 +84,7 @@ export async function notify(
 ): Promise<void> {
   const db = createAdminClient() as DB;
 
-  // 1. Always insert in-app notification
+  // 1. Always insert in-app notification (UI truth, fast)
   await db.from('notifications').insert({
     brand_id: brandId,
     type,
@@ -80,6 +92,19 @@ export async function notify(
     read:     false,
     metadata,
   });
+
+  // 2. Durable outbox for critical types — /api/cron/flush-notifications
+  //    drives email dispatch with retry. We delegate instead of sending
+  //    inline so transient email failures don't silently drop.
+  if (CRITICAL_TYPES.has(type) && !opts.skipEmail) {
+    await db.from('notifications_outbox').insert({
+      brand_id: brandId,
+      type,
+      payload:  { message, metadata },
+      status:   'pending',
+    }).then(() => null);
+    return;
+  }
 
   if (opts.skipEmail) return;
 
