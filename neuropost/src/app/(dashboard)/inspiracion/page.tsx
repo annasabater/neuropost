@@ -1152,10 +1152,10 @@ export default function InspiracionPage() {
             </div>
 
             {/* Reference preview */}
-            {(remixItem.thumbnail_url || remixItem.media_urls[0]) && (
+            {(remixItem.thumbnail_url || remixItem.media_urls?.[0]) && (
               <div style={{ marginBottom: 16 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={remixItem.thumbnail_url ?? remixItem.media_urls[0]}
+                <img src={remixItem.thumbnail_url ?? remixItem.media_urls?.[0]}
                   alt="" style={{ width: '100%', maxHeight: 220, objectFit: 'cover', display: 'block', border: '1px solid var(--border)' }} />
                 <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>
                   {remixItem.category} · {remixItem.tags.slice(0, 4).join(' · ')}
