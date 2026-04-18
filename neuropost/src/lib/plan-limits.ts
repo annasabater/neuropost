@@ -176,6 +176,63 @@ export const IMAGE_QUALITY_TIME: Record<ImageQuality, string> = {
   pro:      '~30 seg',
 };
 
+// ─── Recreation regeneration limits ───────────────────────────────────────────
+//
+// Per-recreation caps on how many times a client can re-run Replicate for the
+// same recreation_request. Independent from the weekly post/video/story counters.
+// Mapping per plan — easy to extend when new tiers (or an Agency bump) arrive.
+
+export const REGENERATION_LIMITS: Record<SubscriptionPlan, number> = {
+  starter: 3,
+  pro:     6,
+  total:   6,
+  agency:  6,
+};
+
+export interface RegenerationLimitCheck extends PlanLimitResult {
+  used?:  number;
+  limit?: number;
+}
+
+/** Check if a brand can regenerate this specific recreation again. */
+export async function checkRegenerationLimit(
+  brandId: string,
+  recreationId: string,
+): Promise<RegenerationLimitCheck> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createServerClient() as any;
+
+  const { data: brand } = await supabase
+    .from('brands').select('plan').eq('id', brandId).single();
+  const plan  = (brand?.plan ?? 'starter') as SubscriptionPlan;
+  const limit = REGENERATION_LIMITS[plan];
+
+  const { data: rec } = await supabase
+    .from('recreation_requests').select('regeneration_count').eq('id', recreationId).single();
+  const used = rec?.regeneration_count ?? 0;
+
+  if (used >= limit) {
+    return {
+      allowed:    false,
+      reason:     `Has alcanzado el límite de regeneraciones para tu plan (${used}/${limit}). Contacta con soporte o mejora tu plan.`,
+      upgradeUrl: `${appUrl()}/settings/plan`,
+      used,
+      limit,
+    };
+  }
+  return { allowed: true, used, limit };
+}
+
+/** Increment regeneration_count atomically-ish on a recreation_request. */
+export async function incrementRegenerationCount(recreationId: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createServerClient() as any;
+  const { data } = await supabase
+    .from('recreation_requests').select('regeneration_count').eq('id', recreationId).single();
+  const next = (data?.regeneration_count ?? 0) + 1;
+  await supabase.from('recreation_requests').update({ regeneration_count: next }).eq('id', recreationId);
+}
+
 /** Increment story counter after successful story publish. */
 export async function incrementStoryCounter(brandId: string): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
