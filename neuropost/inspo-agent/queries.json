@@ -1,0 +1,213 @@
+{
+  "negocios": [
+    {
+      "tipo": "gym",
+      "slug": "gym",
+      "queries": {
+        "training": [
+          "crossfit gym aesthetic photography",
+          "modern gym interior design",
+          "weight training motivation poster",
+          "functional fitness workout",
+          "boutique gym branding"
+        ],
+        "nutrition": [
+          "healthy meal prep aesthetic",
+          "protein bowl photography",
+          "fitness nutrition flatlay",
+          "gym recipe inspiration"
+        ],
+        "lifestyle": [
+          "athlete lifestyle photography",
+          "gym wear aesthetic",
+          "fitness motivation quote design",
+          "morning workout routine"
+        ]
+      }
+    },
+    {
+      "tipo": "restaurant",
+      "slug": "restaurant",
+      "queries": {
+        "food": [
+          "restaurant food photography mediterranean",
+          "tapas plating aesthetic",
+          "modern spanish cuisine",
+          "fine dining flatlay"
+        ],
+        "interior": [
+          "restaurant interior design warm",
+          "cozy bistro decor",
+          "minimalist restaurant aesthetic"
+        ],
+        "branding": [
+          "restaurant menu design modern",
+          "food branding identity",
+          "restaurant social media post"
+        ]
+      }
+    },
+    {
+      "tipo": "aesthetic_clinic",
+      "slug": "aesthetic_clinic",
+      "queries": {
+        "treatments": [
+          "aesthetic clinic photography minimal",
+          "skincare treatment aesthetic",
+          "facial treatment branding",
+          "luxury beauty clinic"
+        ],
+        "interior": [
+          "aesthetic clinic interior modern",
+          "spa treatment room design",
+          "minimalist beauty clinic"
+        ],
+        "branding": [
+          "skincare brand aesthetic",
+          "beauty clinic social media",
+          "aesthetic medicine branding"
+        ]
+      }
+    },
+    {
+      "tipo": "hair_salon",
+      "slug": "hair_salon",
+      "queries": {
+        "hairstyles": [
+          "hair salon aesthetic photography",
+          "modern haircut inspiration",
+          "balayage hair color",
+          "minimalist hair styling"
+        ],
+        "interior": [
+          "hair salon interior modern",
+          "boutique salon design",
+          "minimalist hairdresser space"
+        ],
+        "branding": [
+          "hair salon branding aesthetic",
+          "hair stylist instagram post"
+        ]
+      }
+    },
+    {
+      "tipo": "retail_store",
+      "slug": "retail_store",
+      "queries": {
+        "products": [
+          "retail product photography aesthetic",
+          "boutique store flatlay",
+          "fashion product styling"
+        ],
+        "interior": [
+          "boutique store interior",
+          "concept store design",
+          "minimalist retail space"
+        ],
+        "branding": [
+          "boutique branding identity",
+          "retail social media post"
+        ]
+      }
+    },
+    {
+      "tipo": "coffee_shop",
+      "slug": "coffee_shop",
+      "queries": {
+        "drinks": [
+          "specialty coffee photography",
+          "latte art aesthetic",
+          "cold brew styling"
+        ],
+        "food": [
+          "coffee shop pastry aesthetic",
+          "brunch flatlay",
+          "cafe breakfast styling"
+        ],
+        "interior": [
+          "specialty coffee shop interior",
+          "minimalist cafe design",
+          "scandinavian coffee shop"
+        ]
+      }
+    },
+    {
+      "tipo": "yoga_studio",
+      "slug": "yoga_studio",
+      "queries": {
+        "practice": [
+          "yoga studio aesthetic photography",
+          "yoga pose minimalist",
+          "meditation aesthetic"
+        ],
+        "interior": [
+          "yoga studio interior design",
+          "wellness space minimalist",
+          "zen studio design"
+        ],
+        "branding": [
+          "yoga brand aesthetic",
+          "wellness instagram post"
+        ]
+      }
+    },
+    {
+      "tipo": "physiotherapy_center",
+      "slug": "physiotherapy_center",
+      "queries": {
+        "treatments": [
+          "physiotherapy clinic aesthetic",
+          "rehabilitation exercise photography",
+          "sports therapy"
+        ],
+        "interior": [
+          "physiotherapy clinic interior",
+          "modern medical clinic design"
+        ],
+        "branding": [
+          "physiotherapy branding",
+          "health clinic social media"
+        ]
+      }
+    },
+    {
+      "tipo": "academy",
+      "slug": "academy",
+      "queries": {
+        "education": [
+          "academy classroom aesthetic",
+          "study aesthetic photography",
+          "learning environment design"
+        ],
+        "interior": [
+          "modern classroom design",
+          "academy interior minimalist"
+        ],
+        "branding": [
+          "education brand aesthetic",
+          "academy instagram post"
+        ]
+      }
+    },
+    {
+      "tipo": "bar",
+      "slug": "bar",
+      "queries": {
+        "drinks": [
+          "cocktail photography aesthetic",
+          "craft cocktail styling",
+          "bar drinks minimalist"
+        ],
+        "interior": [
+          "cocktail bar interior design",
+          "speakeasy aesthetic",
+          "modern bar atmosphere"
+        ],
+        "branding": [
+          "bar branding identity",
+          "cocktail menu design"
+        ]
+      }
+    }
+  ]
+}
