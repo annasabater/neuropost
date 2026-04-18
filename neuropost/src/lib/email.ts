@@ -128,8 +128,14 @@ async function sendGated(params: {
     return false;
   }
 
+  // Auto-fill brandName if the template's props expose one and the caller
+  // didn't set it — we already resolved the brand in canSendEmail.
+  const propsWithBrand = (gate.brandName && typeof params.props === 'object' && params.props)
+    ? { ...params.props, brandName: (params.props as { brandName?: string }).brandName || gate.brandName }
+    : params.props;
+
   const factory = getTemplate(params.template, gate.language);
-  const { subject, html: body } = factory(params.props);
+  const { subject, html: body } = factory(propsWithBrand);
   const html = await layoutWithUnsubscribe(body, params.brandId, params.type);
 
   await sendRaw(recipient, subject, html);
@@ -306,6 +312,37 @@ export async function sendNotificationEmail(opts: {
     brandName: opts.brandName, type: opts.type, message: opts.message,
   });
   await sendRaw(opts.to, subject, layout(body));
+}
+
+// ─── 11. Reactivation (gated: reactivation) ────────────────────────────────
+
+/**
+ * Sends a reactivation email for a given segment (7, 14 or 30 days of
+ * inactivity). Returns true when sent, false when blocked (opt-out,
+ * anti-spam window, no recipient). Marks the brand's
+ * `last_reactivation_email_at` on success.
+ */
+export async function sendReactivationEmail(params: {
+  brandId: string;
+  segment: 7 | 14 | 30;
+  isPaid:  boolean;
+  /** Override recipient (rare — usually resolved from the brand). */
+  to?:     string;
+}): Promise<boolean> {
+  return sendGated({
+    brandId:  params.brandId,
+    type:     'reactivation',
+    template: 'reactivation',
+    props: {
+      // brandName resolved inside sendGated's canSendEmail → gate.brandName
+      // but the template already ignores brandName when missing; we pass
+      // a safe default.
+      brandName: '', // filled below via a small trick
+      segment:   params.segment,
+      isPaid:    params.isPaid,
+    },
+    to: params.to,
+  });
 }
 
 // ─── Re-exports ────────────────────────────────────────────────────────────

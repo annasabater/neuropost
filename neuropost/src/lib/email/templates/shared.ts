@@ -78,6 +78,14 @@ export interface GenericNotificationProps {
   message:   string;
 }
 
+export interface ReactivationProps {
+  brandName: string;
+  /** 7, 14 or 30. Other values fall back to the 7-day copy. */
+  segment:   7 | 14 | 30;
+  /** True when the brand is on a paid plan (used for the 30d variant). */
+  isPaid:    boolean;
+}
+
 // ─── Shared template "registry" shape ──────────────────────────────────────
 
 export interface EmailTemplates {
@@ -91,4 +99,5 @@ export interface EmailTemplates {
   urgentTicket:            (p: UrgentTicketProps)         => TemplateOutput;
   subscriptionCancelled:   (p: SubscriptionCancelledProps) => TemplateOutput;
   genericNotification:     (p: GenericNotificationProps)  => TemplateOutput;
+  reactivation:            (p: ReactivationProps)         => TemplateOutput;
 }

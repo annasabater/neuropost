@@ -174,6 +174,82 @@ export const templates: EmailTemplates = {
     `,
   }),
 
+  reactivation: ({ brandName, segment, isPaid }): TemplateOutput => {
+    const appUrl = APP_URL();
+
+    if (segment === 7) {
+      return {
+        subject: 'We miss you at NeuroPost',
+        preview: 'It has been a week since we last saw you in the dashboard.',
+        html: `
+          <h1 style="${STYLE.h1}">Hi again, ${brandName} 👋</h1>
+          <p style="${STYLE.p}">
+            It has been 7 days since your last visit. Your brand is still here,
+            your drafts are waiting, and the AI agents are ready to keep
+            creating content whenever you are.
+          </p>
+          <p style="${STYLE.p}">
+            A quick photo, a reel, a carousel? You can ship something in two minutes.
+          </p>
+          <a href="${appUrl}/dashboard" style="${STYLE.btn}">Back to dashboard →</a>
+        `,
+      };
+    }
+
+    if (segment === 14) {
+      return {
+        subject: 'Everything OK over there?',
+        preview: 'Two weeks without seeing you — tell us what you need.',
+        html: `
+          <h1 style="${STYLE.h1}">Everything OK over there?</h1>
+          <p style="${STYLE.p}">
+            It has been two weeks since you last logged in to NeuroPost and we
+            want to make sure nothing is blocking you.
+          </p>
+          <p style="${STYLE.p}">
+            If a feature is missing, something is broken, or you just need a
+            hand — tell us. We read every message.
+          </p>
+          <a href="${appUrl}/dashboard" style="${STYLE.btn}">Go to dashboard</a>
+          <p style="margin-top:14px">
+            <a href="${appUrl}/soporte" style="color:#ff6b35;text-decoration:underline;font-size:14px">
+              …or open a ticket and we'll get back to you →
+            </a>
+          </p>
+        `,
+      };
+    }
+
+    // 30 days
+    const paidLine = isPaid
+      ? `<p style="${STYLE.p}">Your plan is still active and renews every month. If it's no longer worth it for you, you can also cancel it right now, no hassle — we'd rather be honest than let you pay for something you aren't using.</p>`
+      : '';
+    return {
+      subject: 'Your NeuroPost account is waiting for you',
+      preview: 'One month without seeing you. Coming back?',
+      html: `
+        <h1 style="${STYLE.h1}">Your account is waiting</h1>
+        <p style="${STYLE.p}">
+          It has been a month since your last visit. Your brand, library and
+          connections are all intact — you only need to come back when it suits you.
+        </p>
+        <p style="${STYLE.p}">
+          Here's a deal: log in for 10 minutes, queue a post for this week,
+          and forget about it. We'll do the rest.
+        </p>
+        ${paidLine}
+        <a href="${appUrl}/dashboard" style="${STYLE.btn}">Back to NeuroPost →</a>
+        ${isPaid
+          ? `<p style="margin-top:14px">
+              <a href="${appUrl}/settings/plan" style="color:#888;text-decoration:underline;font-size:13px">
+                Cancel subscription
+              </a>
+            </p>`
+          : ''}
+      `,
+    };
+  },
+
   genericNotification: ({ brandName, type, message }): TemplateOutput => {
     const title   = NOTIF_TITLES[type] ?? 'NeuroPost notification';
     const cta     = NOTIF_CTA[type];
