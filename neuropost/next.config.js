@@ -1,5 +1,5 @@
-// @ts-check
-import createNextIntlPlugin from 'next-intl/plugin';
+const { randomUUID } = require('node:crypto');
+const createNextIntlPlugin = require('next-intl/plugin').default;
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
@@ -16,10 +16,10 @@ const CSP = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  generateBuildId: async () => 'build-' + randomUUID().replace(/-/g, '').slice(0, 12),
+
   transpilePackages: ['@neuropost/agents'],
 
-  // ioredis and bullmq use native Node.js modules (net, tls, crypto).
-  // Exclude them from Next.js bundling so they run as-is in the Node runtime.
   serverExternalPackages: ['ioredis', 'bullmq'],
 
   images: {
@@ -50,4 +50,4 @@ const nextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+module.exports = withNextIntl(nextConfig);
