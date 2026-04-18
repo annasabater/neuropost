@@ -36,6 +36,8 @@ const HELP_TEXT = `🎨 *NeuroPost Inspiration Bot*
 
 Envíame fotos carruseles o vídeos y los añadiré al banco\\.
 
+*Para Pinterest:* pégame el link del pin directamente aquí y yo lo bajo\\.
+
 *Para reels de Instagram o TikTok:*
 1\\. Abre [snapinsta\\.app](https://snapinsta.app) \\(Instagram\\) o [snaptik\\.app](https://snaptik.app) \\(TikTok\\) en el navegador
 2\\. Pega el link y descarga el MP4 a tu galería
@@ -56,8 +58,10 @@ const URL_PATTERNS: { re: RegExp; name: string; helper: string }[] = [
     helper: 'descárgalo en snapinsta.app y envíame aquí el MP4' },
   { re: /tiktok\.com\/.*\/video\/|vm\.tiktok|vt\.tiktok/i, name: 'TikTok',
     helper: 'descárgalo en snaptik.app y envíame aquí el MP4' },
-  { re: /pinterest\.com\/pin\/|pin\.it\//i, name: 'Pinterest',
-    helper: 'abre el pin, toca el botón compartir → copiar imagen, y envíame la imagen aquí' },
+  // Pinterest is auto-ingested via the processor — this helper is only shown
+  // if the queue insert fails for some reason.
+  { re: /pinterest\.com\/pin\/|pin\.it\/|pinterest\.[a-z]{2,3}\/pin\//i, name: 'Pinterest',
+    helper: 'intenta de nuevo en unos segundos o mándame la imagen directamente' },
   { re: /youtube\.com\/|youtu\.be\//i,      name: 'YouTube',
     helper: 'YouTube no está soportado — usa Instagram, TikTok o Pinterest' },
 ];
@@ -251,6 +255,29 @@ export async function POST(request: Request) {
       await sendTelegramMessage(msg.chat.id,
         '📎 Los documentos aún no se soportan. Envía la foto o vídeo directamente.',
         { reply_to_message_id: msg.message_id });
+      return NextResponse.json({ ok: true }, { status: 200 });
+    }
+
+    // ── Pinterest URLs — auto-ingested ──
+    const pinMatch = text.match(/https?:\/\/(?:[a-z]{2,3}\.)?(?:www\.)?(?:pinterest\.[a-z]{2,3}\/pin\/[^\s]+|pin\.it\/[^\s]+)/i);
+    if (pinMatch) {
+      const pinUrl = pinMatch[0];
+      const { error } = await supabase.from('inspiration_queue').insert({
+        source:  'pinterest_url',
+        payload: { url: pinUrl, caption: text },
+        telegram_chat_id:    msg.chat.id,
+        telegram_message_id: msg.message_id,
+        telegram_user_id:    fromId,
+        status: 'pending',
+      });
+      if (error) {
+        await sendTelegramMessage(msg.chat.id,
+          `❌ Error al encolar Pinterest: ${error.message.slice(0, 150)}`,
+          { reply_to_message_id: msg.message_id });
+      } else {
+        await sendTelegramMessage(msg.chat.id, '⏳ Bajando de Pinterest…',
+          { reply_to_message_id: msg.message_id });
+      }
       return NextResponse.json({ ok: true }, { status: 200 });
     }
 
