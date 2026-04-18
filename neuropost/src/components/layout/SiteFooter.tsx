@@ -258,8 +258,7 @@ export function SiteFooter() {
           <div>
             <Link href="/" style={S.logo}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="NeuroPost" style={{ height: 32, width: 'auto', display: 'block' }} />
-              <span>Neuro<span style={S.logoAccent}>Post</span></span>
+              <img src="/logo.png" alt="NeuroPost" style={{ height: 40, width: 'auto', display: 'block' }} />
             </Link>
             <p style={S.brandDesc}>
               El equipo que gestiona las redes de tu negocio local. Hecho con amor en España.
