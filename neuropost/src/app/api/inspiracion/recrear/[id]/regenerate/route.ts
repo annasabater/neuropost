@@ -39,7 +39,7 @@ export async function POST(
       return NextResponse.json({ error: 'Recreation not found' }, { status: 404 });
     }
 
-    // Enforce per-plan regeneration quota
+    // Enforce per-plan regeneration quota (check only — do NOT increment yet)
     const quota = await checkRegenerationLimit(brand.id, id);
     if (!quota.allowed) {
       return NextResponse.json(
@@ -47,9 +47,9 @@ export async function POST(
         { status: 429 },
       );
     }
-    await incrementRegenerationCount(id);
 
-    // Reset to preparacion
+    // Reset to preparacion before calling Replicate. If Replicate rejects we
+    // roll back to 'pending' below — the row is in a safe transient state.
     await db
       .from('recreation_requests')
       .update({
@@ -78,25 +78,37 @@ export async function POST(
       : 'http://localhost:3000');
     const webhookUrl = `${baseUrl}/api/webhooks/replicate`;
 
-    startReplicatePrediction({
-      prompt: replicatePrompt,
-      imageUrl: ref?.thumbnail_url ?? undefined,
-      webhookUrl,
-    }).then(async (prediction) => {
+    // Await Replicate's initial POST (not the full generation — that completes
+    // via webhook). This typically resolves in <2s. Only if Replicate accepts
+    // do we consume a regeneration slot.
+    let prediction;
+    try {
+      prediction = await startReplicatePrediction({
+        prompt:   replicatePrompt,
+        imageUrl: ref?.thumbnail_url ?? undefined,
+        webhookUrl,
+      });
+    } catch (err) {
+      console.error(`[regenerate] Replicate prediction failed for recreation ${id}:`, err);
       await db
         .from('recreation_requests')
-        .update({
-          replicate_prediction_id: prediction.id,
-          replicate_status: prediction.status,
-        })
-        .eq('id', id);
-    }).catch((err: unknown) => {
-      console.error(`[regenerate] Replicate prediction failed for recreation ${id}:`, err);
-      db.from('recreation_requests')
         .update({ status: 'pending', replicate_status: 'failed' })
-        .eq('id', id)
-        .then(() => null);
-    });
+        .eq('id', id);
+      return NextResponse.json(
+        { error: 'No se pudo iniciar la generación. Inténtalo de nuevo en unos segundos.' },
+        { status: 502 },
+      );
+    }
+
+    // Replicate accepted the prediction → consume the slot and persist its id.
+    await incrementRegenerationCount(id);
+    await db
+      .from('recreation_requests')
+      .update({
+        replicate_prediction_id: prediction.id,
+        replicate_status:        prediction.status,
+      })
+      .eq('id', id);
 
     return NextResponse.json({ ok: true, status: 'preparacion' });
   } catch (err) {

@@ -111,7 +111,11 @@ export async function POST(request: Request) {
       version:      nextVersion,
     };
 
-    const { error: updateError } = await db
+    // CAS update — only succeeds if status is still 'preparacion'. Prevents
+    // a race with /api/cron/reconcile-predictions (which may have already
+    // moved the row to 'revisar' after querying Replicate directly). The
+    // loser of the race gets affected=0 and we skip the notification.
+    const { data: affected, error: updateError } = await db
       .from('recreation_requests')
       .update({
         status:             'revisar',
@@ -119,11 +123,18 @@ export async function POST(request: Request) {
         generated_images:   images,
         generation_history: [...history, newEntry],
       })
-      .eq('id', recreation.id);
+      .eq('id', recreation.id)
+      .eq('status', 'preparacion')
+      .select('id');
 
     if (updateError) {
       console.error(`[replicate-webhook] Failed to update recreation ${recreation.id}:`, updateError);
       return NextResponse.json({ ok: false, error: updateError.message }, { status: 500 });
+    }
+
+    if (!affected || affected.length === 0) {
+      console.log(`[replicate-webhook] race lost for ${recreation.id} — already moved off preparacion`);
+      return NextResponse.json({ ok: true, message: 'Already processed by reconcile' });
     }
 
     console.log(`[replicate-webhook] ✅ Recreation ${recreation.id} → revisar (v${nextVersion}, ${images.length} images)`);

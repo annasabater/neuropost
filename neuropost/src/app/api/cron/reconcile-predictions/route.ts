@@ -98,7 +98,10 @@ export async function GET(request: Request) {
 
       const history = Array.isArray(row.generation_history) ? row.generation_history : [];
       const nextVersion = history.length + 1;
-      await db.from('recreation_requests').update({
+      // CAS update — same invariant as the webhook: only write if the row
+      // is still 'preparacion'. Prevents a double-notification if the
+      // webhook lands between our Replicate query and our UPDATE.
+      const { data: affected } = await db.from('recreation_requests').update({
         status:             'revisar',
         replicate_status:   'succeeded',
         generated_images:   valid,
@@ -106,7 +109,16 @@ export async function GET(request: Request) {
           ...history,
           { prediction_id: predictionId, images: valid, generated_at: new Date().toISOString(), version: nextVersion },
         ],
-      }).eq('id', row.id);
+      })
+        .eq('id', row.id)
+        .eq('status', 'preparacion')
+        .select('id');
+
+      if (!affected || affected.length === 0) {
+        results.skipped += 1;
+        console.log(`[reconcile] race lost for ${row.id} — webhook already processed it`);
+        continue;
+      }
 
       await db.from('notifications').insert({
         brand_id: row.brand_id,
