@@ -250,6 +250,109 @@ export const templates: EmailTemplates = {
     };
   },
 
+  onboardingIncomplete: ({ brandName, missing }): TemplateOutput => {
+    const appUrl = APP_URL();
+    const MAP: Record<string, string> = {
+      sector: 'pick your business sector',
+      voice:  'define your brand voice',
+      colors: 'add your brand colors',
+      logo:   'upload your logo',
+    };
+    const items = missing.map(m => `<li>${MAP[m] ?? m}</li>`).join('');
+    return {
+      subject: 'Your NeuroPost is almost ready',
+      preview: 'A couple of things are missing to get the agents working well.',
+      html: `
+        <h1 style="${STYLE.h1}">Your NeuroPost is almost ready, ${brandName}</h1>
+        <p style="${STYLE.p}">
+          We noticed you left the setup halfway through. To let the AI agents
+          generate content that sounds like you, we still need you to:
+        </p>
+        <ul style="color:#555;line-height:2;padding-left:20px">${items}</ul>
+        <p style="${STYLE.p}">
+          It takes 3 minutes and you don't have to touch it again.
+        </p>
+        <a href="${appUrl}/onboarding" style="${STYLE.btn}">Finish setup →</a>
+      `,
+    };
+  },
+
+  noSocialConnected: ({ brandName, daysSinceSignup }): TemplateOutput => {
+    const appUrl = APP_URL();
+    const urgent = daysSinceSignup >= 10;
+    return {
+      subject: urgent
+        ? 'Connect your socials to start publishing'
+        : 'Connect Instagram, Facebook or TikTok',
+      preview: "With no socials connected we can't publish on your behalf.",
+      html: `
+        <h1 style="${STYLE.h1}">${urgent ? 'Are we stuck?' : `Connect your socials, ${brandName}`}</h1>
+        <p style="${STYLE.p}">
+          ${urgent
+            ? "Your account has been open for 10 days without any connected social account. Until you connect one, we can't schedule or publish content for you."
+            : "To publish what the AI generates we need access to your accounts. It takes 30 seconds — you only approve the permissions Instagram/Facebook/TikTok ask for."}
+        </p>
+        <p style="${STYLE.p}">
+          We never store any password — it all goes through each platform's official login.
+        </p>
+        <a href="${appUrl}/settings/connections" style="${STYLE.btn}">Connect socials →</a>
+      `,
+    };
+  },
+
+  noContent: ({ brandName, libraryCount }): TemplateOutput => {
+    const appUrl = APP_URL();
+    return {
+      subject: libraryCount === 0
+        ? 'Your library is empty — let\'s start'
+        : 'Upload a few more photos to your library',
+      preview: 'The AI needs your own material to create posts in your style.',
+      html: `
+        <h1 style="${STYLE.h1}">The AI needs your own material</h1>
+        <p style="${STYLE.p}">
+          ${libraryCount === 0
+            ? "Your library is empty. The sooner you upload photos and videos of your business, the sooner the AI can generate posts that sound like you."
+            : `You only have ${libraryCount} item${libraryCount === 1 ? '' : 's'} in your library. With at least 5–10 photos we'll have much more room to create interesting variations.`}
+        </p>
+        <p style="${STYLE.p}">
+          Tip: upload real photos of the venue, product, team and day-to-day life.
+          The more authentic, the better the AI performs.
+        </p>
+        <a href="${appUrl}/biblioteca" style="${STYLE.btn}">Upload content →</a>
+      `,
+    };
+  },
+
+  planUnused: ({ brandName, plan, daysIdle }): TemplateOutput => {
+    const appUrl = APP_URL();
+    return {
+      subject: 'Your plan is waiting for you',
+      preview: `${brandName} · unused ${plan} plan`,
+      html: `
+        <h1 style="${STYLE.h1}">Your ${plan} plan is sitting idle</h1>
+        <p style="${STYLE.p}">
+          You've been paying for your plan for ${daysIdle} days without
+          publishing anything new. We don't want you to miss out — either
+          let's make the most of it or adjust if it's not a fit.
+        </p>
+        <p style="${STYLE.p}">
+          Your options:
+        </p>
+        <ul style="color:#555;line-height:2;padding-left:20px">
+          <li>Back to the dashboard and queue 2–3 quick posts</li>
+          <li>Open a ticket if something is blocking you</li>
+          <li>Downgrade to a smaller plan if you're paying too much</li>
+        </ul>
+        <a href="${appUrl}/dashboard" style="${STYLE.btn}">Go to dashboard →</a>
+        <p style="margin-top:14px">
+          <a href="${appUrl}/settings/plan" style="color:#888;text-decoration:underline;font-size:13px">
+            Change / cancel plan
+          </a>
+        </p>
+      `,
+    };
+  },
+
   genericNotification: ({ brandName, type, message }): TemplateOutput => {
     const title   = NOTIF_TITLES[type] ?? 'NeuroPost notification';
     const cta     = NOTIF_CTA[type];

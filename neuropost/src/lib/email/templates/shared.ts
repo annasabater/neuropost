@@ -86,6 +86,31 @@ export interface ReactivationProps {
   isPaid:    boolean;
 }
 
+export interface OnboardingIncompleteProps {
+  brandName: string;
+  /** Exact items still missing so the copy can be specific. */
+  missing:   Array<'sector' | 'voice' | 'colors' | 'logo'>;
+}
+
+export interface NoSocialConnectedProps {
+  brandName: string;
+  /** 3 or 10 — bumps the tone a notch. */
+  daysSinceSignup: number;
+}
+
+export interface NoContentProps {
+  brandName: string;
+  /** How many items the library actually has (0..4). */
+  libraryCount: number;
+}
+
+export interface PlanUnusedProps {
+  brandName: string;
+  plan:      string;
+  /** Days since the last published post (or since the plan started). */
+  daysIdle:  number;
+}
+
 // ─── Shared template "registry" shape ──────────────────────────────────────
 
 export interface EmailTemplates {
@@ -98,6 +123,10 @@ export interface EmailTemplates {
   teamInvite:              (p: TeamInviteProps)           => TemplateOutput;
   urgentTicket:            (p: UrgentTicketProps)         => TemplateOutput;
   subscriptionCancelled:   (p: SubscriptionCancelledProps) => TemplateOutput;
-  genericNotification:     (p: GenericNotificationProps)  => TemplateOutput;
-  reactivation:            (p: ReactivationProps)         => TemplateOutput;
+  genericNotification:     (p: GenericNotificationProps)    => TemplateOutput;
+  reactivation:            (p: ReactivationProps)           => TemplateOutput;
+  onboardingIncomplete:    (p: OnboardingIncompleteProps)   => TemplateOutput;
+  noSocialConnected:       (p: NoSocialConnectedProps)      => TemplateOutput;
+  noContent:               (p: NoContentProps)              => TemplateOutput;
+  planUnused:              (p: PlanUnusedProps)             => TemplateOutput;
 }

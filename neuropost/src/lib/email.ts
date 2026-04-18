@@ -345,6 +345,65 @@ export async function sendReactivationEmail(params: {
   });
 }
 
+// ─── 12. Reminder family (gated with 30-day anti-spam window) ──────────────
+
+export async function sendOnboardingIncompleteEmail(params: {
+  brandId: string;
+  missing: Array<'sector' | 'voice' | 'colors' | 'logo'>;
+  to?:     string;
+}): Promise<boolean> {
+  return sendGated({
+    brandId:  params.brandId,
+    type:     'onboarding_incomplete',
+    template: 'onboardingIncomplete',
+    props:    { brandName: '', missing: params.missing },
+    to:       params.to,
+  });
+}
+
+export async function sendNoSocialConnectedEmail(params: {
+  brandId:         string;
+  daysSinceSignup: number;
+  to?:             string;
+}): Promise<boolean> {
+  return sendGated({
+    brandId:  params.brandId,
+    type:     'no_social_connected',
+    template: 'noSocialConnected',
+    props:    { brandName: '', daysSinceSignup: params.daysSinceSignup },
+    to:       params.to,
+  });
+}
+
+export async function sendNoContentEmail(params: {
+  brandId:      string;
+  libraryCount: number;
+  to?:          string;
+}): Promise<boolean> {
+  return sendGated({
+    brandId:  params.brandId,
+    type:     'no_content',
+    template: 'noContent',
+    props:    { brandName: '', libraryCount: params.libraryCount },
+    to:       params.to,
+  });
+}
+
+export async function sendPlanUnusedEmail(params: {
+  brandId:  string;
+  plan:     string;
+  daysIdle: number;
+  to?:      string;
+}): Promise<boolean> {
+  return sendGated({
+    brandId:  params.brandId,
+    type:     'plan_unused',
+    template: 'planUnused',
+    props:    { brandName: '', plan: params.plan, daysIdle: params.daysIdle },
+    to:       params.to,
+  });
+}
+
 // ─── Re-exports ────────────────────────────────────────────────────────────
 
 export { canSendEmail, markEmailSent, TRANSACTIONAL_TYPES } from './email/preferences';
