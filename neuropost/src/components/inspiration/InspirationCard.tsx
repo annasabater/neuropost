@@ -39,6 +39,8 @@ export type InspirationItem = {
   source_handle:     string | null;
   dominant_colors?:  string[] | null;
   mood?:             string | null;
+  /** Bank category (e.g. 'cafeteria'). Not present on legacy rows. */
+  category?:         string | null;
   created_at:        string;
   recreation?: {
     id: string;

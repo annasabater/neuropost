@@ -18,6 +18,7 @@ import { createBrowserClient } from '@/lib/supabase';
 import { SEASON_CHIPS, FORMAT_CHIPS } from '@/components/inspiration/TagChipsBar';
 import { InspirationCard, type InspirationItem } from '@/components/inspiration/InspirationCard';
 import { SavePopover, type Collection } from '@/components/inspiration/SavePopover';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 // All known tags for smart search matching
 const ALL_TAGS = [...SEASON_CHIPS, ...FORMAT_CHIPS];
@@ -578,10 +579,10 @@ export default function InspiracionPage() {
             flexWrap: 'wrap',
           }}
         >
+          {/* System pills (non-editable) */}
           {([
-            { id: 'all',     label: `Todas las guardadas`, count: totalSavedCount },
+            { id: 'all',     label: 'Todas las guardadas', count: totalSavedCount },
             { id: 'unfiled', label: 'Sin colección',        count: unfiledCount },
-            ...collections.map(c => ({ id: c.id, label: c.name, count: c.item_count ?? 0 })),
           ]).map(c => {
             const active = activeCollection === c.id;
             return (
@@ -604,6 +605,94 @@ export default function InspiracionPage() {
                 {c.id === 'all' ? <FolderOpen size={12} /> : null}
                 {c.label} <span style={{ opacity: 0.75, fontWeight: 400 }}>({c.count})</span>
               </button>
+            );
+          })}
+
+          {/* User collections — with rename/delete affordances on hover */}
+          {collections.map(c => {
+            const active = activeCollection === c.id;
+            return (
+              <span
+                key={c.id}
+                className="coll-pill-wrapper"
+                style={{
+                  display: 'inline-flex', alignItems: 'center',
+                  border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                  borderRadius: 99,
+                  background: active ? 'var(--accent)' : 'transparent',
+                  overflow: 'hidden',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setActiveCollection(c.id)}
+                  style={{
+                    padding: '6px 6px 6px 14px', border: 'none', background: 'transparent',
+                    color: active ? '#fff' : 'var(--text-secondary)',
+                    fontFamily: f, fontSize: 12, fontWeight: active ? 700 : 500,
+                    cursor: 'pointer',
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  {c.name} <span style={{ opacity: 0.75, fontWeight: 400 }}>({c.item_count ?? 0})</span>
+                </button>
+                {/* Rename */}
+                <button
+                  type="button"
+                  aria-label={`Renombrar ${c.name}`}
+                  title="Renombrar"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const next = window.prompt('Nuevo nombre:', c.name)?.trim();
+                    if (!next || next === c.name) return;
+                    try {
+                      const res = await fetch('/api/inspiracion/collections', {
+                        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: c.id, name: next }),
+                      });
+                      const json = await res.json();
+                      if (!res.ok) { toast.error(json.error ?? 'Error'); return; }
+                      toast.success('Renombrada');
+                      await loadCollections();
+                    } catch { toast.error('Error'); }
+                  }}
+                  style={{
+                    padding: '4px 5px', border: 'none', background: 'transparent',
+                    color: active ? 'rgba(255,255,255,0.7)' : 'var(--text-tertiary)',
+                    cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
+                  }}
+                >
+                  <Pencil size={11} />
+                </button>
+                {/* Delete */}
+                <button
+                  type="button"
+                  aria-label={`Eliminar ${c.name}`}
+                  title="Eliminar"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const ok = window.confirm(
+                      `Eliminar "${c.name}"? Las ${c.item_count ?? 0} referencias guardadas pasarán a "Sin colección".`,
+                    );
+                    if (!ok) return;
+                    try {
+                      const res = await fetch(`/api/inspiracion/collections?id=${c.id}`, { method: 'DELETE' });
+                      if (!res.ok) { toast.error('Error'); return; }
+                      toast.success('Eliminada');
+                      if (activeCollection === c.id) setActiveCollection('all');
+                      await loadCollections();
+                      if (scope === 'guardadas') fetchItems();
+                    } catch { toast.error('Error'); }
+                  }}
+                  style={{
+                    padding: '4px 8px 4px 5px', border: 'none', background: 'transparent',
+                    color: active ? 'rgba(255,255,255,0.7)' : 'var(--text-tertiary)',
+                    cursor: 'pointer', display: 'inline-flex', alignItems: 'center',
+                  }}
+                >
+                  <Trash2 size={11} />
+                </button>
+              </span>
             );
           })}
           <button
@@ -639,8 +728,12 @@ export default function InspiracionPage() {
       {/* ── Results ────────────────────────────────────────────────────────── */}
       <div id="inspi-results" style={{ marginTop: 16 }}>
         {loading && items.length === 0 ? (
-          <div style={{ padding: '80px 0', textAlign: 'center' }}>
-            <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-tertiary)' }}>Cargando…</p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 3 }}>
+            {Array.from({ length: 9 }).map((_, i) => (
+              <div key={i} style={{ aspectRatio: '4/5', overflow: 'hidden' }}>
+                <Skeleton width="100%" height="100%" borderRadius="0" />
+              </div>
+            ))}
           </div>
         ) : displayItems.length === 0 ? (
           <div style={{ padding: '100px 20px', textAlign: 'center' }}>
