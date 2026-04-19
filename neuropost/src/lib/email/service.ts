@@ -41,7 +41,7 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
       tags: params.metadata
         ? Object.entries(params.metadata)
             .filter(([, v]) => v != null)
-            .map(([name, value]) => ({ name, value: String(value) }))
+            .map(([name, value]) => ({ name: sanitizeTag(name), value: sanitizeTag(String(value)) }))
         : undefined,
     });
 
@@ -56,4 +56,9 @@ export async function sendEmail(params: SendEmailParams): Promise<SendEmailResul
     console.error('[email] Excepción al enviar:', message);
     return { ok: false, error: message };
   }
+}
+
+/** Resend only allows [a-zA-Z0-9_-] in tag names/values (max 256 chars). */
+function sanitizeTag(value: string): string {
+  return value.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 256);
 }

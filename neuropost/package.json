@@ -10,7 +10,9 @@
     "backfill:weekly-plans": "npx tsx scripts/backfill_weekly_plans.ts",
     "email:preview": "email dev --dir src/emails",
     "email:test": "npx tsx scripts/test_email.ts",
-    "test:sprint3": "npx tsx scripts/test_sprint3.ts"
+    "test:sprint3": "npx tsx scripts/test_sprint3.ts",
+    "test:reminders": "npx tsx scripts/test_reminders.ts",
+    "test:sprint6": "npx tsx scripts/test_sprint6.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",

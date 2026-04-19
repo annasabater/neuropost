@@ -5,6 +5,7 @@ import { Check, X, Edit2, RefreshCw, SkipForward, ChevronLeft, ChevronRight } fr
 import toast from 'react-hot-toast';
 import { createBrowserClient } from '@/lib/supabase';
 import { WeeklyPlansQueue } from './_components/WeeklyPlansQueue';
+import { RetouchQueue }     from './_components/RetouchQueue';
 
 const C = {
   bg: '#ffffff',
@@ -41,7 +42,7 @@ interface Proposal {
   brands?: { name: string };
 }
 
-type Tab = 'proposals' | 'weekly-plans';
+type Tab = 'proposals' | 'weekly-plans' | 'retouches';
 
 export default function ValidationPage() {
   const [tab, setTab] = useState<Tab>('proposals');
@@ -101,6 +102,7 @@ export default function ValidationPage() {
           status:        scheduled_at ? 'scheduled' : 'pending',
           quality_score: current.quality_score,
           scheduled_at,
+          proposal_id:   current.id,
         }),
       });
       const json = await res.json() as { post?: { id: string }; error?: string };
@@ -163,7 +165,11 @@ export default function ValidationPage() {
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 16px' }}>Validación de contenido</h1>
         <div style={{ display: 'flex', borderBottom: `2px solid ${C.border}`, gap: 0 }}>
-          {(['proposals', 'weekly-plans'] as Tab[]).map((t) => (
+          {([
+            ['proposals',    'Propuestas (pieza individual)'],
+            ['weekly-plans', 'Planes semanales'],
+            ['retouches',    'Retoques pendientes'],
+          ] as [Tab, string][]).map(([t, label]) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -180,7 +186,7 @@ export default function ValidationPage() {
                 fontFamily: 'inherit',
               }}
             >
-              {t === 'proposals' ? 'Propuestas (pieza individual)' : 'Planes semanales'}
+              {label}
             </button>
           ))}
         </div>
@@ -312,6 +318,9 @@ export default function ValidationPage() {
 
       {/* ── Tab: Weekly Plans ── */}
       {tab === 'weekly-plans' && <WeeklyPlansQueue />}
+
+      {/* ── Tab: Retoches pendientes ── */}
+      {tab === 'retouches' && <RetouchQueue />}
     </div>
   );
 }

@@ -270,6 +270,8 @@ export interface Post {
   generation_total:   number;
   /** How many images have been validated and added to generated_images. */
   generation_done:    number;
+  /** Timestamp of the last client retouch request for this post. */
+  client_retouched_at: string | null;
 }
 
 // ─── Database: Comment ────────────────────────────────────────────────────────
@@ -1062,14 +1064,37 @@ export interface ClientFeedback {
   created_at:     string;
 }
 
+// ─── Retouch requests (Sprint 7) ─────────────────────────────────────────────
+
+export type RetouchType   = 'copy' | 'schedule' | 'freeform';
+export type RetouchStatus = 'pending' | 'resolved' | 'rejected';
+
+export interface RetouchRequest {
+  id:                     string;
+  post_id:                string;
+  week_id:                string;
+  brand_id:               string;
+  requested_by_user_id:   string | null;
+  retouch_type:           RetouchType;
+  original_value:         Record<string, unknown> | null;
+  requested_value:        Record<string, unknown> | null;
+  client_comment:         string | null;
+  status:                 RetouchStatus;
+  resolved_at:            string | null;
+  resolved_by_worker_id:  string | null;
+  resolution_notes:       string | null;
+  created_at:             string;
+}
+
 export interface ScheduleChange {
-  id:               string;
-  post_id:          string;
-  brand_id:         string;
-  old_scheduled_at: string | null;
-  new_scheduled_at: string | null;
-  changed_by_type:  'client' | 'worker' | 'system';
-  changed_by_id:    string | null;
-  reason:           string | null;
-  created_at:       string;
+  id:                  string;
+  post_id:             string;
+  week_id:             string | null;
+  brand_id:            string;
+  changed_by_user_id:  string | null;
+  changed_by_role:     'client' | 'worker';
+  old_scheduled_at:    string | null;
+  new_scheduled_at:    string;
+  change_reason:       string | null;
+  created_at:          string;
 }

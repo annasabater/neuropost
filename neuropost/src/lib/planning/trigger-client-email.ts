@@ -39,18 +39,19 @@ export async function enqueueClientReviewEmail(planId: string): Promise<void> {
     .eq('week_id', plan.id)
     .order('position', { ascending: true });
 
-  const weekLabel  = formatWeekLabel(plan.week_start);
-  const reviewUrl  = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://neuropost.app'}/dashboard/planificacion/${plan.id}`;
+  const weekLabel     = formatWeekLabel(plan.week_start);
+  const reviewUrl     = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://neuropost.app'}/planificacion/${plan.id}`;
   const pillarSummary = buildPillarSummary(ideas ?? []);
+  const subject       = `Tu contenido de la semana del ${weekLabel} está listo para revisar`;
 
   const result = await sendEmail({
     to:      recipient.email,
-    subject: `Tu contenido de la semana del ${weekLabel} está listo para revisar`,
+    subject,
     template: React.createElement(WeeklyPlanReadyEmail, {
-      brand_name:      recipient.brand_name,
+      brand_name:       recipient.brand_name,
       week_start_label: weekLabel,
-      review_url:      reviewUrl,
-      pillar_summary:  pillarSummary,
+      review_url:       reviewUrl,
+      pillar_summary:   pillarSummary,
     }),
     metadata: {
       brand_id:          plan.brand_id,
@@ -59,15 +60,27 @@ export async function enqueueClientReviewEmail(planId: string): Promise<void> {
     },
   });
 
-  await db.from('notifications').insert({
-    user_id:         recipient.user_id,
-    brand_id:        plan.brand_id,
-    type:            'weekly_plan.ready_for_client_review',
-    payload:         { weekly_plan_id: plan.id, week_start: plan.week_start },
+  // Insert adaptado al schema real de notifications:
+  //   columnas: id, brand_id, type, message (NOT NULL), read, metadata (jsonb),
+  //             created_at, email_sent_at, email_resend_id, email_error
+  const { error: notifErr } = await db.from('notifications').insert({
+    brand_id: plan.brand_id,
+    type:     'weekly_plan.ready_for_client_review',
+    message:  subject,
+    metadata: {
+      weekly_plan_id: plan.id,
+      week_start:     plan.week_start,
+      user_id:        recipient.user_id,
+      review_url:     reviewUrl,
+    },
     email_sent_at:   result.ok ? new Date().toISOString() : null,
     email_resend_id: result.ok ? result.id : null,
     email_error:     result.ok ? null : result.error,
   });
+
+  if (notifErr) {
+    console.error('[email/trigger] Error insertando notification:', notifErr);
+  }
 
   if (result.ok) {
     await db

@@ -97,11 +97,12 @@ async function runPlain<T>(
 const imageGenerateHandler: AgentHandler = async (job) => {
   // brandId is optional on this agent (for asset upload); we don't enforce it.
   const rawInput = job.input as unknown as ImageGenerateInput & {
-    _post_id?: string;
-    _photo_index?: number;
+    _post_id?:         string;
+    _photo_index?:     number;
     _original_prompt?: string;
+    content_idea_id?:  string;
   };
-  const { _post_id, _photo_index, _original_prompt, ...agentInput } = rawInput;
+  const { _post_id, _photo_index, _original_prompt, content_idea_id, ...agentInput } = rawInput;
   const input = { ...agentInput, brandId: job.brand_id ?? undefined };
 
   const result = await runPlain(
@@ -183,6 +184,73 @@ const imageGenerateHandler: AgentHandler = async (job) => {
         });
       } catch (reviewErr) {
         console.error('[imageGenerateHandler] Failed to queue review_image job:', reviewErr);
+      }
+    }
+  }
+
+  // ── New planning flow: create proposal for worker validation queue ──────────
+  // Triggered when content_idea_id is in the input (Sprint 4/5 new flow)
+  // and _post_id is NOT (this is a pure generation job, not a post update).
+  if (result.type === 'ok' && content_idea_id && !_post_id && job.brand_id) {
+    const primaryUrl = result.outputs?.[0]?.preview_url;
+    if (primaryUrl) {
+      try {
+        const { createAdminClient } = await import('@/lib/supabase');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const db = createAdminClient() as any;
+
+        // Load content_idea for caption and metadata
+        const { data: idea } = await db
+          .from('content_ideas')
+          .select('week_id, format, angle, copy_draft, client_edited_copy, final_copy')
+          .eq('id', content_idea_id)
+          .single();
+
+        if (idea) {
+          const caption = (idea.final_copy ?? idea.client_edited_copy ?? idea.copy_draft ?? idea.angle ?? '') as string;
+
+          // Load week_start from the plan
+          const { data: plan } = await db
+            .from('weekly_plans')
+            .select('week_start')
+            .eq('id', idea.week_id)
+            .single();
+
+          const { data: proposal, error: proposalErr } = await db
+            .from('proposals')
+            .insert({
+              brand_id:       job.brand_id,
+              content_idea_id,
+              status:         'pending_qc',
+              format:         idea.format,
+              platform:       ['instagram', 'facebook'],
+              image_url:      primaryUrl,
+              caption_draft:  caption,
+              caption_ig:     caption,
+              caption_fb:     caption,
+              tema:           idea.angle,
+              concepto:       idea.angle,
+              categoria:      idea.format,
+              objetivo:       'publicacion',
+              week_start:     plan?.week_start ?? null,
+              retry_count:    0,
+              is_urgent:      false,
+            })
+            .select('id')
+            .single();
+
+          if (proposalErr) {
+            console.error('[imageGenerateHandler] Error creando proposal:', proposalErr);
+          } else if (proposal?.id) {
+            // Link proposal back to the content_idea
+            await db.from('content_ideas')
+              .update({ proposal_id: proposal.id })
+              .eq('id', content_idea_id);
+            console.log('[imageGenerateHandler] Proposal creada:', proposal.id, 'para idea:', content_idea_id);
+          }
+        }
+      } catch (proposalCreateErr) {
+        console.error('[imageGenerateHandler] Excepción creando proposal:', proposalCreateErr);
       }
     }
   }

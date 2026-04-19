@@ -70,6 +70,7 @@ export default function PlanificacionPage() {
               <div
                 key={plan.id}
                 onClick={() => router.push(`/planificacion/${plan.id}`)}
+
                 style={{
                   background: C.card, padding: '14px 20px',
                   display: 'flex', alignItems: 'center', gap: 16,

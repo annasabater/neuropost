@@ -5,6 +5,7 @@ import { useParams, useRouter }                      from 'next/navigation';
 import { Check, Edit2, RefreshCw, X, ArrowLeft }     from 'lucide-react';
 import toast                                         from 'react-hot-toast';
 import type { WeeklyPlan, ContentIdea }              from '@/types';
+import { CalendarView }                              from '../_components/CalendarView';
 
 const C = {
   bg1: '#f5f5f5', card: '#ffffff', border: '#E5E7EB',
@@ -105,6 +106,37 @@ export default function PlanReviewPage() {
 
   if (loading) return <div style={{ padding: 40, color: C.muted }}>Cargando propuesta...</div>;
   if (!plan)   return null;
+
+  // ── Calendar view (Sprint 7) ─────────────────────────────────────────────
+  if (plan.status === 'calendar_ready' || plan.status === 'completed') {
+    return <CalendarView plan={plan} weekId={week_id} />;
+  }
+
+  // ── In-progress states ───────────────────────────────────────────────────
+  if (plan.status !== 'client_reviewing') {
+    const statusLabels: Record<string, string> = {
+      generating:  'generando ideas',
+      ideas_ready: 'listo para revisión del equipo',
+      producing:   'en producción — te avisamos cuando esté listo',
+      auto_approved: 'auto-aprobado, en producción',
+    };
+    return (
+      <div style={{ padding: 40, maxWidth: 520, color: C.text }}>
+        <button onClick={() => router.push('/planificacion')} style={backBtn}>
+          <ArrowLeft size={14} /> Mis planes
+        </button>
+        <div style={{ marginTop: 24, padding: 28, border: `1px solid ${C.border}` }}>
+          <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700 }}>
+            Semana del {formatWeek(plan.week_start)}
+          </h2>
+          <p style={{ color: C.muted, fontSize: 14, margin: 0 }}>
+            Este plan está {statusLabels[plan.status] ?? plan.status}.
+            Recibirás un correo cuando esté listo para revisar.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: 28, maxWidth: 760, color: C.text }}>

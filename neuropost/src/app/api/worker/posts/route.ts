@@ -14,6 +14,7 @@ import { createAdminClient } from '@/lib/supabase';
 import { checkPostLimit, checkStoryLimit, checkVideoLimit, checkFeature, incrementPostCounter, incrementStoryCounter, incrementVideoCounter } from '@/lib/plan-limits';
 import { PLAN_LIMITS } from '@/types';
 import type { SubscriptionPlan, PostFormat, Platform, PostStatus } from '@/types';
+import { onProposalApproved } from '@/lib/planning/proposal-hooks';
 
 interface CreatePostBody {
   brand_id:         string;
@@ -30,6 +31,8 @@ interface CreatePostBody {
   metadata?:        Record<string, unknown>;
   /** If provided, UPDATE this existing request post instead of creating a new one */
   request_post_id?: string | null;
+  /** If provided, marks the originating proposal as converted and fires the plan-completion hook */
+  proposal_id?: string | null;
 }
 
 export async function POST(request: Request) {
@@ -207,6 +210,28 @@ export async function POST(request: Request) {
         });
       } catch (notifErr) {
         console.error('[worker/posts] Failed to insert notification:', notifErr);
+      }
+    }
+
+    // ── Planning hook: mark content_idea as produced, check plan completion ──
+    if (body.proposal_id && post?.id) {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: proposal } = await (db as any)
+          .from('proposals')
+          .select('content_idea_id')
+          .eq('id', body.proposal_id)
+          .maybeSingle();
+
+        if (proposal?.content_idea_id) {
+          await onProposalApproved({
+            proposal_id:     body.proposal_id,
+            content_idea_id: proposal.content_idea_id as string,
+            post_id:         post.id as string,
+          });
+        }
+      } catch (hookErr) {
+        console.error('[worker/posts] Planning hook error:', hookErr);
       }
     }
 
