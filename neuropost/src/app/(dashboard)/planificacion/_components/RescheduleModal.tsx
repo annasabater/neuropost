@@ -4,25 +4,24 @@ import { useState } from 'react';
 import { X }        from 'lucide-react';
 import toast        from 'react-hot-toast';
 
-const C = {
-  border: '#E5E7EB', text: '#111111', muted: '#6B7280', accent: '#0F766E',
-};
+const f  = "var(--font-barlow), 'Barlow', sans-serif";
+const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 interface Props {
-  postId:      string;
-  currentAt:   string | null;
-  weekStart:   string;  // YYYY-MM-DD Monday of the week (UTC)
+  postId:       string;
+  currentAt:    string | null;
+  weekStart:    string;   // YYYY-MM-DD Monday of the week (UTC)
   otherPostsAt: string[]; // ISO strings of sibling posts (for collision warning)
-  onClose:     () => void;
-  onSuccess:   () => void;
+  onClose:      () => void;
+  onSuccess:    () => void;
 }
 
 export function RescheduleModal({ postId, currentAt, weekStart, otherPostsAt, onClose, onSuccess }: Props) {
   const initValue = currentAt ? currentAt.slice(0, 16) : '';
-  const [newAt,       setNewAt]       = useState(initValue);
-  const [reason,      setReason]      = useState('');
-  const [submitting,  setSubmitting]  = useState(false);
-  const [warning,     setWarning]     = useState<string | null>(null);
+  const [newAt,      setNewAt]      = useState(initValue);
+  const [reason,     setReason]     = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [warning,    setWarning]    = useState<string | null>(null);
 
   const weekEnd = (() => {
     const d = new Date(weekStart + 'T00:00:00Z');
@@ -71,20 +70,31 @@ export function RescheduleModal({ postId, currentAt, weekStart, otherPostsAt, on
   return (
     <div style={overlay} onClick={onClose}>
       <div style={box} onClick={(e) => e.stopPropagation()}>
+
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Reprogramar publicación</h3>
-          <button onClick={onClose} style={iconBtn}><X size={16} /></button>
+          <h3 style={{
+            fontFamily: fc, fontWeight: 900, fontSize: 20,
+            textTransform: 'uppercase', letterSpacing: '0.03em',
+            color: 'var(--text-primary)', margin: 0,
+          }}>
+            Reprogramar publicación
+          </h3>
+          <button type="button" onClick={onClose} style={iconBtn}><X size={16} /></button>
         </div>
 
-        {/* Current */}
+        {/* Current date info */}
         {currentAt && (
-          <p style={{ fontSize: 13, color: C.muted, margin: '0 0 16px' }}>
+          <div style={{
+            padding: '10px 14px', background: 'var(--bg-1)',
+            border: '1px solid var(--border)', marginBottom: 20,
+            fontSize: 13, color: 'var(--text-secondary)',
+          }}>
             Fecha actual:{' '}
-            <strong style={{ color: C.text }}>
+            <strong style={{ color: 'var(--text-primary)' }}>
               {new Date(currentAt).toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' })}
             </strong>
-          </p>
+          </div>
         )}
 
         {/* Date picker */}
@@ -95,12 +105,18 @@ export function RescheduleModal({ postId, currentAt, weekStart, otherPostsAt, on
             value={newAt}
             min={new Date().toISOString().slice(0, 16)}
             onChange={(e) => handleDateChange(e.target.value)}
-            style={{ ...inputStyle, borderColor: warning ? '#ef4444' : C.border }}
+            style={{
+              width: '100%', padding: '10px 12px',
+              background: 'var(--bg-1)',
+              border: `1px solid ${warning ? '#ef4444' : 'var(--border)'}`,
+              color: 'var(--text-primary)', fontSize: 13,
+              fontFamily: f, boxSizing: 'border-box' as const,
+            }}
           />
           {warning && (
             <p style={{ fontSize: 12, color: '#ef4444', margin: '4px 0 0' }}>{warning}</p>
           )}
-          <p style={{ fontSize: 11, color: C.muted, margin: '4px 0 0' }}>
+          <p style={{ fontSize: 11, color: 'var(--text-secondary)', margin: '4px 0 0' }}>
             Semana del {formatWeek(weekStart)} al {formatWeek(weekEnd)}
           </p>
         </div>
@@ -119,11 +135,18 @@ export function RescheduleModal({ postId, currentAt, weekStart, otherPostsAt, on
 
         {/* Footer */}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={cancelBtn}>Cancelar</button>
+          <button type="button" onClick={onClose} style={cancelBtn}>Cancelar</button>
           <button
+            type="button"
             onClick={submit}
             disabled={submitting || !!warning}
-            style={{ ...submitBtn, opacity: submitting || !!warning ? 0.6 : 1 }}
+            style={{
+              padding: '10px 20px', background: 'var(--accent)', color: '#fff',
+              border: 'none', cursor: submitting || !!warning ? 'default' : 'pointer',
+              fontSize: 13, fontWeight: 700,
+              fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.04em',
+              opacity: submitting || !!warning ? 0.5 : 1,
+            }}
           >
             {submitting ? 'Guardando…' : 'Guardar cambio'}
           </button>
@@ -139,35 +162,29 @@ function formatWeek(dateStr: string): string {
 }
 
 const overlay: React.CSSProperties = {
-  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
   display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50,
 };
 const box: React.CSSProperties = {
-  background: '#fff', border: '2px solid #111827', padding: 28,
-  width: 480, maxWidth: '92vw', maxHeight: '90vh', overflowY: 'auto',
+  background: 'var(--bg)', border: '1px solid var(--border)',
+  padding: 28, width: 480, maxWidth: '92vw', maxHeight: '90vh', overflowY: 'auto',
+  fontFamily: f,
 };
 const iconBtn: React.CSSProperties = {
-  background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: C.muted,
+  background: 'none', border: 'none', cursor: 'pointer', padding: 4,
+  color: 'var(--text-secondary)',
 };
 const fieldLabel: React.CSSProperties = {
-  display: 'block', fontSize: 10, color: C.muted,
-  textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6,
-};
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '10px 12px', background: '#f5f5f5',
-  border: '1px solid #E5E7EB', color: C.text, fontSize: 13,
-  fontFamily: 'inherit', boxSizing: 'border-box',
+  display: 'block', fontSize: 10, color: 'var(--text-secondary)',
+  textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, fontFamily: f,
 };
 const textarea: React.CSSProperties = {
-  width: '100%', padding: 10, background: '#f5f5f5', border: `1px solid ${C.border}`,
-  color: C.text, fontSize: 13, fontFamily: 'inherit', resize: 'vertical',
-  boxSizing: 'border-box',
+  width: '100%', padding: 10,
+  background: 'var(--bg-1)', border: '1px solid var(--border)',
+  color: 'var(--text-primary)', fontSize: 13, fontFamily: f,
+  resize: 'vertical', boxSizing: 'border-box',
 };
 const cancelBtn: React.CSSProperties = {
-  padding: '10px 18px', background: 'transparent', color: C.muted,
-  border: `1px solid ${C.border}`, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit',
-};
-const submitBtn: React.CSSProperties = {
-  padding: '10px 20px', background: C.accent, color: '#fff',
-  border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+  padding: '10px 18px', background: 'transparent', color: 'var(--text-secondary)',
+  border: '1px solid var(--border)', cursor: 'pointer', fontSize: 13, fontFamily: f,
 };

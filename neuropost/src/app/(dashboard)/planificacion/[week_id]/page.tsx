@@ -7,29 +7,26 @@ import toast                                         from 'react-hot-toast';
 import type { WeeklyPlan, ContentIdea }              from '@/types';
 import { CalendarView }                              from '../_components/CalendarView';
 
-const C = {
-  bg1: '#f5f5f5', card: '#ffffff', border: '#E5E7EB',
-  text: '#111111', muted: '#6B7280', accent: '#0F766E',
-  red: '#EF4444', amber: '#F59E0B', green: '#10B981',
-};
+const f  = "var(--font-barlow), 'Barlow', sans-serif";
+const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 type IdeaAction = 'approve' | 'edit' | 'request_variation' | 'reject';
 
-const STATUS_META: Record<string, { label: string; color: string; bg: string }> = {
-  pending:                    { label: 'Pendiente',         color: C.muted,  bg: '#f5f5f5' },
-  client_approved:            { label: 'Aprobada',          color: C.green,  bg: '#f0fdf4' },
-  client_edited:              { label: 'Editada',           color: '#3b82f6', bg: '#eff6ff' },
-  client_requested_variation: { label: 'Variación pedida',  color: C.amber,  bg: '#fef3c7' },
-  client_rejected:            { label: 'Rechazada',         color: C.red,    bg: '#fef2f2' },
+const IDEA_STATUS_META: Record<string, { label: string; color: string; bg: string; dot: string }> = {
+  pending:                    { label: 'Pendiente',        color: '#374151', bg: '#f3f4f6', dot: '#9ca3af' },
+  client_approved:            { label: 'Aprobada',         color: '#065f46', bg: '#d1fae5', dot: '#10b981' },
+  client_edited:              { label: 'Editada',          color: '#1e40af', bg: '#eff6ff', dot: '#3b82f6' },
+  client_requested_variation: { label: 'Variación pedida', color: '#92400e', bg: '#fef3c7', dot: '#f59e0b' },
+  client_rejected:            { label: 'Rechazada',        color: '#991b1b', bg: '#fee2e2', dot: '#ef4444' },
 };
 
 export default function PlanReviewPage() {
   const { week_id } = useParams<{ week_id: string }>();
   const router = useRouter();
 
-  const [plan, setPlan]     = useState<WeeklyPlan | null>(null);
-  const [ideas, setIdeas]   = useState<ContentIdea[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [plan, setPlan]         = useState<WeeklyPlan | null>(null);
+  const [ideas, setIdeas]       = useState<ContentIdea[]>([]);
+  const [loading, setLoading]   = useState(true);
   const [confirming, setConfirming] = useState(false);
   const [showSkipModal, setShowSkipModal] = useState(false);
   const [skipReason, setSkipReason] = useState('');
@@ -54,7 +51,7 @@ export default function PlanReviewPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const reviewed  = ideas.filter((i) => i.status !== 'pending').length;
+  const reviewed    = ideas.filter((i) => i.status !== 'pending').length;
   const allReviewed = ideas.length > 0 && reviewed === ideas.length;
 
   async function doIdeaAction(ideaId: string, action: IdeaAction, extra?: {
@@ -104,147 +101,231 @@ export default function PlanReviewPage() {
     router.push('/planificacion');
   }
 
-  if (loading) return <div style={{ padding: 40, color: C.muted }}>Cargando propuesta...</div>;
-  if (!plan)   return null;
+  if (loading) {
+    return <div style={{ padding: 40, color: 'var(--text-secondary)', fontFamily: f }}>Cargando propuesta...</div>;
+  }
+  if (!plan) return null;
 
-  // ── Calendar view (Sprint 7) ─────────────────────────────────────────────
+  // ── Calendar / completed view ──────────────────────────────────────────────
   if (plan.status === 'calendar_ready' || plan.status === 'completed') {
     return <CalendarView plan={plan} weekId={week_id} />;
   }
 
-  // ── In-progress states ───────────────────────────────────────────────────
+  // ── In-progress (not yet ready for client review) ─────────────────────────
   if (plan.status !== 'client_reviewing') {
     const statusLabels: Record<string, string> = {
-      generating:  'generando ideas',
-      ideas_ready: 'listo para revisión del equipo',
-      producing:   'en producción — te avisamos cuando esté listo',
+      generating:    'generando ideas para tu semana',
+      ideas_ready:   'listo para revisión del equipo',
+      producing:     'en producción — te avisamos cuando esté listo',
       auto_approved: 'auto-aprobado, en producción',
     };
     return (
-      <div style={{ padding: 40, maxWidth: 520, color: C.text }}>
-        <button onClick={() => router.push('/planificacion')} style={backBtn}>
+      <div style={{ padding: '32px 28px', maxWidth: 560, color: 'var(--text-primary)', fontFamily: f }}>
+        <button type="button" onClick={() => router.push('/planificacion')} style={backBtn}>
           <ArrowLeft size={14} /> Mis planes
         </button>
-        <div style={{ marginTop: 24, padding: 28, border: `1px solid ${C.border}` }}>
-          <h2 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700 }}>
+        <div style={{ marginTop: 24 }}>
+          <h1 style={{
+            fontFamily: fc, fontWeight: 900,
+            fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+            textTransform: 'uppercase', letterSpacing: '0.02em',
+            color: 'var(--text-primary)', margin: '0 0 6px', lineHeight: 1,
+          }}>
             Semana del {formatWeek(plan.week_start)}
-          </h2>
-          <p style={{ color: C.muted, fontSize: 14, margin: 0 }}>
-            Este plan está {statusLabels[plan.status] ?? plan.status}.
-            Recibirás un correo cuando esté listo para revisar.
-          </p>
+          </h1>
+          <div style={{ marginTop: 20, padding: '20px 24px', border: '1px solid var(--border)', background: 'var(--bg)' }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
+              padding: '4px 10px', background: 'var(--bg-1)', color: 'var(--text-secondary)',
+              marginBottom: 10,
+            }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#9ca3af' }} />
+              {IDEA_STATUS_META['pending']?.label ?? plan.status}
+            </span>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: 0 }}>
+              Este plan está {statusLabels[plan.status] ?? plan.status}.
+              Recibirás un correo cuando esté listo para revisar.
+            </p>
+          </div>
         </div>
       </div>
     );
   }
 
+  // ── Client reviewing ──────────────────────────────────────────────────────
   return (
-    <div style={{ padding: 28, maxWidth: 760, color: C.text }}>
-      {/* Header */}
-      <button onClick={() => router.push('/planificacion')} style={backBtn}>
+    <div style={{ padding: '32px 28px', maxWidth: 800, color: 'var(--text-primary)', fontFamily: f }}>
+
+      {/* Back */}
+      <button type="button" onClick={() => router.push('/planificacion')} style={backBtn}>
         <ArrowLeft size={14} /> Mis planes
       </button>
 
-      <div style={{ marginTop: 16, marginBottom: 8 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 6px' }}>
-          Tu contenido de la semana del {formatWeek(plan.week_start)}
-        </h1>
-        <p style={{ color: C.muted, fontSize: 13, margin: '0 0 4px' }}>
-          Revisa cada propuesta y dinos qué te cuadra. Cuando acabes, confirma el plan.
-        </p>
-      </div>
+      {/* Header + counter row */}
+      <div style={{ marginTop: 20, marginBottom: 28, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{
+            fontFamily: fc, fontWeight: 900,
+            fontSize: 'clamp(1.6rem, 3.5vw, 2.4rem)',
+            textTransform: 'uppercase', letterSpacing: '0.02em',
+            color: 'var(--text-primary)', margin: '0 0 6px', lineHeight: 1,
+          }}>
+            Semana del {formatWeek(plan.week_start)}
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 13, margin: 0 }}>
+            Revisa cada propuesta y dinos qué te cuadra. Cuando acabes, confirma el plan.
+          </p>
+        </div>
 
-      {/* Progress counter */}
-      <div style={{
-        display: 'inline-flex', alignItems: 'center', gap: 10,
-        padding: '8px 14px', background: allReviewed ? '#f0fdf4' : C.bg1,
-        border: `1px solid ${allReviewed ? '#bbf7d0' : C.border}`,
-        marginBottom: 24, fontSize: 13,
-      }}>
-        <span style={{ fontWeight: 700, fontSize: 20, color: allReviewed ? C.green : C.text }}>{reviewed}</span>
-        <span style={{ color: C.muted }}>de {ideas.length} ideas revisadas</span>
-        {allReviewed && <Check size={16} style={{ color: C.green }} />}
+        {/* Big progress badge */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 20px',
+          background: allReviewed ? '#d1fae5' : 'var(--bg-1)',
+          border: `1px solid ${allReviewed ? '#6ee7b7' : 'var(--border)'}`,
+          flexShrink: 0,
+        }}>
+          <span style={{
+            fontFamily: fc, fontWeight: 900, fontSize: 32, lineHeight: 1,
+            color: allReviewed ? '#065f46' : 'var(--text-primary)',
+          }}>
+            {reviewed}<span style={{ fontSize: 18, color: 'var(--text-secondary)', fontWeight: 700 }}>/{ideas.length}</span>
+          </span>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.3, maxWidth: 80 }}>
+            {allReviewed ? '✓ Todo revisado' : 'ideas revisadas'}
+          </span>
+        </div>
       </div>
 
       {/* Ideas */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 100 }}>
-        {ideas.map((idea) => {
-          const meta    = STATUS_META[idea.status] ?? STATUS_META['pending'];
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 100 }}>
+        {ideas.map((idea, ideaIdx) => {
+          const meta     = IDEA_STATUS_META[idea.status] ?? IDEA_STATUS_META['pending'];
           const isActing = actingOn === idea.id;
+          const isDone   = idea.status !== 'pending';
 
           return (
-            <div key={idea.id} style={{ background: C.card, border: `1px solid ${C.border}`, padding: 20 }}>
-              {/* Idea header */}
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
-                <div>
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-                    <span style={{ fontWeight: 700, fontSize: 15 }}>{idea.angle}</span>
-                    <span style={formatPill}>{idea.format}</span>
-                  </div>
-                  {idea.hook && <p style={{ fontSize: 12, color: C.muted, margin: 0, fontStyle: 'italic' }}>{idea.hook}</p>}
-                </div>
+            <div key={idea.id} style={{
+              background: 'var(--bg)',
+              border: `1px solid ${isDone ? meta.dot + '55' : 'var(--border)'}`,
+              display: 'grid',
+              gridTemplateColumns: '60px 1fr',
+              overflow: 'hidden',
+            }}>
+              {/* Number strip */}
+              <div style={{
+                background: isDone ? meta.bg : 'var(--bg-1)',
+                display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'flex-start',
+                paddingTop: 20,
+                borderRight: `1px solid ${isDone ? meta.dot + '55' : 'var(--border)'}`,
+              }}>
                 <span style={{
-                  fontSize: 10, padding: '3px 8px', background: meta.bg, color: meta.color,
-                  borderRadius: 0, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.4, flexShrink: 0,
+                  fontFamily: fc, fontWeight: 900, fontSize: 28,
+                  color: isDone ? meta.dot : 'var(--text-secondary)',
+                  lineHeight: 1,
                 }}>
-                  {meta.label}
+                  {String(ideaIdx + 1).padStart(2, '0')}
                 </span>
+                {isDone && (
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: meta.dot, marginTop: 8 }} />
+                )}
               </div>
 
-              {/* Suggested asset */}
-              {idea.suggested_asset_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={idea.suggested_asset_url} alt=""
-                  style={{ maxWidth: '100%', maxHeight: 200, display: 'block', marginBottom: 12, border: `1px solid ${C.border}` }}
+              {/* Content */}
+              <div style={{ padding: '20px 20px 16px' }}>
+                {/* Top row: angle + format + status */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
+                      <span style={{
+                        fontFamily: fc, fontWeight: 800, fontSize: 17,
+                        textTransform: 'uppercase', letterSpacing: '0.03em',
+                        color: 'var(--text-primary)',
+                      }}>
+                        {idea.angle}
+                      </span>
+                      <span style={formatPill}>{idea.format}</span>
+                    </div>
+                    {idea.hook && (
+                      <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, fontStyle: 'italic', lineHeight: 1.5 }}>
+                        "{idea.hook}"
+                      </p>
+                    )}
+                  </div>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    fontSize: 10, fontWeight: 700,
+                    padding: '3px 9px',
+                    background: meta.bg, color: meta.color,
+                    textTransform: 'uppercase', letterSpacing: 0.5, flexShrink: 0,
+                  }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: meta.dot }} />
+                    {meta.label}
+                  </span>
+                </div>
+
+                {/* Suggested asset */}
+                {idea.suggested_asset_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={idea.suggested_asset_url} alt=""
+                    style={{ maxWidth: '100%', maxHeight: 180, display: 'block', marginBottom: 12, border: '1px solid var(--border)' }}
+                  />
+                )}
+
+                {/* Copy draft */}
+                <label style={fieldLabel}>Texto propuesto</label>
+                <textarea
+                  defaultValue={idea.client_edited_copy ?? idea.copy_draft ?? ''}
+                  onChange={(e) => {
+                    setIdeas((prev) => prev.map((i) => i.id === idea.id ? { ...i, client_edited_copy: e.target.value } : i));
+                    scheduleEditSave(idea.id, e.target.value);
+                  }}
+                  rows={4}
+                  style={textareaStyle}
+                  placeholder="Sin copy aún"
                 />
-              )}
 
-              {/* Copy */}
-              <label style={fieldLabel}>Texto propuesto</label>
-              <textarea
-                defaultValue={idea.client_edited_copy ?? idea.copy_draft ?? ''}
-                onChange={(e) => {
-                  setIdeas((prev) => prev.map((i) => i.id === idea.id ? { ...i, client_edited_copy: e.target.value } : i));
-                  scheduleEditSave(idea.id, e.target.value);
-                }}
-                rows={4}
-                style={{ ...textareaStyle, marginBottom: 12 }}
-                placeholder="Sin copy aún"
-              />
-
-              {/* Action buttons */}
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <button
-                  onClick={() => doIdeaAction(idea.id, 'approve')}
-                  disabled={isActing || idea.status === 'client_approved'}
-                  style={actionBtn(C.green, idea.status === 'client_approved')}
-                >
-                  <Check size={12} /> Aprobar
-                </button>
-                <button
-                  onClick={() => doIdeaAction(idea.id, 'edit', {
-                    client_edited_copy: idea.client_edited_copy ?? undefined,
-                  })}
-                  disabled={isActing || idea.status === 'client_edited'}
-                  style={actionBtn('#3b82f6', idea.status === 'client_edited')}
-                >
-                  <Edit2 size={12} /> Marcar como editada
-                </button>
-                <button
-                  onClick={() => doIdeaAction(idea.id, 'request_variation')}
-                  disabled={isActing || idea.status === 'client_requested_variation'}
-                  style={actionBtn(C.amber, idea.status === 'client_requested_variation')}
-                >
-                  <RefreshCw size={12} /> Pedir otra versión
-                </button>
-                <button
-                  onClick={() => doIdeaAction(idea.id, 'reject')}
-                  disabled={isActing || idea.status === 'client_rejected'}
-                  style={actionBtn(C.red, idea.status === 'client_rejected')}
-                >
-                  <X size={12} /> Rechazar
-                </button>
+                {/* Action bar */}
+                <div style={{
+                  display: 'flex', gap: 1, marginTop: 12,
+                  background: 'var(--border)',
+                  border: '1px solid var(--border)',
+                }}>
+                  {([
+                    { act: 'approve'           as IdeaAction, label: '✓ Aprobar',           color: '#10b981', active: idea.status === 'client_approved' },
+                    { act: 'edit'              as IdeaAction, label: '✎ Guardar edición',    color: '#3b82f6', active: idea.status === 'client_edited' },
+                    { act: 'request_variation' as IdeaAction, label: '↺ Otra versión',       color: '#f59e0b', active: idea.status === 'client_requested_variation' },
+                    { act: 'reject'            as IdeaAction, label: '✕ Rechazar',           color: '#ef4444', active: idea.status === 'client_rejected' },
+                  ]).map(({ act, label, color, active }) => (
+                    <button
+                      key={act}
+                      type="button"
+                      onClick={() => {
+                        if (act === 'edit') {
+                          void doIdeaAction(idea.id, 'edit', { client_edited_copy: idea.client_edited_copy ?? undefined });
+                        } else {
+                          void doIdeaAction(idea.id, act);
+                        }
+                      }}
+                      disabled={isActing || active}
+                      style={{
+                        flex: 1, padding: '10px 6px',
+                        background: active ? color : 'var(--bg)',
+                        color: active ? '#fff' : color,
+                        border: 'none', cursor: active ? 'default' : 'pointer',
+                        fontSize: 11, fontWeight: 700,
+                        fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.03em',
+                        opacity: isActing && !active ? 0.5 : 1,
+                        transition: 'background 0.1s',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           );
@@ -254,26 +335,23 @@ export default function PlanReviewPage() {
       {/* Sticky footer */}
       <div style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        background: '#fff', borderTop: `2px solid ${C.border}`,
+        background: 'var(--bg)', borderTop: '2px solid var(--border)',
         padding: '14px 28px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         zIndex: 10,
       }}>
-        <span style={{ fontSize: 13, color: C.muted }}>
-          <strong style={{ color: C.text }}>{reviewed}</strong> de {ideas.length} revisadas
+        <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: f }}>
+          <strong style={{ color: 'var(--text-primary)' }}>{reviewed}</strong> de {ideas.length} revisadas
         </span>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <button onClick={() => setShowSkipModal(true)} style={skipLink}>
+          <button type="button" onClick={() => setShowSkipModal(true)} style={skipLink}>
             No quiero contenido esta semana
           </button>
           <button
+            type="button"
             onClick={handleConfirm}
             disabled={!allReviewed || confirming}
-            style={{
-              ...confirmBtn,
-              opacity: allReviewed ? 1 : 0.4,
-              cursor: allReviewed ? 'pointer' : 'not-allowed',
-            }}
+            style={{ ...confirmBtn, opacity: allReviewed ? 1 : 0.4, cursor: allReviewed ? 'pointer' : 'not-allowed' }}
           >
             {confirming ? 'Confirmando…' : 'Confirmar plan'}
           </button>
@@ -284,23 +362,25 @@ export default function PlanReviewPage() {
       {showSkipModal && (
         <div style={modalOverlay}>
           <div style={modalBox}>
-            <h3 style={{ margin: '0 0 10px', fontSize: 16, fontWeight: 700 }}>¿Saltar esta semana?</h3>
-            <p style={{ color: C.muted, fontSize: 13, margin: '0 0 12px' }}>
+            <h3 style={{ fontFamily: fc, fontWeight: 900, fontSize: 20, textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 10px' }}>
+              ¿Saltar esta semana?
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 13, margin: '0 0 14px' }}>
               Cuéntanos el motivo para que lo tengamos en cuenta.
             </p>
             <textarea
               value={skipReason}
               onChange={(e) => setSkipReason(e.target.value)}
               rows={3}
-              style={{ ...textareaStyle, marginBottom: 12 }}
+              style={textareaStyle}
               placeholder="Estoy de vacaciones / No necesito contenido esta semana..."
               autoFocus
             />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={handleSkip} disabled={skipping} style={rejectBtnStyle}>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button type="button" onClick={handleSkip} disabled={skipping} style={dangerBtn}>
                 {skipping ? 'Guardando…' : 'Cancelar semana'}
               </button>
-              <button onClick={() => setShowSkipModal(false)} style={cancelBtnStyle}>
+              <button type="button" onClick={() => setShowSkipModal(false)} style={cancelBtn}>
                 Volver
               </button>
             </div>
@@ -318,51 +398,57 @@ function formatWeek(weekStart: string): string {
 
 const backBtn: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 6,
-  padding: '6px 12px', background: 'transparent', border: '1px solid #E5E7EB',
-  color: '#6B7280', borderRadius: 0, cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
+  padding: '6px 12px', background: 'transparent',
+  border: '1px solid var(--border)',
+  color: 'var(--text-secondary)', cursor: 'pointer', fontSize: 12, fontFamily: f,
 };
 const formatPill: React.CSSProperties = {
-  fontSize: 10, padding: '2px 7px', background: '#f5f5f5', color: '#6B7280',
-  borderRadius: 0, textTransform: 'uppercase', letterSpacing: 0.5,
+  fontSize: 10, padding: '3px 8px',
+  background: 'var(--bg-1)', color: 'var(--text-secondary)',
+  textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 600,
 };
 const fieldLabel: React.CSSProperties = {
-  display: 'block', fontSize: 10, color: '#6B7280',
-  textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4,
+  display: 'block', fontSize: 10, color: 'var(--text-secondary)',
+  textTransform: 'uppercase', letterSpacing: 1, marginBottom: 4, fontFamily: f,
 };
 const textareaStyle: React.CSSProperties = {
-  width: '100%', padding: 10, background: '#f5f5f5', border: '1px solid #E5E7EB',
-  color: '#111111', fontSize: 13, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
+  width: '100%', padding: 10, background: 'var(--bg-1)',
+  border: '1px solid var(--border)',
+  color: 'var(--text-primary)', fontSize: 13, fontFamily: f,
+  resize: 'vertical', boxSizing: 'border-box',
 };
 function actionBtn(color: string, active: boolean): React.CSSProperties {
   return {
     display: 'inline-flex', alignItems: 'center', gap: 5,
     padding: '7px 12px', background: active ? color : 'transparent',
     color: active ? '#fff' : color, border: `1px solid ${color}`,
-    borderRadius: 0, cursor: active ? 'default' : 'pointer',
-    fontSize: 12, fontWeight: 600, fontFamily: 'inherit',
+    cursor: active ? 'default' : 'pointer',
+    fontSize: 12, fontWeight: 600, fontFamily: f,
   };
 }
 const confirmBtn: React.CSSProperties = {
-  padding: '11px 24px', background: '#0F766E', color: '#fff',
-  border: 'none', borderRadius: 0, fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
+  padding: '11px 24px', background: 'var(--accent)', color: '#fff',
+  border: 'none', fontSize: 14, fontWeight: 700,
+  fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.04em',
 };
 const skipLink: React.CSSProperties = {
-  background: 'none', border: 'none', color: '#6B7280', fontSize: 12,
-  cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit',
+  background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: 12,
+  cursor: 'pointer', textDecoration: 'underline', fontFamily: f,
 };
 const modalOverlay: React.CSSProperties = {
-  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
   display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50,
 };
 const modalBox: React.CSSProperties = {
-  background: '#fff', border: '2px solid #111827', padding: 28, width: 460, maxWidth: '90vw',
+  background: 'var(--bg)', border: '1px solid var(--border)',
+  padding: 28, width: 460, maxWidth: '90vw', fontFamily: f,
 };
-const rejectBtnStyle: React.CSSProperties = {
+const dangerBtn: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 6,
-  padding: '10px 18px', background: '#EF4444', color: '#fff',
-  border: 'none', borderRadius: 0, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit',
+  padding: '10px 18px', background: '#ef4444', color: '#fff',
+  border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: f,
 };
-const cancelBtnStyle: React.CSSProperties = {
-  padding: '10px 18px', background: 'transparent', color: '#6B7280',
-  border: '1px solid #E5E7EB', borderRadius: 0, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit',
+const cancelBtn: React.CSSProperties = {
+  padding: '10px 18px', background: 'transparent', color: 'var(--text-secondary)',
+  border: '1px solid var(--border)', cursor: 'pointer', fontSize: 13, fontFamily: f,
 };
