@@ -193,7 +193,7 @@ export default function LandingPage() {
 
   const homePlans = [
     {
-      name:          'Starter',
+      name:          'Esencial',
       monthlyPrice:   21,
       annualPrice:    21,
       annualSavings:  0,  // 252€/año ÷ 12 = 21€ → sin ahorro
@@ -211,7 +211,7 @@ export default function LandingPage() {
       ],
     },
     {
-      name:          'Pro',
+      name:          'Crecimiento',
       monthlyPrice:   63,
       annualPrice:    60,
       annualSavings:  38,
@@ -231,7 +231,7 @@ export default function LandingPage() {
       ],
     },
     {
-      name:          'Total',
+      name:          'Profesional',
       monthlyPrice:   133,
       annualPrice:    113,
       annualSavings:  239,

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ProgressLink } from '@/components/ui/ProgressLink';
 import {
-  LayoutDashboard, Calendar, MessageSquare, BarChart3,
+  LayoutDashboard, Calendar, CalendarDays, MessageSquare, BarChart3,
   Settings, LogOut, X, Image, Archive,
   Flame, Plus, Upload, ChevronDown, Link2, CreditCard, Palette,
   Sparkles, Send, Paintbrush, Camera,
@@ -95,6 +95,9 @@ export function Sidebar() {
         <NavItem href="/posts" label={t('posts')} icon={Image} />
         <NavItem href="/inspiracion" label={t('inspiration')} icon={Flame} />
         <NavItem href="/calendar" label={t('calendar')} icon={Calendar} />
+        {brand?.use_new_planning_flow && (
+          <NavItem href="/planificacion" label="Planificación" icon={CalendarDays} />
+        )}
 
         {/* Biblioteca */}
         <div className="dash-nav-group-label">Biblioteca</div>

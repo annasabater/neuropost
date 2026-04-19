@@ -37,9 +37,30 @@ export type PostFormat      = 'image' | 'video' | 'reel' | 'carousel' | 'story';
 export type SourceType      = 'photos' | 'video' | 'none';
 export type CommentStatus   = 'pending' | 'replied' | 'ignored' | 'escalated';
 export type Sentiment       = 'positive' | 'neutral' | 'negative';
-export type NotificationType = 'approval_needed' | 'published' | 'failed' | 'comment' | 'limit_reached' | 'meta_connected' | 'token_expired' | 'payment_failed' | 'plan_activated' | 'team_invite';
+export type NotificationType =
+  | 'approval_needed' | 'published' | 'failed' | 'comment' | 'limit_reached'
+  | 'meta_connected' | 'token_expired' | 'payment_failed' | 'plan_activated' | 'team_invite'
+  | 'weekly_plan.ready_for_client_review'
+  | 'weekly_plan.reminder_day_2'
+  | 'weekly_plan.reminder_day_4'
+  | 'weekly_plan.final_warning_day_6'
+  | 'weekly_plan.auto_approved'
+  | 'weekly_plan.material_ready_for_worker'
+  | 'weekly_plan.final_calendar_ready'
+  | 'post.retouch_requested_by_client'
+  | 'weekly_plan.skipped_by_client'
+  | 'human_review_needed';
 export type PostGoal        = 'engagement' | 'awareness' | 'promotion' | 'community';
 export type EditingLevel    = 0 | 1 | 2;
+
+// ─── Human Review Config ──────────────────────────────────────────────────────
+
+export interface HumanReviewConfig {
+  messages: boolean;
+  images:   boolean;
+  videos:   boolean;
+  requests: boolean;
+}
 
 // ─── Database: Brand ──────────────────────────────────────────────────────────
 
@@ -159,8 +180,12 @@ export interface Brand {
   videos_this_week:       number;
   token_refreshed_at:     string | null;
   /** Platforms the client has subscribed to (paid for). Defaults to ['instagram']. */
-  subscribed_platforms:   Platform[];
-  created_at:             string;
+  subscribed_platforms:       Platform[];
+  created_at:                 string;
+  use_new_planning_flow:      boolean;
+  human_review_config:        HumanReviewConfig;
+  auto_approve_after_days:    number;
+  compliance_flags:           Record<string, unknown>;
 }
 
 // ─── Database: Profile ────────────────────────────────────────────────────────
@@ -266,13 +291,16 @@ export interface Comment {
 // ─── Database: Notification ───────────────────────────────────────────────────
 
 export interface Notification {
-  id:         string;
-  brand_id:   string;
-  type:       NotificationType;
-  message:    string;
-  read:       boolean;
-  metadata:   Record<string, unknown> | null;
-  created_at: string;
+  id:               string;
+  brand_id:         string;
+  type:             NotificationType;
+  message:          string;
+  read:             boolean;
+  metadata:         Record<string, unknown> | null;
+  created_at:       string;
+  email_sent_at:    string | null;
+  email_resend_id:  string | null;
+  email_error:      string | null;
 }
 
 // ─── Database: ActivityLog ────────────────────────────────────────────────────
@@ -347,6 +375,13 @@ export interface AgentContext {
   secondarySectors?: SocialSector[];
   /** Plan-aware publishing preferences (days, carousel size, videos, etc). */
   preferences?:      BrandPreferences;
+  // ─── Brief Avanzado fields ────────────────────────────────────────────────
+  faqs?:         Array<{ category: string; question: string; answer: string }>;
+  products?:     Array<{ name: string; price_cents?: number; currency?: string; main_benefit?: string; is_hero?: boolean }>;
+  personas?:     Array<{ persona_name: string; lifestyle?: string; pains: string[]; desires: string[]; lingo_yes: string[]; lingo_no: string[] }>;
+  competitors?:  Array<{ name: string; ig_handle?: string; they_do_well?: string; is_direct_competitor: boolean; is_reference: boolean; is_anti_reference: boolean }>;
+  complianceFlags?: Record<string, unknown>;
+  services?:     string[];
 }
 
 export interface AgentError {
@@ -911,4 +946,130 @@ export interface ClientActivityLog {
   action:     string;
   details:    Record<string, unknown> | null;
   created_at: string;
+}
+
+// ─── Proposal (worker validation queue) ──────────────────────────────────────
+
+export type ProposalStatus =
+  | 'pending_qc' | 'qc_rejected_image' | 'qc_rejected_caption'
+  | 'failed' | 'converted_to_post' | 'rejected';
+
+export interface Proposal {
+  id:               string;
+  brand_id:         string;
+  status:           ProposalStatus;
+  format:           'image' | 'reel' | 'carousel' | 'story';
+  platform:         Platform;
+  caption_draft:    string | null;
+  image_url:        string | null;
+  week_start:       string | null;
+  retry_count:      number;
+  is_urgent:        boolean;
+  content_idea_id:  string | null;
+  created_at:       string;
+}
+
+// ─── Weekly Planning Module ───────────────────────────────────────────────────
+
+export type WeeklyPlanStatus =
+  | 'generating'
+  | 'ideas_ready'
+  | 'sent_to_client'
+  | 'client_reviewing'
+  | 'client_approved'
+  | 'producing'
+  | 'calendar_ready'
+  | 'completed'
+  | 'auto_approved'
+  | 'skipped_by_client'
+  | 'expired';
+
+export interface WeeklyPlan {
+  id:                    string;
+  brand_id:              string;
+  parent_job_id:         string | null;
+  week_start:            string;
+  status:                WeeklyPlanStatus;
+  sent_to_client_at:     string | null;
+  client_first_action_at: string | null;
+  client_approved_at:    string | null;
+  auto_approved:         boolean;
+  auto_approved_at:      string | null;
+  reminder_2_sent_at:    string | null;
+  reminder_4_sent_at:    string | null;
+  reminder_6_sent_at:    string | null;
+  claimed_by:            string | null;
+  claimed_at:            string | null;
+  skip_reason:           string | null;
+  created_at:            string;
+  updated_at:            string;
+}
+
+export type ContentIdeaFormat = 'image' | 'reel' | 'carousel' | 'story';
+
+export type ContentIdeaStatus =
+  | 'pending'
+  | 'client_approved'
+  | 'client_edited'
+  | 'client_rejected'
+  | 'client_requested_variation'
+  | 'auto_approved'
+  | 'auto_skipped'
+  | 'in_production'
+  | 'produced';
+
+export interface ContentIdea {
+  id:                     string;
+  week_id:                string;
+  brand_id:               string;
+  agent_output_id:        string | null;
+  category_id:            string | null;
+  position:               number;
+  day_of_week:            number | null;
+  format:                 ContentIdeaFormat;
+  angle:                  string;
+  hook:                   string | null;
+  copy_draft:             string | null;
+  hashtags:               string[] | null;
+  suggested_asset_url:    string | null;
+  suggested_asset_id:     string | null;
+  client_edited_copy:     string | null;
+  client_edited_hashtags: string[] | null;
+  final_copy:             string | null;
+  final_hashtags:         string[] | null;
+  status:                 ContentIdeaStatus;
+  proposal_id:            string | null;
+  post_id:                string | null;
+  created_at:             string;
+  updated_at:             string;
+}
+
+export type ClientFeedbackAction =
+  | 'approve'
+  | 'edit'
+  | 'request_variation'
+  | 'reject'
+  | 'retouch_final';
+
+export interface ClientFeedback {
+  id:             string;
+  idea_id:        string;
+  brand_id:       string;
+  action:         ClientFeedbackAction;
+  previous_value: Record<string, unknown> | null;
+  new_value:      Record<string, unknown> | null;
+  comment:        string | null;
+  created_at:     string;
+}
+
+export interface ScheduleChange {
+  id:               string;
+  post_id:          string;
+  brand_id:         string;
+  old_scheduled_at: string | null;
+  new_scheduled_at: string | null;
+  changed_by_type:  'client' | 'worker' | 'system';
+  changed_by_id:    string | null;
+  reason:           string | null;
+  created_at:       string;
 }

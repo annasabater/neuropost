@@ -18,7 +18,7 @@ export function brandToAgentContext(brand: Brand): AgentContext {
     forbiddenTopics: brand.rules?.forbiddenTopics ?? [],
     noEmojis:        brand.rules?.noEmojis        ?? false,
     sector:          brand.sector                 ?? 'otro',
-    language:        'es',
+    language:        (brand.rules as Record<string, unknown> | null)?.['language'] as string | undefined ?? 'es',
     exampleCaptions: brand.slogans               ?? [],
   };
 
@@ -33,7 +33,7 @@ export function brandToAgentContext(brand: Brand): AgentContext {
     businessName:      brand.name,
     brandVoice,
     socialAccounts,
-    timezone:          'Europe/Madrid',
+    timezone:          brand.timezone ?? 'Europe/Madrid',
     subscriptionTier:  brand.plan,
     brandVoiceDoc:     brand.brand_voice_doc      ?? undefined,
     visualStyle:       brand.visual_style         ?? undefined,

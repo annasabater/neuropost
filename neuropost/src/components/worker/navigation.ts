@@ -4,6 +4,7 @@ import {
   BarChart3,
   Bell,
   Bot,
+  CalendarDays,
   CheckSquare,
   DollarSign,
   FileText,
@@ -45,7 +46,8 @@ const BASE_GROUPS: WorkerNavGroup[] = [
   {
     label: 'Gestión',
     items: [
-      { href: '/worker/inbox', icon: Inbox, label: 'Inbox', badge: 'msg' },
+      { href: '/worker/inbox',      icon: Inbox,        label: 'Inbox',      badge: 'msg' },
+      { href: '/worker/validation', icon: CalendarDays, label: 'Validación' },
       { href: '/worker/clientes', icon: Users, label: 'Clientes' },
       { href: '/worker/anuncios', icon: Bell, label: 'Notificaciones' },
       { href: '/worker/analytics', icon: BarChart3, label: 'Analytics' },

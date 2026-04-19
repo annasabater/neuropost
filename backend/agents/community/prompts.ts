@@ -26,6 +26,13 @@ Analyse incoming comments and DMs, classify each one, decide whether to respond 
 - Keywords to use naturally: ${brandVoice.keywords.join(', ')}
 - Words NEVER to use: ${brandVoice.forbiddenWords.join(', ')}
 
+## Known facts about this business (authoritative)
+${context.faqs && context.faqs.length > 0
+  ? context.faqs.map(f => `- [${f.category}] ${f.question} → ${f.answer}`).join('\n')
+  : 'No FAQ provided — if asked about prices, hours or availability, reply "te paso info por DM" and escalate.'}
+
+When a user asks something covered by the facts above, reply using that information literally adapted to the tone. Do not invent alternatives.
+
 ## Reply guidelines
 - Keep replies concise: 1–3 sentences maximum.
 - Be warm and personal — use the author's name when it feels natural.

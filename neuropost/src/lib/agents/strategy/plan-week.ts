@@ -25,7 +25,12 @@
 //   - We only fan out "alta" + "media" priorities. "baja" ideas are
 //     returned for the user to browse but not queued for execution.
 
-import { generateIdeasForBrand } from './generate-ideas';
+import { generateIdeasForBrand }           from './generate-ideas';
+import { loadBrand }                         from '../helpers';
+import { parseIdeasFromStrategyPayload, extractWeekStart } from '@/lib/planning/parse-ideas';
+import { createWeeklyPlanFromOutput, transitionWeeklyPlanStatus } from '@/lib/planning/weekly-plan-service';
+import { enqueueClientReviewEmail }          from '@/lib/planning/trigger-client-email';
+import { createAdminClient }                 from '@/lib/supabase';
 import type { AgentJob, HandlerResult, HandlerSubJob } from '../types';
 import type { ContentIdea, PostFormat } from './types';
 
@@ -105,6 +110,66 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
     ideas = ideas.map((i) => ({ ...i, format: input.format_override! }));
   }
 
+  const strategyPayload = {
+    ideas,
+  } as unknown as Record<string, unknown>;
+
+  // ── Feature-flag bifurcation ─────────────────────────────────────────────
+  const brand = await loadBrand(job.brand_id);
+
+  if (brand?.use_new_planning_flow) {
+    // NEW FLOW: persist weekly_plans + content_ideas; suppress sub-job fan-out.
+    const weekStart   = extractWeekStart();
+    const parsedIdeas = parseIdeasFromStrategyPayload(strategyPayload);
+
+    let planId: string;
+    try {
+      const { plan } = await createWeeklyPlanFromOutput({
+        brand_id:        job.brand_id,
+        agent_output_id: null,     // runner saves the output after this returns
+        week_start:      weekStart,
+        parent_job_id:   job.id ?? null,
+        ideas:           parsedIdeas,
+      });
+      planId = plan.id;
+
+      await transitionWeeklyPlanStatus({ plan_id: planId, to: 'ideas_ready' });
+
+      // Require worker review unless brand explicitly opts out via human_review_config.messages=false
+      const requireWorkerReview = brand.human_review_config?.messages !== false;
+
+      if (requireWorkerReview) {
+        const db = createAdminClient() as ReturnType<typeof createAdminClient> & {
+          from: (t: string) => { insert: (r: unknown) => Promise<unknown> };
+        };
+        await db.from('worker_notifications').insert({
+          type:     'needs_review',
+          message:  `Plan semanal listo para revisar — semana del ${weekStart}`,
+          brand_id: job.brand_id,
+          read:     false,
+          metadata: { plan_id: planId, week_start: weekStart, event: 'weekly_plan.ideas_ready' },
+        });
+      } else {
+        await transitionWeeklyPlanStatus({ plan_id: planId, to: 'client_reviewing' });
+        await enqueueClientReviewEmail(planId);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { type: 'fail', error: `[plan-week] weekly_plan persistence failed: ${msg}` };
+    }
+
+    return {
+      type: 'ok',
+      outputs: [{
+        kind:    'strategy',
+        payload: { ...strategyPayload, plan_id: planId, week_start: weekStart },
+        model:   'claude-haiku-4-5-20251001',
+      }],
+      sub_jobs: [],   // no fan-out in new flow
+    };
+  }
+
+  // ── LEGACY FLOW ───────────────────────────────────────────────────────────
   // Only fan out alta + media priorities. Baja ideas are returned but not queued.
   const executable = ideas.filter((i) => i.priority !== 'baja');
   const subJobs: HandlerSubJob[] = executable.flatMap((i) => ideaToSubJobs(i, job.brand_id!));
@@ -114,11 +179,11 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
     outputs: [{
       kind:    'strategy',
       payload: {
-        ideas,
+        ...strategyPayload,
         sub_jobs_queued: subJobs.length,
         executed_ideas:  executable.length,
         deferred_ideas:  ideas.length - executable.length,
-      } as unknown as Record<string, unknown>,
+      },
       model:   'claude-haiku-4-5-20251001',
     }],
     sub_jobs: subJobs,
