@@ -185,7 +185,6 @@ export const REGENERATION_LIMITS: Record<SubscriptionPlan, number> = {
   starter: 3,
   pro:     6,
   total:   6,
-  agency:  6,
 };
 
 export interface RegenerationLimitCheck extends PlanLimitResult {
