@@ -6,6 +6,8 @@ import toast from 'react-hot-toast';
 import { createBrowserClient } from '@/lib/supabase';
 import { WeeklyPlansQueue } from './_components/WeeklyPlansQueue';
 import { RetouchQueue }     from './_components/RetouchQueue';
+import { ColaQueue }        from './_components/ColaQueue';
+import { ReclamadasQueue }  from './_components/ReclamadasQueue';
 
 const C = {
   bg: '#ffffff',
@@ -42,7 +44,7 @@ interface Proposal {
   brands?: { name: string };
 }
 
-type Tab = 'proposals' | 'weekly-plans' | 'retouches';
+type Tab = 'proposals' | 'weekly-plans' | 'retouches' | 'cola' | 'mis-tareas';
 
 export default function ValidationPage() {
   const [tab, setTab] = useState<Tab>('proposals');
@@ -169,6 +171,8 @@ export default function ValidationPage() {
             ['proposals',    'Propuestas (pieza individual)'],
             ['weekly-plans', 'Planes semanales'],
             ['retouches',    'Retoques pendientes'],
+            ['cola',         'Cola (pipeline clásico)'],
+            ['mis-tareas',   'Mis tareas reclamadas'],
           ] as [Tab, string][]).map(([t, label]) => (
             <button
               key={t}
@@ -319,8 +323,14 @@ export default function ValidationPage() {
       {/* ── Tab: Weekly Plans ── */}
       {tab === 'weekly-plans' && <WeeklyPlansQueue />}
 
-      {/* ── Tab: Retoches pendientes ── */}
+      {/* ── Tab: Retoques pendientes ── */}
       {tab === 'retouches' && <RetouchQueue />}
+
+      {/* ── Tab: Cola (pipeline clásico) ── */}
+      {tab === 'cola' && <ColaQueue />}
+
+      {/* ── Tab: Mis tareas reclamadas ── */}
+      {tab === 'mis-tareas' && <ReclamadasQueue />}
     </div>
   );
 }

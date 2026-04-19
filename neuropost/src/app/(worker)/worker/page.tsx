@@ -1343,15 +1343,12 @@ function chipStyle(active: boolean): React.CSSProperties {
 // MAIN PAGE COMPONENT
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-type OperacionesTab = 'overview' | 'cola' | 'validacion' | 'agentes' | 'reclamadas';
+type OperacionesTab = 'overview' | 'agentes';
 type IconProps = { size?: number; style?: React.CSSProperties };
 
 const OPERACIONES_TABS: { key: OperacionesTab; title: string; desc: string; icon: React.ComponentType<IconProps> }[] = [
-  { key: 'overview', title: 'Estadísticas', desc: 'Resumen diario', icon: BarChart },
-  { key: 'cola', title: 'Cola', desc: 'Validar contenido', icon: Clipboard },
-  { key: 'validacion', title: 'Validación', desc: 'Revisar propuestas', icon: Check },
-  { key: 'agentes', title: 'Agentes', desc: 'Observabilidad IA', icon: Radio },
-  { key: 'reclamadas', title: 'Mis tareas', desc: 'Intervención manual', icon: UserCheck },
+  { key: 'overview', title: 'Estadísticas', desc: 'Resumen diario',    icon: BarChart },
+  { key: 'agentes',  title: 'Agentes',      desc: 'Observabilidad IA', icon: Radio },
 ];
 
 export default function WorkerOperacionesPage() {
@@ -1374,7 +1371,7 @@ export default function WorkerOperacionesPage() {
       </div>
 
       {/* Tab selector — Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: C.border, border: `1px solid ${C.border}`, margin: '40px', marginBottom: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1px', background: C.border, border: `1px solid ${C.border}`, margin: '40px', marginBottom: 0 }}>
         {OPERACIONES_TABS.map((s) => {
           const active = tab === s.key;
           const Icon = s.icon;
@@ -1412,10 +1409,7 @@ export default function WorkerOperacionesPage() {
       {/* Tab content */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         {tab === 'overview' && <OverviewTab />}
-        {tab === 'cola' && <ColaTab />}
-        {tab === 'validacion' && <ValidacionTab />}
-        {tab === 'agentes' && <AgentesTab />}
-        {tab === 'reclamadas' && <ReclamadasTab />}
+        {tab === 'agentes'  && <AgentesTab />}
       </div>
     </div>
   );
