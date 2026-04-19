@@ -1,9 +1,23 @@
 'use client';
 
-import type { BillingSubscription, BillingUsage } from '@/lib/billing/mock-data';
-
 const f  = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
+
+type Subscription = {
+  planLabel: string;
+  priceMonthly: number;
+  status: string;
+  nextPaymentDate: string;
+  startedAt: string;
+  cancelAtPeriodEnd: boolean;
+  trialEnd: Date | null;
+};
+
+type Usage = {
+  aiPosts: { used: number; limit: number };
+  businesses: { used: number; limit: number };
+  socialNetworks: { used: number; limit: string | number };
+};
 
 function UsageBar({ label, used, limit }: { label: string; used: number; limit: string | number }) {
   const pct = typeof limit === 'number' ? Math.min((used / limit) * 100, 100) : 40;
@@ -20,24 +34,33 @@ function UsageBar({ label, used, limit }: { label: string; used: number; limit: 
   );
 }
 
-export default function CurrentPlanCard({ subscription, usage }: { subscription: BillingSubscription; usage: BillingUsage }) {
-  const statusColor = subscription.status === 'active' ? 'var(--accent)' : '#F59E0B';
-  const statusLabel = subscription.status === 'active' ? 'Activo' : subscription.status === 'trialing' ? 'Período de prueba' : subscription.status;
+export default function CurrentPlanCard({ subscription, usage }: { subscription: Subscription; usage: Usage }) {
+  const isActive = subscription.status === 'Activo' || subscription.status === 'En prueba';
+  const statusColor = isActive ? 'var(--accent)' : '#F59E0B';
 
   return (
     <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', display: 'grid', gridTemplateColumns: '1.4fr 1fr' }}>
-
-      {/* Left */}
       <div style={{ padding: '28px 32px' }}>
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 6,
-          background: 'var(--accent-light)', color: 'var(--accent-dark, var(--accent))',
-          padding: '5px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, fontFamily: f,
-          marginBottom: 14,
+          background: 'var(--accent-light)', color: 'var(--accent)',
+          padding: '5px 10px', borderRadius: 999, fontSize: 12, fontWeight: 600, fontFamily: f, marginBottom: 14,
         }}>
           <span style={{ width: 6, height: 6, borderRadius: '50%', background: statusColor }} />
-          {statusLabel}
+          {subscription.status}
         </div>
+
+        {subscription.trialEnd && (
+          <p style={{ fontFamily: f, fontSize: 12, color: '#F59E0B', marginBottom: 8 }}>
+            Período de prueba hasta el {new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'long' }).format(subscription.trialEnd)}
+          </p>
+        )}
+
+        {subscription.cancelAtPeriodEnd && (
+          <p style={{ fontFamily: f, fontSize: 12, color: '#B91C1C', marginBottom: 8 }}>
+            Se cancelará al final del ciclo actual
+          </p>
+        )}
 
         <div style={{ fontFamily: fc, fontWeight: 500, fontSize: 30, letterSpacing: '-0.02em', marginBottom: 6, color: 'var(--text-primary)' }}>
           Plan {subscription.planLabel}
@@ -52,21 +75,18 @@ export default function CurrentPlanCard({ subscription, usage }: { subscription:
             <div style={{ fontSize: 14, fontWeight: 500, fontFamily: f }}>{subscription.nextPaymentDate}</div>
           </div>
           <div>
-            <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, fontFamily: f }}>Método</div>
-            <div style={{ fontSize: 14, fontWeight: 500, fontFamily: f }}>Visa ···· 4242</div>
-          </div>
-          <div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, fontFamily: f }}>Inicio</div>
             <div style={{ fontSize: 14, fontWeight: 500, fontFamily: f }}>{subscription.startedAt}</div>
           </div>
           <div>
             <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, fontFamily: f }}>Estado</div>
-            <div style={{ fontSize: 14, fontWeight: 500, fontFamily: f, color: 'var(--accent)' }}>Al corriente</div>
+            <div style={{ fontSize: 14, fontWeight: 500, fontFamily: f, color: isActive ? 'var(--accent)' : '#F59E0B' }}>
+              {isActive ? 'Al corriente' : subscription.status}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Right — usage */}
       <div style={{
         background: 'linear-gradient(135deg, var(--accent-light) 0%, #F4FAF7 100%)',
         padding: '28px 32px', borderLeft: '1px solid var(--border)',
