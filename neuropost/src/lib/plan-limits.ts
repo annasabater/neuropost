@@ -163,7 +163,6 @@ export const IMAGE_QUALITY_BY_PLAN: Record<SubscriptionPlan, ImageQuality> = {
   starter: 'standard',
   pro:     'pro',
   total:   'pro',
-  agency:  'pro',
 };
 
 export const IMAGE_QUALITY_LABEL: Record<ImageQuality, string> = {

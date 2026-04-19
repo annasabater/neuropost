@@ -47,13 +47,12 @@ export async function GET(request: Request) {
 
       trendsDetected += savedTrends.filter(Boolean).length;
 
-      // Adapt to brands in this sector whose plan includes trendsAgent
-      // (Total and Agency). Pro/Starter do not get trend adaptations.
+      // Adapt to brands in this sector whose plan includes trendsAgent (Total only).
       const { data: brands } = await db
         .from('brands')
         .select('*')
         .eq('sector', sector)
-        .in('plan', ['total', 'agency']);
+        .in('plan', ['total']);
 
       for (const brand of brands ?? []) {
         const b = brand as Brand;

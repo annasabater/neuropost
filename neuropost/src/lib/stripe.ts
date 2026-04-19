@@ -16,15 +16,19 @@ export function getStripeClient(): Stripe {
 
 // ─── Plan → Stripe price mapping ──────────────────────────────────────────────
 
-export function getPriceId(plan: SubscriptionPlan): string {
-  const map: Record<SubscriptionPlan, string> = {
+export function getPriceId(plan: SubscriptionPlan, interval: 'monthly' | 'annual' = 'monthly'): string {
+  const monthly: Record<SubscriptionPlan, string> = {
     starter: process.env.STRIPE_PRICE_STARTER ?? '',
     pro:     process.env.STRIPE_PRICE_PRO     ?? '',
     total:   process.env.STRIPE_PRICE_TOTAL   ?? '',
-    agency:  process.env.STRIPE_PRICE_AGENCY  ?? '',
   };
-  const priceId = map[plan];
-  if (!priceId) throw new Error(`No Stripe price ID configured for plan: ${plan}`);
+  const annual: Record<SubscriptionPlan, string> = {
+    starter: process.env.STRIPE_PRICE_STARTER_ANNUAL ?? '',
+    pro:     process.env.STRIPE_PRICE_PRO_ANNUAL     ?? '',
+    total:   process.env.STRIPE_PRICE_TOTAL_ANNUAL   ?? '',
+  };
+  const priceId = interval === 'annual' ? annual[plan] : monthly[plan];
+  if (!priceId) throw new Error(`No Stripe price ID configured for plan: ${plan} (${interval})`);
   return priceId;
 }
 

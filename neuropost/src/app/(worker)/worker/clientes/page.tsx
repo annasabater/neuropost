@@ -31,7 +31,7 @@ type Client = {
 
 type Event = { id: string; action: string; created_at: string; details: Record<string, unknown> | null; brands?: { name: string; sector: string } };
 
-const PLAN_COLOR: Record<string, string> = { starter: '#6b7280', pro: '#3b82f6', total: '#8b5cf6', agency: '#f59e0b' };
+const PLAN_COLOR: Record<string, string> = { starter: '#6b7280', pro: '#3b82f6', total: '#8b5cf6' };
 
 const ACTION_ICON: Record<string, string> = {
   post_uploaded: '📸', post_approved: '✅', post_rejected: '❌', post_published: '🚀',
@@ -100,7 +100,6 @@ function ListaTab() {
           <option value="starter">Starter</option>
           <option value="pro">Pro</option>
           <option value="total">Total</option>
-          <option value="agency">Agency</option>
         </select>
       </div>
 

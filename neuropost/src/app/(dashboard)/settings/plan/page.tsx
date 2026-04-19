@@ -113,9 +113,9 @@ const PLANS: {
   {
     id:            'starter',
     name:          'Esencial',
-    monthlyPrice:   25,
+    monthlyPrice:   21,
     annualPrice:    21,
-    annualSavings:  48,
+    annualSavings:  0,
     desc:          'Para presencia activa',
     content:       ['✔ 2 fotos/semana', '✔ Carruseles hasta 3', '✔ Sin vídeo/reel', '✔ Instagram + Facebook'],
     highlight:     'Precio por 1 red social. +15 EUR/mes por red adicional.',
@@ -135,9 +135,9 @@ const PLANS: {
   {
     id:            'pro',
     name:          'Crecimiento',
-    monthlyPrice:   76,
-    annualPrice:    63,
-    annualSavings:  158,
+    monthlyPrice:   63,
+    annualPrice:    60,
+    annualSavings:  38,
     desc:          'Máximo alcance',
     content:       ['✔ 4 fotos/semana', '✔ 2 vídeos/reels/sem', '✔ Carruseles hasta 8', '✔ IG + FB + TikTok'],
     highlight:     'Vídeo/reel + TikTok. Precio por 1 red social.',
@@ -159,9 +159,9 @@ const PLANS: {
   {
     id:            'total',
     name:          'Profesional',
-    monthlyPrice:   161,
-    annualPrice:    133,
-    annualSavings:  336,
+    monthlyPrice:   133,
+    annualPrice:    113,
+    annualSavings:  239,
     desc:          'Control completo',
     content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels/sem', '✔ Carruseles hasta 20', '✔ IG + FB + TikTok'],
     highlight:     'Conversión máxima. Precio por 1 red social.',
@@ -521,7 +521,7 @@ export default function PlanPage() {
             {([
               { id: 'instagram', label: 'Instagram', icon: '📷', always: true, requiresPlan: null as string[] | null },
               { id: 'facebook', label: 'Facebook', icon: '📘', always: false, requiresPlan: null as string[] | null },
-              { id: 'tiktok', label: 'TikTok', icon: '🎵', always: false, requiresPlan: ['pro', 'total', 'agency'] as string[] | null },
+              { id: 'tiktok', label: 'TikTok', icon: '🎵', always: false, requiresPlan: ['pro', 'total'] as string[] | null },
             ]).map(({ id, label, icon, always, requiresPlan }) => {
               const active = selectedPlatforms.includes(id);
               const planBlocked = requiresPlan && !requiresPlan.includes(currentPlan);

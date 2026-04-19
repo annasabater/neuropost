@@ -28,8 +28,7 @@ export async function POST(request: Request) {
       if (session.subscription) {
         const sub     = await import('@/lib/stripe').then(m => m.getStripeClient().subscriptions.retrieve(session.subscription as string));
         const priceId = sub.items.data[0]?.price.id ?? '';
-        plan = priceId === process.env.STRIPE_PRICE_AGENCY ? 'agency'
-             : priceId === process.env.STRIPE_PRICE_TOTAL  ? 'total'
+        plan = priceId === process.env.STRIPE_PRICE_TOTAL  ? 'total'
              : priceId === process.env.STRIPE_PRICE_PRO    ? 'pro'
              : 'starter';
       }
@@ -85,7 +84,6 @@ export async function POST(request: Request) {
       // Find the plan item by explicit price-ID match (not array[0], because
       // the subscription may also carry the social-account add-on line).
       const planPrices: Array<[string, string]> = [
-        ['agency',  process.env.STRIPE_PRICE_AGENCY  ?? ''],
         ['total',   process.env.STRIPE_PRICE_TOTAL   ?? ''],
         ['pro',     process.env.STRIPE_PRICE_PRO     ?? ''],
         ['starter', process.env.STRIPE_PRICE_STARTER ?? ''],

@@ -37,9 +37,9 @@ const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 const PLANS: Plan[] = [
   {
     name:          'Esencial',
-    monthlyPrice:   25,
+    monthlyPrice:   21,
     annualPrice:    21,
-    annualSavings:  48,
+    annualSavings:  0,  // 252€/año ÷ 12 = 21€
     desc:          'Para presencia activa',
     content:       ['✔ 2 fotos/semana', '✔ Carruseles hasta 3', '✔ Sin vídeo/reel', '✔ Instagram + Facebook'],
     highlight:     'Ideal para empezar con redes. Precio por 1 red social.',
@@ -58,9 +58,9 @@ const PLANS: Plan[] = [
   },
   {
     name:          'Crecimiento',
-    monthlyPrice:   76,
-    annualPrice:    63,
-    annualSavings:  158,
+    monthlyPrice:   63,
+    annualPrice:    60,
+    annualSavings:  38,
     desc:          'Máximo alcance',
     content:       ['✔ 4 fotos/semana', '✔ 2 vídeos/reels/sem', '✔ Carruseles hasta 8', '✔ Instagram + Facebook + TikTok'],
     highlight:     'Vídeo/reel + TikTok para máximo alcance. Precio por 1 red social.',
@@ -81,9 +81,9 @@ const PLANS: Plan[] = [
   },
   {
     name:          'Profesional',
-    monthlyPrice:   161,
-    annualPrice:    133,
-    annualSavings:  336,
+    monthlyPrice:   133,
+    annualPrice:    113,
+    annualSavings:  239,
     desc:          'Control completo',
     content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels/sem', '✔ Carruseles hasta 20', '✔ Instagram + Facebook + TikTok'],
     highlight:     'Conversión máxima. Precio por 1 red social.',
@@ -124,12 +124,12 @@ const COMPARISON_ROWS: ComparisonRow[] = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function annualPrice(monthly: number): number {
-  return Math.round(monthly * 0.85);
+function annualPriceForPlan(plan: Plan): number {
+  return plan.annualPrice;
 }
 
-function annualSavings(monthly: number): number {
-  return Math.round((monthly - annualPrice(monthly)) * 12);
+function annualSavingsForPlan(plan: Plan): number {
+  return plan.annualSavings;
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -535,8 +535,8 @@ function PlanRecommender({ billing }: { billing: BillingCycle }) {
   const extraPhotos = Math.max(0, photosPerWeek - includedPhotos);
   const extraVideos = Math.max(0, videosPerWeek - includedVideos);
 
-  const basePrice = billing === 'annual' ? annualPrice(recommended.monthlyPrice) : recommended.monthlyPrice;
-  const savings = annualSavings(recommended.monthlyPrice);
+  const basePrice = billing === 'annual' ? annualPriceForPlan(recommended) : recommended.monthlyPrice;
+  const savings = annualSavingsForPlan(recommended);
 
   return (
     <section
@@ -632,9 +632,9 @@ function PlanRecommender({ billing }: { billing: BillingCycle }) {
               <span style={{ fontSize: 16, verticalAlign: 'top' }}>€</span>{basePrice}
               <span style={{ fontFamily: f, fontSize: 12, fontWeight: 500, color: '#9ca3af' }}>/mes</span>
             </p>
-            {billing === 'annual' && (
+            {billing === 'annual' && savings > 0 && (
               <p style={{ fontFamily: f, fontSize: 12, fontWeight: 700, color: '#34d399', marginBottom: 12 }}>
-                Ahorras €{savings}/año
+                Ahorras {savings} €/año
               </p>
             )}
 
@@ -811,17 +811,16 @@ export default function PricingPage() {
                       <span>/mes</span>
                     </div>
 
-                    {isAnnual && (
-                      <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '6px',
-                        background: plan.featured ? 'rgba(15,118,110,0.22)' : 'var(--accent-light)',
-                        color: plan.featured ? '#7cf5ea' : 'var(--accent)',
-                        fontFamily: f, fontSize: '0.78rem', fontWeight: 800,
-                        padding: '4px 12px', borderRadius: '0', marginBottom: '8px',
-                      }}>
-                        Ahorras €{plan.annualSavings}/año
-                      </div>
-                    )}
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '6px',
+                      background: plan.featured ? 'rgba(15,118,110,0.22)' : 'var(--accent-light)',
+                      color: plan.featured ? '#7cf5ea' : 'var(--accent)',
+                      fontFamily: f, fontSize: '0.78rem', fontWeight: 800,
+                      padding: '4px 12px', borderRadius: '0', marginBottom: '8px',
+                      visibility: isAnnual && plan.annualSavings > 0 ? 'visible' : 'hidden',
+                    }}>
+                      {plan.annualSavings > 0 ? `Ahorras ${plan.annualSavings} €/año` : '\u00A0'}
+                    </div>
 
                     <div className="plan-desc">{plan.desc}</div>
 
