@@ -3,7 +3,7 @@
 const f  = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
-export default function SubscriptionDangerZone({ disabled }: { disabled?: boolean }) {
+export default function SubscriptionDangerZone({ disabled, onManage }: { disabled?: boolean; onManage?: () => void }) {
   return (
     <div style={{
       padding: '28px 32px', border: '1px solid #FECACA', borderRadius: 14,
@@ -16,18 +16,12 @@ export default function SubscriptionDangerZone({ disabled }: { disabled?: boolea
         Puedes pausar tu suscripción hasta 3 meses (mantienes tus datos y conexiones) o cancelarla al final del ciclo actual. No hay permanencia.
       </p>
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <button disabled={disabled} style={{
+        <button disabled={disabled} onClick={onManage} style={{
           padding: '10px 16px', borderRadius: 8, border: '1px solid var(--border)',
           background: 'transparent', color: 'var(--text-primary)', fontFamily: f,
           fontWeight: 500, fontSize: 14, cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.5 : 1,
-        }}>Pausar suscripción</button>
-        <button disabled={disabled} style={{
-          padding: '10px 16px', borderRadius: 8, border: '1px solid #FECACA',
-          background: 'transparent', color: '#B91C1C', fontFamily: f,
-          fontWeight: 500, fontSize: 14, cursor: disabled ? 'not-allowed' : 'pointer',
-          opacity: disabled ? 0.5 : 1,
-        }}>Cancelar suscripción</button>
+        }}>Gestionar en Stripe</button>
       </div>
     </div>
   );

@@ -1,8 +1,12 @@
 'use client';
 
-import type { BillingInvoice } from '@/lib/billing/mock-data';
+import type { BillingInvoice } from '@/lib/billing/types';
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
+
+function formatDate(ts: number): string {
+  return new Intl.DateTimeFormat('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(ts * 1000));
+}
 
 export default function InvoicesTable({ invoices }: { invoices: BillingInvoice[] }) {
   return (
@@ -24,28 +28,31 @@ export default function InvoicesTable({ invoices }: { invoices: BillingInvoice[]
           {invoices.map((inv) => (
             <tr key={inv.id}>
               <td style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>
-                {inv.id}
+                {inv.number ?? inv.id}
               </td>
               <td style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-                {inv.date}
+                {formatDate(inv.date)}
               </td>
               <td style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontVariantNumeric: 'tabular-nums', fontWeight: 500 }}>
-                {inv.amount},00 €
+                {(inv.amount / 100).toFixed(2)} {inv.currency.toUpperCase()}
               </td>
               <td style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', gap: 5,
                   padding: '3px 9px', borderRadius: 999, fontSize: 12, fontWeight: 500,
-                  background: 'var(--accent-light)', color: 'var(--accent)',
+                  background: inv.status === 'paid' ? 'var(--accent-light)' : '#FEF3C7',
+                  color: inv.status === 'paid' ? 'var(--accent)' : '#92400E',
                 }}>
-                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)' }} />
-                  Pagada
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: inv.status === 'paid' ? 'var(--accent)' : '#F59E0B' }} />
+                  {inv.status === 'paid' ? 'Pagada' : inv.status === 'open' ? 'Pendiente' : inv.status}
                 </span>
               </td>
               <td style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', textAlign: 'right' }}>
-                <a href={inv.pdfUrl ?? '#'} style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: 13, fontWeight: 500 }}>
-                  PDF ↗
-                </a>
+                {inv.pdfUrl && (
+                  <a href={inv.pdfUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--muted)', textDecoration: 'none', fontSize: 13, fontWeight: 500 }}>
+                    PDF ↗
+                  </a>
+                )}
               </td>
             </tr>
           ))}
