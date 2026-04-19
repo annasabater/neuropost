@@ -11,7 +11,7 @@ import { PLAN_LIMITS, PLAN_META } from '@/types';
 import type { SubscriptionPlan, BrandPreferences } from '@/types';
 
 /** Plan that unlocks a given feature (lowest plan where it's enabled). */
-const PLAN_ORDER: SubscriptionPlan[] = ['starter', 'pro', 'total', 'agency'];
+const PLAN_ORDER: SubscriptionPlan[] = ['starter', 'pro', 'total'];
 
 /** Default preferences for a brand, clamped to the plan's ceiling. */
 export function defaultPreferencesFor(plan: SubscriptionPlan): BrandPreferences {

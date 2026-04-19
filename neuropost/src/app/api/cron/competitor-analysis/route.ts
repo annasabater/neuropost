@@ -14,11 +14,11 @@ export async function GET(request: Request) {
 
   const db = createAdminClient();
 
-  // Only analyze Pro/Agency brands with competitors defined
+  // Only analyze Pro/Total brands with competitors defined
   const { data: brands } = await db
     .from('brands')
     .select('*')
-    .in('plan', ['pro', 'agency'])
+    .in('plan', ['pro', 'total'])
     .not('competitors', 'eq', '{}');
 
   let analyses = 0;

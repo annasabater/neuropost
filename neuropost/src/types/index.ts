@@ -29,7 +29,7 @@ export type SocialSector    = 'heladeria' | 'restaurante' | 'cafeteria' | 'gym' 
   | 'otro';
 export type BrandTone       = 'cercano' | 'profesional' | 'divertido' | 'premium';
 export type PublishMode     = 'manual' | 'semi' | 'auto';
-export type SubscriptionPlan = 'starter' | 'pro' | 'total' | 'agency';
+export type SubscriptionPlan = 'starter' | 'pro' | 'total';
 export type VisualStyle     = 'creative' | 'elegant' | 'warm' | 'dynamic' | 'editorial' | 'dark' | 'fresh' | 'vintage';
 export type PostStatus      = 'request' | 'draft' | 'generated' | 'pending' | 'approved' | 'scheduled' | 'published' | 'failed' | 'cancelled' | 'needs_human_review';
 export type CategorySource  = 'template' | 'user' | 'ai_suggested';
@@ -770,19 +770,16 @@ export const PLAN_LIMITS: Record<SubscriptionPlan, {
   starter: { postsPerMonth: Infinity, postsPerWeek: 2,  storiesPerWeek: 0,  brands: 1,  platforms: 2, autoPublish: false, competitorAgent: false, trendsAgent: false, autoComments: false, autoProposalsPerWeek: 3,  videosPerWeek: 0,  requestsPerMonth: 2,        selfServiceActions: 10,       autopilot: false, inspirationAccess: true, carouselMaxPhotos: 3,  allowedPlatforms: ['instagram', 'facebook'],              tiktokAvailable: false },
   pro:     { postsPerMonth: Infinity, postsPerWeek: 4,  storiesPerWeek: 3,  brands: 1,  platforms: 2, autoPublish: true,  competitorAgent: false, trendsAgent: false, autoComments: false, autoProposalsPerWeek: 6,  videosPerWeek: 2,  requestsPerMonth: 10,       selfServiceActions: 50,       autopilot: false, inspirationAccess: true, carouselMaxPhotos: 8,  allowedPlatforms: ['instagram', 'facebook', 'tiktok'],    tiktokAvailable: true  },
   total:   { postsPerMonth: Infinity, postsPerWeek: 20, storiesPerWeek: 14, brands: 1,  platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true,  autoProposalsPerWeek: 30, videosPerWeek: 10, requestsPerMonth: Infinity, selfServiceActions: Infinity, autopilot: true,  inspirationAccess: true, carouselMaxPhotos: 20, allowedPlatforms: ['instagram', 'facebook', 'tiktok'],    tiktokAvailable: true  },
-  agency:  { postsPerMonth: Infinity, postsPerWeek: 20, storiesPerWeek: 14, brands: 10, platforms: 2, autoPublish: true,  competitorAgent: true,  trendsAgent: true,  autoComments: true,  autoProposalsPerWeek: 30, videosPerWeek: 10, requestsPerMonth: Infinity, selfServiceActions: Infinity, autopilot: true,  inspirationAccess: true, carouselMaxPhotos: 20, allowedPlatforms: ['instagram', 'facebook', 'tiktok'],    tiktokAvailable: true  },
 };
 
 /** UI-facing metadata per plan.
  *
- *  The internal enum stays ('starter' | 'pro' | 'total' | 'agency') so we
- *  don't have to migrate 50+ code references and the `brands.plan` DB
- *  column. The user-visible labels collapse to three tiers:
+ *  Three plans: starter / pro / total.
+ *  The user-visible labels:
  *
- *     starter → "Basic"
- *     pro     → "Pro"
- *     total   → "Premium"
- *     agency  → "Premium" (same tier, kept for grandfathered multi-brand users)
+ *     starter → "Esencial"
+ *     pro     → "Crecimiento"
+ *     total   → "Profesional"
  *
  *  Every plan ships with 1 connected social account; extras cost €15/mo
  *  (tracked on brands.purchased_extra_accounts — see lib/social-quota.ts).
@@ -797,10 +794,9 @@ export const PLAN_META: Record<SubscriptionPlan, {
   tagline:                  string;
   socialAccountsIncluded:   number;
 }> = {
-  starter: { label: 'Esencial',      price: 25,  annualPrice: 21,  extraPlatformPrice: 15, tagline: '2 posts de foto por semana · Generación con IA',            socialAccountsIncluded: 1 },
-  pro:     { label: 'Crecimiento',   price: 76,  annualPrice: 63,  extraPlatformPrice: 15, tagline: '4 fotos + 2 vídeos por semana · Soporte prioritario',        socialAccountsIncluded: 1 },
-  total:   { label: 'Profesional',   price: 161, annualPrice: 133, extraPlatformPrice: 15, tagline: 'Hasta 20 fotos + 10 vídeos por semana · 24h',                socialAccountsIncluded: 1 },
-  agency:  { label: 'Profesional',   price: 199, annualPrice: 159, extraPlatformPrice: 15, tagline: 'Todo de Profesional · Hasta 10 marcas (grandfathered)',       socialAccountsIncluded: 1 },
+  starter: { label: 'Esencial',      price: 21,  annualPrice: 21,  extraPlatformPrice: 15, tagline: '2 posts de foto por semana · Generación con IA',            socialAccountsIncluded: 1 },
+  pro:     { label: 'Crecimiento',   price: 63,  annualPrice: 60,  extraPlatformPrice: 15, tagline: '4 fotos + 2 vídeos por semana · Soporte prioritario',        socialAccountsIncluded: 1 },
+  total:   { label: 'Profesional',   price: 133, annualPrice: 113, extraPlatformPrice: 15, tagline: 'Hasta 20 fotos + 10 vídeos por semana · 24h',                socialAccountsIncluded: 1 },
 };
 
 /** Add-on pricing. One extra connected social account = €15/mo each. */

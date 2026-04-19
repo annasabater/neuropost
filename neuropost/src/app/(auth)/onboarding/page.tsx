@@ -632,7 +632,7 @@ const ONBOARDING_PLANS: {
   {
     id:       'starter',
     name:     'Starter',
-    price:     25,
+    price:     21,
     desc:     'Para presencia activa',
     features: [
       '📷  2 fotos/semana · 🎬  Carruseles hasta 3 · Sin vídeo/reel',
@@ -648,7 +648,7 @@ const ONBOARDING_PLANS: {
   {
     id:       'pro',
     name:     'Pro',
-    price:     76,
+    price:     63,
     desc:     'Máximo alcance',
     featured: true,
     badge:    'Más popular',
@@ -666,7 +666,7 @@ const ONBOARDING_PLANS: {
   {
     id:    'total',
     name:  'Total',
-    price:  161,
+    price:  133,
     desc:  'Control completo',
     badge: 'Completo',
     features: [

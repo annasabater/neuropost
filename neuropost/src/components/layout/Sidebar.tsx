@@ -109,6 +109,7 @@ export function Sidebar() {
         <div className="dash-nav-group-label">Otros</div>
         <NavItem href="/historial" label={t('history')} icon={Archive} />
         <NavItem href="/inbox" label="Inbox" icon={MessageSquare} badge={unreadComments} />
+        <NavItem href="/billing" label="Facturación" icon={CreditCard} />
       </div>
 
       {/* ── Profile section ── */}

@@ -194,9 +194,9 @@ export default function LandingPage() {
   const homePlans = [
     {
       name:          'Starter',
-      monthlyPrice:   25,
+      monthlyPrice:   21,
       annualPrice:    21,
-      annualSavings:  48,
+      annualSavings:  0,  // 252€/año ÷ 12 = 21€ → sin ahorro
       desc:          'Para presencia activa',
       content:       ['✔ 2 fotos/semana', '✔ Carruseles hasta 3', '✔ Sin vídeo/reel'],
       highlight:     'Ideal para empezar con redes',
@@ -212,9 +212,9 @@ export default function LandingPage() {
     },
     {
       name:          'Pro',
-      monthlyPrice:   76,
-      annualPrice:    63,
-      annualSavings:  158,
+      monthlyPrice:   63,
+      annualPrice:    60,
+      annualSavings:  38,
       desc:          'Máximo alcance',
       featured:      true,
       badge:         '⚡ Más popular',
@@ -232,9 +232,9 @@ export default function LandingPage() {
     },
     {
       name:          'Total',
-      monthlyPrice:   161,
-      annualPrice:    133,
-      annualSavings:  336,
+      monthlyPrice:   133,
+      annualPrice:    113,
+      annualSavings:  239,
       desc:          'Control completo',
       badge:         '🚀 Completo',
       content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels ≤90s/sem', '✔ Carruseles hasta 20'],
@@ -591,29 +591,33 @@ export default function LandingPage() {
               const { name, desc, featured, badge, features, content, highlight } = plan;
               return (
               <div key={name} className="pricing-home-card" style={{ background: featured ? '#111111' : '#ffffff', border: featured ? 'none' : '1px solid #e5e7eb', padding: '40px 24px', display: 'flex', flexDirection: 'column' }}>
-                {(badge || featured) && (
-                  <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#0F766E', background: '#f0fdf4', padding: '3px 10px', alignSelf: 'flex-start', marginBottom: 16 }}>
-                    {badge ?? 'Más popular'}
-                  </span>
-                )}
+                <span style={{
+                  fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em',
+                  color: '#0F766E', background: '#f0fdf4', padding: '3px 10px', alignSelf: 'flex-start', marginBottom: 16,
+                  visibility: (badge || featured) ? 'visible' : 'hidden',
+                }}>
+                  {badge ?? (featured ? 'Más popular' : '\u00A0')}
+                </span>
                 <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: featured ? '#ffffff' : '#111111', marginBottom: 4 }}>{name}</p>
                 <p style={{ fontFamily: fc, fontWeight: 900, fontSize: '3rem', color: featured ? '#ffffff' : '#111111', lineHeight: 1, marginBottom: 4 }}>
                   <span style={{ fontSize: 18, verticalAlign: 'top' }}>€</span>{homeDisplayPrice(plan)}<span style={{ fontSize: 14, fontWeight: 400, color: '#9ca3af' }}>/mes</span>
                 </p>
-                {homeBilling === 'annual' && (
-                  <p style={{ fontFamily: f, fontSize: 12, fontWeight: 700, color: featured ? '#d1d5db' : '#0F766E', marginBottom: 10 }}>
-                    {`Ahorras €${homeSavings(plan)}/año`}
-                  </p>
-                )}
+                <p style={{
+                  fontFamily: f, fontSize: 12, fontWeight: 700,
+                  color: featured ? '#d1d5db' : '#0F766E', marginBottom: 10,
+                  visibility: homeBilling === 'annual' && homeSavings(plan) > 0 ? 'visible' : 'hidden',
+                }}>
+                  {homeSavings(plan) > 0 ? `Ahorras ${homeSavings(plan)} €/año` : '\u00A0'}
+                </p>
                 <p style={{ fontFamily: f, fontSize: 13, color: featured ? '#9ca3af' : '#6b7280', marginBottom: 16 }}>{desc}</p>
 
                 {/* Content block */}
-                <div style={{ border: `1px solid ${featured ? 'rgba(255,255,255,0.15)' : '#e5e7eb'}`, padding: '10px 12px', marginBottom: 16 }}>
+                <div style={{ border: `1px solid ${featured ? 'rgba(255,255,255,0.15)' : '#e5e7eb'}`, padding: '10px 12px', marginBottom: 16, minHeight: 160, display: 'flex', flexDirection: 'column' }}>
                   <p style={{ fontFamily: fc, fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: featured ? 'rgba(255,255,255,0.5)' : '#9ca3af', marginBottom: 8 }}>Contenido incluido</p>
                   {content.map((item) => (
                     <p key={item} style={{ fontFamily: f, fontSize: 13, fontWeight: 600, color: featured ? '#ffffff' : '#111111', marginBottom: 3 }}>{item}</p>
                   ))}
-                  <p style={{ fontFamily: f, fontSize: 11, fontStyle: 'italic', color: featured ? 'rgba(255,255,255,0.5)' : '#9ca3af', marginTop: 6 }}>{highlight}</p>
+                  <p style={{ fontFamily: f, fontSize: 11, fontStyle: 'italic', color: featured ? 'rgba(255,255,255,0.5)' : '#9ca3af', marginTop: 'auto', paddingTop: 6 }}>{highlight}</p>
                 </div>
 
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>

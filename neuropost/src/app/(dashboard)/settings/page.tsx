@@ -366,7 +366,7 @@ export default function SettingsPage() {
     }
   }
 
-  async function handleUpgrade(plan: 'pro' | 'agency') {
+  async function handleUpgrade(plan: 'pro' | 'total') {
     const res  = await fetch('/api/stripe/checkout', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
