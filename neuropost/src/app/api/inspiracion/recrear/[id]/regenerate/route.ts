@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server';
 import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
 import { startReplicatePrediction } from '@/lib/replicate';
-import { checkRegenerationLimit, incrementRegenerationCount } from '@/lib/plan-limits';
+import { reserveRegenerationSlot, releaseRegenerationSlot } from '@/lib/plan-limits';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -39,8 +39,10 @@ export async function POST(
       return NextResponse.json({ error: 'Recreation not found' }, { status: 404 });
     }
 
-    // Enforce per-plan regeneration quota (check only — do NOT increment yet)
-    const quota = await checkRegenerationLimit(brand.id, id);
+    // Atomically reserve a regeneration slot. Two concurrent regenerates
+    // cannot both pass this gate: the SQL function does the compare-and-swap
+    // in a single UPDATE. If Replicate fails below we release the slot.
+    const quota = await reserveRegenerationSlot(brand.id, id);
     if (!quota.allowed) {
       return NextResponse.json(
         { error: quota.reason, used: quota.used, limit: quota.limit, upgradeUrl: quota.upgradeUrl },
@@ -78,9 +80,8 @@ export async function POST(
       : 'http://localhost:3000');
     const webhookUrl = `${baseUrl}/api/webhooks/replicate`;
 
-    // Await Replicate's initial POST (not the full generation — that completes
-    // via webhook). This typically resolves in <2s. Only if Replicate accepts
-    // do we consume a regeneration slot.
+    // Slot already reserved atomically above. If Replicate rejects we
+    // release it to avoid charging the user for a provider-side failure.
     let prediction;
     try {
       prediction = await startReplicatePrediction({
@@ -90,6 +91,7 @@ export async function POST(
       });
     } catch (err) {
       console.error(`[regenerate] Replicate prediction failed for recreation ${id}:`, err);
+      await releaseRegenerationSlot(id);
       await db
         .from('recreation_requests')
         .update({ status: 'pending', replicate_status: 'failed' })
@@ -100,8 +102,7 @@ export async function POST(
       );
     }
 
-    // Replicate accepted the prediction → consume the slot and persist its id.
-    await incrementRegenerationCount(id);
+    // Replicate accepted — slot stays reserved, persist prediction id.
     await db
       .from('recreation_requests')
       .update({

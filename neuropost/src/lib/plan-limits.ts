@@ -194,8 +194,20 @@ export interface RegenerationLimitCheck extends PlanLimitResult {
   limit?: number;
 }
 
-/** Check if a brand can regenerate this specific recreation again. */
-export async function checkRegenerationLimit(
+/**
+ * Reserve one regeneration slot atomically.
+ *
+ * Looks up the brand's plan limit, then delegates the compare-and-swap to
+ * `increment_regeneration_if_available(p_recreation_id, p_limit)` — a SQL
+ * function that only updates when regeneration_count < limit. Two concurrent
+ * callers cannot both reserve the last slot: Postgres serialises the UPDATE.
+ *
+ * On failure path (Replicate rejects the prediction after reservation), call
+ * {@link releaseRegenerationSlot} to refund the slot.
+ *
+ * Migration: supabase/migrations/20260419_atomic_regeneration_count.sql
+ */
+export async function reserveRegenerationSlot(
   brandId: string,
   recreationId: string,
 ): Promise<RegenerationLimitCheck> {
@@ -207,11 +219,23 @@ export async function checkRegenerationLimit(
   const plan  = (brand?.plan ?? 'starter') as SubscriptionPlan;
   const limit = REGENERATION_LIMITS[plan];
 
-  const { data: rec } = await supabase
-    .from('recreation_requests').select('regeneration_count').eq('id', recreationId).single();
-  const used = rec?.regeneration_count ?? 0;
+  const { data, error } = await supabase.rpc('increment_regeneration_if_available', {
+    p_recreation_id: recreationId,
+    p_limit:         limit,
+  });
 
-  if (used >= limit) {
+  if (error) {
+    throw new Error(`reserveRegenerationSlot RPC failed: ${error.message}`);
+  }
+
+  const row: { new_count: number; allowed: boolean } | undefined = Array.isArray(data) ? data[0] : data;
+
+  if (!row?.allowed) {
+    // No row returned → the WHERE guard rejected (quota exhausted).
+    // Read the current value for the error message.
+    const { data: rec } = await supabase
+      .from('recreation_requests').select('regeneration_count').eq('id', recreationId).single();
+    const used = rec?.regeneration_count ?? limit;
     return {
       allowed:    false,
       reason:     `Has alcanzado el límite de regeneraciones para tu plan (${used}/${limit}). Contacta con soporte o mejora tu plan.`,
@@ -220,17 +244,23 @@ export async function checkRegenerationLimit(
       limit,
     };
   }
-  return { allowed: true, used, limit };
+
+  return { allowed: true, used: row.new_count, limit };
 }
 
-/** Increment regeneration_count atomically-ish on a recreation_request. */
-export async function incrementRegenerationCount(recreationId: string): Promise<void> {
+/**
+ * Refund a previously reserved slot. Wraps `decrement_regeneration_count`
+ * so the counter floors at 0 even on double-release.
+ */
+export async function releaseRegenerationSlot(recreationId: string): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const supabase = await createServerClient() as any;
-  const { data } = await supabase
-    .from('recreation_requests').select('regeneration_count').eq('id', recreationId).single();
-  const next = (data?.regeneration_count ?? 0) + 1;
-  await supabase.from('recreation_requests').update({ regeneration_count: next }).eq('id', recreationId);
+  const { error } = await supabase.rpc('decrement_regeneration_count', {
+    p_recreation_id: recreationId,
+  });
+  if (error) {
+    console.error(`[releaseRegenerationSlot] RPC failed for ${recreationId}:`, error.message);
+  }
 }
 
 /** Increment story counter after successful story publish. */
