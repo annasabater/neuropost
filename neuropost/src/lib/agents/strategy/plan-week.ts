@@ -2,12 +2,13 @@
 // strategy:plan_week
 // =============================================================================
 // The closest thing to an "agentic" handler in F4:
-//   1. Calls generateIdeasForBrand() to get N prioritized ideas
-//   2. For each idea, emits sub-jobs to execute it:
+//   1. Loads brand + resolves post count from PLAN_CONTENT_QUOTAS (Sprint 11)
+//   2. Calls generateIdeasForBrand() to get N prioritized ideas
+//   3. For each idea, emits sub-jobs to execute it:
 //        - content:generate_image     (produces the visual)
 //        - content:generate_caption   (produces the copy)
 //        - moderation:check_brand_safety (optional gate)
-//   3. Returns a strategy output containing the ideas + counts,
+//   4. Returns a strategy output containing the ideas + counts,
 //      and sub_jobs that the runner will persist with parent_job_id = this job.
 //
 // The runner owns persistence, so this handler never touches queueJob() —
@@ -15,7 +16,8 @@
 //
 // Inputs (job.input):
 //   { count?: number, format_override?: PostFormat }
-//     - count: number of ideas to plan (default 5, max 10)
+//     - count: override post count (useful for tests/debug). If omitted,
+//              uses PLAN_CONTENT_QUOTAS[brand.plan].posts_per_week.
 //     - format_override: force all ideas to this format
 //
 // Gotchas:
@@ -25,14 +27,21 @@
 //   - We only fan out "alta" + "media" priorities. "baja" ideas are
 //     returned for the user to browse but not queued for execution.
 
-import { generateIdeasForBrand }           from './generate-ideas';
-import { loadBrand }                         from '../helpers';
+import { generateIdeasForBrand }                        from './generate-ideas';
+import { loadBrand }                                    from '../helpers';
 import { parseIdeasFromStrategyPayload, extractWeekStart } from '@/lib/planning/parse-ideas';
 import { createWeeklyPlanFromOutput, transitionWeeklyPlanStatus } from '@/lib/planning/weekly-plan-service';
-import { enqueueClientReviewEmail }          from '@/lib/planning/trigger-client-email';
-import { createAdminClient }                 from '@/lib/supabase';
-import type { AgentJob, HandlerResult, HandlerSubJob } from '../types';
-import type { ContentIdea, PostFormat } from './types';
+import { enqueueClientReviewEmail }                     from '@/lib/planning/trigger-client-email';
+import { createAdminClient }                            from '@/lib/supabase';
+import { PLAN_CONTENT_QUOTAS }                          from '@/lib/plan-limits';
+import { planStoriesHandler }                           from '../stories/plan-stories';
+import type { AgentJob, HandlerResult, HandlerSubJob }  from '../types';
+import type { ContentIdea, PostFormat }                 from './types';
+import type { PlanKey }                                 from '@/lib/plan-limits';
+import type { BrandMaterial }                           from '@/types';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type DB = any;
 
 interface PlanWeekInput {
   count?:           number;
@@ -88,7 +97,28 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
   }
 
   const input = job.input as unknown as PlanWeekInput;
-  const count = Math.min(Math.max(Number(input.count ?? 5), 1), 10);
+
+  // ── Load brand early so we can derive plan quotas before calling the LLM ──
+  const brand = await loadBrand(job.brand_id);
+
+  // Resolve plan — default to 'starter' if unknown
+  const rawPlan = brand?.plan as string | undefined;
+  const plan    = (rawPlan && rawPlan in PLAN_CONTENT_QUOTAS)
+    ? (rawPlan as PlanKey)
+    : 'starter';
+
+  if (rawPlan && !(rawPlan in PLAN_CONTENT_QUOTAS)) {
+    console.warn(`[plan-week] Unknown plan '${rawPlan}' for brand ${job.brand_id}, defaulting to starter`);
+  }
+
+  const planQuota = PLAN_CONTENT_QUOTAS[plan];
+
+  // job.input.count is the debug/test override; otherwise use plan quota; fallback 2
+  const postsPerWeek  = planQuota?.posts_per_week ?? 2;
+  const inputCount    = input.count !== undefined && input.count !== null
+    ? Number(input.count)
+    : postsPerWeek;
+  const count = Math.min(Math.max(inputCount, 1), 10);
 
   let ideas: ContentIdea[];
   try {
@@ -115,8 +145,6 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
   } as unknown as Record<string, unknown>;
 
   // ── Feature-flag bifurcation ─────────────────────────────────────────────
-  const brand = await loadBrand(job.brand_id);
-
   if (brand?.use_new_planning_flow) {
     // NEW FLOW: persist weekly_plans + content_ideas; suppress sub-job fan-out.
     const weekStart   = extractWeekStart();
@@ -124,24 +152,59 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
 
     let planId: string;
     try {
-      const { plan } = await createWeeklyPlanFromOutput({
+      const { plan: weeklyPlan } = await createWeeklyPlanFromOutput({
         brand_id:        job.brand_id,
         agent_output_id: null,     // runner saves the output after this returns
         week_start:      weekStart,
         parent_job_id:   job.id ?? null,
         ideas:           parsedIdeas,
       });
-      planId = plan.id;
+      planId = weeklyPlan.id;
 
       await transitionWeeklyPlanStatus({ plan_id: planId, to: 'ideas_ready' });
+
+      // ── Sprint 11: generate and insert story content_ideas ──────────────
+      const db = createAdminClient() as DB;
+
+      const { data: material } = await db
+        .from('brand_material')
+        .select('*')
+        .eq('brand_id', job.brand_id)
+        .eq('active', true);
+
+      // Resolve enabled story templates — prefer brand preference, fallback to all system ones
+      let templatesEnabled: string[] =
+        brand.content_mix_preferences?.stories_templates_enabled ?? [];
+      if (templatesEnabled.length === 0) {
+        const { data: sysTpls } = await db
+          .from('story_templates')
+          .select('id')
+          .eq('kind', 'system');
+        templatesEnabled = (sysTpls ?? []).map((t: { id: string }) => t.id);
+      }
+
+      const storyRows = await planStoriesHandler({
+        brand_id:                  job.brand_id,
+        week_id:                   planId,
+        brand,
+        brand_material:            (material ?? []) as BrandMaterial[],
+        stories_per_week:          planQuota?.stories_per_week ?? 3,
+        stories_templates_enabled: templatesEnabled,
+      });
+
+      if (storyRows.length > 0) {
+        const { error: storiesErr } = await db.from('content_ideas').insert(storyRows);
+        if (storiesErr) {
+          // Non-fatal: log but don't fail the whole plan
+          console.error('[plan-week] Failed to insert story ideas:', storiesErr.message);
+        }
+      }
+      // ────────────────────────────────────────────────────────────────────
 
       // Require worker review unless brand explicitly opts out via human_review_config.messages=false
       const requireWorkerReview = brand.human_review_config?.messages !== false;
 
       if (requireWorkerReview) {
-        const db = createAdminClient() as ReturnType<typeof createAdminClient> & {
-          from: (t: string) => { insert: (r: unknown) => Promise<unknown> };
-        };
         await db.from('worker_notifications').insert({
           type:     'needs_review',
           message:  `Plan semanal listo para revisar — semana del ${weekStart}`,
@@ -162,7 +225,7 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
       type: 'ok',
       outputs: [{
         kind:    'strategy',
-        payload: { ...strategyPayload, plan_id: planId, week_start: weekStart },
+        payload: { ...strategyPayload, plan_id: planId!, week_start: weekStart },
         model:   'claude-haiku-4-5-20251001',
       }],
       sub_jobs: [],   // no fan-out in new flow

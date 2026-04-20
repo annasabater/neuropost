@@ -12,7 +12,8 @@
     "email:test": "npx tsx scripts/test_email.ts",
     "test:sprint3": "npx tsx scripts/test_sprint3.ts",
     "test:reminders": "npx tsx scripts/test_reminders.ts",
-    "test:sprint6": "npx tsx scripts/test_sprint6.ts"
+    "test:sprint6": "npx tsx scripts/test_sprint6.ts",
+    "test:sprint11": "npx tsx scripts/test_sprint11.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
