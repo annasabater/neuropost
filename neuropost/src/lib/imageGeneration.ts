@@ -1,49 +1,76 @@
 // =============================================================================
-// NEUROPOST — Unified image generation with automatic fallback
-// Primary:  Nano Banana 2 (fast, high quality, Instagram-optimised)
-// Fallback: Replicate Flux Dev (when NB2 is unavailable)
+// NEUROPOST — Image generation via Replicate
+// txt2img: black-forest-labs/flux-pro  (photorealistic)
+// img2img: black-forest-labs/flux-kontext-pro  (edit preserving subject)
 // =============================================================================
 
-import { generateWithNanoBanana, editWithNanoBanana } from './nanoBanana';
-import type { NanoBananaQuality, NanoBananaFormat, NanoBananaResponse } from './nanoBanana';
-
-export type { NanoBananaQuality as ImageQuality };
+export type ImageQuality = 'standard' | 'pro';
 
 export interface GenerateImageParams {
   prompt:           string;
   negative_prompt?: string;
   width?:           number;
   height?:          number;
-  quality?:         NanoBananaQuality;
-  output_format?:   NanoBananaFormat;
+  quality?:         ImageQuality;
+  output_format?:   'jpg' | 'png' | 'webp';
 }
 
 export interface EditImageParams {
   imageUrl:  string;
   prompt:    string;
-  strength?: number;        // 0.0–1.0
-  quality?:  NanoBananaQuality;
+  strength?: number;   // 0.0–1.0
+  quality?:  ImageQuality;
 }
 
-// ─── Replicate fallback (Flux Dev) ────────────────────────────────────────────
+export interface ImageResponse {
+  image_url:       string;
+  generation_time: number;
+  credits_used:    number;
+}
 
-async function generateWithReplicate(params: GenerateImageParams): Promise<NanoBananaResponse> {
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function getToken(): string {
   const token = process.env.REPLICATE_API_TOKEN;
   if (!token) throw new Error('REPLICATE_API_TOKEN is not configured');
+  return token;
+}
 
-  const res = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-dev/predictions', {
+async function pollPrediction(pollUrl: string, token: string): Promise<string> {
+  for (let i = 0; i < 60; i++) {
+    await new Promise((r) => setTimeout(r, 2000));
+    const poll   = await fetch(pollUrl, { headers: { Authorization: `Bearer ${token}` } });
+    const result = await poll.json() as { status: string; output?: string[] | string; error?: string };
+    if (result.status === 'succeeded') {
+      const out = Array.isArray(result.output) ? result.output[0] : result.output;
+      return out ?? '';
+    }
+    if (result.status === 'failed') throw new Error(`Replicate failed: ${result.error}`);
+  }
+  throw new Error('Replicate prediction timed out after 120s');
+}
+
+// ─── txt2img (Flux Pro — photorealistic) ─────────────────────────────────────
+
+export async function generateImage(params: GenerateImageParams): Promise<ImageResponse> {
+  const token = getToken();
+  const t0    = Date.now();
+
+  // flux-pro uses a versioned endpoint
+  const res = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-pro/predictions', {
     method:  'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     body: JSON.stringify({
       input: {
-        prompt:      params.prompt,
-        width:       params.width  ?? 1024,
-        height:      params.height ?? 1024,
-        output_format: params.output_format ?? 'jpg',
-        num_outputs: 1,
+        prompt:          params.prompt,
+        width:           params.width         ?? 1024,
+        height:          params.height        ?? 1024,
+        output_format:   params.output_format ?? 'jpg',
+        // Flux Pro params (no num_inference_steps — model handles quality internally)
+        // guidance: higher = more prompt-adherent, lower = more creative
+        guidance:        3,
+        // prompt_upsampling: false prevents the model from "hallucinating" extra details
+        prompt_upsampling: false,
       },
     }),
   });
@@ -53,46 +80,51 @@ async function generateWithReplicate(params: GenerateImageParams): Promise<NanoB
     throw new Error(`Replicate error: ${err.detail ?? res.statusText}`);
   }
 
-  // Poll for completion
   const prediction = await res.json() as { id: string; urls: { get: string } };
-  const pollUrl = prediction.urls.get;
+  const imageUrl   = await pollPrediction(prediction.urls.get, token);
 
-  for (let i = 0; i < 30; i++) {
-    await new Promise((r) => setTimeout(r, 2000));
-    const poll = await fetch(pollUrl, { headers: { Authorization: `Bearer ${token}` } });
-    const result = await poll.json() as { status: string; output?: string[]; error?: string };
-    if (result.status === 'succeeded') {
-      return { image_url: result.output?.[0] ?? '', generation_time: i * 2, credits_used: 1 };
-    }
-    if (result.status === 'failed') throw new Error(`Replicate failed: ${result.error}`);
-  }
-
-  throw new Error('Replicate prediction timed out');
+  return {
+    image_url:       imageUrl,
+    generation_time: Math.round((Date.now() - t0) / 1000),
+    credits_used:    1,
+  };
 }
 
-// ─── Public API ───────────────────────────────────────────────────────────────
+// ─── img2img (Flux Kontext Pro) ───────────────────────────────────────────────
+// Flux Kontext Pro is designed for image editing: it preserves the original
+// subject/product and applies the prompt as targeted modifications.
+// Much better than flux-dev image_prompt for keeping the original photo intact.
 
-/** Generate a new image. Tries Nano Banana 2 first, falls back to Replicate. */
-export async function generateImage(params: GenerateImageParams): Promise<NanoBananaResponse> {
-  try {
-    return await generateWithNanoBanana(params);
-  } catch (nanoBananaError) {
-    console.error('Nano Banana 2 error, trying Replicate fallback:', nanoBananaError);
-    try {
-      return await generateWithReplicate(params);
-    } catch (replicateError) {
-      console.error('Replicate fallback also failed:', replicateError);
-      throw new Error('No hem pogut generar la imatge ara mateix. Torna-ho a provar en uns moments.');
-    }
-  }
-}
+export async function editImage(params: EditImageParams): Promise<ImageResponse> {
+  const token  = getToken();
+  const t0     = Date.now();
 
-/** Edit an existing image. Tries Nano Banana 2 first, no Replicate fallback for edits. */
-export async function editImage(params: EditImageParams): Promise<NanoBananaResponse> {
-  try {
-    return await editWithNanoBanana(params.imageUrl, params.prompt, params.strength ?? 0.5);
-  } catch (err) {
-    console.error('Nano Banana 2 edit error:', err);
-    throw new Error('No hem pogut editar la imatge ara mateix. Torna-ho a provar en uns moments.');
+  const res = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-kontext-pro/predictions', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({
+      input: {
+        prompt:        params.prompt,
+        input_image:   params.imageUrl,
+        output_format: 'jpg',
+        // guidance: lower = preserves original photo more faithfully
+        // default is 2.5; we lower it to 2 so edits are more conservative
+        guidance:      2,
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({})) as { detail?: string };
+    throw new Error(`Replicate Kontext error: ${err.detail ?? res.statusText}`);
   }
+
+  const prediction = await res.json() as { id: string; urls: { get: string } };
+  const imageUrl   = await pollPrediction(prediction.urls.get, token);
+
+  return {
+    image_url:       imageUrl,
+    generation_time: Math.round((Date.now() - t0) / 1000),
+    credits_used:    1,
+  };
 }

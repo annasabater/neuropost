@@ -28,8 +28,11 @@ const BATCH_SIZE = 30;
 const INTER_BRAND_DELAY_MS = 500; // stagger to avoid queue spikes
 
 export async function GET(request: Request) {
-  const auth = request.headers.get('authorization');
-  if (auth !== `Bearer ${process.env.CRON_SECRET ?? ''}`) {
+  const auth      = request.headers.get('authorization');
+  const isVercel  = request.headers.get('x-vercel-cron') === '1';
+  const secret    = process.env.CRON_SECRET ?? '';
+  const validBearer = secret && auth === `Bearer ${secret}`;
+  if (!isVercel && !validBearer) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

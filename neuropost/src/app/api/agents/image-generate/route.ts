@@ -6,7 +6,7 @@ import { runImageGenerateAgent } from '@/agents/ImageGenerateAgent';
 import { IMAGE_QUALITY_BY_PLAN } from '@/lib/plan-limits';
 import { checkRateLimit } from '@/lib/ratelimit';
 import type { VisualStyle, SocialSector, SubscriptionPlan, BrandRules, BrandColors } from '@/types';
-import type { NanoBananaQuality } from '@/lib/nanoBanana';
+import type { ImageQuality } from '@/lib/imageGeneration';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
     const { userPrompt, format, quality: qualityOverride } = await request.json() as {
       userPrompt:      string;
       format?:         'post' | 'story' | 'reel_cover';
-      quality?:        NanoBananaQuality;
+      quality?:        ImageQuality;
     };
 
     if (!userPrompt?.trim()) {
@@ -44,11 +44,11 @@ export async function POST(request: Request) {
     if (!brand) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
 
     // Determine quality from plan (user can't request higher than their plan allows)
-    const planQuality  = IMAGE_QUALITY_BY_PLAN[brand.plan as SubscriptionPlan] ?? 'fast';
-    const qualityOrder: NanoBananaQuality[] = ['fast', 'pro', 'ultra'];
-    const planLevel    = qualityOrder.indexOf(planQuality);
-    const reqLevel     = qualityOverride ? qualityOrder.indexOf(qualityOverride) : planLevel;
-    const quality      = qualityOrder[Math.min(reqLevel, planLevel)] as NanoBananaQuality;
+    const planQuality: ImageQuality = IMAGE_QUALITY_BY_PLAN[brand.plan as SubscriptionPlan] ?? 'standard';
+    const qualityOrder: ImageQuality[] = ['standard', 'pro'];
+    const planLevel = qualityOrder.indexOf(planQuality);
+    const reqLevel  = qualityOverride ? qualityOrder.indexOf(qualityOverride) : planLevel;
+    const quality   = qualityOrder[Math.min(reqLevel, planLevel)];
 
     // Build brand context string for the agent
     const brandContext = [

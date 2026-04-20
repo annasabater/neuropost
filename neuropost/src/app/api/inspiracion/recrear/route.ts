@@ -115,7 +115,7 @@ export async function POST(request: Request) {
     // Start async Replicate prediction
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL
       ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-    const webhookUrl = `${baseUrl}/api/webhooks/replicate?secret=${process.env.REPLICATE_WEBHOOK_SECRET ?? ''}`;
+    const webhookUrl = `${baseUrl}/api/webhooks/replicate`;
 
     // Use reference thumbnail as img2img source if available
     const referenceImageUrl = reference?.thumbnail_url ?? undefined;

@@ -24,7 +24,7 @@ const C = {
   green: '#0F766E',
 };
 
-const PLAN_PRICES = { starter: 29, pro: 69, total: 129, agency: 199 };
+const PLAN_PRICES: Record<string, number> = { starter: 21, pro: 63, total: 133 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TAB 1: MI-RENDIMIENTO
@@ -135,7 +135,7 @@ function EquipoTab() {
 function NegocioTab() {
   const [stats, setStats] = useState({
     totalBrands: 0,
-    byPlan: { starter: 0, pro: 0, total: 0, agency: 0 },
+    byPlan: { starter: 0, pro: 0, total: 0 },
     mrr: 0,
     arr: 0,
     activeTrials: 0,
@@ -151,7 +151,7 @@ function NegocioTab() {
       const { data: brands } = await (sb as any).from('brands').select('id, plan, trial_ends_at');
       const list = brands ?? [];
 
-      const byPlan = { starter: 0, pro: 0, total: 0, agency: 0 };
+      const byPlan = { starter: 0, pro: 0, total: 0 };
       let activeTrials = 0;
       const now = new Date();
       list.forEach((b: { plan: string; trial_ends_at: string | null }) => {
@@ -161,8 +161,7 @@ function NegocioTab() {
 
       const mrr = byPlan.starter * PLAN_PRICES.starter +
                   byPlan.pro * PLAN_PRICES.pro +
-                  byPlan.total * PLAN_PRICES.total +
-                  byPlan.agency * PLAN_PRICES.agency;
+                  byPlan.total * PLAN_PRICES.total;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { count: atRisk } = await (sb as any)
@@ -268,16 +267,128 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// TAB 4: COSTES (Provider cost tracking)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+type CostKpis = { costToday: number; costMonth: number; costPerClient: number; activeClients: number };
+type ProviderRow = { provider: string; calls: number; costMonth: number; avgCostPerCall: number; pctOfTotal: number };
+type BrandCostRow = { brand_id: string; name: string; plan: string; revenue: number; cost: number; margin: number };
+
+function CostesTab() {
+  const [kpis, setKpis] = useState<CostKpis>({ costToday: 0, costMonth: 0, costPerClient: 0, activeClients: 0 });
+  const [providers, setProviders] = useState<ProviderRow[]>([]);
+  const [brands, setBrands] = useState<BrandCostRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/worker/costs/summary').then(r => r.json()).then(d => {
+      setKpis(d.kpis ?? kpis);
+      setProviders(d.byProvider ?? []);
+      setBrands(d.byBrand ?? []);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: C.muted }}>Cargando datos de costes...</div>;
+
+  return (
+    <div style={{ padding: 28, overflowY: 'auto', maxHeight: 'calc(100vh - 240px)' }}>
+      {/* KPIs */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: C.border, border: `1px solid ${C.border}`, marginBottom: 24 }}>
+        {[
+          { label: 'Coste hoy', value: `$${kpis.costToday.toFixed(2)}`, sub: '' },
+          { label: 'Coste mes', value: `$${kpis.costMonth.toFixed(2)}`, sub: '' },
+          { label: 'Coste/cliente', value: `$${kpis.costPerClient.toFixed(2)}/mes`, sub: '' },
+          { label: 'Clientes activos', value: String(kpis.activeClients), sub: '' },
+        ].map(({ label, value, sub }) => (
+          <KpiCard key={label} icon={DollarSign} label={label} value={value} sub={sub} color={C.accent2} />
+        ))}
+      </div>
+
+      {/* By provider */}
+      <h3 style={{ fontFamily: fc, fontSize: 16, fontWeight: 800, textTransform: 'uppercase', marginBottom: 12 }}>Desglose por proveedor</h3>
+      <div style={{ border: `1px solid ${C.border}`, marginBottom: 24, overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, fontFamily: f }}>
+          <thead>
+            <tr style={{ background: C.bg1, borderBottom: `1px solid ${C.border}` }}>
+              {['Proveedor', 'Llamadas/mes', 'Coste/mes', 'Coste medio', '% del total'].map(h => (
+                <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.muted }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {providers.map(p => (
+              <tr key={p.provider} style={{ borderBottom: `1px solid ${C.border}` }}>
+                <td style={{ padding: '10px 16px', fontWeight: 600 }}>{p.provider}</td>
+                <td style={{ padding: '10px 16px' }}>{p.calls}</td>
+                <td style={{ padding: '10px 16px', fontWeight: 600, color: C.accent2 }}>${p.costMonth.toFixed(2)}</td>
+                <td style={{ padding: '10px 16px', color: C.muted }}>${p.avgCostPerCall.toFixed(3)}</td>
+                <td style={{ padding: '10px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ flex: 1, height: 6, background: C.bg1 }}>
+                      <div style={{ height: 6, background: C.accent2, width: `${p.pctOfTotal}%` }} />
+                    </div>
+                    <span style={{ fontSize: 11, color: C.muted, minWidth: 36 }}>{p.pctOfTotal}%</span>
+                  </div>
+                </td>
+              </tr>
+            ))}
+            {providers.length === 0 && (
+              <tr><td colSpan={5} style={{ padding: '24px 16px', textAlign: 'center', color: C.muted }}>Sin datos de costes todavía</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* By brand (profitability) */}
+      <h3 style={{ fontFamily: fc, fontSize: 16, fontWeight: 800, textTransform: 'uppercase', marginBottom: 12 }}>Rentabilidad por cliente</h3>
+      <div style={{ border: `1px solid ${C.border}`, overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, fontFamily: f }}>
+          <thead>
+            <tr style={{ background: C.bg1, borderBottom: `1px solid ${C.border}` }}>
+              {['Cliente', 'Plan', 'Ingresos/mes', 'Coste/mes', 'Margen', ''].map(h => (
+                <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: C.muted }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {brands.map(b => (
+              <tr key={b.brand_id} style={{ borderBottom: `1px solid ${C.border}` }}>
+                <td style={{ padding: '10px 16px', fontWeight: 600 }}>{b.name}</td>
+                <td style={{ padding: '10px 16px' }}>{b.plan}</td>
+                <td style={{ padding: '10px 16px' }}>{b.revenue > 0 ? `€${b.revenue}` : '—'}</td>
+                <td style={{ padding: '10px 16px', color: C.accent2 }}>${b.cost.toFixed(2)}</td>
+                <td style={{ padding: '10px 16px', fontWeight: 700, color: b.margin < 20 ? '#dc2626' : b.margin < 50 ? '#d97706' : C.accent2 }}>
+                  {b.margin}%
+                </td>
+                <td style={{ padding: '10px 16px' }}>
+                  {b.margin < 20 && <span style={{ fontSize: 10, padding: '2px 6px', background: '#fef2f2', color: '#dc2626', fontWeight: 700 }}>BAJO</span>}
+                </td>
+              </tr>
+            ))}
+            {brands.length === 0 && (
+              <tr><td colSpan={6} style={{ padding: '24px 16px', textAlign: 'center', color: C.muted }}>Sin datos de costes todavía</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MAIN PAGE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-type AnalyticsTab = 'mi-rendimiento' | 'equipo' | 'negocio';
+type AnalyticsTab = 'mi-rendimiento' | 'equipo' | 'negocio' | 'costes';
 type IconProps = { size?: number; style?: React.CSSProperties };
 
 const ANALYTICS_TABS: { key: AnalyticsTab; title: string; desc: string; icon: React.ComponentType<IconProps> }[] = [
   { key: 'mi-rendimiento', title: 'Mi Rendimiento', desc: 'Mis métricas', icon: Clock },
   { key: 'equipo', title: 'Equipo', desc: 'Equipo', icon: Users },
   { key: 'negocio', title: 'Negocio', desc: 'Negocio', icon: TrendingUp },
+  { key: 'costes', title: 'Costes', desc: 'Proveedores IA', icon: DollarSign },
 ];
 
 export default function AnalyticsPage() {
@@ -300,7 +411,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Tab selector — Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: C.border, border: `1px solid ${C.border}`, margin: '40px', marginBottom: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: C.border, border: `1px solid ${C.border}`, margin: '40px', marginBottom: 0 }}>
         {ANALYTICS_TABS.map((s) => {
           const active = tab === s.key;
           const Icon = s.icon;
@@ -340,6 +451,7 @@ export default function AnalyticsPage() {
         {tab === 'mi-rendimiento' && <MiRendimientoTab />}
         {tab === 'equipo' && <EquipoTab />}
         {tab === 'negocio' && <NegocioTab />}
+        {tab === 'costes' && <CostesTab />}
       </div>
     </div>
   );

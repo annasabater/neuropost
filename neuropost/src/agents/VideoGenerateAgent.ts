@@ -1,17 +1,16 @@
 // =============================================================================
 // NEUROPOST — VideoGenerateAgent
-// Generates Instagram Reels (9:16 MP4) using RunwayML Gen-4 Turbo.
+// Generates Instagram Reels (9:16 MP4) using Kling v2 Master via fal.ai.
 //
 // Flow:
-//   1. Claude writes a cinematic video prompt optimised for RunwayML Gen-4
-//   2. RunwayML Gen-4 Turbo generates a 5–10 s Reel (768×1280 or 1080×1920)
+//   1. Claude writes a cinematic video prompt optimised for Kling v2
+//   2. Kling v2 Master img2video generates a 5–10 s Reel
 //   3. Video is downloaded + uploaded to Supabase Storage (assets bucket)
 //   4. Returns the public Supabase URL for Meta publishing
 // =============================================================================
 
 import Anthropic from '@anthropic-ai/sdk';
-import { generateVideo } from '@/lib/runway';
-import type { RunwayDuration } from '@/lib/runway';
+import { generateVideoFromImage } from '@/lib/videoGeneration';
 import type { VisualStyle, SocialSector, BrandColors } from '@/types';
 
 const anthropic = new Anthropic();
@@ -22,22 +21,22 @@ export interface VideoGenerateInput {
   visualStyle:   VisualStyle;
   brandContext:  string;
   referenceImageUrl?: string;        // optional: animate an existing photo
-  duration?:     RunwayDuration;     // 5 or 10 seconds (default 5)
+  duration?:     5 | 10;            // 5 or 10 seconds (default 5)
   brandId?:      string;
   /** Brand palette — injected into the cinematic prompt. */
   colors?:       BrandColors | null;
-  /** Words to avoid in any overlay text (we also tell RunwayML to skip text overlays). */
+  /** Words to avoid in any overlay text. */
   forbiddenWords?: string[];
-  /** If true, no emojis should appear (belt and braces — Runway doesn't render emojis). */
+  /** If true, no emojis should appear. */
   noEmojis?:     boolean;
 }
 
 export interface VideoGenerateOutput {
-  videoUrl:       string;            // Supabase public URL
-  runwayTaskId:   string;
+  videoUrl:       string;            // Supabase public URL (or fal.ai CDN URL)
   enhancedPrompt: string;
   durationSec:    number;
   generationMs?:  number;
+  creditsUsed?:   number;
 }
 
 // ─── Style guide for video ────────────────────────────────────────────────────
@@ -73,47 +72,79 @@ export async function runVideoGenerateAgent(
     brandRules.push('No emoji-like icons or cartoonish overlays.');
   }
 
-  // ── Step 1: Claude writes the optimal RunwayML prompt ─────────────────────
-  const promptMsg = await anthropic.messages.create({
-    model:      'claude-sonnet-4-20250514',
-    max_tokens: 350,
-    messages: [{
-      role:    'user',
-      content: `Write a cinematic video prompt for RunwayML Gen-4 Turbo to generate an Instagram Reel.
+  // ── Step 1: Claude writes the Kling prompt using Vision ──────────────────
+  // Vision-first approach: Claude sees the image, describes what's already there,
+  // then applies the user's motion request ON TOP — without reinventing the scene.
+  type ContentBlock =
+    | { type: 'image'; source: { type: 'url'; url: string } }
+    | { type: 'text'; text: string };
 
-User request: "${input.userPrompt}"
-Sector: ${input.sector}
-Visual style: ${input.visualStyle} — ${VIDEO_STYLE_GUIDE[input.visualStyle]}
-Brand context: ${input.brandContext}
-Duration: ${duration} seconds
-Format: 9:16 vertical (Instagram Reel)
-${input.referenceImageUrl ? 'A reference image will be provided — animate and extend it.' : 'Generate from text only.'}
-${brandRules.length ? `\nBrand rules:\n${brandRules.map(r => `- ${r}`).join('\n')}\n` : ''}
-Requirements for RunwayML Gen-4:
-- Describe the scene, action, camera movement and lighting precisely
-- Use cinematic language: "slow dolly forward", "rack focus", "golden hour sunlight"
-- Describe what's happening in the first and last frame (for smooth loop feel)
-- No text overlays or logos in the scene
-- Keep it achievable in ${duration} seconds
+  const hasUserRequest = input.userPrompt.trim().length > 0;
+
+  const visionContent: ContentBlock[] = [];
+
+  if (input.referenceImageUrl) {
+    visionContent.push({
+      type: 'image',
+      source: { type: 'url', url: input.referenceImageUrl },
+    });
+  }
+
+  visionContent.push({
+    type: 'text',
+    text: `You are a video prompt engineer for Kling v2 AI (img2video).
+
+${input.referenceImageUrl
+  ? `FIRST: Look at this image carefully. Identify: the main subject, the setting, the mood, colors, and lighting. This image is the FIRST FRAME of the video — preserve it completely.
+
+THEN: Write a ${duration}-second Kling v2 video prompt that:
+1. Keeps the scene EXACTLY as it appears in the image (same subject, same setting, same mood)
+2. Applies ONLY this motion/change the user requested: "${hasUserRequest ? input.userPrompt : 'smooth natural ambient motion, subtle camera drift'}"
+3. Does NOT add new elements, people, or locations that aren't in the image`
+  : `Write a ${duration}-second Kling v2 video prompt based on this request: "${input.userPrompt}"`}
+
+Context:
+- Sector: ${input.sector}
+- Visual style: ${input.visualStyle} — ${VIDEO_STYLE_GUIDE[input.visualStyle]}
+- Brand: ${input.brandContext}
+${brandRules.length ? `- Brand rules:\n${brandRules.map(r => `  • ${r}`).join('\n')}` : ''}
+
+Prompt requirements:
+- Describe camera movement precisely: "slow dolly in", "static shot", "gentle pan left"
+- Describe what moves in the scene and how (hair, steam, leaves, liquid, etc.)
+- Realistic, smooth motion only — no surreal or impossible physics
+- No text overlays or logos
+- Format: 9:16 vertical Reel, ${duration} seconds
 
 Reply ONLY with the video prompt in English. 2-3 sentences max.`,
-    }],
+  });
+
+  const promptMsg = await anthropic.messages.create({
+    model:      'claude-sonnet-4-20250514',
+    max_tokens: 250,
+    messages:   [{ role: 'user', content: visionContent as Anthropic.MessageParam['content'] }],
   });
 
   const enhancedPrompt = promptMsg.content[0].type === 'text'
     ? promptMsg.content[0].text.trim()
     : input.userPrompt;
 
-  // ── Step 2: RunwayML Gen-4 Turbo generates the video ─────────────────────
-  const { videoUrl: runwayUrl, taskId } = await generateVideo({
-    promptText:   enhancedPrompt,
-    promptImage:  input.referenceImageUrl,
-    aspectRatio:  '768:1280',    // 9:16 vertical Reel
-    duration,
+  // ── Step 2: Kling v2 generates the video ─────────────────────────────────
+  // Kling requires a reference image — use a placeholder if none provided.
+  const imageUrl = input.referenceImageUrl ?? '';
+  if (!imageUrl) {
+    throw new Error('Kling v2 img2video requires a reference image URL. Please upload or select an image first.');
+  }
+
+  const klingResult = await generateVideoFromImage({
+    imageUrl,
+    prompt:    enhancedPrompt,
+    duration:  duration === 10 ? '10' : '5',
+    cfgScale:  0.5,
   });
 
   // ── Step 3: Download + upload to Supabase Storage ────────────────────────
-  let finalUrl = runwayUrl;
+  let finalUrl = klingResult.video_url;
 
   if (input.brandId) {
     try {
@@ -121,9 +152,9 @@ Reply ONLY with the video prompt in English. 2-3 sentences max.`,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const supabase = await createServerClient() as any;
 
-      const videoRes  = await fetch(runwayUrl);
+      const videoRes  = await fetch(klingResult.video_url);
       const videoBlob = await videoRes.blob();
-      const fileName  = `reels/gen4-${Date.now()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}.mp4`;
+      const fileName  = `reels/kling2-${Date.now()}-${crypto.randomUUID().replace(/-/g, '').slice(0, 12)}.mp4`;
 
       const { error: uploadErr } = await supabase.storage
         .from('assets')
@@ -134,15 +165,15 @@ Reply ONLY with the video prompt in English. 2-3 sentences max.`,
         finalUrl = publicUrl;
       }
     } catch (uploadErr) {
-      console.warn('Supabase upload failed, using RunwayML direct URL:', uploadErr);
+      console.warn('Supabase upload failed, using fal.ai CDN URL:', uploadErr);
     }
   }
 
   return {
     videoUrl:       finalUrl,
-    runwayTaskId:   taskId,
     enhancedPrompt,
     durationSec:    duration,
     generationMs:   Date.now() - start,
+    creditsUsed:    klingResult.credits_used,
   };
 }

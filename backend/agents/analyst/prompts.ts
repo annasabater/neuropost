@@ -5,6 +5,28 @@
 import type { AgentContext } from '../shared/types';
 import type { AnalystInput, PostMetrics } from './types';
 
+// ─── Sector alias: UI saves Spanish keys, benchmarks map uses English ─────────
+
+const SECTOR_ALIAS: Record<string, string> = {
+  restaurante: 'restaurant',
+  bar:         'restaurant',
+  cafeteria:   'restaurant',
+  cafè:        'restaurant',
+  heladeria:   'ice-cream',
+  gelateria:   'ice-cream',
+  pasteleria:  'restaurant',
+  boutique:    'retail',
+  moda:        'retail',
+  tienda:      'retail',
+  ecommerce:   'retail',
+  'e-commerce':'retail',
+  bazar:       'retail',
+};
+
+function normalizeSector(raw: string): string {
+  return SECTOR_ALIAS[raw.toLowerCase()] ?? raw;
+}
+
 // ─── Sector engagement benchmarks ────────────────────────────────────────────
 
 const SECTOR_BENCHMARKS: Record<string, { engagementRate: string; followersGrowth: string }> = {
@@ -21,15 +43,15 @@ const SECTOR_BENCHMARKS: Record<string, { engagementRate: string; followersGrowt
  * complex metrics in plain language for small business owners.
  */
 export function buildAnalystSystemPrompt(context: AgentContext): string {
-  const benchmarks =
-    SECTOR_BENCHMARKS[context.brandVoice.sector] ?? SECTOR_BENCHMARKS['other']!;
+  const sector = normalizeSector(context.brandVoice.sector);
+  const benchmarks = SECTOR_BENCHMARKS[sector] ?? SECTOR_BENCHMARKS['other']!;
 
   return `You are a social media performance analyst for ${context.businessName}, a ${context.brandVoice.sector} business.
 
 ## Your role
 Turn raw social media metrics into clear, actionable insights that a small business owner can read in under 5 minutes and immediately act on.
 
-## Sector benchmarks — ${context.brandVoice.sector}
+## Sector benchmarks — ${sector}
 - Engagement rate (good): ${benchmarks.engagementRate}
 - Follower growth (healthy): ${benchmarks.followersGrowth}
 - Use these as reference points — flag when results are above or below benchmark.

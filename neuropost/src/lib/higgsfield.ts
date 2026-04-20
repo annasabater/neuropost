@@ -14,7 +14,7 @@ const HIGGSFIELD_BASE = 'https://cloud.higgsfield.ai';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type HiggsAspectRatio = '1:1' | '9:16' | '16:9' | '4:5';
-export type HiggsDuration    = 3 | 5 | 8;
+export type HiggsDuration    = 3 | 5 | 6 | 8 | 10 | 15 | 20 | 30;
 
 export interface HiggsImageParams {
   prompt:            string;
@@ -105,11 +105,27 @@ export async function getHiggsTask(taskId: string): Promise<HiggsTask> {
 async function waitForHiggsTask(
   taskId:         string,
   pollIntervalMs: number = 4000,
-  maxAttempts:    number = 60,
+  maxAttempts:    number = 50,  // 50 × 4s = 200s max (fits within 240s handler timeout)
 ): Promise<string> {
+  let consecutiveErrors = 0;
+  const MAX_CONSECUTIVE_ERRORS = 3;
+
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise((r) => setTimeout(r, pollIntervalMs));
-    const task = await getHiggsTask(taskId);
+
+    let task: HiggsTask;
+    try {
+      task = await getHiggsTask(taskId);
+      consecutiveErrors = 0; // reset on success
+    } catch (err) {
+      consecutiveErrors++;
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[higgsfield] Poll error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}): ${msg}`);
+      if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+        throw new Error(`Higgsfield polling failed after ${MAX_CONSECUTIVE_ERRORS} consecutive network errors: ${msg}`);
+      }
+      continue; // retry on next tick
+    }
 
     if (task.status === 'completed') {
       const url = task.output?.[0]?.url;
@@ -138,6 +154,6 @@ export async function generateHiggsVideo(
   params: HiggsVideoParams,
 ): Promise<{ videoUrl: string; taskId: string }> {
   const task     = await createHiggsVideoTask(params);
-  const videoUrl = await waitForHiggsTask(task.id, 5000, 60);
+  const videoUrl = await waitForHiggsTask(task.id, 5000, 40); // 40 × 5s = 200s max
   return { videoUrl, taskId: task.id };
 }

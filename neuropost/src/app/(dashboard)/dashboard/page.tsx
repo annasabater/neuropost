@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
-import { BarChart3, Calendar, Lightbulb, MessageSquare, Plus, Zap, ArrowRight, ChevronRight, Sparkles, Send, Paintbrush } from 'lucide-react';
+import { BarChart3, Calendar, Lightbulb, Plus, ArrowRight, ChevronRight, Sparkles, Send, Paintbrush } from 'lucide-react';
 import { getServerBrand, createServerClient } from '@/lib/supabase';
 import { TrendsBanner } from '@/components/trends/TrendsBanner';
 import DashboardTour from '@/components/onboarding/DashboardTour';
@@ -10,7 +10,8 @@ import ChangelogModal from '@/components/layout/ChangelogModal';
 import { WeeklyProposals } from '@/components/dashboard/WeeklyProposals';
 
 import { getUpcomingDatesForBrand } from '@/agents/SeasonalAgent';
-import { PLAN_LIMITS } from '@/types';
+import { PLAN_LIMITS, PLAN_META } from '@/types';
+import type { SubscriptionPlan } from '@/types';
 import InspirationTeaser from '@/components/inspiration/InspirationTeaser';
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
@@ -109,7 +110,7 @@ export default async function DashboardPage() {
         <div className="dashboard-inner">
           <IncidentBanner />
         {/* ── Greeting ── */}
-        <div style={{ padding: '48px 0 40px' }}>
+        <div className="dashboard-greeting" style={{ padding: '48px 0 40px' }}>
           <h1 style={{
             fontFamily: fc, fontWeight: 900,
             fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
@@ -120,18 +121,13 @@ export default async function DashboardPage() {
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontFamily: f }}>
             {t('subtitle')}
-            {pending > 0 && (
-              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-                {' — '}{pending} {t('metrics.pending')}
-              </span>
-            )}
           </p>
         </div>
 
         <TrendsBanner />
 
         {/* ── Metrics — Nike 1px gap grid ── */}
-        <div data-tour="dashboard-metrics" style={{
+        <div data-tour="dashboard-metrics" className="dashboard-metrics-grid" style={{
           display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px',
           background: 'var(--border)', border: '1px solid var(--border)',
           marginBottom: 48,
@@ -140,13 +136,13 @@ export default async function DashboardPage() {
             { label: t('metrics.published'), value: String(publishedThisMonth) },
             { label: t('metrics.scheduled'), value: String(scheduled) },
             { label: t('metrics.pending'),   value: String(pending) },
-            { label: t('metrics.plan'),      value: brand.plan, capitalize: true },
+            { label: t('metrics.plan'),      value: PLAN_META[brand.plan as SubscriptionPlan]?.label ?? brand.plan, capitalize: false },
           ].map(({ label, value, capitalize }) => (
             <div key={label} style={{
               background: 'var(--bg)', padding: '28px 24px',
               transition: 'background 0.15s',
             }}>
-              <p style={{
+              <p className="dash-metric-value" style={{
                 fontFamily: fc, fontWeight: 900, fontSize: '3rem',
                 letterSpacing: '-0.02em', lineHeight: 1,
                 color: 'var(--text-primary)',
@@ -170,48 +166,60 @@ export default async function DashboardPage() {
 
       <div className="dashboard-inner">
 
-      {/* ── Plan usage ── */}
-      {!isUnlimited && (
-        <div style={{
-          border: '1px solid var(--border)', padding: '16px 20px', marginBottom: 48,
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontFamily: f, fontWeight: 600, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>
-              {t('sections.planUsage')}
-            </span>
-            <span style={{ fontSize: 13, color: pct >= 80 ? 'var(--error)' : 'var(--text-secondary)', fontWeight: 500, fontFamily: f }}>
-              {publishedThisMonth} / {planLimit}
-            </span>
-          </div>
-          <div style={{ height: 2, background: 'var(--bg-2)', overflow: 'hidden' }}>
-            <div style={{
-              height: '100%', width: `${pct}%`,
-              background: pct >= 100 ? 'var(--error)' : pct >= 80 ? 'var(--warning)' : 'var(--text-primary)',
-              transition: 'width 0.4s ease',
-            }} />
-          </div>
-          {pct >= 80 && (
-            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: 12, color: 'var(--error)', fontWeight: 500, fontFamily: f }}>
-                {pct >= 100 ? t('planLimit.limitReached') : t('planLimit.nearLimit', { remaining: planLimit - publishedThisMonth })}
-              </p>
-              <Link href="/settings/plan" style={{
-                fontSize: 12, fontFamily: fc, fontWeight: 700,
-                textTransform: 'uppercase', letterSpacing: '0.08em',
-                color: 'var(--text-primary)', textDecoration: 'underline',
-                textUnderlineOffset: 3,
-              }}>
-                {t('planLimit.upgrade')}
-              </Link>
+      {/* ── Plan usage — weekly counters ── */}
+      {(() => {
+        const postsWeek = brand.posts_this_week ?? 0;
+        const postsLimit = limits.postsPerWeek;
+        const postsPct = postsLimit === Infinity ? 0 : Math.min(100, Math.round((postsWeek / postsLimit) * 100));
+        const videosWeek = brand.videos_this_week ?? 0;
+        const videosLimit = limits.videosPerWeek;
+        const videosPct = videosLimit === 0 ? 0 : Math.min(100, Math.round((videosWeek / videosLimit) * 100));
+        const showVideos = videosLimit > 0;
+
+        return (
+          <div className="dashboard-plan-usage" style={{
+            border: '1px solid var(--border)', marginBottom: 48,
+            display: 'grid', gridTemplateColumns: showVideos ? '1fr 1fr' : '1fr', gap: '1px', background: 'var(--border)',
+          }}>
+            {/* Posts this week */}
+            <div style={{ padding: '16px 20px', background: 'var(--bg)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <span style={{ fontFamily: f, fontWeight: 600, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>
+                  Posts esta semana
+                </span>
+                <span style={{ fontSize: 13, color: postsPct >= 80 ? 'var(--error)' : 'var(--text-secondary)', fontWeight: 500, fontFamily: f }}>
+                  {postsWeek} / {postsLimit === Infinity ? '∞' : postsLimit}
+                </span>
+              </div>
+              <div style={{ height: 3, background: 'var(--bg-2)', overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${postsPct}%`, background: postsPct >= 100 ? 'var(--error)' : postsPct >= 80 ? 'var(--warning)' : 'var(--accent)', transition: 'width 0.4s ease' }} />
+              </div>
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Videos this week */}
+            {showVideos && (
+              <div style={{ padding: '16px 20px', background: 'var(--bg)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontFamily: f, fontWeight: 600, fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-tertiary)' }}>
+                    Vídeos esta semana
+                  </span>
+                  <span style={{ fontSize: 13, color: videosPct >= 80 ? 'var(--error)' : 'var(--text-secondary)', fontWeight: 500, fontFamily: f }}>
+                    {videosWeek} / {videosLimit}
+                  </span>
+                </div>
+                <div style={{ height: 3, background: 'var(--bg-2)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${videosPct}%`, background: videosPct >= 100 ? 'var(--error)' : videosPct >= 80 ? 'var(--warning)' : 'var(--accent)', transition: 'width 0.4s ease' }} />
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ══════════════════════════════════════════════════════════════════════
            3 MODES — Content Hub
          ══════════════════════════════════════════════════════════════════════ */}
-      <h2 style={{
+      <h2 className="dashboard-content-hub-heading" style={{
         fontFamily: f, fontSize: 10, fontWeight: 600,
         textTransform: 'uppercase', letterSpacing: '0.14em',
         color: 'var(--accent)', marginBottom: 16,
@@ -220,7 +228,7 @@ export default async function DashboardPage() {
         {t('sections.contentHub')}
       </h2>
 
-      <div style={{
+      <div className="dashboard-content-hub" style={{
         display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px',
         background: 'var(--border)', border: '1px solid var(--border)',
         marginBottom: 48,
@@ -383,7 +391,7 @@ export default async function DashboardPage() {
                 {t('sections.upcomingDates')}
               </h2>
             </div>
-            <div style={{
+            <div className="dashboard-upcoming-dates" style={{
               display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1px', background: 'var(--border)',
               border: '1px solid var(--border)', marginBottom: 48,
             }}>
@@ -424,8 +432,8 @@ export default async function DashboardPage() {
       }}>
         {t('sections.quickActions')}
       </h2>
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px',
+      <div className="dashboard-quick-actions" style={{
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px',
         background: 'var(--border)', border: '1px solid var(--border)',
         marginBottom: 48,
       }}>
@@ -433,8 +441,6 @@ export default async function DashboardPage() {
           { href: '/posts/new',  icon: Plus,          label: t('actions.newPost') },
           { href: '/ideas',      icon: Lightbulb,     label: t('actions.generateIdeas') },
           { href: '/calendar',   icon: Calendar,      label: t('actions.planMonth') },
-          { href: '/tendencias', icon: Zap,           label: t('actions.trends') },
-          { href: '/comments',   icon: MessageSquare, label: t('actions.community') },
           { href: '/analytics',  icon: BarChart3,     label: t('actions.analytics') },
         ].map(({ href, icon: Icon, label }) => (
           <Link key={href} href={href} style={{

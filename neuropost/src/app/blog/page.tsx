@@ -202,7 +202,7 @@ export default function BlogPage() {
               textDecoration: 'none',
             }}
           >
-            Empezar gratis →
+            Empezar →
           </Link>
         </div>
       </section>

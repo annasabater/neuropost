@@ -28,11 +28,18 @@ export async function POST(request: Request) {
       if (session.subscription) {
         const sub     = await import('@/lib/stripe').then(m => m.getStripeClient().subscriptions.retrieve(session.subscription as string));
         const priceId = sub.items.data[0]?.price.id ?? '';
-        plan = priceId === process.env.STRIPE_PRICE_AGENCY ? 'agency'
-             : priceId === process.env.STRIPE_PRICE_TOTAL  ? 'total'
+        plan = priceId === process.env.STRIPE_PRICE_TOTAL  ? 'total'
              : priceId === process.env.STRIPE_PRICE_PRO    ? 'pro'
              : 'starter';
       }
+
+      // Extract subscribed platforms from subscription metadata
+      let subscribedPlatforms: string[] = ['instagram'];
+      try {
+        const sub = await import('@/lib/stripe').then(m => m.getStripeClient().subscriptions.retrieve(session.subscription as string));
+        const metaPlatforms = sub.metadata?.platforms;
+        if (metaPlatforms) subscribedPlatforms = JSON.parse(metaPlatforms) as string[];
+      } catch { /* fallback to instagram only */ }
 
       const { data: brand } = await supabase
         .from('brands')
@@ -40,7 +47,8 @@ export async function POST(request: Request) {
           stripe_customer_id:     session.customer as string,
           stripe_subscription_id: session.subscription as string,
           plan,
-          plan_started_at: new Date().toISOString(),
+          plan_started_at:        new Date().toISOString(),
+          subscribed_platforms:   subscribedPlatforms,
         })
         .eq('user_id', userId)
         .select('id')
@@ -76,7 +84,6 @@ export async function POST(request: Request) {
       // Find the plan item by explicit price-ID match (not array[0], because
       // the subscription may also carry the social-account add-on line).
       const planPrices: Array<[string, string]> = [
-        ['agency',  process.env.STRIPE_PRICE_AGENCY  ?? ''],
         ['total',   process.env.STRIPE_PRICE_TOTAL   ?? ''],
         ['pro',     process.env.STRIPE_PRICE_PRO     ?? ''],
         ['starter', process.env.STRIPE_PRICE_STARTER ?? ''],
@@ -95,6 +102,10 @@ export async function POST(request: Request) {
       };
       if (sub.status === 'active' || sub.status === 'trialing') {
         updates.plan = plan;
+      }
+      // Sync subscribed_platforms from subscription metadata (set during checkout)
+      if (sub.metadata?.platforms) {
+        try { updates.subscribed_platforms = JSON.parse(sub.metadata.platforms); } catch { /* ignore parse error */ }
       }
       if (sub.cancel_at_period_end && sub.cancel_at) {
         updates.plan_cancels_at = new Date(sub.cancel_at * 1000).toISOString();

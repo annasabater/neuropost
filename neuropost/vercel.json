@@ -1,20 +1,31 @@
 {
+  "functions": {
+    "src/app/api/inspiration/ingest/route.ts": { "maxDuration": 300 },
+    "src/app/api/telegram/webhook/route.ts":   { "maxDuration": 10 }
+  },
   "crons": [
-    { "path": "/api/cron/agent-queue-runner",   "schedule": "* * * * *"     },
-    { "path": "/api/cron/process-agent-replies", "schedule": "* * * * *"    },
+    { "path": "/api/cron/agent-queue-runner",   "schedule": "* * * * *"    },
+    { "path": "/api/cron/process-agent-replies", "schedule": "* * * * *"   },
     { "path": "/api/cron/health-check",         "schedule": "*/5 * * * *"   },
     { "path": "/api/cron/publish-scheduled",    "schedule": "0 * * * *"     },
     { "path": "/api/cron/sync-comments",        "schedule": "0 * * * *"     },
     { "path": "/api/cron/refresh-tokens",       "schedule": "0 */6 * * *"   },
     { "path": "/api/cron/weekly-report",        "schedule": "0 9 * * 1"     },
     { "path": "/api/cron/seasonal-planner",     "schedule": "0 8 1 * *"     },
-
     { "path": "/api/cron/global-trends",        "schedule": "0 23 * * 0"    },
     { "path": "/api/cron/monday-brain",         "schedule": "0 0 * * 1"     },
     { "path": "/api/cron/churn-proactive",      "schedule": "0 9 * * *"     },
     { "path": "/api/cron/detect-holidays",      "schedule": "0 6 1 * *"     },
     { "path": "/api/cron/analyze-inspirations", "schedule": "0 * * * *"     },
     { "path": "/api/cron/recurring-posts",      "schedule": "0 * * * *"     },
-    { "path": "/api/cron/monthly-report",       "schedule": "0 10 1 * *"    }
+    { "path": "/api/cron/monthly-report",       "schedule": "0 10 1 * *"    },
+    { "path": "/api/inspiration/ingest",        "schedule": "* * * * *"     },
+    { "path": "/api/cron/comment-pending-reminder", "schedule": "15 * * * *" },
+    { "path": "/api/cron/reactivation-campaign",    "schedule": "0 10 * * *" },
+    { "path": "/api/cron/reminders-campaign",       "schedule": "0 11 * * *" },
+    { "path": "/api/cron/email-queue-processor",    "schedule": "*/10 * * * *" },
+    { "path": "/api/cron/reconcile-predictions",    "schedule": "*/10 * * * *" },
+    { "path": "/api/cron/flush-notifications",      "schedule": "* * * * *"    },
+    { "path": "/api/cron/plan-reminders",           "schedule": "0 12,20 * * *" }
   ]
 }

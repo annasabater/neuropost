@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import toast from 'react-hot-toast';
-import { Save, ExternalLink, CreditCard, Bell, Lock, Trash2, Sun, Moon, Globe } from 'lucide-react';
+import {
+  Save, ExternalLink, CreditCard, Bell, Lock, Trash2, Sun, Moon, Globe,
+  AlertCircle, Wrench, BarChart3, Megaphone, ChevronDown,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useAppStore } from '@/store/useAppStore';
 import { createBrowserClient } from '@/lib/supabase';
@@ -34,10 +37,106 @@ export default function SettingsPage() {
   const [showName,      setShowName]      = useState(true);
   const [savingPersonal, setSavingPersonal] = useState(false);
 
-  // Notifications
+  // Notifications — legacy brand fields (kept for back-compat)
   const [notifyPublish,  setNotifyPublish]  = useState(false);
   const [notifyComments, setNotifyComments] = useState(false);
   const [savingNotifs,   setSavingNotifs]   = useState(false);
+
+  // Extended notification_preferences (20+ toggles + language + frequency)
+  type NotifPrefs = {
+    approval_needed_email?:       boolean;
+    ticket_reply_email?:          boolean;
+    chat_message_email?:          boolean;
+    recreation_ready_email?:      boolean;
+    comment_pending_email?:       boolean;
+    token_expired_email?:         boolean;
+    post_published_email?:        boolean;
+    post_failed_email?:           boolean;
+    payment_failed_email?:        boolean;
+    trial_ending_email?:          boolean;
+    limit_reached_email?:         boolean;
+    reactivation_email?:          boolean;
+    no_content_email?:            boolean;
+    onboarding_incomplete_email?: boolean;
+    no_social_connected_email?:   boolean;
+    plan_unused_email?:           boolean;
+    weekly_report_email?:         boolean;
+    monthly_report_email?:        boolean;
+    daily_digest_email?:          boolean;
+    marketing_email?:             boolean;
+    product_updates_email?:       boolean;
+    newsletter_email?:            boolean;
+    email_language?:              string | null;
+    max_frequency?:               'immediate' | 'daily' | 'weekly';
+  };
+  const [prefs,        setPrefs]        = useState<NotifPrefs | null>(null);
+  const prefsSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Accordion — which group is open (only one at a time)
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
+
+  // Inline "✓ Guardado" pulse by group id
+  const [savedPulse, setSavedPulse] = useState<string | null>(null);
+  const savedPulseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Restore last-opened group from localStorage
+  useEffect(() => {
+    try {
+      const last = window.localStorage.getItem('neuropost.prefs.openGroup');
+      if (last) setOpenGroup(last);
+    } catch { /* ignore */ }
+  }, []);
+
+  function toggleGroup(id: string) {
+    setOpenGroup(prev => {
+      const next = prev === id ? null : id;
+      try { window.localStorage.setItem('neuropost.prefs.openGroup', next ?? ''); } catch { /* ignore */ }
+      return next;
+    });
+  }
+
+  // Load prefs once on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch('/api/settings/notifications');
+        if (!res.ok) return;
+        const json = await res.json() as { preferences: NotifPrefs };
+        setPrefs(json.preferences ?? {});
+      } catch { /* silent */ }
+    })();
+  }, []);
+
+  /**
+   * Debounced PATCH — updates local state immediately, persists after 500ms.
+   * Shows an inline "✓ Guardado" pulse next to the group counter when
+   * `groupId` is provided. No full-screen toast (redesign spec).
+   */
+  function updatePref<K extends keyof NotifPrefs>(
+    key:     K,
+    value:   NotifPrefs[K],
+    groupId?: string,
+  ) {
+    setPrefs(prev => ({ ...(prev ?? {}), [key]: value }));
+    if (prefsSaveTimer.current) clearTimeout(prefsSaveTimer.current);
+    prefsSaveTimer.current = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/settings/notifications', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ [key]: value }),
+        });
+        if (!res.ok) throw new Error('Save failed');
+        if (groupId) {
+          setSavedPulse(groupId);
+          if (savedPulseTimer.current) clearTimeout(savedPulseTimer.current);
+          savedPulseTimer.current = setTimeout(() => setSavedPulse(null), 2000);
+        }
+      } catch {
+        toast.error('No se pudo guardar');
+      }
+    }, 500);
+  }
 
   // Account
   const [userEmail,       setUserEmail]       = useState('');
@@ -61,6 +160,7 @@ export default function SettingsPage() {
     { id: 'notificaciones', label: t('sections.notifications') },
     { id: 'redes',          label: t('nav.social') },
     { id: 'exportar',       label: t('nav.export') },
+    { id: 'contenido',      label: 'Contenido' },
     { id: 'plan',           label: t('nav.plan') },
     { id: 'cuenta',         label: t('nav.account') },
   ];
@@ -267,7 +367,7 @@ export default function SettingsPage() {
     }
   }
 
-  async function handleUpgrade(plan: 'pro' | 'agency') {
+  async function handleUpgrade(plan: 'pro' | 'total') {
     const res  = await fetch('/api/stripe/checkout', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -670,62 +770,236 @@ export default function SettingsPage() {
               <Bell size={18} />{t('notifSection.title')}
             </h2>
             <p className="notif-subtitle">
-              {t('notifSection.subtitle')}
+              Elige qué emails quieres recibir. Los cambios se guardan automáticamente.
             </p>
 
-            <div className="notif-list">
-              {/* notify_email_publish toggle */}
-              <div className="notif-card">
-                <div>
-                  <p className="notif-card-title">
-                    {t('notifSection.publishTitle')}
-                  </p>
-                  <p className="notif-card-desc">
-                    {t('notifSection.publishDesc')}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={notifyPublish ? 'true' : 'false'}
-                  aria-label={t('notifSection.publishTitle')}
-                  title={t('notifSection.publishTitle')}
-                  onClick={() => setNotifyPublish((v) => !v)}
-                  className={`notif-switch ${notifyPublish ? 'is-on' : ''}`}
-                >
-                  <span className="notif-switch-thumb" />
-                </button>
-              </div>
+            {(() => {
+              // Default value when preferences row hasn't loaded yet. Marketing
+              // family defaults to false at table level; reminder family to true.
+              const get = (key: keyof NotifPrefs, fallback: boolean): boolean => {
+                const v = prefs?.[key];
+                if (typeof v === 'boolean') return v;
+                return fallback;
+              };
 
-              {/* notify_email_comments toggle */}
-              <div className="notif-card">
-                <div>
-                  <p className="notif-card-title">
-                    {t('notifSection.commentsTitle')}
-                  </p>
-                  <p className="notif-card-desc">
-                    {t('notifSection.commentsDesc')}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={notifyComments ? 'true' : 'false'}
-                  aria-label={t('notifSection.commentsTitle')}
-                  title={t('notifSection.commentsTitle')}
-                  onClick={() => setNotifyComments((v) => !v)}
-                  className={`notif-switch ${notifyComments ? 'is-on' : ''}`}
-                >
-                  <span className="notif-switch-thumb" />
-                </button>
-              </div>
-            </div>
+              // 'trial_ending_email' intentionally excluded — NeuroPost no
+              // longer uses a trial period. Column kept in DB for future use.
+              // Legacy 'notify_email_*' toggles removed; values migrated by
+              // supabase/migrations/20260419_consolidate_notification_prefs.sql.
+              const groups: Array<{
+                id: string;
+                title: string;
+                icon: React.ComponentType<{ size?: number; color?: string }>;
+                items: Array<{ key: keyof NotifPrefs; label: string; desc: string; defaultOn: boolean }>;
+              }> = [
+                {
+                  id: 'action',
+                  title: 'Acción requerida',
+                  icon: AlertCircle,
+                  items: [
+                    { key: 'approval_needed_email',  label: 'Contenido listo para aprobar', desc: 'Cuando NeuroPost genera un post que espera tu validación',  defaultOn: true },
+                    { key: 'ticket_reply_email',     label: 'Respuestas de soporte',        desc: 'Cuando respondemos a uno de tus tickets',                   defaultOn: true },
+                    { key: 'chat_message_email',     label: 'Mensajes del equipo',          desc: 'Cuando te escribimos por chat (solo si no lo lees en 24h)', defaultOn: true },
+                    { key: 'recreation_ready_email', label: 'Recreaciones listas',          desc: 'Cuando una imagen recreada está lista para revisar',        defaultOn: true },
+                  ],
+                },
+                {
+                  id: 'technical',
+                  title: 'Alertas técnicas',
+                  icon: Wrench,
+                  items: [
+                    { key: 'token_expired_email',   label: 'Conexión caducada',    desc: 'Cuando IG/FB/TikTok desconectan tu cuenta',      defaultOn: true },
+                    { key: 'post_published_email',  label: 'Post publicado',       desc: 'Cuando un post programado sale a tu red',        defaultOn: true },
+                    { key: 'post_failed_email',     label: 'Fallo al publicar',    desc: 'Cuando un post programado no puede publicarse',  defaultOn: true },
+                  ],
+                },
+                {
+                  id: 'reports',
+                  title: 'Resúmenes e informes',
+                  icon: BarChart3,
+                  items: [
+                    { key: 'weekly_report_email',  label: 'Informe semanal',  desc: 'Cada lunes con los números de la semana pasada',       defaultOn: true },
+                    { key: 'monthly_report_email', label: 'Informe mensual',  desc: 'El día 1 de cada mes con el resumen del mes anterior', defaultOn: true },
+                    { key: 'daily_digest_email',   label: 'Resumen diario',   desc: 'Un email al día con todo lo que ha pasado',            defaultOn: false },
+                  ],
+                },
+                {
+                  id: 'marketing',
+                  title: 'Marketing (opt-in)',
+                  icon: Megaphone,
+                  items: [
+                    { key: 'marketing_email',       label: 'Comunicaciones comerciales', desc: 'Ofertas, descuentos y promociones',    defaultOn: false },
+                    { key: 'product_updates_email', label: 'Novedades del producto',     desc: 'Cuando añadimos funciones nuevas',      defaultOn: false },
+                    { key: 'newsletter_email',      label: 'Newsletter',                 desc: 'Consejos de redes sociales mensuales',  defaultOn: false },
+                  ],
+                },
+              ];
 
-            <div className="notif-actions">
-              <button className="btn-primary" onClick={saveNotifications} disabled={savingNotifs}>
-                {savingNotifs ? <><span className="loading-spinner" />{t('saving')}</> : <><Save size={16} />{t('notifSection.save')}</>}
-              </button>
-            </div>
+              // Reusable accordion group shell — rendered below for each item
+              // in `groups` plus the 'config' group (language + frequency).
+              const renderGroup = (g: typeof groups[number]) => {
+                const isOpen = openGroup === g.id;
+                const Icon   = g.icon;
+                const active = g.items.filter(i => get(i.key, i.defaultOn)).length;
+                const total  = g.items.length;
+                const counterColor =
+                  active === 0     ? 'var(--text-tertiary)'
+                  : active === total ? 'var(--accent)'
+                  : 'var(--text-secondary)';
+                const counterExtra = active === 0 ? { textDecoration: 'line-through' } as const : {};
+
+                return (
+                  <div key={g.id} className="pref-group">
+                    <button
+                      type="button"
+                      className={`pref-group-head${isOpen ? ' is-open' : ''}`}
+                      aria-expanded={isOpen}
+                      aria-controls={`pref-content-${g.id}`}
+                      onClick={() => toggleGroup(g.id)}
+                    >
+                      <span className="pref-group-head-left">
+                        <Icon size={18} />
+                        <span className="pref-group-title">{g.title}</span>
+                      </span>
+                      <span className="pref-group-head-right">
+                        {savedPulse === g.id && (
+                          <span className="pref-group-saved" aria-live="polite">✓ Guardado</span>
+                        )}
+                        <span className="pref-group-counter" style={{ color: counterColor, ...counterExtra }}>
+                          {active} de {total} activos
+                        </span>
+                        <ChevronDown
+                          size={18}
+                          className="pref-group-chev"
+                          style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0)' }}
+                        />
+                      </span>
+                    </button>
+                    <div
+                      id={`pref-content-${g.id}`}
+                      className={`pref-group-content${isOpen ? ' is-open' : ''}`}
+                      aria-hidden={!isOpen}
+                    >
+                      <div className="pref-group-inner">
+                        {g.items.map((item, idx) => {
+                          const on = get(item.key, item.defaultOn);
+                          const isLast = idx === g.items.length - 1;
+                          return (
+                            <div
+                              key={item.key}
+                              className={`pref-item${isLast ? ' is-last' : ''}`}
+                            >
+                              <div className="pref-item-text">
+                                <p className="pref-item-title">{item.label}</p>
+                                <p className="pref-item-desc">{item.desc}</p>
+                              </div>
+                              <button
+                                type="button"
+                                role="switch"
+                                aria-checked={on ? 'true' : 'false'}
+                                aria-label={item.label}
+                                title={item.label}
+                                onClick={() => updatePref(item.key, !on as never, g.id)}
+                                className={`notif-switch ${on ? 'is-on' : ''}`}
+                              >
+                                <span className="notif-switch-thumb" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              };
+
+              return (
+                <div className="pref-groups">
+                  <style>{`
+                    .pref-groups { display: flex; flex-direction: column; gap: 8px; }
+                    .pref-group { border: 1px solid var(--border); background: var(--bg); }
+                    .pref-group-head {
+                      width: 100%;
+                      display: flex; align-items: center; justify-content: space-between;
+                      gap: 16px;
+                      padding: 16px 20px;
+                      background: var(--bg-2);
+                      border: none;
+                      border-left: 3px solid transparent;
+                      cursor: pointer;
+                      text-align: left;
+                      transition: background 0.15s, border-color 0.15s;
+                    }
+                    .pref-group-head:hover { background: var(--bg-3); }
+                    .pref-group-head.is-open { background: var(--bg-2); border-left-color: var(--accent); }
+                    .pref-group-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+                    .pref-group-head-left {
+                      display: flex; align-items: center; gap: 12px;
+                      color: var(--accent);
+                      min-width: 0;
+                    }
+                    .pref-group-title {
+                      font-family: var(--font-barlow-condensed), sans-serif;
+                      font-size: 14px; font-weight: 700;
+                      text-transform: uppercase; letter-spacing: 0.08em;
+                      color: var(--text-primary);
+                      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                    }
+                    .pref-group-head-right {
+                      display: flex; align-items: center; gap: 14px;
+                      font-family: var(--font-barlow), sans-serif;
+                    }
+                    .pref-group-counter { font-size: 13px; white-space: nowrap; }
+                    .pref-group-saved {
+                      font-size: 11px; font-weight: 600; color: var(--accent);
+                      animation: pref-fade 2s ease forwards;
+                    }
+                    @keyframes pref-fade {
+                      0% { opacity: 0; transform: translateY(-2px); }
+                      15% { opacity: 1; transform: translateY(0); }
+                      80% { opacity: 1; }
+                      100% { opacity: 0; }
+                    }
+                    .pref-group-chev { color: var(--text-tertiary); transition: transform 0.2s; }
+
+                    .pref-group-content {
+                      max-height: 0; overflow: hidden;
+                      transition: max-height 300ms ease;
+                    }
+                    .pref-group-content.is-open { max-height: 2000px; }
+                    .pref-group-inner { padding: 8px 20px 20px; }
+
+                    .pref-item {
+                      display: flex; align-items: center; gap: 16px;
+                      padding: 14px 0;
+                      border-bottom: 1px solid var(--border);
+                    }
+                    .pref-item.is-last { border-bottom: none; }
+                    .pref-item-text { flex: 1; min-width: 0; }
+                    .pref-item-title {
+                      margin: 0 0 2px; font-weight: 600; font-size: 14px;
+                      color: var(--text-primary);
+                      font-family: var(--font-barlow), sans-serif;
+                    }
+                    .pref-item-desc {
+                      margin: 0; font-size: 12px; color: var(--text-secondary);
+                      line-height: 1.5; font-family: var(--font-barlow), sans-serif;
+                    }
+
+                    @media (max-width: 767px) {
+                      .pref-group-head { flex-wrap: wrap; padding: 14px 16px; }
+                      .pref-group-head-right { flex-wrap: wrap; gap: 10px; margin-left: 30px; }
+                      .pref-group-counter { font-size: 12px; }
+                      .pref-group-inner { padding: 8px 16px 18px; }
+                      .pref-item { flex-direction: row; gap: 12px; }
+                      .pref-item-title { font-size: 13px; }
+                    }
+                  `}</style>
+
+                  {groups.map(renderGroup)}
+                </div>
+              );
+            })()}
           </div>
 
           {/* ── Redes sociales ── */}
@@ -970,6 +1244,25 @@ export default function SettingsPage() {
                 {t('export.csv')}
               </a>
             </div>
+          </div>
+
+          {/* ── Contenido ── */}
+          <div id="contenido" className="settings-section">
+            <h2 className="settings-section-title">Contenido</h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: 16 }}>
+              Elige cuántos carruseles y reels generar cada semana según tu plan.
+            </p>
+            <a
+              href="/settings/content"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '9px 18px', border: '1px solid var(--border)', background: 'var(--bg)',
+                fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 13, fontWeight: 600,
+                color: 'var(--text-primary)', textDecoration: 'none',
+              }}
+            >
+              Configurar mix de contenido →
+            </a>
           </div>
 
           {/* ── Plan y facturación ── */}

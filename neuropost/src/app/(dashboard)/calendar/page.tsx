@@ -31,8 +31,8 @@ const STATUS_DOT: Record<string, string> = {
 };
 
 const STATUS_LABEL_CAL: Record<string, string> = {
-  scheduled: 'Programado', published: 'Publicado', approved: 'Aprobado',
-  pending: 'Pendiente', draft: 'Borrador', request: 'En preparación',
+  scheduled: 'Programado', published: 'Publicado', approved: 'Para revisar',
+  pending: 'Para revisar', draft: 'En preparación', request: 'En preparación',
 };
 
 const EVENT_COLOR: Record<string, { bg: string; text: string; dot: string }> = {
@@ -250,7 +250,7 @@ export default function CalendarPage() {
 
               return (
                 <div key={col} style={{
-                  minHeight: 88, padding: '6px 8px',
+                  height: 100, padding: '6px 8px', overflow: 'hidden',
                   borderRight: col < 6 ? '1px solid #e5e7eb' : 'none',
                   background: hasHighEvent ? '#fffbeb' : todayCell ? '#f0fdf4' : isValid ? '#ffffff' : '#f9fafb',
                 }}>

@@ -34,7 +34,7 @@ export interface HiggsFieldInput {
   /** URL de imagen de referencia (opcional — para animar o mantener coherencia). */
   referenceImageUrl?: string;
   /** Duración del vídeo en segundos (sólo para format=video). */
-  durationSec?:      3 | 5 | 8;
+  durationSec?:      number;
   brandId?:          string;
   colors?:           BrandColors | null;
   /** Palabras/conceptos que NO deben aparecer en el prompt ni en el output. */
@@ -130,7 +130,7 @@ Write ONLY the prompt. No explanation.`.trim();
       prompt:               enhancedPrompt,
       negative_prompt:      'blurry, shaky, watermark, text overlay, logo, low quality',
       aspect_ratio:         ASPECT_RATIO.video,
-      duration:             input.durationSec ?? 5,
+      duration:             (input.durationSec ?? 5) as import('@/lib/higgsfield').HiggsDuration,
       reference_image_url:  input.referenceImageUrl,
     });
     rawUrl = result.videoUrl;

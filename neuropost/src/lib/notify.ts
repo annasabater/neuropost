@@ -1,114 +1,174 @@
 // =============================================================================
 // Unified notification helper — in-app + conditional email
 // =============================================================================
-// Single entry point for all notifications. Inserts into the `notifications`
-// table AND sends an email if the brand's preferences allow it.
+// Single entry point for all notifications.
+//   1. Always insert the in-app notification row
+//   2. Per-type dispatch to email:
+//      - chat_message → enqueue with send_at = now()+24h (processor sends only
+//        if the underlying chat row is still unread). Not affected by
+//        max_frequency because it already has its own delay rule.
+//      - comment      → owned by /api/cron/comment-pending-reminder (not here)
+//      - everything else mapped in TYPE_TO_EMAIL:
+//          · max_frequency='immediate' → send now via sendNotificationEmail
+//          · max_frequency='daily'/'weekly' → enqueue email_queue with
+//            send_at = next digest window in the brand timezone
 //
 // Usage:
-//   await notify(brandId, 'post_ready', 'Tu contenido está listo', {
+//   await notify(brandId, 'approval_needed', 'Tu contenido está listo', {
 //     post_id: '...',
 //   });
 
 import { createAdminClient } from '@/lib/supabase';
+import { canSendEmail, type EmailType } from './email/preferences';
+import { enqueueEmail } from './email/queue';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
 
 type NotifType =
-  | 'approval_needed'  // post ready for review
-  | 'published'        // post published
-  | 'failed'           // generation failed
-  | 'comment'          // new IG comment
-  | 'ticket_reply'     // support ticket reply
-  | 'chat_message'     // worker message
-  | 'recreation_ready' // recreation done
-  | 'limit_reached'    // plan limit hit
-  | 'meta_connected'   // instagram linked
-  | 'token_expired'    // meta token expired
-  | 'payment_failed'   // stripe payment failed
-  | 'plan_activated'   // subscription activated
-  | 'team_invite';     // team invite
+  | 'approval_needed'
+  | 'published'
+  | 'failed'
+  | 'comment'
+  | 'ticket_reply'
+  | 'chat_message'
+  | 'recreation_ready'
+  | 'limit_reached'
+  | 'meta_connected'
+  | 'token_expired'
+  | 'tiktok_reconnect_required'
+  | 'payment_failed'
+  | 'plan_activated'
+  | 'team_invite';
 
-// Map notification type → preference column name
-const TYPE_TO_PREF: Partial<Record<NotifType, string>> = {
-  approval_needed:  'post_ready_email',
-  published:        'post_published_email',
-  comment:          'comment_email',
-  ticket_reply:     'ticket_reply_email',
-  chat_message:     'post_ready_email',      // group with post_ready
-  recreation_ready: 'post_ready_email',
-  failed:           'post_ready_email',
-  limit_reached:    'plan_alert_email',
-  token_expired:    'plan_alert_email',
-  payment_failed:   'plan_alert_email',
-  plan_activated:   'plan_alert_email',
+/** Notif type → gated EmailType. undefined means "no email". */
+const TYPE_TO_EMAIL: Partial<Record<NotifType, EmailType>> = {
+  approval_needed:           'approval_needed',
+  published:                 'post_published',
+  failed:                    'post_failed',
+  ticket_reply:              'ticket_reply',
+  chat_message:              'chat_message',       // deferred 24h via queue
+  recreation_ready:          'recreation_ready',
+  limit_reached:             'limit_reached',
+  token_expired:             'token_expired',
+  tiktok_reconnect_required: 'token_expired',
+  payment_failed:            'payment_failed',
+  // `comment` handled by the reminder cron.
 };
 
+const DEFER_24H_MS = 24 * 60 * 60 * 1000;
+
 interface NotifyOpts {
-  /** Skip email even if preferences allow it */
+  /** Skip email even if preferences allow it. */
   skipEmail?: boolean;
 }
 
-/**
- * Send an in-app notification + optional email based on brand preferences.
- */
+// Types worth durably retrying if email dispatch fails transiently.
+// Only types that have a TYPE_TO_EMAIL mapping — transactional ones
+// (plan_activated, team_invite) go through a separate always-on pipeline.
+const CRITICAL_TYPES = new Set<NotifType>([
+  'approval_needed',
+  'published',
+  'failed',
+  'recreation_ready',
+  'payment_failed',
+  'ticket_reply',
+]);
+
 export async function notify(
-  brandId: string,
-  type: NotifType,
-  message: string,
+  brandId:  string,
+  type:     NotifType,
+  message:  string,
   metadata: Record<string, unknown> = {},
-  opts: NotifyOpts = {},
+  opts:     NotifyOpts = {},
 ): Promise<void> {
   const db = createAdminClient() as DB;
 
-  // 1. Always insert in-app notification
+  // 1. Always insert in-app notification (UI truth, fast)
   await db.from('notifications').insert({
     brand_id: brandId,
     type,
     message,
-    read: false,
+    read:     false,
     metadata,
   });
 
-  // 2. Check email preferences
+  // 2. Durable outbox for critical types — /api/cron/flush-notifications
+  //    drives email dispatch with retry. We delegate instead of sending
+  //    inline so transient email failures don't silently drop.
+  if (CRITICAL_TYPES.has(type) && !opts.skipEmail) {
+    await db.from('notifications_outbox').insert({
+      brand_id: brandId,
+      type,
+      payload:  { message, metadata },
+      status:   'pending',
+    }).then(() => null);
+    return;
+  }
+
   if (opts.skipEmail) return;
 
-  const prefColumn = TYPE_TO_PREF[type];
-  if (!prefColumn) return; // no email mapping for this type
+  const emailType = TYPE_TO_EMAIL[type];
+  if (!emailType) return;
 
   try {
-    const { data: prefs } = await db
-      .from('notification_preferences')
-      .select(prefColumn)
-      .eq('brand_id', brandId)
-      .maybeSingle();
+    // Resolve preferences + timezone for this brand
+    const gate = await canSendEmail(brandId, emailType);
+    if (!gate.allowed) {
+      // canSendEmail already logged the reason
+      return;
+    }
 
-    // Default to true if no preferences row exists
-    const shouldEmail = prefs ? (prefs as Record<string, boolean>)[prefColumn] !== false : true;
-    if (!shouldEmail) return;
-
-    // 3. Load brand + user email
+    // Get brand timezone for digest scheduling
     const { data: brand } = await db
       .from('brands')
-      .select('name, user_id')
+      .select('timezone')
       .eq('id', brandId)
-      .single();
-    if (!brand) return;
+      .maybeSingle();
+    const tz = (brand?.timezone as string | null) || 'Europe/Madrid';
 
-    const { data: { user } } = await db.auth.admin.getUserById(brand.user_id);
-    if (!user?.email) return;
+    const basePayload = { notif_type: type, message, metadata };
 
-    // 4. Send email based on type
+    // 2. chat_message → always queue with +24h delay (read_at check at send)
+    if (emailType === 'chat_message') {
+      await enqueueEmail({
+        brandId,
+        emailType:  'chat_message',
+        payload:    basePayload,
+        frequency:  gate.frequency,     // if daily/weekly, sendAt may be later
+        tz,
+        delayMs:    DEFER_24H_MS,        // floor of 24h
+        preview:    message.slice(0, 100),
+      });
+      return;
+    }
+
+    // 3. Digest mode (daily/weekly) → queue, do NOT send now
+    if (gate.frequency !== 'immediate') {
+      await enqueueEmail({
+        brandId,
+        emailType,
+        payload:   basePayload,
+        frequency: gate.frequency,
+        tz,
+        preview:   message.slice(0, 100),
+      });
+      return;
+    }
+
+    // 4. Immediate mode → send now
+    if (!gate.email) return;
     const { sendNotificationEmail } = await import('./email');
     await sendNotificationEmail({
-      to:        user.email,
-      brandName: brand.name ?? 'Tu negocio',
+      to:        gate.email,
+      brandName: gate.brandName ?? 'Tu negocio',
       type,
       message,
       metadata,
+      brandId,
     });
   } catch (emailErr) {
-    // Email failure must never block the caller
-    console.error(`[notify] email failed for ${type}:`, emailErr);
+    // Email failure must never block the caller.
+    console.error(`[notify] email pipeline failed for ${type}:`, emailErr);
   }
 }

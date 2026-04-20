@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { MessageSquare, MessageCircle, LifeBuoy, Bell, ArrowRight, Plus, Send, X, CheckCheck } from 'lucide-react';
+import { MessageCircle, LifeBuoy, Bell, ArrowRight, Plus, Send, X, CheckCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAppStore } from '@/store/useAppStore';
 import { createBrowserClient } from '@/lib/supabase';
@@ -25,20 +25,19 @@ const f = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 type Tab = 'mensajes' | 'soporte' | 'notificaciones';
-type IconProps = { size?: number; style?: React.CSSProperties };
 
-const TABS: { key: Tab; title: string; desc: string; icon: React.ComponentType<IconProps> }[] = [
-  { key: 'notificaciones', title: 'Notificaciones', desc: 'Actividad reciente',   icon: Bell },
-  { key: 'mensajes',       title: 'Mensajes',       desc: 'Tu equipo NeuroPost',  icon: MessageCircle },
-  { key: 'soporte',        title: 'Soporte',        desc: 'Tickets y consultas',  icon: LifeBuoy },
+const TABS: { key: Tab; title: string; desc: string; icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }> }[] = [
+  { key: 'notificaciones', title: 'Notificaciones', desc: 'Actividad reciente',  icon: Bell },
+  { key: 'mensajes',       title: 'Mensajes',       desc: 'Tu equipo NeuroPost', icon: MessageCircle },
+  { key: 'soporte',        title: 'Soporte',        desc: 'Tickets y consultas', icon: LifeBuoy },
 ];
 
-const FEEDBACK_OPTIONS = [
-  { value: 5, label: 'Excelente' },
-  { value: 4, label: 'Muy buena' },
-  { value: 3, label: 'Buena' },
-  { value: 2, label: 'Mejorable' },
-] as const;
+// Only show notifications the client cares about
+const RELEVANT_NOTIF_TYPES = new Set([
+  'chat_message', 'new_message',           // mensajes del equipo
+  'approval_needed', 'published', 'failed', // publicaciones / contenido
+  'ticket_reply',                            // respuesta en soporte
+]);
 
 // ── Types ──
 type Ticket = { id: string; subject: string; status: string; category: string; created_at: string };
@@ -62,22 +61,14 @@ function normalizeNotificationMessage(type: string, message: string) {
 
 function getNotificationCategory(type: string) {
   const categories: Record<string, { label: string; color: string; bg: string }> = {
-    approval_needed: { label: 'Contenido',   color: '#0F766E', bg: '#f0fdfa' },
+    approval_needed: { label: 'Publicación', color: '#0F766E', bg: '#f0fdfa' },
     published:       { label: 'Publicación', color: '#166534', bg: '#ecfdf5' },
-    failed:          { label: 'Incidencia',  color: '#b91c1c', bg: '#fef2f2' },
-    comment:         { label: 'Comentarios', color: '#1d4ed8', bg: '#eff6ff' },
-    limit_reached:   { label: 'Plan',        color: '#b45309', bg: '#fffbeb' },
-    meta_connected:  { label: 'Conexiones',  color: '#0F766E', bg: '#f0fdfa' },
-    token_expired:   { label: 'Conexiones',  color: '#b45309', bg: '#fffbeb' },
-    payment_failed:  { label: 'Facturación', color: '#b91c1c', bg: '#fef2f2' },
-    plan_activated:  { label: 'Plan',        color: '#166534', bg: '#ecfdf5' },
-    team_invite:     { label: 'Equipo',      color: '#4338ca', bg: '#eef2ff' },
-    trend_detected:  { label: 'Tendencias',  color: '#7c3aed', bg: '#f5f3ff' },
-    chat_message:    { label: 'Mensajes',    color: '#0F766E', bg: '#f0fdfa' },
-    new_message:     { label: 'Mensajes',    color: '#0F766E', bg: '#f0fdfa' },
+    failed:          { label: 'Publicación', color: '#b91c1c', bg: '#fef2f2' },
+    chat_message:    { label: 'Mensaje',     color: '#0F766E', bg: '#f0fdfa' },
+    new_message:     { label: 'Mensaje',     color: '#0F766E', bg: '#f0fdfa' },
     ticket_reply:    { label: 'Soporte',     color: '#0D9488', bg: '#ecfeff' },
   };
-  return categories[type] ?? { label: 'Actualización', color: '#374151', bg: '#f3f4f6' };
+  return categories[type] ?? { label: 'Aviso', color: '#374151', bg: '#f3f4f6' };
 }
 
 function InboxInner() {
@@ -115,6 +106,9 @@ function InboxInner() {
   const markAllNotificationsRead = useAppStore((s) => s.markAllNotificationsRead);
   const markNotificationRead = useAppStore((s) => s.markNotificationRead);
 
+  // Notifications: show first 10, expand to see all
+  const [notifExpanded, setNotifExpanded] = useState(false);
+
   // Soporte state
   const SUBJECT_OPTIONS = [
     'Problema con publicaciones',
@@ -141,11 +135,18 @@ function InboxInner() {
   const [ticketReplySending, setTicketReplySending] = useState(false);
   const ticketMsgBottom = useRef<HTMLDivElement>(null);
 
-  // Feedback form state
+  // Feedback modal state
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackRating, setFeedbackRating] = useState(4);
   const [feedbackSending, setFeedbackSending] = useState(false);
+
+  const FEEDBACK_OPTIONS = [
+    { value: 5, label: 'Excelente' },
+    { value: 4, label: 'Muy buena' },
+    { value: 3, label: 'Buena' },
+    { value: 2, label: 'Mejorable' },
+  ] as const;
 
   // Chat state
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -154,7 +155,6 @@ function InboxInner() {
   const [chatSending, setChatSending] = useState(false);
   const chatBottom = useRef<HTMLDivElement>(null);
 
-
   // Supabase browser client — created once and reused across realtime subscriptions.
   const supabase = useMemo(() => createBrowserClient(), []);
 
@@ -162,8 +162,6 @@ function InboxInner() {
   useEffect(() => {
     if (!brand?.id) return;
     const brandId = brand.id;
-    // Cast: `.on('postgres_changes', ...)` overloads are narrow in newer
-    // @supabase/supabase-js type defs; use a loose cast so we can pass filters.
     const ch = (supabase.channel(`client-chat-${brandId}`) as unknown as {
       on: (event: string, filter: Record<string, unknown>, cb: (payload: { new: ChatRow }) => void) => typeof ch;
       subscribe: () => typeof ch;
@@ -193,7 +191,6 @@ function InboxInner() {
       { event: 'INSERT', schema: 'public', table: 'notifications', filter: `brand_id=eq.${brandId}` },
       (payload) => {
         const n = payload.new;
-        // Best-effort: shape the row into whatever the store's Notification type expects.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         useAppStore.getState().addNotification(n as any);
         toast(normalizeNotificationMessage(n.type, n.message));
@@ -236,21 +233,25 @@ function InboxInner() {
 
   function setTab(t: Tab) { router.push(`/inbox?tab=${t}`); }
 
-  // Banderas "cargado" por tab — usamos refs para NO disparar re-render al mutarlas
-  // y evitar el loop infinito cuando la API devuelve [].
+  // Banderas "cargado" por tab
   const loadedTabsRef = useRef<Record<string, boolean>>({});
 
-  // Fechas base (hoy/ayer) calculadas una sola vez al montar con lazy useState.
-  // Lazy initializers sí pueden llamar funciones impuras (solo corren 1 vez).
   const [dateStrings] = useState(() => ({
     today: new Date().toDateString(),
     yesterday: new Date(Date.now() - 86400000).toDateString(),
   }));
 
-  // Agrupar notificaciones por fecha (Hoy / Ayer / Anteriores).
+  // Only show relevant notification types
+  const relevantNotifications = useMemo(() =>
+    notifications.filter(n => RELEVANT_NOTIF_TYPES.has(n.type)),
+  [notifications]);
+
+  // Group visible slice by date
+  const visibleNotifications = notifExpanded ? relevantNotifications : relevantNotifications.slice(0, 10);
+
   const notificationGroups = useMemo(() => {
-    const groups: { label: string; items: typeof notifications }[] = [];
-    for (const n of notifications) {
+    const groups: { label: string; items: typeof visibleNotifications }[] = [];
+    for (const n of visibleNotifications) {
       const d = new Date(n.created_at).toDateString();
       const label = d === dateStrings.today ? 'Hoy' : d === dateStrings.yesterday ? 'Ayer' : 'Anteriores';
       const last = groups[groups.length - 1];
@@ -258,9 +259,9 @@ function InboxInner() {
       else groups.push({ label, items: [n] });
     }
     return groups;
-  }, [notifications, dateStrings]);
+  }, [visibleNotifications, dateStrings]);
 
-  // Load data per tab — solo la primera vez que entras a cada tab.
+  // Load data per tab
   useEffect(() => {
     if (loadedTabsRef.current[tab]) return;
     loadedTabsRef.current[tab] = true;
@@ -285,7 +286,15 @@ function InboxInner() {
     }
   }, [tab, setNotifications]);
 
-  useEffect(() => { chatBottom.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  const chatInitialScrollDone = useRef(false);
+  useEffect(() => {
+    if (!chatLoading && messages.length > 0 && !chatInitialScrollDone.current) {
+      chatInitialScrollDone.current = true;
+      chatBottom.current?.scrollIntoView({ behavior: 'instant' });
+    } else if (chatInitialScrollDone.current) {
+      chatBottom.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, chatLoading]);
 
   async function createTicket() {
     const finalSubject = ticketForm.subject === 'Otro' ? ticketForm.customSubject.trim() : ticketForm.subject;
@@ -386,181 +395,149 @@ function InboxInner() {
       </div>
 
       {/* Tab selector — 3 cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', marginBottom: 20 }}>
+      <div className="inbox-tab-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', marginBottom: 20 }}>
         {TABS.map((s) => {
           const active = tab === s.key;
           const Icon = s.icon;
           const badge = s.key === 'notificaciones' ? unreadNotifications : 0;
           return (
-            <button key={s.key} onClick={() => setTab(s.key)} style={{
+            <button key={s.key} onClick={() => setTab(s.key)} className="inbox-tab-btn" style={{
               padding: '24px 20px', background: active ? 'var(--accent)' : '#ffffff',
               border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                 <Icon size={18} style={{ color: active ? '#ffffff' : 'var(--accent)' }} />
-                {badge > 0 && <span style={{ fontSize: 10, background: 'var(--accent)', color: '#fff', padding: '1px 6px', fontFamily: f, fontWeight: 700 }}>{badge}</span>}
+                {badge > 0 && <span style={{ fontSize: 10, background: active ? 'rgba(255,255,255,0.25)' : 'var(--accent)', color: '#fff', padding: '1px 6px', fontFamily: f, fontWeight: 700 }}>{badge}</span>}
               </div>
               <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 15, textTransform: 'uppercase', color: active ? '#ffffff' : '#111827', marginBottom: 4 }}>{s.title}</p>
-              <p style={{ fontFamily: f, fontSize: 12, color: active ? 'rgba(255,255,255,0.5)' : '#9ca3af' }}>{s.desc}</p>
+              <p className="inbox-tab-desc" style={{ fontFamily: f, fontSize: 12, color: active ? 'rgba(255,255,255,0.5)' : '#9ca3af' }}>{s.desc}</p>
             </button>
           );
         })}
       </div>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(0, 1fr) auto',
-        gap: 20,
-        alignItems: 'center',
-        padding: '22px 24px',
-        border: '1px solid #e5e7eb',
-        background: 'linear-gradient(180deg, #ffffff 0%, #f8fbfb 100%)',
-        marginBottom: 40,
-      }}>
-        <div>
-          <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--accent)', marginBottom: 8 }}>
-            Feedback
-          </p>
-          <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 24, textTransform: 'uppercase', color: '#111827', lineHeight: 1, marginBottom: 8 }}>
-            Cuéntanos qué mejorarías en NeuroPost
-          </h2>
-          <p style={{ fontFamily: f, fontSize: 14, color: '#6b7280', maxWidth: 620 }}>
-            Si quieres, puedes dejarnos un comentario sobre tu experiencia, sugerencias de mejora o cualquier detalle que creas que deberíamos pulir.
-          </p>
-        </div>
-        <button
-          onClick={() => setFeedbackOpen(true)}
-          style={{
-            background: '#ffffff',
-            color: '#111827',
-            border: '1px solid #d1d5db',
-            padding: '12px 18px',
-            fontFamily: fc,
-            fontSize: 12,
-            fontWeight: 700,
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          <MessageSquare size={15} />
-          Compartir feedback
-        </button>
-      </div>
-
-
-      {/* MODAL DE VALORACIÓN */}
+      {/* Feedback modal */}
       {feedbackOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.18)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', boxShadow: '0 20px 50px rgba(15,23,42,0.14)', padding: 32, minWidth: 340, maxWidth: 560, width: 'calc(100vw - 32px)', position: 'relative' }}>
+          <div style={{ background: '#fff', boxShadow: '0 20px 50px rgba(15,23,42,0.14)', padding: 32, minWidth: 340, maxWidth: 520, width: 'calc(100vw - 32px)', position: 'relative' }}>
             <button onClick={closeFeedbackModal} style={{ position: 'absolute', top: 12, right: 12, background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}><X size={18} /></button>
-            <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--accent)', marginBottom: 8 }}>
-              Feedback
-            </p>
-            <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 26, textTransform: 'uppercase', color: '#111827', marginBottom: 10, lineHeight: 1 }}>
+            <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#0F766E', marginBottom: 8 }}>Feedback</p>
+            <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 22, textTransform: 'uppercase', color: '#111827', marginBottom: 10, lineHeight: 1 }}>
               Comparte tu opinión
             </h2>
             <p style={{ fontFamily: f, fontSize: 14, color: '#6b7280', marginBottom: 18, lineHeight: 1.6 }}>
-              Queremos que la experiencia sea cada vez mejor. Cuéntanos qué te gusta, qué mejorarías o qué echas en falta.
+              Cuéntanos qué te gusta, qué mejorarías o qué echas en falta.
             </p>
-            <div style={{ marginBottom: 18 }}>
-              <p style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', marginBottom: 8 }}>
-                Valoración general
-              </p>
+            <div style={{ marginBottom: 16 }}>
+              <p style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#9ca3af', marginBottom: 8 }}>Valoración</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {FEEDBACK_OPTIONS.map((option) => {
                   const active = feedbackRating === option.value;
                   return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setFeedbackRating(option.value)}
-                      style={{
-                        padding: '9px 12px',
-                        border: `1px solid ${active ? 'var(--accent)' : '#d1d5db'}`,
-                        background: active ? '#f0fdfa' : '#ffffff',
-                        color: active ? '#0F766E' : '#374151',
-                        fontFamily: f,
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                      }}
-                    >
+                    <button key={option.value} type="button" onClick={() => setFeedbackRating(option.value)}
+                      style={{ padding: '8px 14px', border: `1px solid ${active ? '#0F766E' : '#d1d5db'}`, background: active ? '#f0fdfa' : '#ffffff', color: active ? '#0F766E' : '#374151', fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                       {option.label}
                     </button>
                   );
                 })}
               </div>
             </div>
-            <textarea
-              value={feedbackText}
-              onChange={(e) => setFeedbackText(e.target.value)}
-              placeholder="Escribe aquí tu comentario o sugerencia..."
-              rows={5}
-              style={{ width: '100%', padding: '14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', color: '#111827', background: '#f9fafb', resize: 'vertical', marginBottom: 18, boxSizing: 'border-box' }}
-            />
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-              <button
-                type="button"
-                onClick={closeFeedbackModal}
-                style={{ padding: '12px 18px', background: '#ffffff', color: '#6b7280', border: '1px solid #d1d5db', fontFamily: f, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-              >
+            <textarea value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)}
+              placeholder="Escribe aquí tu comentario o sugerencia..." rows={4}
+              style={{ width: '100%', padding: '12px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', color: '#111827', background: '#f9fafb', resize: 'vertical', marginBottom: 16, boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button type="button" onClick={closeFeedbackModal}
+                style={{ padding: '10px 18px', background: '#ffffff', color: '#6b7280', border: '1px solid #d1d5db', fontFamily: f, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 Cancelar
               </button>
-              <button onClick={sendFeedback} disabled={!feedbackText.trim() || feedbackSending}
-                style={{ padding: '12px 24px', background: feedbackText.trim() && !feedbackSending ? 'var(--accent)' : '#e5e7eb', color: '#ffffff', border: 'none', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: feedbackText.trim() && !feedbackSending ? 'pointer' : 'not-allowed' }}>
-                {feedbackSending ? 'Enviando...' : 'Enviar comentario'}
+              <button type="button" onClick={sendFeedback} disabled={!feedbackText.trim() || feedbackSending}
+                style={{ padding: '10px 22px', background: feedbackText.trim() && !feedbackSending ? '#0F766E' : '#e5e7eb', color: '#ffffff', border: 'none', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: feedbackText.trim() && !feedbackSending ? 'pointer' : 'not-allowed' }}>
+                {feedbackSending ? 'Enviando...' : 'Enviar →'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── MENSAJES — inline chat ── */}
+      {/* ── MENSAJES — single-column chat with date separators ── */}
       {tab === 'mensajes' && (
-        <div>
-          <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: '#111827', marginBottom: 20 }}>Mensajes</h2>
-          <div style={{ border: '1px solid #e5e7eb', height: 400, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-              {chatLoading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
-                  {[180, 140, 200].map((w, i) => <div key={i} style={{ width: w, height: 28, background: '#f3f4f6', alignSelf: i % 2 ? 'flex-start' : 'flex-end' }} />)}
-                </div>
-              ) : messages.length === 0 ? (
-                <div style={{ textAlign: 'center', marginTop: 80 }}>
-                  <p style={{ fontFamily: f, fontWeight: 600, fontSize: 15, color: '#111827', marginBottom: 4 }}>Tu equipo está listo</p>
-                  <p style={{ fontFamily: f, fontSize: 13, color: '#9ca3af' }}>Envía un mensaje y te respondemos en menos de 2h</p>
-                </div>
-              ) : (
-                messages.map((msg) => (
-                  <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: msg.sender_type === 'client' ? 'flex-end' : 'flex-start', marginBottom: 8 }}>
+        <div style={{ border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', height: 520 }}>
+          {/* Chat header */}
+          <div style={{ padding: '14px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 32, height: 32, background: '#0F766E', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <span style={{ fontFamily: fc, fontSize: 13, fontWeight: 900, color: '#fff' }}>NP</span>
+            </div>
+            <div>
+              <p style={{ fontFamily: f, fontSize: 14, fontWeight: 700, color: '#111827', margin: 0 }}>Equipo NeuroPost</p>
+              <p style={{ fontFamily: f, fontSize: 11, color: '#9ca3af', margin: 0 }}>Respondemos en minutos</p>
+            </div>
+          </div>
+
+          {/* Messages with date separators */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', background: '#f9fafb' }}>
+            {chatLoading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
+                {[180, 140, 200].map((w, i) => <div key={i} style={{ width: w, height: 28, background: '#e5e7eb', alignSelf: i % 2 ? 'flex-start' : 'flex-end' }} />)}
+              </div>
+            ) : messages.length === 0 ? (
+              <div style={{ textAlign: 'center', marginTop: 80 }}>
+                <p style={{ fontFamily: f, fontWeight: 600, fontSize: 15, color: '#111827', marginBottom: 4 }}>Tu equipo está listo</p>
+                <p style={{ fontFamily: f, fontSize: 13, color: '#9ca3af' }}>Envía un mensaje y te respondemos en menos de 2h</p>
+              </div>
+            ) : (() => {
+              // Group messages by date for WhatsApp-style separators
+              const today = new Date().toDateString();
+              const yesterday = new Date(Date.now() - 86400000).toDateString();
+              const rendered: React.ReactNode[] = [];
+              let lastDateStr = '';
+              messages.forEach((msg) => {
+                const d = new Date(msg.created_at).toDateString();
+                if (d !== lastDateStr) {
+                  lastDateStr = d;
+                  const label = d === today ? 'Hoy' : d === yesterday ? 'Ayer' : new Date(msg.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+                  rendered.push(
+                    <div key={`sep-${d}`} style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '14px 0 10px' }}>
+                      <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
+                      <span style={{ fontFamily: f, fontSize: 11, color: '#9ca3af', whiteSpace: 'nowrap', background: '#f9fafb', padding: '0 4px' }}>{label}</span>
+                      <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
+                    </div>
+                  );
+                }
+                rendered.push(
+                  <div key={msg.id} style={{ display: 'flex', flexDirection: 'column', alignItems: msg.sender_type === 'client' ? 'flex-end' : 'flex-start', marginBottom: 10 }}>
                     {msg.sender_type === 'client' && operatorDisplayName && (
                       <span style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', marginBottom: 2, paddingRight: 2 }}>{operatorDisplayName}</span>
                     )}
-                    <div style={{ maxWidth: '65%', background: msg.sender_type === 'client' ? '#f3f4f6' : '#e6f6f3', border: `1px solid ${msg.sender_type === 'client' ? '#d1d5db' : '#6fb7aa'}`, padding: '10px 14px' }}>
+                    <div style={{
+                      maxWidth: '75%',
+                      background: msg.sender_type === 'client' ? '#ffffff' : '#e6f6f3',
+                      border: `1px solid ${msg.sender_type === 'client' ? '#e5e7eb' : '#6fb7aa'}`,
+                      padding: '10px 14px',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+                    }}>
                       <p style={{ fontFamily: f, fontSize: 13, color: '#111827', lineHeight: 1.5, whiteSpace: 'pre-wrap', margin: 0 }}>{msg.message}</p>
-                      <p style={{ fontFamily: f, fontSize: 10, color: '#d1d5db', marginTop: 4, textAlign: 'right' }}>{new Date(msg.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
+                      <p style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', marginTop: 4, textAlign: 'right' }}>
+                        {new Date(msg.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                      </p>
                     </div>
                   </div>
-                ))
-              )}
-              <div ref={chatBottom} />
-            </div>
-            <div style={{ borderTop: '1px solid #e5e7eb', padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input value={chatText} onChange={(e) => setChatText(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }}
-                placeholder="Escribe un mensaje..." style={{ flex: 1, padding: '10px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', color: '#111827', background: '#f9fafb' }} />
-              <button onClick={sendChat} disabled={!chatText.trim()} style={{
-                width: 36, height: 36, background: chatText.trim() ? 'var(--accent)' : '#e5e7eb', border: 'none',
-                cursor: chatText.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Send size={14} color="#ffffff" />
-              </button>
-            </div>
+                );
+              });
+              return rendered;
+            })()}
+            <div ref={chatBottom} />
+          </div>
+
+          {/* Input */}
+          <div style={{ borderTop: '1px solid #e5e7eb', padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center', background: '#ffffff' }}>
+            <input value={chatText} onChange={(e) => setChatText(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }}
+              placeholder="Escribe un mensaje..."
+              style={{ flex: 1, padding: '10px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', color: '#111827', background: '#f9fafb' }} />
+            <button type="button" onClick={sendChat} disabled={!chatText.trim()}
+              style={{ width: 36, height: 36, background: chatText.trim() ? '#0F766E' : '#e5e7eb', border: 'none', cursor: chatText.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Send size={14} color="#ffffff" />
+            </button>
           </div>
         </div>
       )}
@@ -568,19 +545,18 @@ function InboxInner() {
       {/* ── SOPORTE — tickets con detalle ── */}
       {tab === 'soporte' && (
         <div>
-          {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
             <div>
-              <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: '#111827', marginBottom: 2 }}>Soporte</h2>
+              <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 18, textTransform: 'uppercase', color: '#111827', marginBottom: 2 }}>Soporte</h2>
               {selectedTicket && (
-                <button onClick={() => setSelectedTicket(null)} style={{ background: 'none', border: 'none', fontFamily: f, fontSize: 12, color: 'var(--accent)', cursor: 'pointer', padding: 0 }}>
+                <button onClick={() => setSelectedTicket(null)} style={{ background: 'none', border: 'none', fontFamily: f, fontSize: 12, color: '#0F766E', cursor: 'pointer', padding: 0 }}>
                   ← Volver a tickets
                 </button>
               )}
             </div>
             {!selectedTicket && (
               <button onClick={() => setCreating(true)} style={{
-                background: 'var(--accent)', color: '#ffffff', border: 'none', padding: '8px 20px',
+                background: '#0F766E', color: '#ffffff', border: 'none', padding: '8px 20px',
                 fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
               }}>
@@ -589,14 +565,12 @@ function InboxInner() {
             )}
           </div>
 
-          {/* ── Create ticket form ── */}
           {creating && !selectedTicket && (
             <div style={{ border: '1px solid #e5e7eb', padding: '24px', marginBottom: 24, background: '#ffffff' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <h3 style={{ fontFamily: fc, fontSize: 16, fontWeight: 800, textTransform: 'uppercase', color: '#111827' }}>Nuevo ticket</h3>
+                <h3 style={{ fontFamily: fc, fontSize: 15, fontWeight: 800, textTransform: 'uppercase', color: '#111827' }}>Nuevo ticket</h3>
                 <button onClick={() => setCreating(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}><X size={16} /></button>
               </div>
-              {/* Asunto — dropdown */}
               <div style={{ marginBottom: 14 }}>
                 <label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af', marginBottom: 6 }}>Asunto *</label>
                 <select value={ticketForm.subject} onChange={(e) => setTicketForm(p => ({ ...p, subject: e.target.value, customSubject: '' }))}
@@ -605,7 +579,6 @@ function InboxInner() {
                   {SUBJECT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </div>
-              {/* Custom subject — solo si selecciona "Otro" */}
               {ticketForm.subject === 'Otro' && (
                 <div style={{ marginBottom: 14 }}>
                   <label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af', marginBottom: 6 }}>Especifica el asunto *</label>
@@ -613,7 +586,6 @@ function InboxInner() {
                     style={{ width: '100%', padding: '12px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', boxSizing: 'border-box', color: '#111827' }} />
                 </div>
               )}
-              {/* Descripción — obligatoria */}
               <div style={{ marginBottom: 20 }}>
                 <label style={{ display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af', marginBottom: 6 }}>Descripción *</label>
                 <textarea value={ticketForm.description} onChange={(e) => setTicketForm(p => ({ ...p, description: e.target.value }))} placeholder="Explica con detalle lo que ha pasado para que podamos ayudarte mejor..."
@@ -621,21 +593,18 @@ function InboxInner() {
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => setCreating(false)} style={{ padding: '10px 20px', border: '1px solid #e5e7eb', background: '#ffffff', fontFamily: f, fontSize: 13, fontWeight: 600, color: '#6b7280', cursor: 'pointer' }}>Cancelar</button>
-                <button onClick={createTicket} disabled={saving} style={{
-                  padding: '10px 24px', background: 'var(--accent)', color: '#ffffff', border: 'none',
-                  fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', opacity: saving ? 0.5 : 1,
-                }}>{saving ? 'Enviando...' : 'Abrir ticket →'}</button>
+                <button onClick={createTicket} disabled={saving} style={{ padding: '10px 24px', background: '#0F766E', color: '#ffffff', border: 'none', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer', opacity: saving ? 0.5 : 1 }}>
+                  {saving ? 'Enviando...' : 'Abrir ticket →'}
+                </button>
               </div>
             </div>
           )}
 
-          {/* ── Ticket detail view ── */}
           {selectedTicket && (
             <div>
-              {/* Ticket info */}
               <div style={{ border: '1px solid #e5e7eb', padding: '20px', marginBottom: 16, background: '#ffffff' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <h3 style={{ fontFamily: f, fontSize: 16, fontWeight: 700, color: '#111827', margin: 0 }}>{selectedTicket.subject}</h3>
+                  <h3 style={{ fontFamily: f, fontSize: 15, fontWeight: 700, color: '#111827', margin: 0 }}>{selectedTicket.subject}</h3>
                   <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, padding: '2px 8px', color: (STATUS_STYLE[selectedTicket.status] ?? STATUS_STYLE.open).color, background: (STATUS_STYLE[selectedTicket.status] ?? STATUS_STYLE.open).bg, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                     {(STATUS_STYLE[selectedTicket.status] ?? STATUS_STYLE.open).label}
                   </span>
@@ -644,8 +613,6 @@ function InboxInner() {
                   Creado el {new Date(selectedTicket.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                 </p>
               </div>
-
-              {/* Messages thread */}
               <div style={{ border: '1px solid #e5e7eb', height: 350, display: 'flex', flexDirection: 'column' }}>
                 <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
                   {ticketMsgLoading ? (
@@ -664,22 +631,19 @@ function InboxInner() {
                         </span>
                         <div style={{ maxWidth: '70%', background: msg.sender_type === 'client' ? '#f3f4f6' : '#ecfdf5', border: `1px solid ${msg.sender_type === 'client' ? '#d1d5db' : '#6fb7aa'}`, padding: '10px 14px' }}>
                           <p style={{ fontFamily: f, fontSize: 13, color: '#111827', lineHeight: 1.5, whiteSpace: 'pre-wrap', margin: 0 }}>{msg.message}</p>
-                          <p style={{ fontFamily: f, fontSize: 10, color: '#d1d5db', marginTop: 4, textAlign: 'right' }}>{new Date(msg.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
+                          <p style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', marginTop: 4, textAlign: 'right' }}>{new Date(msg.created_at).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</p>
                         </div>
                       </div>
                     ))
                   )}
                   <div ref={ticketMsgBottom} />
                 </div>
-                {/* Reply input */}
                 <div style={{ borderTop: '1px solid #e5e7eb', padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input value={ticketReply} onChange={(e) => setTicketReply(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendTicketReply(); } }}
                     placeholder="Escribe una respuesta..." style={{ flex: 1, padding: '10px 14px', border: '1px solid #e5e7eb', fontFamily: f, fontSize: 14, outline: 'none', color: '#111827', background: '#f9fafb' }} />
-                  <button onClick={sendTicketReply} disabled={!ticketReply.trim() || ticketReplySending} style={{
-                    width: 36, height: 36, background: ticketReply.trim() && !ticketReplySending ? 'var(--accent)' : '#e5e7eb', border: 'none',
-                    cursor: ticketReply.trim() && !ticketReplySending ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
+                  <button onClick={sendTicketReply} disabled={!ticketReply.trim() || ticketReplySending}
+                    style={{ width: 36, height: 36, background: ticketReply.trim() && !ticketReplySending ? '#0F766E' : '#e5e7eb', border: 'none', cursor: ticketReply.trim() && !ticketReplySending ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Send size={14} color="#ffffff" />
                   </button>
                 </div>
@@ -687,7 +651,6 @@ function InboxInner() {
             </div>
           )}
 
-          {/* ── Tickets list ── */}
           {!selectedTicket && !creating && (
             <>
               {ticketsLoading ? (
@@ -696,12 +659,9 @@ function InboxInner() {
                 </div>
               ) : tickets.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '60px 20px', border: '1px solid #e5e7eb' }}>
-                  <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 20, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Todo en orden</p>
+                  <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 18, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Todo en orden</p>
                   <p style={{ fontFamily: f, fontSize: 14, color: '#9ca3af', marginBottom: 24 }}>Si necesitas ayuda, abre un ticket</p>
-                  <button onClick={() => setCreating(true)} style={{
-                    background: 'var(--accent)', color: '#ffffff', border: 'none', padding: '12px 28px',
-                    fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer',
-                  }}>Abrir ticket</button>
+                  <button onClick={() => setCreating(true)} style={{ background: '#0F766E', color: '#ffffff', border: 'none', padding: '12px 28px', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: 'pointer' }}>Abrir ticket</button>
                 </div>
               ) : (
                 <div style={{ border: '1px solid #e5e7eb' }}>
@@ -716,8 +676,8 @@ function InboxInner() {
                           <p style={{ fontFamily: f, fontSize: 14, fontWeight: 600, color: '#111827', marginBottom: 2 }}>{t.subject}</p>
                           <p style={{ fontFamily: f, fontSize: 11, color: '#9ca3af' }}>
                             {new Date(t.created_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-                            <span style={{ marginLeft: 8 }}>·</span>
-                            <span style={{ marginLeft: 8 }}>Click para ver detalles</span>
+                            <span style={{ margin: '0 6px' }}>·</span>
+                            Click para ver detalles
                           </p>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -737,89 +697,53 @@ function InboxInner() {
       {/* ── NOTIFICACIONES ── */}
       {tab === 'notificaciones' && (
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-            <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: '#111827' }}>Notificaciones</h2>
-            {notifications.filter(n => !n.read).length > 0 && (
-              <button onClick={() => { markAllNotificationsRead(); fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ all: true }) }); }} style={{
-                background: '#ffffff', border: '1px solid var(--accent)', padding: '6px 14px', cursor: 'pointer',
-                fontFamily: f, fontSize: 12, fontWeight: 600, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 6,
-              }}>
-                <CheckCheck size={13} /> Marcar todo como leído
+          {/* Mark-all-read */}
+          {relevantNotifications.filter(n => !n.read).length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+              <button type="button" onClick={() => { markAllNotificationsRead(); fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ all: true }) }); }}
+                style={{ background: '#ffffff', border: '1px solid #0F766E', padding: '6px 12px', cursor: 'pointer', fontFamily: f, fontSize: 12, fontWeight: 600, color: '#0F766E', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <CheckCheck size={13} /> Marcar todo leído
               </button>
-            )}
-          </div>
-
-          {notifications.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', border: '1px solid #e5e7eb' }}>
-              <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 20, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Sin notificaciones</p>
-              <p style={{ fontFamily: f, fontSize: 14, color: '#9ca3af' }}>Aquí aparecerán las novedades sobre tu contenido</p>
             </div>
-          ) : (() => {
-            // Usa los grupos precomputados en notificationGroups (useMemo arriba)
-            const groups = notificationGroups;
+          )}
 
-            const NOTIF_LINK: Record<string, string> = {
-              approval_needed: '/posts', published: '/posts', failed: '/posts',
-              comment: '/comments', limit_reached: '/settings/plan',
-              meta_connected: '/settings#redes', token_expired: '/settings#redes',
-              payment_failed: '/settings/plan', plan_activated: '/settings/plan',
-              team_invite: '/settings/team', trend_detected: '/tendencias',
-              chat_message: '/inbox?tab=mensajes',
-              new_message: '/inbox?tab=mensajes',
-              ticket_reply: '/inbox?tab=soporte',
-            };
-
-            return (
+          {relevantNotifications.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', border: '1px solid #e5e7eb' }}>
+              <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 18, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Sin notificaciones</p>
+              <p style={{ fontFamily: f, fontSize: 14, color: '#9ca3af' }}>Aquí aparecerán mensajes, publicaciones y respuestas de soporte</p>
+            </div>
+          ) : (
+            <>
               <div style={{ border: '1px solid #e5e7eb' }}>
-                {groups.map((group) => (
+                {notificationGroups.map((group) => (
                   <div key={group.label}>
-                    <div style={{ padding: '10px 20px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
-                      <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--accent)' }}>{group.label}</span>
+                    <div style={{ padding: '8px 20px', background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                      <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#0F766E' }}>{group.label}</span>
                     </div>
                     {group.items.map((n) => {
                       const category = getNotificationCategory(n.type);
                       const message = normalizeNotificationMessage(n.type, n.message);
-
+                      const NOTIF_LINK: Record<string, string> = {
+                        approval_needed: '/posts', published: '/posts', failed: '/posts',
+                        chat_message: '/inbox?tab=mensajes', new_message: '/inbox?tab=mensajes',
+                        ticket_reply: '/inbox?tab=soporte',
+                      };
                       return (
-                        <div
-                          key={n.id}
+                        <div key={n.id}
                           onClick={() => {
                             if (!n.read) {
                               markNotificationRead(n.id);
-                              fetch('/api/notifications', {
-                                method: 'PATCH',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ ids: [n.id] }),
-                              }).catch(() => null);
+                              fetch('/api/notifications', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids: [n.id] }) }).catch(() => null);
                             }
-                            const link = NOTIF_LINK[n.type] ?? '/dashboard';
+                            const link = NOTIF_LINK[n.type] ?? '/posts';
                             if (link.startsWith('/inbox')) setTab(link.split('tab=')[1] as Tab);
                             else router.push(link);
                           }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            justifyContent: 'space-between',
-                            gap: 16,
-                            padding: '14px 20px',
-                            borderBottom: '1px solid #f3f4f6',
-                            cursor: 'pointer',
-                            background: n.read ? '#ffffff' : '#fbfefe',
-                            transition: 'background 0.1s',
-                          }}
+                          style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, padding: '13px 20px', borderBottom: '1px solid #f3f4f6', cursor: 'pointer', background: n.read ? '#ffffff' : '#fbfefe', transition: 'background 0.1s' }}
                         >
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                              <span style={{
-                                fontFamily: f,
-                                fontSize: 10,
-                                fontWeight: 700,
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.08em',
-                                padding: '3px 8px',
-                                background: category.bg,
-                                color: category.color,
-                              }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                              <span style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', padding: '2px 7px', background: category.bg, color: category.color }}>
                                 {category.label}
                               </span>
                               <span style={{ fontFamily: f, fontSize: 11, color: '#9ca3af' }}>
@@ -830,17 +754,33 @@ function InboxInner() {
                               {message}
                             </p>
                           </div>
-                          {!n.read && <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', flexShrink: 0, marginTop: 6 }} />}
+                          {!n.read && <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#0F766E', flexShrink: 0, marginTop: 6 }} />}
                         </div>
                       );
                     })}
                   </div>
                 ))}
               </div>
-            );
-          })()}
+
+              {/* Ver más / ver menos */}
+              {relevantNotifications.length > 10 && (
+                <button type="button" onClick={() => setNotifExpanded(e => !e)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, margin: '12px auto 0', background: 'none', border: 'none', cursor: 'pointer', fontFamily: f, fontSize: 13, color: '#6b7280' }}>
+                  {notifExpanded ? '↑ Ver menos' : `↓ Ver anteriores (${relevantNotifications.length - 10})`}
+                </button>
+              )}
+            </>
+          )}
         </div>
       )}
+
+      {/* Footer — subtle feedback link */}
+      <div style={{ marginTop: 48, paddingTop: 16, borderTop: '1px solid #f3f4f6', textAlign: 'center' }}>
+        <button type="button" onClick={() => setFeedbackOpen(true)}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: f, fontSize: 13, color: '#9ca3af' }}>
+          ¿Sugerencias o mejoras? Cuéntanos →
+        </button>
+      </div>
     </div>
   );
 }

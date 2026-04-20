@@ -220,22 +220,28 @@ export default function BibliotecaPage() {
         </div>
       )}
 
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: 24, borderBottom: '1px solid #e5e7eb', marginBottom: 24 }}>
+      {/* Filters — 3 cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', marginBottom: 20 }}>
         {[
-          { v: 'all' as const, l: 'Todo', count: items.length },
-          { v: 'image' as const, l: 'Imágenes', count: items.filter(i => i.type === 'image').length },
-          { v: 'video' as const, l: 'Vídeos', count: items.filter(i => i.type === 'video').length },
-        ].map(({ v, l, count }) => (
-          <button key={v} onClick={() => handleFilterChange(v)} style={{
-            background: 'none', border: 'none', cursor: 'pointer', paddingBottom: 12,
-            fontFamily: f, fontSize: 13, fontWeight: 500,
-            color: filter === v ? '#111827' : '#9ca3af',
-            borderBottom: filter === v ? '2px solid #111827' : '2px solid transparent',
-          }}>
-            {l} {count > 0 && <span style={{ color: '#d1d5db', marginLeft: 4 }}>{count}</span>}
-          </button>
-        ))}
+          { v: 'all'   as const, l: 'Todo',     desc: `${items.length} archivos` },
+          { v: 'image' as const, l: 'Imágenes', desc: `${items.filter(i => i.type === 'image').length} imágenes` },
+          { v: 'video' as const, l: 'Vídeos',   desc: `${items.filter(i => i.type === 'video').length} vídeos` },
+        ].map(({ v, l, desc }) => {
+          const active = filter === v;
+          return (
+            <button key={v} type="button" onClick={() => handleFilterChange(v)} style={{
+              padding: '24px 20px', background: active ? 'var(--accent)' : '#ffffff',
+              border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+            }}>
+              <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 15, textTransform: 'uppercase', color: active ? '#ffffff' : '#111827', marginBottom: 4 }}>
+                {l}
+              </p>
+              <p style={{ fontFamily: f, fontSize: 12, color: active ? 'rgba(255,255,255,0.5)' : '#9ca3af' }}>
+                {desc}
+              </p>
+            </button>
+          );
+        })}
       </div>
 
       {/* Unified drop zone + gallery */}

@@ -121,7 +121,7 @@ const SERVICES = [
     subtitle: 'Todos los vídeos se editan a ≤90 segundos',
     body: 'Queremos que tus vídeos lleguen a más gente. Por eso todos se editan en máximo 90 segundos — el punto donde Instagram amplifica más tu contenido. Sin cortes abruptos. Con transiciones inteligentes. Solo resultados.',
     note: 'Garantía de alcance: si tu vídeo supera 90s, lo editamos sin perder el mensaje.',
-    plans: ['Pro', 'Total'],
+    plans: ['Crecimiento', 'Profesional'],
     points: [
       { title: 'Algoritmo prioritario',     desc: 'Instagram amplifica vídeos cortos (Reels). Los primeros 90s es donde el sistema te da más visibilidad y alcance orgánico.' },
       { title: 'Edición inteligente',       desc: 'Si tu vídeo supera 90 segundos, lo cortamos sin perder el mensaje. Priorizamos el mensaje clave, el ritmo y el impacto visual.' },
@@ -134,8 +134,8 @@ const SERVICES = [
     title: 'Fotos profesionales adaptadas a tu marca',
     subtitle: 'No solo optimizamos imágenes — las transformamos en contenido que capta atención',
     body: 'Sube tus fotos y nosotros nos encargamos de todo: edición, corrección de color, composición, texto y adaptación creativa. Desde cambios sutiles hasta transformaciones completas de fondo, estilo y composición según el objetivo del contenido.',
-    note: 'Starter: 2 fotos/semana · Pro: 4 fotos/semana · Total: hasta 20 fotos/semana',
-    plans: ['Starter', 'Pro', 'Total'],
+    note: 'Esencial: 2 fotos/semana · Crecimiento: 4 fotos/semana · Profesional: hasta 20 fotos/semana',
+    plans: ['Esencial', 'Crecimiento', 'Profesional'],
     points: [
       { title: 'Edición profesional',    desc: 'Corrección de color, contraste, brillo y composición. Cada foto queda optimizada para el feed de Instagram.' },
       { title: 'Texto y diseño',         desc: 'Añadimos texto, logotipos y elementos gráficos alineados con tu identidad de marca.' },
@@ -152,8 +152,8 @@ const SERVICES = [
     title: 'Carruseles que retienen y convierten',
     subtitle: 'El formato que más tiempo mantiene al usuario en tu perfil',
     body: 'Los carruseles generan más tiempo de visualización que cualquier otro formato. Los usamos para mostrar proceso, resultados, productos o contenido educativo que construye autoridad y confianza en tu marca.',
-    note: 'Starter: hasta 3 fotos · Pro: hasta 8 fotos · Total: hasta 20 fotos por carrusel',
-    plans: ['Starter', 'Pro', 'Total'],
+    note: 'Esencial: hasta 3 fotos · Crecimiento: hasta 8 fotos · Profesional: hasta 20 fotos por carrusel',
+    plans: ['Esencial', 'Crecimiento', 'Profesional'],
     points: [
       { title: 'Hasta 20 fotos por carrusel', desc: 'Según tu plan, creamos carruseles de hasta 3, 8 o 20 fotos. Más contenido por publicación = más tiempo de visualización.' },
       { title: 'Diseño para retención',        desc: 'Estructuramos cada carrusel para que el usuario quiera seguir deslizando hasta el final, manteniendo la atención en cada imagen.' },
@@ -166,8 +166,8 @@ const SERVICES = [
     title: 'Publicación programada y calendario avanzado',
     subtitle: 'Publicamos cuando tu audiencia está más activa',
     body: 'Nos encargamos de programar y publicar todo el contenido de forma automática. Tú apruebas y nosotros publicamos en los momentos de mayor actividad de tu audiencia específica.',
-    note: 'Mejores horas para publicar disponible en Pro y Total',
-    plans: ['Starter', 'Pro', 'Total'],
+    note: 'Mejores horas para publicar disponible en Crecimiento y Profesional',
+    plans: ['Esencial', 'Crecimiento', 'Profesional'],
     points: [
       { title: 'Publicación automática',    desc: 'Conexión directa con Instagram via API oficial de Meta. El contenido se publica sin que tengas que hacer nada.' },
       { title: 'Calendario editorial',       desc: 'Ve todo tu contenido planificado en un calendario mensual. Aprueba, edita o cambia fechas con un clic.' },
@@ -180,8 +180,8 @@ const SERVICES = [
     title: 'IA integrada en cada paso',
     subtitle: 'No es automatización genérica — es IA entrenada para tu negocio',
     body: 'Usamos modelos de lenguaje avanzados para generar captions, ideas de contenido, hashtags y estrategias. Todo el contenido pasa por tu perfil de marca para que suene exactamente como tú hablas.',
-    note: 'Ideas basadas en tendencias disponibles en Pro y Total',
-    plans: ['Starter', 'Pro', 'Total'],
+    note: 'Ideas basadas en tendencias disponibles en Crecimiento y Profesional',
+    plans: ['Esencial', 'Crecimiento', 'Profesional'],
     points: [
       { title: 'Captions que venden',        desc: 'Generamos textos adaptados al tono de tu marca: cercano, profesional, divertido o técnico. Con llamadas a la acción claras.' },
       { title: 'Ideas por tendencias',        desc: 'Analizamos las tendencias de tu sector cada semana y generamos ideas de contenido alineadas con lo que está funcionando ahora.' },
@@ -195,7 +195,7 @@ const SERVICES = [
     subtitle: 'Datos concretos para decisiones inteligentes',
     body: 'No trabajamos a ciegas. Analizamos el rendimiento de cada publicación y usamos esos datos para mejorar el contenido siguiente. Más engagement, más alcance, más resultados semana a semana.',
     note: 'Disponible en todos los planes · Actualizado automáticamente',
-    plans: ['Starter', 'Pro', 'Total'],
+    plans: ['Esencial', 'Crecimiento', 'Profesional'],
     points: [
       { title: 'Métricas por publicación',   desc: 'Alcance, impresiones, likes, comentarios, guardados y compartidos. Ves exactamente qué contenido funciona mejor.' },
       { title: 'Rendimiento del perfil',      desc: 'Evolución de seguidores, tasa de engagement y comparativas semana a semana. Progreso visible y cuantificable.' },
@@ -209,7 +209,7 @@ const SERVICES = [
     subtitle: 'Tienes una idea — nosotros la ejecutamos',
     body: 'En cualquier momento puedes enviarnos una solicitud de contenido específico: una promoción, un nuevo producto, una fecha especial o cualquier cosa que quieras comunicar. Nosotros lo creamos y lo programamos.',
     note: 'Disponible en todos los planes · Respuesta en 24-48h laborables',
-    plans: ['Starter', 'Pro', 'Total'],
+    plans: ['Esencial', 'Crecimiento', 'Profesional'],
     points: [
       { title: 'Sin límite de solicitudes',  desc: 'Puedes pedir el contenido que necesitas cuando lo necesitas. Fechas especiales, lanzamientos, ofertas flash — todo tiene cabida.' },
       { title: 'Respuesta en 24-48h',         desc: 'Procesamos todas las solicitudes en 24-48 horas laborables. Si es urgente, indícalo y lo priorizamos.' },
@@ -466,7 +466,7 @@ export default function QueIncluyePage() {
               className="cta-btn"
               style={{ display: 'inline-block', padding: '16px 44px', background: '#0F766E', color: '#ffffff', textDecoration: 'none', fontFamily: fc, fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}
             >
-              Empezar gratis →
+              Empezar →
             </Link>
             <Link
               href="/pricing"

@@ -104,53 +104,64 @@ export default function FeedPage() {
   const data = cache[tab];
 
   return (
-    <div className="page-content">
-      <div className="page-header">
-        <div className="page-header-text">
-          <h1 className="page-title">Feed</h1>
-          <p className="page-sub">Visualiza y gestiona tus publicaciones en todas tus plataformas desde un solo lugar.</p>
+    <div className="page-content dashboard-unified-page" style={{ maxWidth: 1000 }}>
+      {/* Header */}
+      <div className="dashboard-unified-header" style={{ padding: '48px 0 40px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
+        <div>
+          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, marginBottom: 8 }}>
+            Feed
+          </h1>
+          <p style={{ color: '#6b7280', fontSize: 15, fontFamily: f }}>
+            Visualiza y gestiona tus publicaciones en todas tus plataformas desde un solo lugar.
+          </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
-            onClick={() => loadTab(tab, true)}
-            disabled={loading}
-            style={{
-              padding: '7px 12px', background: 'var(--bg)', border: '1px solid var(--border)',
-              fontFamily: f, fontSize: 12, fontWeight: 600, cursor: loading ? 'wait' : 'pointer',
-              display: 'inline-flex', alignItems: 'center', gap: 5, color: 'var(--text-secondary)',
-            }}
-          >
-            <RefreshCw size={12} /> Actualizar
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => loadTab(tab, true)}
+          disabled={loading}
+          style={{
+            padding: '8px 16px', background: '#ffffff', border: '1px solid #d1d5db',
+            fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase',
+            letterSpacing: '0.06em', cursor: loading ? 'wait' : 'pointer',
+            display: 'inline-flex', alignItems: 'center', gap: 6, color: '#374151', flexShrink: 0,
+          }}
+        >
+          <RefreshCw size={12} /> Actualizar
+        </button>
       </div>
 
-      {/* ── Tabs ──────────────────────────────────────────── */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
+      {/* ── Tabs — 3 cards ──────────────────────────────── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', marginBottom: 20 }}>
         {(['instagram', 'facebook', 'tiktok'] as const).map(p => {
-          const meta   = PLATFORMS[p];
-          const pData  = cache[p];
-          const status = pData?.connected ? 'ok' : pData ? 'off' : null;
+          const meta    = PLATFORMS[p];
+          const pData   = cache[p];
+          const active  = tab === p;
+          const connected = pData?.connected ?? null;
           return (
             <button
               key={p}
               onClick={() => setTab(p)}
               style={{
-                padding: '12px 20px', background: 'transparent', border: 'none',
-                borderBottom: `2px solid ${tab === p ? 'var(--accent)' : 'transparent'}`,
-                fontFamily: fc, fontSize: 13, fontWeight: tab === p ? 800 : 600,
-                color: tab === p ? 'var(--accent)' : 'var(--text-secondary)',
-                textTransform: 'uppercase', letterSpacing: '0.06em',
-                cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '24px 20px', background: active ? 'var(--accent)' : '#ffffff',
+                border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
               }}
             >
-              <span>{meta.label}</span>
-              {status && (
-                <span style={{
-                  width: 6, height: 6, borderRadius: '50%',
-                  background: status === 'ok' ? '#0D9488' : '#9ca3af',
-                }} />
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <Camera size={18} style={{ color: active ? '#ffffff' : 'var(--accent)' }} />
+                {connected !== null && (
+                  <span style={{
+                    width: 7, height: 7, borderRadius: '50%',
+                    background: connected ? '#0D9488' : '#9ca3af',
+                    flexShrink: 0,
+                  }} />
+                )}
+              </div>
+              <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 15, textTransform: 'uppercase', color: active ? '#ffffff' : '#111827', marginBottom: 4 }}>
+                {meta.label}
+              </p>
+              <p style={{ fontFamily: f, fontSize: 12, color: active ? 'rgba(255,255,255,0.5)' : '#9ca3af' }}>
+                {connected === null ? 'Cargando...' : connected ? (pData?.username ? `@${pData.username}` : 'Conectado') : 'No conectado'}
+              </p>
             </button>
           );
         })}

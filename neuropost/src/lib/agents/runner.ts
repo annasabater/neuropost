@@ -28,6 +28,7 @@ import {
 } from './queue';
 import { lookupHandler } from './registry';
 import type { AgentJob, HandlerResult } from './types';
+import { logAgentAction } from '@/lib/audit';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -43,9 +44,46 @@ export interface RunnerResult {
   source:      'bullmq' | 'supabase_fallback';
 }
 
-const DEFAULT_BATCH_SIZE   = 10;
-const DRAIN_DURATION_MS    = 50_000; // run worker for 50s (cron maxDuration = 60s)
+const DEFAULT_BATCH_SIZE   = 3;
+const DRAIN_DURATION_MS    = 55_000;  // drain for 55s (safe margin within 300s maxDuration)
 const HANDLER_TIMEOUT_MS   = 45_000;
+const ORPHAN_THRESHOLD_MS  = 10 * 60 * 1000; // 10 min: jobs 'running' longer than this are orphans
+
+// Long-running actions that need extended timeout (polling-based providers).
+// HiggsField: image ~2min, video ~5min. RunwayML: ~2-3min.
+// IMPORTANT: must be < maxDuration (300s) minus overhead (~50s)
+const LONG_TIMEOUT_ACTIONS = new Set([
+  'generate_human_photo',
+  'generate_human_video',
+  'generate_video',
+]);
+const LONG_HANDLER_TIMEOUT_MS = 240_000; // 4 minutes (fits within 300s maxDuration)
+
+/** Determine the timeout for a given job based on its action. */
+function timeoutForJob(job: AgentJob): number {
+  return LONG_TIMEOUT_ACTIONS.has(job.action) ? LONG_HANDLER_TIMEOUT_MS : HANDLER_TIMEOUT_MS;
+}
+
+/** Fire-and-forget worker notification on job state transitions. */
+async function notifyJobEvent(job: AgentJob, event: 'completed' | 'failed' | 'needs_review', detail?: string) {
+  if (!job.brand_id) return;
+  try {
+    const db: DB = createAdminClient();
+    const label = `${job.agent_type}:${job.action}`;
+    const msgs: Record<string, string> = {
+      completed:    `${label} completado para tu cliente`,
+      failed:       `${label} falló: ${detail ?? 'error desconocido'}`,
+      needs_review: `${label} necesita revisión humana: ${detail ?? ''}`,
+    };
+    await db.from('worker_notifications').insert({
+      type:       event === 'failed' ? 'agent_error' : event === 'needs_review' ? 'needs_review' : 'agent_done',
+      message:    msgs[event] ?? label,
+      brand_id:   job.brand_id,
+      read:       false,
+      metadata:   { job_id: job.id, agent: label, event },
+    });
+  } catch { /* non-blocking */ }
+}
 
 // ─── Stats accumulator (shared across parallel BullMQ jobs in one cron tick) ─
 
@@ -85,7 +123,7 @@ async function processJob(job: AgentJob): Promise<void> {
   try {
     result = await withTimeout(
       handler(job),
-      HANDLER_TIMEOUT_MS,
+      timeoutForJob(job),
       `${job.agent_type}:${job.action}`,
     );
   } catch (err) {
@@ -101,44 +139,52 @@ async function processJob(job: AgentJob): Promise<void> {
     throw err;
   }
 
-  try {
-    switch (result.type) {
-      case 'ok': {
+  switch (result.type) {
+    case 'ok': {
+      try {
         if (result.outputs?.length) await saveOutputs(job, result.outputs);
+      } catch (e) {
+        // Outputs saved partially or not at all — still finalize to avoid orphan
+        console.error(`[runner] saveOutputs failed for ${job.id}:`, e);
+      }
+      try {
         if (result.sub_jobs?.length) await queueSubJobs(job, result.sub_jobs);
-        await finalizeJob(job.id, 'done');
-        _stats.done++;
-        break;
+      } catch (e) {
+        console.error(`[runner] queueSubJobs failed for ${job.id}:`, e);
       }
-      case 'needs_review': {
-        if (result.outputs?.length) await saveOutputs(job, result.outputs);
-        await finalizeJob(job.id, 'needs_review', result.reason);
-        _stats.needsReview++;
-        break;
-      }
-      case 'retry': {
-        if (job.attempts < job.max_attempts) {
-          await releaseJobForRetry(job.id, result.error);
-          _stats.retried++;
-        } else {
-          await finalizeJob(job.id, 'error', `Max retries: ${result.error}`);
-          _stats.errored++;
-        }
-        // Re-throw so BullMQ also retries via its backoff schedule
-        throw new Error(result.error);
-      }
-      case 'fail': {
-        await finalizeJob(job.id, 'error', result.error);
-        _stats.errored++;
-        throw new Error(result.error); // BullMQ marks job as failed
-      }
+      await finalizeJob(job.id, 'done');
+      void notifyJobEvent(job, 'completed');
+      void logAgentAction(`${job.agent_type}:${job.action}`, 'generate', 'agent_job',
+        `${job.agent_type}:${job.action} completado`, { resource_id: job.id, brand_id: job.brand_id ?? undefined });
+      _stats.done++;
+      break;
     }
-  } catch (err) {
-    // Persistence failure
-    const msg = err instanceof Error ? err.message : String(err);
-    await finalizeJob(job.id, 'error', `Persist failure: ${msg}`).catch(() => null);
-    _stats.errored++;
-    throw err;
+    case 'needs_review': {
+      try { if (result.outputs?.length) await saveOutputs(job, result.outputs); } catch { /* non-fatal */ }
+      await finalizeJob(job.id, 'needs_review', result.reason);
+      void notifyJobEvent(job, 'needs_review', result.reason);
+      _stats.needsReview++;
+      break;
+    }
+    case 'retry': {
+      if (job.attempts < job.max_attempts) {
+        await releaseJobForRetry(job.id, result.error);
+        _stats.retried++;
+      } else {
+        await finalizeJob(job.id, 'error', `Max retries: ${result.error}`);
+        _stats.errored++;
+      }
+      throw new Error(result.error);
+    }
+    case 'fail': {
+      await finalizeJob(job.id, 'error', result.error);
+      void notifyJobEvent(job, 'failed', result.error);
+      void logAgentAction(`${job.agent_type}:${job.action}`, 'update', 'agent_job',
+        `${job.agent_type}:${job.action} falló: ${result.error?.slice(0, 100)}`,
+        { resource_id: job.id, brand_id: job.brand_id ?? undefined, severity: 'warning' });
+      _stats.errored++;
+      throw new Error(result.error);
+    }
   }
 }
 
@@ -161,19 +207,23 @@ async function bullProcessor(bullJob: BullJob<AgentBullJob>): Promise<void> {
   }
   const job = row as AgentJob;
 
-  // Skip jobs already processed by another runner instance
-  if (job.status === 'done' || job.status === 'error' || job.status === 'cancelled') {
+  // Skip jobs already processed by another runner instance or claimed manually
+  if (job.status === 'done' || job.status === 'error' || job.status === 'cancelled' || job.status === 'claimed') {
     return;
   }
 
-  // Mark as running in Supabase
-  await db
+  // Atomically claim: only proceed if status is still 'pending' (prevents dual execution)
+  const { data: claimed } = await db
     .from('agent_jobs')
     .update({ status: 'running', started_at: new Date().toISOString(), attempts: (job.attempts ?? 0) + 1 })
     .eq('id', agent_job_id)
-    .eq('status', 'pending'); // only claim if still pending (optimistic lock)
+    .eq('status', 'pending')
+    .select('id')
+    .maybeSingle();
 
-  // Reload with updated attempts count
+  // If claim failed (already claimed by Supabase fallback or another BullMQ worker), skip
+  if (!claimed) return;
+
   const updatedJob: AgentJob = {
     ...job,
     status:     'running',
@@ -189,7 +239,10 @@ async function bullProcessor(bullJob: BullJob<AgentBullJob>): Promise<void> {
 async function runSupabaseFallback(batchSize: number): Promise<void> {
   const claimed = await claimJobs(batchSize);
   _claimed = claimed.length;
-  await Promise.allSettled(claimed.map(processJob));
+  // Process sequentially to avoid hammering external APIs (Replicate rate limits)
+  for (const job of claimed) {
+    await processJob(job).catch(() => null);
+  }
 }
 
 // ─── Public entry point ───────────────────────────────────────────────────────
@@ -249,10 +302,72 @@ export async function runOnce(batchSize = DEFAULT_BATCH_SIZE): Promise<RunnerRes
       if (orphans.length > 0) {
         console.log(`[runner] Processing ${orphans.length} Supabase-only jobs`);
         _claimed += orphans.length;
-        await Promise.allSettled(orphans.map(processJob));
+        // Process sequentially to avoid hammering external APIs (Replicate rate limits)
+        for (const job of orphans) {
+          await processJob(job).catch(() => null);
+        }
       }
     } catch { /* non-critical */ }
   }
+
+  // ── Orphan recovery: reset jobs stuck in 'running' past threshold ─────
+  // If a cron was killed mid-execution or a handler crashed, jobs remain
+  // in 'running' forever. Reset them to 'pending' so the next tick picks
+  // them up (respecting max_attempts).
+  try {
+    const db: DB = createAdminClient();
+    const threshold = new Date(Date.now() - ORPHAN_THRESHOLD_MS).toISOString();
+    const { data: stuck } = await db
+      .from('agent_jobs')
+      .update({ status: 'pending', error: 'Orphan recovery: job was stuck in running' })
+      .eq('status', 'running')
+      .lt('started_at', threshold)
+      .lt('attempts', 3)
+      .select('id');
+    if (stuck?.length) {
+      console.warn(`[runner] Recovered ${stuck.length} orphan job(s) stuck in running`);
+    }
+  } catch { /* non-critical */ }
+
+  // ── Stuck post recovery: re-queue posts in 'request' with no agent job ──
+  // If autoStartPipeline failed (Supabase + Redis both down at that moment),
+  // the post is stuck in 'request' with no associated job. Detect and re-queue.
+  try {
+    const db: DB = createAdminClient();
+    const stuckThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString(); // 15 min
+    const { data: stuckPosts } = await db
+      .from('posts')
+      .select('id, brand_id')
+      .eq('status', 'request')
+      .lt('created_at', stuckThreshold)
+      .limit(5);
+
+    if (stuckPosts?.length) {
+      for (const post of stuckPosts as Array<{ id: string; brand_id: string }>) {
+        // Check if there's already a job for this post
+        const { data: existingJob } = await db
+          .from('agent_jobs')
+          .select('id')
+          .contains('input', { _post_id: post.id })
+          .in('status', ['pending', 'running', 'claimed'])
+          .maybeSingle();
+
+        if (!existingJob) {
+          // No active job — re-queue a basic image generation
+          await db.from('agent_jobs').insert({
+            brand_id:     post.brand_id,
+            agent_type:   'content',
+            action:       'generate_image',
+            input:        { _post_id: post.id, _auto_pipeline: true, userPrompt: 'Re-queued: original pipeline failed', sector: 'otro', visualStyle: 'warm', brandContext: '', brandId: post.brand_id },
+            status:       'pending',
+            priority:     60,
+            requested_by: 'system',
+          });
+          console.warn(`[runner] Re-queued stuck post ${post.id} (was in 'request' for >15min with no job)`);
+        }
+      }
+    }
+  } catch { /* non-critical */ }
 
   return {
     claimed:     _claimed,

@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { WorkerSidebar } from '@/components/worker/WorkerSidebar';
-import { WorkerTopNav } from '@/components/worker/WorkerTopNav';
+import { WorkerSidebar }  from '@/components/worker/WorkerSidebar';
+import { WorkerTopNav }   from '@/components/worker/WorkerTopNav';
+import { WorkerTopTabs }  from '@/components/worker/WorkerTopTabs';
 import { W } from '@/components/worker/theme';
 import { createBrowserClient } from '@/lib/supabase';
 import type { Worker } from '@/types';
@@ -103,6 +104,7 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
           pathname={pathname}
           onToggleSidebar={() => setSidebarOpen((value) => !value)}
         />
+        <WorkerTopTabs />
         <main className="dash-main">{children}</main>
       </div>
 

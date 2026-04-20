@@ -370,6 +370,17 @@ export default function BrandPage() {
           </div>
         )}
 
+        {/* Material de marca */}
+        <div style={{ marginBottom: 16, padding: '16px 24px', border: '1px solid #e5e7eb', background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <p style={{ fontFamily: fc, fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#111827', marginBottom: 2 }}>Material de Marca</p>
+            <p style={{ fontFamily: f, fontSize: 13, color: '#6b7280' }}>Horarios, promociones, datos y frases que alimentan la IA</p>
+          </div>
+          <Link href="/brand/material" style={{ padding: '8px 18px', background: '#111827', color: '#ffffff', fontFamily: fc, fontWeight: 700, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.08em', textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            Gestionar →
+          </Link>
+        </div>
+
         <div style={{ border: '1px solid #e5e7eb', background: '#ffffff' }}>
           {/* Basics (editable) — name + sector + location */}
           <Row label="Datos del negocio" section="basics" value={

@@ -793,14 +793,10 @@ export default function InboxPage() {
 
   function setTab(t: Tab) { router.push(`/worker/inbox?tab=${t}`); }
 
-  // Mark all worker_notifications as read on inbox open
-  useEffect(() => {
-    fetch('/api/worker/notifications', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ all: true }),
-    }).catch(() => null);
-  }, []);
+  // NOTE: Removed auto-mark-all-as-read on page load.
+  // Previously this fired immediately on mount, causing the bell badge to
+  // reset before the user could see which notifications were new.
+  // Notifications are now marked as read individually or via explicit action.
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: C.bg }}>

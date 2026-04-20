@@ -138,6 +138,27 @@ export async function POST(request: Request) {
       completionRate:  plannedPosts > 0 ? Math.round((published / plannedPosts) * 100) : 0,
     };
 
+    // If there are no published posts this month, the analyst agent would
+    // throw "postMetrics cannot be empty". Instead we return a structured
+    // empty-state response so the UI can show a friendly message.
+    if (posts.length === 0 && postMetrics.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          summary: `No hay posts publicados en ${body.month}/${body.year}. Publica tu primer contenido para empezar a ver tus analíticas.`,
+          insights: [],
+          recommendations: [
+            { action: 'Publica tu primer post este mes para empezar a generar datos de rendimiento.', priority: 'high', estimatedImpact: 'Sin datos no es posible analizar el rendimiento.' },
+          ],
+          postMetrics: [],
+          accountMetrics,
+          communityMetrics,
+          plannerMetrics,
+          period: { month: body.month, year: body.year },
+        },
+      });
+    }
+
     const input: AnalystInput = {
       period: { month: body.month, year: body.year },
       postMetrics:     postMetrics.length ? postMetrics : [],

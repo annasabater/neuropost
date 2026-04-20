@@ -1191,6 +1191,7 @@ h2 {
   .footer-newsletter-input { width: 100%; }
   .footer-bottom { flex-direction: column; align-items: flex-start; gap: 10px; }
   .footer-bottom-trust { text-align: left; }
+  .footer-bottom-bar { flex-direction: column; align-items: flex-start; gap: 10px; }
 }
 
 @media (max-width: 1200px) {
@@ -1223,6 +1224,53 @@ h2 {
   .footer-newsletter-form { flex-direction: column; border-radius: 8px; overflow: visible; border: none; gap: 8px; }
   .footer-newsletter-input { border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; width: 100%; box-sizing: border-box; }
   .footer-newsletter-btn { border-radius: 8px; width: 100%; }
+  .footer-bottom-bar { flex-direction: column; align-items: flex-start; gap: 8px; }
+
+  /* Landing page headings — reduce size on mobile */
+  .landing-h1 { font-size: clamp(1.8rem, 8vw, 2.4rem) !important; }
+  .landing-h2 { font-size: clamp(1.3rem, 6vw, 1.7rem) !important; }
+
+  /* Inbox tabs — compact on mobile */
+  .inbox-tab-btn { padding: 14px 10px !important; }
+  .inbox-tab-desc { display: none !important; }
+
+  /* Posts page — mobile layout */
+  .posts-cta-btn { padding: 9px 14px !important; font-size: 11px !important; }
+  .posts-stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* Posts page — tablet (640–1023px): stats 4 cols */
+@media (max-width: 1023px) and (min-width: 641px) {
+  .posts-stats-grid { grid-template-columns: repeat(4, 1fr) !important; }
+}
+
+/* Posts page — collapsible process help */
+.process-help summary::-webkit-details-marker { display: none; }
+.process-help summary::marker { display: none; }
+
+/* Posts page — shimmer + card hover */
+@keyframes shimmer { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+.post-card-v2:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.08) !important; }
+.post-card-v2:hover img { transform: scale(1.04); }
+.post-card-v2:hover .post-card-actions { opacity: 1 !important; }
+
+/* Posts page — header mobile: hide CTA text, show only icon */
+@media (max-width: 640px) {
+  .posts-page-header { padding: 18px 0 14px !important; }
+  .posts-title-row { margin-bottom: 14px !important; gap: 10px !important; }
+  .posts-cta-text { display: none; }
+  .posts-cta-btn { padding: 10px 12px !important; font-size: 12px !important; }
+  .posts-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+    margin-bottom: 14px !important;
+  }
+  .posts-stats-grid button { padding: 8px 10px !important; }
+  .posts-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; }
+  .posts-feed-layout { grid-template-columns: 1fr !important; }
+  .posts-filter-row { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }
+  .posts-filter-row > div:first-child { overflow-x: auto; -ms-overflow-style: none; }
+  .posts-filter-row > div:first-child::-webkit-scrollbar { display: none; }
 }
 
 @keyframes scroll-landing {
@@ -2750,7 +2798,7 @@ h2 {
 .dash-main > .page-content.dashboard-unified-page > .dashboard-unified-header::before {
   content: '';
   position: absolute;
-  top: 0;
+  top: -200px;
   bottom: 0;
   left: 50%;
   width: 100vw;
@@ -3520,6 +3568,161 @@ h2 {
   .worker-topbar-kicker,
   .worker-topbar-user,
   .worker-topbar-role { display: none; }
+
+  /* ── Dashboard /dashboard — mobile fixes ── */
+  /* Greeting: reduce padding and font */
+  .dashboard-greeting {
+    padding: 24px 0 20px !important;
+  }
+  .dashboard-greeting h1 {
+    font-size: clamp(1.8rem, 8vw, 2.5rem) !important;
+    margin-bottom: 6px !important;
+  }
+  .dashboard-greeting p {
+    font-size: 13px !important;
+  }
+
+  /* Metrics: 2x2 instead of 4x1, smaller numbers, less padding */
+  .dashboard-metrics-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    margin-bottom: 24px !important;
+  }
+  .dashboard-metrics-grid .dash-metric-value {
+    font-size: clamp(1.6rem, 9vw, 2.4rem) !important;
+  }
+  .dashboard-metrics-grid > div {
+    padding: 14px 12px !important;
+  }
+  .dashboard-metrics-grid > div > p:last-child {
+    font-size: 9px !important;
+    margin-top: 5px !important;
+  }
+
+  /* Plan usage bar: 1 column, tighter */
+  .dashboard-plan-usage {
+    grid-template-columns: 1fr !important;
+    margin-bottom: 28px !important;
+  }
+
+  /* Content hub section heading */
+  .dashboard-content-hub-heading {
+    margin-bottom: 10px !important;
+  }
+
+  /* Content hub: 1 column stacked, smaller padding */
+  .dashboard-content-hub {
+    grid-template-columns: 1fr !important;
+    margin-bottom: 28px !important;
+  }
+  .dashboard-content-hub > * {
+    padding: 18px 16px !important;
+  }
+  .dashboard-content-hub > * > p:first-of-type {
+    font-size: 1rem !important;
+    margin-bottom: 6px !important;
+  }
+  .dashboard-content-hub > * > p:nth-of-type(2) {
+    margin-bottom: 10px !important;
+  }
+
+  /* Quick actions: 2 columns, compact */
+  .dashboard-quick-actions {
+    grid-template-columns: repeat(2, 1fr) !important;
+    margin-bottom: 28px !important;
+  }
+  .dashboard-quick-actions a {
+    padding: 16px 12px !important;
+    font-size: 12px !important;
+    gap: 8px !important;
+  }
+
+  /* Upcoming dates: 2 cols, less min-height */
+  .dashboard-upcoming-dates {
+    grid-template-columns: repeat(2, 1fr) !important;
+    margin-bottom: 28px !important;
+  }
+  .dashboard-upcoming-dates > div {
+    padding: 12px 14px !important;
+    min-height: 80px !important;
+  }
+
+  /* ── Inspiración — mobile filter bar ── */
+  .inspi-filter-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 8px !important;
+  }
+  .inspi-scope-tabs {
+    display: flex !important;
+    overflow-x: auto !important;
+    border-bottom: none !important;
+    gap: 0 !important;
+    flex: none !important;
+    /* Hide scrollbar — all browsers */
+    -ms-overflow-style: none;
+  }
+  .inspi-scope-tabs::-webkit-scrollbar { display: none; }
+  .inspi-scope-tabs button {
+    flex-shrink: 0;
+    padding: 8px 14px !important;
+  }
+  .inspi-search-format {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+    padding-bottom: 0 !important;
+  }
+  .inspi-search-input {
+    width: 100% !important;
+    max-width: none !important;
+    flex: 1 1 120px !important;
+    min-width: 80px !important;
+  }
+  .inspi-format-pills {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+  }
+  /* Header: stack title + button */
+  .inspi-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .inspi-header-cta {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+}
+
+/* Extra small (<480px) — tighten dashboard even more */
+@media (max-width: 480px) {
+  .dashboard-greeting {
+    padding: 18px 0 16px !important;
+  }
+  .dashboard-greeting h1 {
+    font-size: clamp(1.5rem, 7vw, 2rem) !important;
+  }
+  .dashboard-metrics-grid > div {
+    padding: 12px 10px !important;
+  }
+  .dashboard-metrics-grid .dash-metric-value {
+    font-size: clamp(1.4rem, 8vw, 2rem) !important;
+  }
+  .dashboard-content-hub > * {
+    padding: 14px 12px !important;
+  }
+  .dashboard-quick-actions a {
+    padding: 12px 10px !important;
+    font-size: 11px !important;
+  }
+  .dashboard-upcoming-dates > div {
+    padding: 10px 10px !important;
+    min-height: 64px !important;
+  }
 }
 
 /* ─── TOPBAR NEW BTN ─────────────────────────────────────────────────────────── */

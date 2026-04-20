@@ -2,10 +2,11 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Image, AlertCircle, X, Search } from 'lucide-react';
+import { Image, AlertCircle, AlertTriangle, X, Search } from 'lucide-react';
 import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { createBrowserClient } from '@/lib/supabase';
+import { StatusProgressBar } from '@/components/posts/StatusProgressBar';
 
 const C = {
   bg: '#ffffff',
@@ -151,7 +152,10 @@ function RequestCard({ req, type }: { req: any; type: 'special' | 'recreation' }
             📌 {req.inspiration_references.title}
           </p>
         )}
-        <p style={{ fontSize: 11, color: C.muted, margin: '8px 0 0', fontStyle: 'italic' }}>
+        <div style={{ marginTop: 10 }}>
+          <StatusProgressBar currentStatus={req.status} compact />
+        </div>
+        <p style={{ fontSize: 11, color: C.muted, margin: '6px 0 0', fontStyle: 'italic' }}>
           {timeAgo(req.created_at)}
         </p>
       </div>
@@ -185,6 +189,10 @@ export default function WorkerDashboardPage() {
   const [selectedState, setSelectedState] = useState<string>('all');
   const supabaseRef = useRef<ReturnType<typeof createBrowserClient> | null>(null);
 
+  // Agent observability KPIs
+  const [agentKpis, setAgentKpis] = useState<{ jobsToday: number; successRate: number; pending: number; running: number; claimed: number; errorsToday: number } | null>(null);
+  const [agentAlerts, setAgentAlerts] = useState<Array<{ severity: string; message: string; agent: string }>>([]);
+
   // Load data
   useEffect(() => {
     const load = async () => {
@@ -206,6 +214,12 @@ export default function WorkerDashboardPage() {
     };
 
     load();
+
+    // Load agent KPIs (non-blocking)
+    fetch('/api/worker/agents/status').then(r => r.json()).then(d => {
+      setAgentKpis(d.kpis ?? null);
+      setAgentAlerts(d.alerts ?? []);
+    }).catch(() => null);
   }, []);
 
   // Real-time subscriptions
@@ -390,6 +404,44 @@ export default function WorkerDashboardPage() {
           Todo lo que llega desde tus clientes en tiempo real
         </p>
       </div>
+
+      {/* ── Agent Alerts Banner ── */}
+      {agentAlerts.length > 0 && (
+        <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {agentAlerts.slice(0, 5).map((a, i) => (
+            <div key={i} style={{
+              padding: '8px 14px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontFamily: f,
+              background: a.severity === 'critical' ? '#fef2f2' : '#fffbeb',
+              border: `1px solid ${a.severity === 'critical' ? '#fecaca' : '#fde68a'}`,
+            }}>
+              <AlertTriangle size={13} style={{ color: a.severity === 'critical' ? '#dc2626' : '#d97706', flexShrink: 0 }} />
+              <span style={{ flex: 1 }}>{a.message}</span>
+              <span style={{ fontSize: 10, color: C.muted }}>{a.agent}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Agent KPI Cards ── */}
+      {agentKpis && (
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px',
+          background: C.border, border: `1px solid ${C.border}`, marginBottom: 24,
+        }}>
+          {[
+            { label: 'Solicitudes nuevas', value: stats.solicitudes + stats.recreaciones, color: C.accent2 },
+            { label: 'Jobs en cola', value: agentKpis.pending, color: agentKpis.pending > 10 ? '#d97706' : C.accent2 },
+            { label: 'Completados hoy', value: agentKpis.jobsToday, color: C.accent2 },
+            { label: 'Errores hoy', value: agentKpis.errorsToday, color: agentKpis.errorsToday > 0 ? '#dc2626' : C.muted },
+            { label: 'Reclamados', value: agentKpis.claimed, color: '#6366f1' },
+          ].map(({ label, value, color }) => (
+            <div key={label} style={{ background: C.card, padding: '14px 16px', textAlign: 'center' }}>
+              <div style={{ fontSize: 22, fontWeight: 800, color, fontFamily: fc }}>{value}</div>
+              <div style={{ fontSize: 9, color: C.muted, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: f }}>{label}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* ── Search & Filters Bar ── */}
       <div

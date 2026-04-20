@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight, Check, Sparkles, Send, Paintbrush, Flame, X, Maximize2, ExternalLink, Film, Images } from 'lucide-react';
+import { ArrowRight, Check, Sparkles, Send, Paintbrush, Flame, X, Maximize2, ExternalLink, Film, Images, Video, ImageIcon, Clock } from 'lucide-react';
 import { PostEditor } from '@/components/posts/PostEditor';
 import { MediaPicker, type SelectedMedia } from '@/components/posts/MediaPicker';
 import { useAppStore } from '@/store/useAppStore';
-import { PLAN_LIMITS, type ContentMode } from '@/types';
+import { useSubscribedPlatforms } from '@/hooks/useSubscribedPlatforms';
+import { PLAN_LIMITS, type ContentMode, type PostFormat, type SourceType } from '@/types';
 import toast from 'react-hot-toast';
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
@@ -21,15 +22,23 @@ export default function NewPostPage() {
   const initialMode = searchParams.get('mode') as ContentMode | null;
   const [mode, setMode] = useState<ContentMode | null>(initialMode);
 
+  // ── Subscribed platforms ─────────────────────────────────────────────────
+  const { platforms: subscribedPlatforms, platformsForFormat } = useSubscribedPlatforms();
+
   // ── Request (pedido) state ──────────────────────────────────────────────
   // Global description: quick-pick kind + free text
   const [clientNote, setClientNote] = useState('');
   const [requestKind, setRequestKind] = useState<string | null>(null);
 
-  // Target platforms for the request (self-service has its own picker
-  // inside PostEditor; this drives only the request flow).
-  // Default to Instagram — that's still the most common use case and we
-  // don't want to force the user to tick anything on the existing form.
+  // ── Source + output format ─────────────────────────────────────────────
+  // Step A: what did the client upload?
+  const [sourceType, setSourceType] = useState<SourceType>('none');
+  // Step B: what format should the output be?
+  const [outputFormat, setOutputFormat] = useState<PostFormat>('image');
+  // Video duration (only when outputFormat is video/reel)
+  const [videoDuration, setVideoDuration] = useState<number>(10);
+
+  // Target platforms for the request — filtered by plan + format
   const [requestPlatforms, setRequestPlatforms] = useState<Array<'instagram' | 'facebook' | 'tiktok'>>(['instagram']);
 
   // Extra AI-generated photos beyond the ones the user uploaded
@@ -67,27 +76,79 @@ export default function NewPostPage() {
   const [requestSent, setRequestSent] = useState(false);
   const [sending, setSending] = useState(false);
 
-  // ── Quick-pick descriptions ─────────────────────────────────────────────
-  const REQUEST_KINDS: { v: string; l: string; hint: string }[] = [
-    { v: 'promo',       l: 'Promoción / descuento', hint: 'Anuncia una promo, oferta o descuento limitado.' },
-    { v: 'post_normal', l: 'Post normal',            hint: 'Una publicación regular para tu feed.' },
-    { v: 'novedad',     l: 'Novedad / lanzamiento',  hint: 'Presenta un producto, servicio o novedad.' },
-    { v: 'evento',      l: 'Evento',                 hint: 'Comunica un evento próximo o especial.' },
-    { v: 'testimonio',  l: 'Testimonio / reseña',    hint: 'Destaca una opinión o caso de éxito.' },
-    { v: 'tips',        l: 'Tips / consejos',        hint: 'Contenido educativo o de valor para tu audiencia.' },
+  // ── Paso 1: Objetivo del post (nivel 1) ────────────────────────────────
+  type PostObjective = 'vender' | 'informar' | 'conectar' | 'ensenar' | 'demostrar';
+  const [postObjective, setPostObjective] = useState<PostObjective | null>(null);
+
+  const OBJECTIVES: { v: PostObjective; l: string; desc: string }[] = [
+    { v: 'vender',    l: 'Vender',          desc: 'Promociones, ofertas, llamadas a reserva o compra' },
+    { v: 'informar',  l: 'Informar',         desc: 'Novedades, eventos, horarios, recordatorios' },
+    { v: 'conectar',  l: 'Conectar',         desc: 'Equipo, detrás de cámara, historia, preguntas' },
+    { v: 'ensenar',   l: 'Enseñar',          desc: 'Tips, tutoriales, mitos, comparativas, datos' },
+    { v: 'demostrar', l: 'Demostrar valor',  desc: 'Testimonios, antes/después, casos de éxito' },
   ];
-  function pickKind(v: string, hint: string) {
-    setRequestKind(v);
-    setClientNote(hint);
+
+  // Nivel 2: tipos específicos por objetivo
+  const SUBTYPES: Record<PostObjective, { v: string; l: string; placeholder: string }[]> = {
+    vender: [
+      { v: 'promo',        l: 'Promoción / descuento',  placeholder: '¿Qué ofreces, desde cuándo, hasta cuándo, condiciones?' },
+      { v: 'producto',     l: 'Destacar producto',      placeholder: '¿Qué producto o servicio quieres destacar? ¿Qué lo hace especial?' },
+      { v: 'reserva',      l: 'Llamada a reserva',      placeholder: '¿Qué servicio ofreces? ¿Cómo se reserva? ¿Hay plazas limitadas?' },
+      { v: 'sorteo',       l: 'Sorteo / concurso',      placeholder: '¿Qué sorteas? ¿Cómo participar? ¿Cuándo acaba?' },
+      { v: 'novedad',      l: 'Novedad / lanzamiento',  placeholder: 'Presenta un producto, servicio o novedad. ¿Qué cambia o es nuevo?' },
+      { v: 'colaboracion', l: 'Colaboración',           placeholder: '¿Con quién colaboras? ¿Qué hacéis juntos? ¿Hay algo especial para la audiencia?' },
+    ],
+    informar: [
+      { v: 'evento',      l: 'Evento',                  placeholder: '¿Qué evento, cuándo, dónde, cómo se apuntan?' },
+      { v: 'horarios',    l: 'Horarios / cambios',      placeholder: '¿Qué horario o cambio comunicas? ¿Desde cuándo aplica?' },
+      { v: 'recordatorio',l: 'Recordatorio',            placeholder: '¿Qué quieres recordar a tu audiencia? ¿Hay fecha límite?' },
+      { v: 'temporada',   l: 'Temporada / fecha',       placeholder: '¿Qué fecha o temporada especial es? ¿Cómo lo celebras en tu negocio?' },
+      { v: 'faq',         l: 'FAQ / pregunta frecuente',placeholder: '¿Qué pregunta responderás? ¿Cuál es la respuesta en pocas palabras?' },
+    ],
+    conectar: [
+      { v: 'equipo',        l: 'Equipo / personas',     placeholder: 'Presenta a tu equipo o a una persona. ¿Nombre, rol, algo curioso sobre ellos?' },
+      { v: 'detras_camara', l: 'Detrás de cámara',      placeholder: 'Muestra el día a día o el proceso. ¿Qué momento o rutina quieres mostrar?' },
+      { v: 'historia',      l: 'Historia / origen',     placeholder: '¿Qué historia quieres contar? ¿Cómo empezó tu negocio o por qué existe?' },
+      { v: 'agradecimiento',l: 'Agradecimiento',        placeholder: '¿A quién agradeces? ¿Por qué? ¿Hay un hito o celebración detrás?' },
+      { v: 'pregunta',      l: 'Pregunta a audiencia',  placeholder: '¿Qué pregunta quieres lanzar? ¿Qué quieres que responda tu comunidad?' },
+    ],
+    ensenar: [
+      { v: 'tips',        l: 'Tips / consejos',         placeholder: '¿Cuántos tips? ¿Sobre qué tema? ¿Qué problema resuelven?' },
+      { v: 'tutorial',    l: 'Tutorial / paso a paso',  placeholder: '¿Qué enseñas paso a paso? ¿Cuántos pasos? ¿Qué resultado obtiene el usuario?' },
+      { v: 'mito',        l: 'Mito o verdad',           placeholder: '¿Qué mito desmientes o qué verdad reveladoras compartes sobre tu sector?' },
+      { v: 'comparativa', l: 'Comparativa',             placeholder: '¿Qué comparas? ¿Cuál es la diferencia clave que quieres destacar?' },
+      { v: 'dato',        l: 'Dato curioso',            placeholder: '¿Qué dato o estadística sorprendente quieres compartir?' },
+    ],
+    demostrar: [
+      { v: 'testimonio',   l: 'Testimonio / reseña',   placeholder: 'Pega aquí la reseña o cuéntanos qué dijo el cliente.' },
+      { v: 'antes_despues',l: 'Antes / después',       placeholder: '¿Qué tratamiento o servicio? ¿Cuánto tiempo entre ambas fotos? ¿Qué cambió?' },
+      { v: 'caso_exito',   l: 'Caso de éxito',         placeholder: '¿Qué cliente o proyecto? ¿Cuál era el problema y cuál el resultado?' },
+      { v: 'ugc',          l: 'Contenido de clientes', placeholder: '¿Qué compartió el cliente? ¿Quieres mencionarlo o agradecerlo?' },
+    ],
+  };
+
+  function pickObjective(v: PostObjective) {
+    setPostObjective(v);
+    setRequestKind(null);
+    setClientNote('');
   }
 
+  function pickKind(v: string, placeholder: string) {
+    setRequestKind(v);
+    // Only pre-fill if the field is empty — don't overwrite what the user typed
+    if (!clientNote.trim()) setClientNote('');
+    // Store placeholder separately for use in textarea
+    setActivePlaceholder(placeholder);
+  }
+
+  const [activePlaceholder, setActivePlaceholder] = useState('Describe qué quieres en esta publicación, qué mensaje quieres transmitir...');
+
+  // Flat list for summary display
+  const REQUEST_KINDS_FLAT = Object.values(SUBTYPES).flat();
+
   // Timing presets → derives urgency + scheduled_at
-  function pickTiming(preset: 'now' | 'today' | 'tomorrow' | 'week' | 'custom') {
-    if (preset === 'now') {
-      setTimingPreset('30min');
-      const t = new Date(Date.now() + 30 * 60 * 1000);
-      setPreferredDate(t.toISOString().slice(0, 10));
-    } else if (preset === 'today') {
+  function pickTiming(preset: 'today' | 'tomorrow' | 'week' | 'custom') {
+    if (preset === 'today') {
       setTimingPreset('today');
       setPreferredDate(new Date().toISOString().slice(0, 10));
     } else if (preset === 'tomorrow') {
@@ -119,12 +180,50 @@ export default function NewPostPage() {
     setInspirationsLoaded(true);
   }
 
-  // Urgency is now derived, not a toggle: "30min" or "today" → urgente.
-  const urgency: 'flexible' | 'urgente' = timingPreset === '30min' || timingPreset === 'today' ? 'urgente' : 'flexible';
+  // Urgency is now derived, not a toggle: "today" → urgente.
+  const urgency: 'flexible' | 'urgente' = timingPreset === 'today' ? 'urgente' : 'flexible';
 
   const limits = PLAN_LIMITS[brand?.plan ?? 'starter'];
   const allowStories = limits.storiesPerWeek > 0;
   const maxImages = limits.carouselMaxPhotos;
+  const allowVideos = limits.videosPerWeek > 0;
+
+  // Sync requestPlatforms when output format changes
+  useEffect(() => {
+    const available = platformsForFormat(outputFormat);
+    setRequestPlatforms((prev) => {
+      const filtered = prev.filter((p) => available.includes(p));
+      return filtered.length > 0 ? filtered : [available[0]];
+    });
+  }, [outputFormat, platformsForFormat]);
+
+  // Derive available output formats based on sourceType
+  const availableOutputFormats: { value: PostFormat; label: string; icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>; desc: string }[] = (() => {
+    switch (sourceType) {
+      case 'photos':
+        if (selectedMedia.length === 1) {
+          return [
+            { value: 'image', label: 'Foto', icon: ImageIcon, desc: 'Publicar como foto' },
+            { value: 'video', label: 'Vídeo / Reel', icon: Film, desc: 'Generar vídeo a partir de la foto' },
+          ];
+        }
+        return [
+          { value: 'carousel', label: 'Carrusel', icon: Images, desc: 'Publicar como carrusel de fotos' },
+          { value: 'video', label: 'Vídeo / Reel', icon: Film, desc: 'Generar vídeo a partir de las fotos' },
+        ];
+      case 'video':
+        return [
+          { value: 'video', label: 'Vídeo / Reel', icon: Film, desc: 'Publicar como vídeo/reel' },
+        ];
+      case 'none':
+      default:
+        return [
+          { value: 'image', label: 'Foto', icon: ImageIcon, desc: 'La IA genera la foto' },
+          { value: 'carousel', label: 'Carrusel', icon: Images, desc: 'La IA genera varias fotos' },
+          { value: 'video', label: 'Vídeo / Reel', icon: Film, desc: 'La IA genera el vídeo desde cero' },
+        ];
+    }
+  })();
 
   // Sync URL mode param
   useEffect(() => {
@@ -218,12 +317,13 @@ export default function NewPostPage() {
   const finalQty = selectedMedia.length + extraGenerated;
 
   async function submitRequest() {
+    const isVideo = outputFormat === 'video' || outputFormat === 'reel';
     if (!clientNote.trim() && !requestKind) {
       toast.error('Describe qué quieres publicar o elige un tipo');
       return;
     }
-    if (finalQty > maxImages) { toast.error(`Máximo ${maxImages} fotos según tu plan`); return; }
-    if (finalQty === 0) { toast.error('Selecciona al menos una foto o pide que generemos una'); return; }
+    if (!isVideo && finalQty > maxImages) { toast.error(`Máximo ${maxImages} fotos según tu plan`); return; }
+    if (!isVideo && finalQty === 0) { toast.error('Selecciona al menos una foto o pide que generemos una'); return; }
     setSending(true);
     try {
       // Per-image payload for the worker to consume
@@ -234,13 +334,17 @@ export default function NewPostPage() {
         inspiration_id: perMedia[m.id]?.inspirationId ?? null,
       }));
       const meta = JSON.stringify({
+        post_objective: postObjective,
         request_kind: requestKind,
         global_description: clientNote.trim(),
+        source_type: sourceType,
+        output_format: outputFormat,
+        video_duration: (outputFormat === 'video' || outputFormat === 'reel') ? videoDuration : null,
         user_provided_count: selectedMedia.length,
         extra_to_generate: extraGenerated,
         total_quantity: finalQty,
-        urgency,                                // derived: 'urgente' if 30min/today
-        timing_preset: timingPreset,            // 30min | today | tomorrow | week | custom | null
+        urgency,
+        timing_preset: timingPreset,
         preferred_date: preferredDate || null,
         extra_notes: extraNotes || null,
         proposed_caption: proposedCaption.trim() || null,
@@ -249,34 +353,55 @@ export default function NewPostPage() {
       });
 
       let created = 0;
-      for (let i = 0; i < finalQty; i++) {
-        const isUserProvided = i < selectedMedia.length;
-        const media = isUserProvided ? selectedMedia[i] : null;
-        const perNote = media ? perMedia[media.id]?.note?.trim() : null;
-        const caption = finalQty > 1
-          ? `${clientNote.trim()} (${i + 1}/${finalQty})${perNote ? ` — ${perNote}` : ''}`
-          : `${clientNote.trim()}${perNote ? ` — ${perNote}` : ''}`;
+
+      if (isVideo) {
+        // Video/reel: single post with all source files as context
+        const sourceFiles = selectedMedia.map(m => m.url);
         const res = await fetch('/api/posts', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            caption,
-            image_url: media?.url ?? null, // null → worker will generate
+            caption: clientNote.trim(),
+            image_url: selectedMedia[0]?.url ?? null,
             status: 'request',
-            format: 'image',
-            // Use the platforms the user picked (defaults to ['instagram']).
-            // If nothing ticked, fall back to instagram so the request is
-            // still routeable.
+            source_type: sourceType,
+            format: outputFormat,
+            video_duration: videoDuration,
             platform: requestPlatforms.length > 0 ? requestPlatforms : ['instagram'],
             scheduled_at: preferredDate ? new Date(preferredDate).toISOString() : null,
-            ai_explanation: meta,
+            ai_explanation: JSON.stringify({ ...JSON.parse(meta), source_files: sourceFiles }),
           }),
         });
         if (res.ok) created++;
+      } else {
+        // Photo/carousel: one post per image
+        for (let i = 0; i < finalQty; i++) {
+          const isUserProvided = i < selectedMedia.length;
+          const media = isUserProvided ? selectedMedia[i] : null;
+          const perNote = media ? perMedia[media.id]?.note?.trim() : null;
+          const caption = finalQty > 1
+            ? `${clientNote.trim()} (${i + 1}/${finalQty})${perNote ? ` — ${perNote}` : ''}`
+            : `${clientNote.trim()}${perNote ? ` — ${perNote}` : ''}`;
+          const res = await fetch('/api/posts', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              caption,
+              image_url: media?.url ?? null,
+              status: 'request',
+              source_type: sourceType,
+              format: outputFormat,
+              video_duration: null,
+              platform: requestPlatforms.length > 0 ? requestPlatforms : ['instagram'],
+              scheduled_at: preferredDate ? new Date(preferredDate).toISOString() : null,
+              ai_explanation: meta,
+            }),
+          });
+          if (res.ok) created++;
+        }
       }
 
       if (created > 0) {
         setRequestSent(true);
-        toast.success(`Solicitud enviada (${created} post${created > 1 ? 's' : ''}). Nuestro equipo ya está trabajando en ello.`);
+        toast.success(`Solicitud enviada (${created} ${isVideo ? 'vídeo' : `post${created > 1 ? 's' : ''}`}). Nuestro equipo ya está trabajando en ello.`);
       } else {
         toast.error('Error al enviar');
       }
@@ -289,13 +414,13 @@ export default function NewPostPage() {
   // ══════════════════════════════════════════════════════════════════════
   if (!mode) {
     return (
-      <div className="page-content" style={{ maxWidth: 960 }}>
-        <div style={{ padding: '32px 0 24px' }}>
+      <div className="page-content dashboard-unified-page" style={{ maxWidth: 960 }}>
+        <div className="dashboard-unified-header" style={{ padding: '48px 0 24px' }}>
           <h1 style={{
             fontFamily: fc, fontWeight: 900,
             fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
             textTransform: 'uppercase', letterSpacing: '0.01em',
-            color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 12,
+            color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 10,
           }}>
             Nuevo contenido
           </h1>
@@ -499,7 +624,8 @@ export default function NewPostPage() {
                 </span>
               </div>
               {[
-                ...(requestKind ? [{ label: 'Tipo', value: REQUEST_KINDS.find((k) => k.v === requestKind)?.l ?? requestKind }] : []),
+                ...(postObjective ? [{ label: 'Objetivo', value: OBJECTIVES.find(o => o.v === postObjective)?.l ?? postObjective }] : []),
+                ...(requestKind ? [{ label: 'Tipo', value: REQUEST_KINDS_FLAT.find((k) => k.v === requestKind)?.l ?? requestKind }] : []),
                 { label: 'Cantidad', value: `${finalQty} foto${finalQty === 1 ? '' : 's'}` },
                 { label: 'Urgencia', value: urgency === 'urgente' ? 'Urgente' : 'Flexible' },
                 ...(preferredDate ? [{ label: 'Fecha', value: new Date(preferredDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' }) }] : []),
@@ -525,7 +651,8 @@ export default function NewPostPage() {
               </button>
               <button onClick={() => {
                 setMode(null); setRequestSent(false);
-                setClientNote(''); setRequestKind(null);
+                setPostObjective(null); setClientNote(''); setRequestKind(null);
+                setActivePlaceholder('Describe qué quieres en esta publicación, qué mensaje quieres transmitir...');
                 setProposedCaption(''); setExtraNotes('');
                 setSelectedMedia([]); setPerMedia({}); setExpandedMediaId(null);
                 setExtraGenerated(0); setPreferredDate(''); setTimingPreset(null);
@@ -574,12 +701,16 @@ export default function NewPostPage() {
       </div>
     );
 
-    // Ready when there's a description or a quick-pick kind, AND at least one photo
-    // (selected OR extras to generate).
-    const isReady = (clientNote.trim().length > 0 || !!requestKind) && finalQty > 0;
+    // Ready: must have picked an objective + have a description.
+    // For photo/carousel: need at least one photo (selected OR extras to generate).
+    // For video/reel: source photos optional.
+    const isVideoFormat = outputFormat === 'video' || outputFormat === 'reel';
+    const isReady = !!postObjective
+      && (clientNote.trim().length > 0 || !!requestKind)
+      && (isVideoFormat || finalQty > 0);
 
     return (
-      <div className="page-content" style={{ maxWidth: 900 }}>
+      <div className="page-content dashboard-unified-page" style={{ maxWidth: 900 }}>
 
         {/* ── Lightbox modal ── */}
         {lightboxRef && (
@@ -681,11 +812,11 @@ export default function NewPostPage() {
         )}
 
         {/* ── Header ── */}
-        <div style={{ padding: '48px 0 32px' }}>
+        <div className="dashboard-unified-header" style={{ padding: '48px 0 24px' }}>
           <button onClick={() => setMode(null)} style={{
             fontFamily: f, fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)',
             background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-            marginBottom: 20, textTransform: 'uppercase', letterSpacing: '0.08em',
+            marginBottom: 16, textTransform: 'uppercase', letterSpacing: '0.08em',
             display: 'flex', alignItems: 'center', gap: 6,
           }}>
             <ArrowRight size={12} style={{ transform: 'rotate(180deg)' }} /> Volver
@@ -694,7 +825,7 @@ export default function NewPostPage() {
             fontFamily: fc, fontWeight: 900,
             fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
             textTransform: 'uppercase', letterSpacing: '0.01em',
-            color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 12,
+            color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 10,
           }}>
             Solicitar contenido
           </h1>
@@ -708,96 +839,402 @@ export default function NewPostPage() {
 
           {/* ── LEFT: Form ── */}
           <div>
-            {/* STEP 1 — Describe tu contenido (global) */}
+
+            {/* ═══ PASO 1 — Objetivo del post ════════════════════════════ */}
             <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
-              <div style={{
-                padding: '16px 20px', background: 'var(--bg-1)',
-                display: 'flex', alignItems: 'center', gap: 10,
-                borderBottom: '1px solid var(--border)',
-              }}>
+              <div style={{ padding: '12px 20px', background: '#111827', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <StepNum n={1} />
-                <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
-                  ¿Qué quieres publicar?
+                <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#ffffff' }}>
+                  ¿Qué quieres comunicar?
                 </span>
-                <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>Descripción global</span>
+              </div>
+              {/* Nivel 1: objetivos en fila compacta */}
+              <div style={{ padding: '12px 20px 10px', display: 'flex', gap: 4 }}>
+                {OBJECTIVES.map(({ v, l }) => {
+                  const active = postObjective === v;
+                  return (
+                    <button type="button" key={v} onClick={() => pickObjective(v)} style={{
+                      flex: 1, padding: '10px 6px', textAlign: 'center', cursor: 'pointer',
+                      border: `2px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                      background: active ? 'rgba(15,118,110,0.07)' : 'var(--bg)',
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
+                    }}>
+                      <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, color: active ? 'var(--accent)' : 'var(--text-primary)' }}>{l}</span>
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Quick-pick chips */}
-              <div style={{ padding: '18px 20px 10px' }}>
-                <label style={labelStyle}>Tipo de publicación</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                  {REQUEST_KINDS.map(({ v, l, hint }) => (
-                    <button type="button" key={v} onClick={() => pickKind(v, hint)} style={{
-                      padding: '8px 14px',
-                      border: `1px solid ${requestKind === v ? 'var(--accent)' : 'var(--border)'}`,
-                      background: requestKind === v ? 'var(--accent)' : 'var(--bg)',
-                      color: requestKind === v ? '#ffffff' : 'var(--text-secondary)',
-                      fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                      transition: 'all 0.15s',
-                    }}>{l}</button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Global free-text description */}
-              <div style={{ padding: '10px 20px 20px' }}>
-                <label style={labelStyle}>Descripción</label>
-                <textarea
-                  value={clientNote}
-                  onChange={(e) => setClientNote(e.target.value)}
-                  placeholder="Ej: Promo del menú de otoño todos los viernes: 2x1 en entrantes. Tono cercano, invita a reservar."
-                  rows={3}
-                  style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.7 }}
-                />
-                <p style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 6 }}>
-                  Esta descripción vale para todas las fotos. Luego podrás añadir un contexto específico a cada una.
-                </p>
-              </div>
-
-              {/* Global inspiration references */}
-              <div style={{ borderTop: '1px solid var(--border)', padding: '16px 20px 20px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <div>
-                    <label style={{ ...labelStyle, marginBottom: 2 }}>Referencias visuales</label>
-                    <p style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', margin: 0 }}>
-                      Elige imágenes de tu inspiración guardada para guiar al equipo
-                    </p>
+              {/* Nivel 2: subtipos + campo "Otro" */}
+              {postObjective && (
+                <div style={{ borderTop: '1px solid var(--border)', padding: '10px 20px 12px' }}>
+                  <label style={{ ...labelStyle, marginBottom: 8 }}>Tipo específico</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {SUBTYPES[postObjective].map(({ v, l, placeholder }) => (
+                      <button type="button" key={v} onClick={() => pickKind(v, placeholder)} style={{
+                        padding: '6px 12px',
+                        border: `1px solid ${requestKind === v ? 'var(--accent)' : 'var(--border)'}`,
+                        background: requestKind === v ? 'var(--accent)' : 'var(--bg)',
+                        color: requestKind === v ? '#ffffff' : 'var(--text-secondary)',
+                        fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                      }}>{l}</button>
+                    ))}
+                    <button type="button" onClick={() => pickKind('otro', '')} style={{
+                      padding: '6px 12px',
+                      border: `1px solid ${requestKind === 'otro' ? 'var(--accent)' : 'var(--border)'}`,
+                      background: requestKind === 'otro' ? 'var(--accent)' : 'var(--bg)',
+                      color: requestKind === 'otro' ? '#ffffff' : 'var(--text-tertiary)',
+                      fontFamily: f, fontSize: 11, fontWeight: 500, cursor: 'pointer',
+                    }}>Otro</button>
                   </div>
+                  {/* Cuando selecciona "Otro" aparece un campo de descripción obligatorio */}
+                  {requestKind === 'otro' && (
+                    <textarea
+                      value={clientNote}
+                      onChange={(e) => setClientNote(e.target.value)}
+                      placeholder="Describe qué quieres publicar y qué mensaje quieres transmitir."
+                      rows={2}
+                      style={{ ...inputStyle, resize: 'none', lineHeight: 1.6, marginTop: 10, fontSize: 13 }}
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ═══ PASO 2 — ¿Tienes material? (compacto) ════════════════ */}
+            <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
+              <div style={{ padding: '12px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <StepNum n={2} />
+                <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
+                  ¿Tienes material o lo creamos nosotros?
+                </span>
+              </div>
+              <div style={{ padding: '10px 20px 12px', display: 'flex', gap: 4 }}>
+                {([
+                  { v: 'photos' as const, l: 'Subo mis fotos', icon: ImageIcon },
+                  ...(allowVideos ? [{ v: 'video' as const, l: 'Subo un vídeo', icon: Video }] : []),
+                ] as const).map(({ v, l, icon: Icon }) => {
+                  const active = sourceType === v;
+                  return (
+                    <button type="button" key={v} onClick={() => {
+                      setSourceType(v);
+                      if (v === 'video') setOutputFormat('video');
+                      else if (v === 'photos' && selectedMedia.length <= 1) setOutputFormat('image');
+                    }} style={{
+                      flex: 1, padding: '9px 14px',
+                      border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                      background: active ? 'rgba(15,118,110,0.06)' : 'var(--bg)',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                    }}>
+                      <Icon size={14} style={{ color: active ? 'var(--accent)' : 'var(--text-tertiary)', flexShrink: 0 }} />
+                      <span style={{ fontFamily: f, fontSize: 12, fontWeight: active ? 700 : 500, color: active ? 'var(--accent)' : 'var(--text-primary)' }}>{l}</span>
+                    </button>
+                  );
+                })}
+                {allowVideos ? (
+                  <button type="button" onClick={() => { setSourceType('none'); setOutputFormat('image'); }} style={{
+                    flex: 1, padding: '9px 14px',
+                    border: `1px solid ${sourceType === 'none' ? 'var(--accent)' : 'var(--border)'}`,
+                    background: sourceType === 'none' ? 'rgba(15,118,110,0.06)' : 'var(--bg)',
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
+                  }}>
+                    <Sparkles size={14} style={{ color: sourceType === 'none' ? 'var(--accent)' : 'var(--text-tertiary)', flexShrink: 0 }} />
+                    <span style={{ fontFamily: f, fontSize: 12, fontWeight: sourceType === 'none' ? 700 : 500, color: sourceType === 'none' ? 'var(--accent)' : 'var(--text-primary)' }}>Lo crea el equipo</span>
+                  </button>
+                ) : (
+                  <div style={{ flex: 1, padding: '9px 14px', border: '1px solid var(--border)', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 8, opacity: 0.6 }}>
+                    <Sparkles size={14} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
+                    <div>
+                      <span style={{ fontFamily: f, fontSize: 12, color: 'var(--text-tertiary)', display: 'block' }}>Lo crea el equipo</span>
+                      <span style={{ fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)', background: 'var(--bg-2)', padding: '1px 5px' }}>Plan Pro</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ═══ PASO 3 — Formato + Fotos (integrado) ═════════════════ */}
+            <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
+              <div style={{ padding: '12px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)' }}>
+                <StepNum n={3} />
+                <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
+                  ¿Qué formato?
+                </span>
+              </div>
+              <div style={{ padding: '12px 20px' }}>
+                <div style={{ display: 'flex', gap: 4 }}>
+                  {availableOutputFormats.map(({ value, label, icon: Icon }) => {
+                    const active = outputFormat === value;
+                    const disabled = value === 'video' && !allowVideos;
+                    return (
+                      <button type="button" key={value} onClick={() => !disabled && setOutputFormat(value)} style={{
+                        flex: 1, padding: '9px 12px',
+                        border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                        background: active ? 'var(--accent)' : disabled ? 'var(--bg-1)' : 'var(--bg)',
+                        cursor: disabled ? 'not-allowed' : 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 8,
+                      }}>
+                        <Icon size={15} style={{ color: active ? '#ffffff' : 'var(--text-tertiary)', flexShrink: 0 }} />
+                        <div>
+                          <span style={{ fontFamily: f, fontSize: 12, fontWeight: active ? 700 : 500, color: active ? '#ffffff' : 'var(--text-primary)', display: 'block' }}>{label}</span>
+                          {disabled && <span style={{ fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-tertiary)', background: 'var(--bg-2)', padding: '1px 5px', display: 'inline-block' }}>Plan superior</span>}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Carrusel: selector de nº de slides */}
+                {outputFormat === 'carousel' && (
+                  <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>Slides:</span>
+                    <div style={{ display: 'flex', gap: 0 }}>
+                      {Array.from({ length: maxImages }, (_, i) => i + 2).map((n, i, arr) => {
+                        const active = finalQty === n || (i === arr.length - 1 && finalQty > arr[arr.length - 1]);
+                        const borderColor = active ? 'var(--accent)' : 'var(--border)';
+                        return (
+                          <button type="button" key={n} onClick={() => {
+                            const toAdd = Math.max(0, n - selectedMedia.length);
+                            setExtraGenerated(Math.min(toAdd, 3));
+                          }} style={{
+                            padding: '6px 12px', minWidth: 36, textAlign: 'center',
+                            borderTop: `1px solid ${borderColor}`, borderBottom: `1px solid ${borderColor}`,
+                            borderLeft: `1px solid ${borderColor}`, borderRight: i < arr.length - 1 ? 'none' : `1px solid ${borderColor}`,
+                            background: active ? 'var(--accent)' : 'var(--bg)',
+                            color: active ? '#ffffff' : 'var(--text-secondary)',
+                            fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                          }}>{n}</button>
+                        );
+                      })}
+                    </div>
+                    <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)' }}>Máx. {maxImages}</span>
+                  </div>
+                )}
+
+                {/* Video duration */}
+                {(outputFormat === 'video' || outputFormat === 'reel') && (
+                  <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>Duración:</span>
+                    <div style={{ display: 'flex', gap: 0 }}>
+                      {[6, 10, 15, 20, 30].map((sec, i, arr) => {
+                        const active = videoDuration === sec;
+                        const borderColor = active ? 'var(--accent)' : 'var(--border)';
+                        return (
+                          <button type="button" key={sec} onClick={() => setVideoDuration(sec)} style={{
+                            padding: '6px 12px', minWidth: 40, textAlign: 'center',
+                            borderTop: `1px solid ${borderColor}`, borderBottom: `1px solid ${borderColor}`,
+                            borderLeft: `1px solid ${borderColor}`, borderRight: i < arr.length - 1 ? 'none' : `1px solid ${borderColor}`,
+                            background: active ? 'var(--accent)' : 'var(--bg)',
+                            color: active ? '#ffffff' : 'var(--text-secondary)',
+                            fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                          }}>{sec}s</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ── Tus fotos (integrado en paso 3, solo si sourceType !== none) ── */}
+              {sourceType !== 'none' && (
+                <div style={{ borderTop: '1px solid var(--border)' }}>
+                  <div style={{ padding: '10px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <ImageIcon size={12} style={{ color: 'var(--text-tertiary)' }} />
+                    <span style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
+                      {sourceType === 'video' ? 'Tu vídeo' : 'Tus fotos'}
+                    </span>
+                    <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
+                      {selectedMedia.length} seleccionada{selectedMedia.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                  <div style={{ padding: '14px 20px' }}>
+                    <MediaPicker selected={selectedMedia} onChange={setSelectedMedia} max={maxImages} />
+                  </div>
+
+                  {/* Per-image notes */}
+                  {selectedMedia.length > 0 && (
+                    <div style={{ borderTop: '1px solid var(--border)' }}>
+                      <div style={{ padding: '10px 20px', background: 'var(--bg-1)' }}>
+                        <span style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
+                          Contexto por foto
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '12px 20px' }}>
+                        {selectedMedia.map((m, idx) => {
+                          const per = perMedia[m.id] ?? { note: '', inspirationId: null };
+                          const hasNote = per.note.trim().length > 0;
+                          const hasInspo = !!per.inspirationId;
+                          const isOpen = expandedMediaId === m.id;
+                          return (
+                            <button type="button" key={m.id}
+                              onClick={() => setExpandedMediaId(isOpen ? null : m.id)}
+                              style={{
+                                position: 'relative', width: 68, height: 68, padding: 0,
+                                border: `2px solid ${isOpen ? 'var(--accent)' : hasNote ? '#0D9488' : 'var(--border)'}`,
+                                background: '#000', cursor: 'pointer',
+                              }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', imageOrientation: 'from-image' }} />
+                              <div style={{ position: 'absolute', bottom: 2, left: 2, background: isOpen ? 'var(--accent)' : '#111827', color: '#ffffff', fontFamily: fc, fontSize: 9, fontWeight: 700, width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{idx + 1}</div>
+                              {hasInspo && <div style={{ position: 'absolute', top: 2, right: 2 }}><Flame size={9} style={{ color: 'var(--accent)' }} /></div>}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {expandedMediaId && (() => {
+                        const m = selectedMedia.find((x) => x.id === expandedMediaId);
+                        if (!m) return null;
+                        const per = perMedia[m.id] ?? { note: '', inspirationId: null };
+                        const setPer = (patch: Partial<PerMedia>) =>
+                          setPerMedia((prev) => ({ ...prev, [m.id]: { ...(prev[m.id] ?? { note: '', inspirationId: null }), ...patch } }));
+                        const currentInspo = inspirations.find((r) => r.id === per.inspirationId) ?? null;
+                        return (
+                          <div style={{ borderTop: '1px solid var(--border)', padding: '14px 20px', display: 'grid', gridTemplateColumns: '140px 1fr', gap: 14, alignItems: 'start' }}>
+                            <div>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={m.url} alt="" style={{ width: '100%', height: 'auto', maxHeight: 180, objectFit: 'contain', display: 'block', imageOrientation: 'from-image' }} />
+                            </div>
+                            <div>
+                              <label style={labelStyle}>¿Qué quieres hacer con esta foto?</label>
+                              <textarea
+                                value={per.note}
+                                onChange={(e) => setPer({ note: e.target.value })}
+                                placeholder="Ej: Retocar la iluminación, añadir texto en la parte superior..."
+                                rows={3}
+                                style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5, marginBottom: 10, fontSize: 13 }}
+                              />
+                              <label style={labelStyle}>Inspiración</label>
+                              {currentInspo ? (
+                                <div style={{ padding: '8px 10px', border: '1px solid var(--accent)', background: 'rgba(15,118,110,0.06)', display: 'flex', gap: 8, alignItems: 'center' }}>
+                                  {currentInspo.thumbnail_url && (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={currentInspo.thumbnail_url} alt="" style={{ width: 28, height: 28, objectFit: 'cover', flexShrink: 0 }} />
+                                  )}
+                                  <span style={{ flex: 1, fontFamily: f, fontSize: 11, color: 'var(--accent)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentInspo.title}</span>
+                                  <button type="button" onClick={() => setPer({ inspirationId: null })} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex' }}>
+                                    <X size={11} style={{ color: 'var(--accent)' }} />
+                                  </button>
+                                </div>
+                              ) : (
+                                <button type="button" onClick={() => { void ensureInspirations(); }} style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '8px 12px', cursor: 'pointer', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: f, fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)' }}>
+                                  <Flame size={12} /> Elegir inspiración
+                                </button>
+                              )}
+                              {!currentInspo && inspirationsLoaded && inspirations.length > 0 && (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, marginTop: 8, maxHeight: 120, overflowY: 'auto' }}>
+                                  {inspirations.map((r) => (
+                                    <button type="button" key={r.id} onClick={() => setPer({ inspirationId: r.id })} style={{ padding: 0, border: '1px solid var(--border)', background: '#000', cursor: 'pointer', position: 'relative', aspectRatio: '1' }}>
+                                      {r.thumbnail_url ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img src={r.thumbnail_url} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                      ) : (
+                                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 9, color: '#9ca3af' }}>{r.title}</div>
+                                      )}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
+                  {/* Extras a generar */}
+                  {outputFormat !== 'video' && outputFormat !== 'reel' && (() => {
+                    const remaining = Math.max(0, maxImages - selectedMedia.length);
+                    if (remaining === 0) return null;
+                    return (
+                      <div style={{ borderTop: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ fontFamily: f, fontSize: 11, color: 'var(--text-secondary)', flexShrink: 0 }}>Fotos extra a generar:</span>
+                        <div style={{ display: 'flex', gap: 0 }}>
+                          {[0, 1, 2, 3].filter((n) => n <= remaining).map((n, i, arr) => {
+                            const active = extraGenerated === n;
+                            const borderColor = active ? 'var(--accent)' : 'var(--border)';
+                            return (
+                              <button type="button" key={n} onClick={() => setExtraGenerated(n)} style={{
+                                minWidth: 40, padding: '6px 10px', textAlign: 'center', cursor: 'pointer',
+                                borderTop: `1px solid ${borderColor}`, borderBottom: `1px solid ${borderColor}`,
+                                borderLeft: `1px solid ${borderColor}`, borderRight: i < arr.length - 1 ? 'none' : `1px solid ${borderColor}`,
+                                background: active ? 'var(--accent)' : 'var(--bg)',
+                                color: active ? '#ffffff' : 'var(--text-tertiary)',
+                                fontFamily: f, fontSize: 11, fontWeight: 600,
+                              }}>
+                                {n === 0 ? '0' : `+${n}`}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)' }}>
+                          Total: <strong style={{ color: 'var(--text-primary)' }}>{finalQty}</strong> / {maxImages}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+
+            {/* ═══ PASO 4 — Briefing (compacto) ════════════════════════ */}
+            <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
+              <div style={{ padding: '12px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)' }}>
+                <StepNum n={4} />
+                <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
+                  Cuéntanos el detalle
+                </span>
+              </div>
+              {requestKind !== 'otro' && (
+                <div style={{ padding: '12px 20px 14px' }}>
+                  <textarea
+                    value={clientNote}
+                    onChange={(e) => setClientNote(e.target.value)}
+                    placeholder={activePlaceholder}
+                    rows={3}
+                    style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, fontSize: 13 }}
+                  />
+                </div>
+              )}
+              {requestKind === 'otro' && (
+                <p style={{ padding: '10px 20px', fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', margin: 0 }}>
+                  Ya escribiste tu descripción en el paso 1.
+                </p>
+              )}
+
+              {/* Referencias visuales — colapsables */}
+              <div style={{ borderTop: '1px solid var(--border)', padding: '10px 20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)' }}>
+                    Referencias visuales
+                    {globalInspirationIds.length > 0 && <span style={{ marginLeft: 6, color: '#0D9488' }}>({globalInspirationIds.length})</span>}
+                  </span>
                   <button type="button"
                     onClick={() => { void ensureInspirations(); setShowGlobalInspirationPicker(v => !v); }}
-                    style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 6,
-                      padding: '7px 14px', cursor: 'pointer', flexShrink: 0,
-                      border: `1px solid ${showGlobalInspirationPicker ? '#0D9488' : 'var(--border)'}`,
-                      background: showGlobalInspirationPicker ? 'rgba(13,148,136,0.08)' : 'var(--bg)',
-                      fontFamily: f, fontSize: 11, fontWeight: 600,
-                      color: showGlobalInspirationPicker ? '#0D9488' : 'var(--text-tertiary)',
-                    }}>
-                    <Flame size={12} />
-                    {globalInspirationIds.length > 0 ? `${globalInspirationIds.length} seleccionada${globalInspirationIds.length === 1 ? '' : 's'}` : 'Elegir referencias'}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px', cursor: 'pointer', border: `1px solid ${showGlobalInspirationPicker ? '#0D9488' : 'var(--border)'}`, background: showGlobalInspirationPicker ? 'rgba(13,148,136,0.08)' : 'var(--bg)', fontFamily: f, fontSize: 11, fontWeight: 600, color: showGlobalInspirationPicker ? '#0D9488' : 'var(--text-tertiary)' }}>
+                    <Flame size={11} />
+                    {globalInspirationIds.length > 0 ? `${globalInspirationIds.length} seleccionada${globalInspirationIds.length === 1 ? '' : 's'}` : 'Elegir'}
                   </button>
                 </div>
 
-                {/* Selected inspiration thumbnails */}
                 {globalInspirationIds.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: showGlobalInspirationPicker ? 14 : 0 }}>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                     {globalInspirationIds.map(id => {
                       const ref = inspirations.find(r => r.id === id);
                       if (!ref) return null;
                       return (
-                        <div key={id} style={{ position: 'relative', width: 64, height: 64 }}>
+                        <div key={id} style={{ position: 'relative', width: 48, height: 48 }}>
                           {ref.thumbnail_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
-                            <img src={ref.thumbnail_url} alt={ref.title} style={{ width: 64, height: 64, objectFit: 'cover', display: 'block', border: '2px solid #0D9488' }} />
+                            <img src={ref.thumbnail_url} alt={ref.title} style={{ width: 48, height: 48, objectFit: 'cover', display: 'block', border: '2px solid #0D9488' }} />
                           ) : (
-                            <div style={{ width: 64, height: 64, background: 'var(--bg-2)', border: '2px solid #0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                              <Flame size={16} style={{ color: '#0D9488' }} />
+                            <div style={{ width: 48, height: 48, background: 'var(--bg-2)', border: '2px solid #0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <Flame size={12} style={{ color: '#0D9488' }} />
                             </div>
                           )}
-                          <button type="button"
-                            onClick={() => setGlobalInspirationIds(prev => prev.filter(x => x !== id))}
-                            style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, background: '#111827', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
-                            <X size={10} style={{ color: '#ffffff' }} />
+                          <button type="button" onClick={() => setGlobalInspirationIds(prev => prev.filter(x => x !== id))}
+                            style={{ position: 'absolute', top: -5, right: -5, width: 16, height: 16, background: '#111827', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                            <X size={9} style={{ color: '#ffffff' }} />
                           </button>
                         </div>
                       );
@@ -805,22 +1242,17 @@ export default function NewPostPage() {
                   </div>
                 )}
 
-                {/* Picker grid */}
                 {showGlobalInspirationPicker && (
-                  <div>
+                  <div style={{ marginTop: 10 }}>
                     {!inspirationsLoaded ? (
                       <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>Cargando...</p>
                     ) : inspirations.length === 0 ? (
-                      <div style={{ padding: '16px', border: '1px solid var(--border)', background: 'var(--bg-1)', textAlign: 'center' }}>
-                        <p style={{ fontFamily: f, fontSize: 12, color: 'var(--text-tertiary)', marginBottom: 8 }}>
-                          No tienes referencias guardadas todavía.
-                        </p>
-                        <a href="/inspiracion?tab=referencias" target="_blank" style={{ fontFamily: f, fontSize: 11, fontWeight: 600, color: '#0D9488', textDecoration: 'none' }}>
-                          Ir a Referencias →
-                        </a>
+                      <div style={{ padding: '12px', border: '1px solid var(--border)', background: 'var(--bg-1)', textAlign: 'center' }}>
+                        <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', marginBottom: 6 }}>No tienes referencias guardadas todavía.</p>
+                        <a href="/inspiracion?tab=referencias" target="_blank" style={{ fontFamily: f, fontSize: 11, fontWeight: 600, color: '#0D9488', textDecoration: 'none' }}>Ir a Referencias →</a>
                       </div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 8, maxHeight: 340, overflowY: 'auto', padding: 2 }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
                         {inspirations.map(r => {
                           const selected = globalInspirationIds.includes(r.id);
                           const fmtColor: Record<string, string> = { image: '#3B82F6', reel: '#EF4444', carousel: '#F59E0B', video: '#8B5CF6' };
@@ -830,53 +1262,25 @@ export default function NewPostPage() {
                           const isCarousel = fmt === 'carousel';
                           return (
                             <div key={r.id} style={{ position: 'relative', border: `2px solid ${selected ? '#0D9488' : 'var(--border)'}`, background: '#000', display: 'flex', flexDirection: 'column' }}>
-                              {/* Image area — click to SELECT */}
-                              <button type="button"
-                                onClick={() => setGlobalInspirationIds(prev =>
-                                  selected ? prev.filter(x => x !== r.id) : [...prev, r.id]
-                                )}
-                                style={{ padding: 0, cursor: 'pointer', border: 'none', background: 'transparent', display: 'block', position: 'relative', aspectRatio: '1' }}
-                              >
+                              <button type="button" onClick={() => setGlobalInspirationIds(prev => selected ? prev.filter(x => x !== r.id) : [...prev, r.id])}
+                                style={{ padding: 0, cursor: 'pointer', border: 'none', background: 'transparent', display: 'block', position: 'relative', aspectRatio: '1' }}>
                                 {r.thumbnail_url ? (
                                   // eslint-disable-next-line @next/next/no-img-element
                                   <img src={r.thumbnail_url} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: selected ? 1 : 0.8 }} />
                                 ) : (
-                                  <div style={{ width: '100%', height: '100%', minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111', padding: 6 }}>
-                                    {isVideo ? <Film size={24} color="#6b7280" /> : isCarousel ? <Images size={24} color="#6b7280" /> : <Flame size={24} color="#6b7280" />}
+                                  <div style={{ width: '100%', height: '100%', minHeight: 90, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#111' }}>
+                                    {isVideo ? <Film size={20} color="#6b7280" /> : isCarousel ? <Images size={20} color="#6b7280" /> : <Flame size={20} color="#6b7280" />}
                                   </div>
                                 )}
-                                {/* Format badge */}
-                                <div style={{ position: 'absolute', top: 4, left: 4, background: fmtColor[fmt] ?? '#6b7280', padding: '2px 5px' }}>
-                                  <span style={{ fontFamily: f, fontSize: 8, fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                    {fmtLabel[fmt] ?? fmt}
-                                  </span>
+                                <div style={{ position: 'absolute', top: 3, left: 3, background: fmtColor[fmt] ?? '#6b7280', padding: '1px 4px' }}>
+                                  <span style={{ fontFamily: f, fontSize: 7, fontWeight: 700, color: '#fff', textTransform: 'uppercase' }}>{fmtLabel[fmt] ?? fmt}</span>
                                 </div>
-                                {/* Type icon for carousel/video */}
-                                {(isVideo || isCarousel) && (
-                                  <div style={{ position: 'absolute', bottom: 4, left: 4, color: 'rgba(255,255,255,0.9)' }}>
-                                    {isVideo ? <Film size={12} /> : <Images size={12} />}
-                                  </div>
-                                )}
-                                {/* Selected check */}
-                                {selected && (
-                                  <div style={{ position: 'absolute', top: 4, right: 4, width: 18, height: 18, background: '#0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                    <Check size={11} style={{ color: '#ffffff' }} />
-                                  </div>
-                                )}
+                                {(isVideo || isCarousel) && <div style={{ position: 'absolute', bottom: 3, left: 3, color: 'rgba(255,255,255,0.9)' }}>{isVideo ? <Film size={10} /> : <Images size={10} />}</div>}
+                                {selected && <div style={{ position: 'absolute', top: 3, right: 3, width: 16, height: 16, background: '#0D9488', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Check size={10} style={{ color: '#ffffff' }} /></div>}
                               </button>
-                              {/* Footer: title + expand button */}
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 6px', background: '#111', minHeight: 28 }}>
-                                <span style={{ fontFamily: f, fontSize: 9, color: '#d1d5db', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.title}>
-                                  {r.title}
-                                </span>
-                                {/* Expand / lightbox button */}
-                                <button type="button"
-                                  onClick={(e) => { e.stopPropagation(); setLightboxRef(r); }}
-                                  style={{ padding: 3, background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0, color: '#9ca3af', display: 'flex', alignItems: 'center' }}
-                                  title="Ver en grande"
-                                >
-                                  <Maximize2 size={11} />
-                                </button>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '4px 5px', background: '#111', minHeight: 22 }}>
+                                <span style={{ fontFamily: f, fontSize: 8, color: '#d1d5db', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.title}>{r.title}</span>
+                                <button type="button" onClick={(e) => { e.stopPropagation(); setLightboxRef(r); }} style={{ padding: 2, background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0, color: '#9ca3af', display: 'flex' }} title="Ver en grande"><Maximize2 size={9} /></button>
                               </div>
                             </div>
                           );
@@ -888,312 +1292,83 @@ export default function NewPostPage() {
               </div>
             </div>
 
-            {/* STEP 2 — Tus fotos + ajustes */}
+            {/* STEP 5 — ¿Para cuándo? (compacto) */}
             <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
-              <div style={{
-                padding: '16px 20px', background: 'var(--bg-1)',
-                display: 'flex', alignItems: 'center', gap: 10,
-                borderBottom: '1px solid var(--border)',
-              }}>
-                <StepNum n={2} />
+              <div style={{ padding: '12px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <StepNum n={5} />
                 <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
-                  Tus fotos
+                  ¿Para cuándo?
                 </span>
-                <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
-                  {selectedMedia.length} seleccionada{selectedMedia.length === 1 ? '' : 's'}
-                </span>
+                {timingPreset && <span style={{ fontFamily: f, fontSize: 10, color: urgency === 'urgente' ? '#e65100' : 'var(--text-tertiary)', marginLeft: 'auto', fontWeight: urgency === 'urgente' ? 700 : 400 }}>
+                  {urgency === 'urgente' ? 'URGENTE' : preferredDate ? new Date(preferredDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : 'Flexible'}
+                </span>}
               </div>
-
-              {/* Media picker */}
-              <div style={{ padding: '20px' }}>
-                <MediaPicker selected={selectedMedia} onChange={setSelectedMedia} max={maxImages} />
-              </div>
-
-              {/* Per-image notes + inspiration */}
-              {selectedMedia.length > 0 && (
-                <div style={{ borderTop: '1px solid var(--border)' }}>
-                  <div style={{ padding: '14px 20px', background: 'var(--bg-1)' }}>
-                    <span style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
-                      Contexto por imagen
-                    </span>
-                    <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 8 }}>
-                      opcional — pulsa en una foto para añadir un comentario o una referencia
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '16px 20px' }}>
-                    {selectedMedia.map((m, idx) => {
-                      const per = perMedia[m.id] ?? { note: '', inspirationId: null };
-                      const hasNote = per.note.trim().length > 0;
-                      const hasInspo = !!per.inspirationId;
-                      const isOpen = expandedMediaId === m.id;
-                      return (
-                        <button type="button" key={m.id}
-                          onClick={() => setExpandedMediaId(isOpen ? null : m.id)}
-                          style={{
-                            position: 'relative', width: 76, height: 76, padding: 0,
-                            border: `2px solid ${isOpen ? 'var(--accent)' : 'var(--border)'}`,
-                            background: '#000', cursor: 'pointer',
-                          }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={m.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                          <div style={{
-                            position: 'absolute', bottom: 2, left: 2,
-                            background: isOpen ? 'var(--accent)' : '#111827', color: '#ffffff',
-                            fontFamily: fc, fontSize: 9, fontWeight: 700,
-                            width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          }}>{idx + 1}</div>
-                          {hasNote && <div style={{ position: 'absolute', top: 2, left: 2, width: 6, height: 6, background: 'var(--accent)' }} />}
-                          {hasInspo && (
-                            <div style={{ position: 'absolute', top: 2, right: 2 }}>
-                              <Flame size={10} style={{ color: 'var(--accent)' }} />
-                            </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Active image editor */}
-                  {expandedMediaId && (() => {
-                    const m = selectedMedia.find((x) => x.id === expandedMediaId);
-                    if (!m) return null;
-                    const per = perMedia[m.id] ?? { note: '', inspirationId: null };
-                    const setPer = (patch: Partial<PerMedia>) =>
-                      setPerMedia((prev) => ({ ...prev, [m.id]: { ...(prev[m.id] ?? { note: '', inspirationId: null }), ...patch } }));
-                    const currentInspo = inspirations.find((r) => r.id === per.inspirationId) ?? null;
-                    return (
-                      <div style={{ borderTop: '1px solid var(--border)', padding: '18px 20px', display: 'grid', gridTemplateColumns: '200px 1fr', gap: 16, alignItems: 'start' }}>
-                        <div>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={m.url} alt="" style={{ width: '100%', height: 'auto', maxHeight: 240, objectFit: 'contain', display: 'block', background: 'transparent' }} />
-                        </div>
-                        <div>
-                          <label style={labelStyle}>Contexto para esta imagen</label>
-                          <textarea
-                            value={per.note}
-                            onChange={(e) => setPer({ note: e.target.value })}
-                            placeholder="Ej: aquí destaca el plato del día y añade el precio con letras grandes."
-                            rows={3}
-                            style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6, marginBottom: 14 }}
-                          />
-
-                          <label style={labelStyle}>Inspiración (opcional)</label>
-                          {currentInspo ? (
-                            <div style={{
-                              padding: '10px 12px', border: '1px solid var(--accent)',
-                              background: 'var(--accent-soft, rgba(15,118,110,0.08))',
-                              display: 'flex', gap: 10, alignItems: 'center',
-                            }}>
-                              {currentInspo.thumbnail_url && (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={currentInspo.thumbnail_url} alt="" style={{ width: 36, height: 36, objectFit: 'cover', flexShrink: 0 }} />
-                              )}
-                              <span style={{ flex: 1, fontFamily: f, fontSize: 12, color: 'var(--accent)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {currentInspo.title}
-                              </span>
-                              <button type="button" onClick={() => setPer({ inspirationId: null })}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex' }}>
-                                <X size={13} style={{ color: 'var(--accent)' }} />
-                              </button>
-                            </div>
-                          ) : (
-                            <button type="button"
-                              onClick={() => { void ensureInspirations(); }}
-                              style={{
-                                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                                padding: '10px 14px', cursor: 'pointer',
-                                border: '1px solid var(--border)', background: 'var(--bg)',
-                                fontFamily: f, fontSize: 12, fontWeight: 600, color: 'var(--text-tertiary)',
-                              }}>
-                              <Flame size={13} /> Elegir inspiración
-                            </button>
-                          )}
-                          {!currentInspo && inspirationsLoaded && (
-                            inspirations.length === 0 ? (
-                              <p style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 8 }}>
-                                No tienes referencias guardadas todavía. Guarda alguna en /inspiracion.
-                              </p>
-                            ) : (
-                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginTop: 8, maxHeight: 180, overflowY: 'auto' }}>
-                                {inspirations.map((r) => (
-                                  <button type="button" key={r.id} onClick={() => setPer({ inspirationId: r.id })}
-                                    style={{ padding: 0, border: '1px solid var(--border)', background: '#000', cursor: 'pointer', position: 'relative', aspectRatio: '1' }}>
-                                    {r.thumbnail_url ? (
-                                      // eslint-disable-next-line @next/next/no-img-element
-                                      <img src={r.thumbnail_url} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                                    ) : (
-                                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: f, fontSize: 10, color: '#9ca3af' }}>{r.title}</div>
-                                    )}
-                                  </button>
-                                ))}
-                              </div>
-                            )
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-
-              {/* Extras to generate + plan notice */}
-              <div style={{ borderTop: '1px solid var(--border)', padding: '18px 20px' }}>
-                <label style={labelStyle}>¿Quieres que generemos fotos extra?</label>
-                {(() => {
-                  const remaining = Math.max(0, maxImages - selectedMedia.length);
-                  if (remaining === 0) {
-                    return (
-                      <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>
-                        Has alcanzado el máximo de {maxImages} fotos de tu plan.
-                      </p>
-                    );
-                  }
+              <div style={{ padding: '10px 20px 12px', display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {([['today','Hoy'],['tomorrow','Mañana'],['week','Esta semana'],['custom','Otro día']] as const).map(([v, l]) => {
+                  const active = timingPreset === v;
                   return (
-                    <>
-                      <div style={{ display: 'flex', gap: 0 }}>
-                        {[0, 1, 2, 3].filter((n) => n <= remaining).map((n, i, arr) => (
-                          <button type="button" key={n} onClick={() => setExtraGenerated(n)}
-                            style={{
-                              ...toggleStyle(extraGenerated === n),
-                              borderRight: i < arr.length - 1 ? 'none' : undefined,
-                              minWidth: 48, padding: '10px 14px', justifyContent: 'center',
-                            }}>
-                            {n === 0 ? 'Ninguna' : `+${n}`}
-                          </button>
-                        ))}
-                      </div>
-                      <p style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 6 }}>
-                        Total: <strong style={{ color: 'var(--text-primary)' }}>{finalQty} foto{finalQty === 1 ? '' : 's'}</strong>
-                        {' · '}Tu plan permite hasta {maxImages}.
-                        {extraGenerated > 0 && ' Las extras las generará el equipo.'}
-                      </p>
-                    </>
+                    <button type="button" key={v} onClick={() => pickTiming(v)} style={{
+                      padding: '7px 12px',
+                      border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                      background: active ? 'var(--accent)' : 'var(--bg)',
+                      color: active ? '#ffffff' : 'var(--text-secondary)',
+                      fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                    }}>{l}</button>
                   );
-                })()}
-              </div>
-            </div>
-
-            {/* STEP 3 — ¿Para cuándo? */}
-            <div style={{ border: '1px solid var(--border)', marginBottom: 2 }}>
-              <div style={{
-                padding: '16px 20px', background: 'var(--bg-1)',
-                display: 'flex', alignItems: 'center', gap: 10,
-                borderBottom: '1px solid var(--border)',
-              }}>
-                <StepNum n={3} />
-                <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
-                  Fecha preferida para tenerlo
-                </span>
-                <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
-                  {urgency === 'urgente' ? 'URGENTE' : 'Flexible'}
-                </span>
-              </div>
-              <div style={{ padding: '18px 20px' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-                  {([
-                    ['now',      'Hoy (30 min)'],
-                    ['today',    'Hoy'],
-                    ['tomorrow', 'Mañana'],
-                    ['week',     'Esta semana'],
-                    ['custom',   'Otro día'],
-                  ] as const).map(([v, l]) => {
-                    const active =
-                      (v === 'now'      && timingPreset === '30min') ||
-                      (v === 'today'    && timingPreset === 'today') ||
-                      (v === 'tomorrow' && timingPreset === 'tomorrow') ||
-                      (v === 'week'     && timingPreset === 'week') ||
-                      (v === 'custom'   && timingPreset === 'custom');
-                    const isUrgent = v === 'now';
-                    return (
-                      <button type="button" key={v} onClick={() => pickTiming(v)} style={{
-                        padding: '8px 14px',
-                        border: `1px solid ${active ? (isUrgent ? 'var(--warning, #e65100)' : 'var(--accent)') : 'var(--border)'}`,
-                        background: active ? (isUrgent ? 'var(--warning, #e65100)' : 'var(--accent)') : 'var(--bg)',
-                        color: active ? '#ffffff' : 'var(--text-secondary)',
-                        fontFamily: f, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                      }}>{l}</button>
-                    );
-                  })}
-                </div>
+                })}
                 {timingPreset === 'custom' && (
                   <input type="date" value={preferredDate} onChange={(e) => setPreferredDate(e.target.value)}
-                    min={new Date().toISOString().slice(0, 10)} style={inputStyle} />
-                )}
-                {timingPreset === '30min' && (
-                  <p style={{ fontFamily: f, fontSize: 11, color: 'var(--warning, #e65100)', fontWeight: 600 }}>
-                    ⚡ Lo clasificaremos como urgente y el equipo empezará ahora mismo.
-                  </p>
+                    min={new Date().toISOString().slice(0, 10)}
+                    style={{ ...inputStyle, padding: '7px 10px', fontSize: 12, width: 'auto' }} />
                 )}
               </div>
             </div>
 
-            {/* STEP 3 — Detalles opcionales */}
+            {/* STEP 6 — Detalles opcionales (compacto) */}
             <div style={{ border: '1px solid var(--border)', marginBottom: 32 }}>
-              <div style={{
-                padding: '16px 20px', background: 'var(--bg-1)',
-                display: 'flex', alignItems: 'center', gap: 10,
-                borderBottom: '1px solid var(--border)',
-              }}>
-                <StepNum n={3} />
+              <div style={{ padding: '12px 20px', background: 'var(--bg-1)', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid var(--border)' }}>
+                <StepNum n={6} />
                 <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-primary)' }}>
                   Detalles extra
                 </span>
                 <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>Opcional</span>
               </div>
-              <div style={{ display: 'grid', gap: '1px', background: 'var(--border)' }}>
-                <div style={{ padding: '18px 20px', background: 'var(--bg)' }}>
-                  <label style={labelStyle}>
-                    Texto / caption sugerido
-                  </label>
+              <div style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={labelStyle}>Caption sugerido</label>
                   <textarea value={proposedCaption} onChange={(e) => setProposedCaption(e.target.value)}
-                    placeholder="Si ya tienes una idea de texto, escríbela aquí. Si no, te proponemos una."
-                    rows={3} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} />
+                    placeholder="Si ya tienes una idea de texto, escríbela aquí."
+                    rows={2} style={{ ...inputStyle, resize: 'none', lineHeight: 1.5, fontSize: 13 }} />
                 </div>
-                <div style={{ padding: '18px 20px', background: 'var(--bg)' }}>
-                  <label style={labelStyle}>
-                    Notas para el equipo
-                  </label>
+                <div>
+                  <label style={labelStyle}>Notas para el equipo</label>
                   <textarea value={extraNotes} onChange={(e) => setExtraNotes(e.target.value)}
-                    placeholder="Ej: Tono profesional, referencias visuales a nuestra web, evitar emojis..."
-                    rows={2} style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} />
+                    placeholder="Tono, referencias, restricciones..."
+                    rows={2} style={{ ...inputStyle, resize: 'none', lineHeight: 1.5, fontSize: 13 }} />
                 </div>
-                {/* Target platforms — drives post.platform[] on submit so the
-                    worker knows where to publish. Self-service uses
-                    PostEditor's own picker; this one only shows in request
-                    mode. */}
-                <div style={{ padding: '18px 20px', background: 'var(--bg)' }}>
-                  <label style={labelStyle}>
-                    Publicar en
-                  </label>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {(['instagram', 'facebook', 'tiktok'] as const).map((p) => {
+                <div>
+                  <label style={labelStyle}>Publicar en</label>
+                  <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                    {platformsForFormat(outputFormat).map((p) => {
                       const active = requestPlatforms.includes(p);
-                      const meta = { instagram: '📷 Instagram', facebook: '📘 Facebook', tiktok: '🎵 TikTok' }[p];
+                      const meta: Record<string, string> = { instagram: '📷 Instagram', facebook: '📘 Facebook', tiktok: '🎵 TikTok' };
                       return (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => {
-                            setRequestPlatforms(prev =>
-                              prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p],
-                            );
-                          }}
+                        <button key={p} type="button"
+                          onClick={() => setRequestPlatforms(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])}
                           style={{
-                            padding: '8px 14px',
+                            padding: '7px 12px',
                             border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                            background: active ? 'var(--accent-light, #f0fdfa)' : 'var(--bg)',
+                            background: active ? 'rgba(15,118,110,0.08)' : 'var(--bg)',
                             color: active ? 'var(--accent)' : 'var(--text-secondary)',
-                            fontFamily: f, fontSize: 13, fontWeight: active ? 700 : 500,
-                            cursor: 'pointer',
-                          }}
-                        >
-                          {meta}
+                            fontFamily: f, fontSize: 12, fontWeight: active ? 700 : 500, cursor: 'pointer',
+                          }}>
+                          {meta[p] ?? p}
                         </button>
                       );
                     })}
                   </div>
-                  <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 8 }}>
-                    Tu equipo adaptará el contenido a cada plataforma que marques.
+                  <p style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', marginTop: 6 }}>
+                    Solo redes contratadas. El equipo adaptará el contenido a cada plataforma.
                   </p>
                 </div>
               </div>
@@ -1221,14 +1396,18 @@ export default function NewPostPage() {
 
               <div>
                 {[
-                  ...(requestKind ? [{ label: 'Tipo', value: REQUEST_KINDS.find((k) => k.v === requestKind)?.l ?? requestKind }] : []),
-                  { label: 'Fotos tuyas', value: `${selectedMedia.length}` },
+                  ...(postObjective ? [{ label: 'Objetivo', value: OBJECTIVES.find(o => o.v === postObjective)?.l ?? postObjective }] : [{ label: 'Objetivo', value: '—', highlight: true }]),
+                  ...(requestKind ? [{ label: 'Tipo', value: REQUEST_KINDS_FLAT.find((k) => k.v === requestKind)?.l ?? requestKind }] : []),
+                  { label: 'Material', value: sourceType === 'none' ? 'Lo crea el equipo' : sourceType === 'video' ? 'Vídeo propio' : 'Fotos propias' },
+                  { label: 'Formato', value: { image: 'Foto', video: 'Vídeo/Reel', reel: 'Reel', carousel: 'Carrusel', story: 'Story' }[outputFormat] ?? outputFormat },
+                  ...((outputFormat === 'video' || outputFormat === 'reel') ? [{ label: 'Duración', value: `${videoDuration}s` }] : []),
+                  ...(sourceType !== 'none' ? [{ label: 'Fotos tuyas', value: `${selectedMedia.length}` }] : []),
                   ...(extraGenerated > 0 ? [{ label: 'Generadas', value: `+${extraGenerated}` }] : []),
-                  { label: 'Total', value: `${finalQty} foto${finalQty === 1 ? '' : 's'}` },
+                  ...((outputFormat !== 'video' && outputFormat !== 'reel') ? [{ label: 'Total', value: `${finalQty} foto${finalQty === 1 ? '' : 's'}` }] : []),
                   { label: 'Urgencia', value: urgency === 'urgente' ? 'Urgente' : 'Flexible', highlight: urgency === 'urgente' },
                   ...(preferredDate ? [{ label: 'Para', value: new Date(preferredDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) }] : []),
+                  { label: 'Plataformas', value: requestPlatforms.map(p => ({ instagram: 'IG', facebook: 'FB', tiktok: 'TK' }[p])).join(', ') },
                   ...(Object.values(perMedia).some((p) => p.note.trim()) ? [{ label: 'Contexto x foto', value: `${Object.values(perMedia).filter((p) => p.note.trim()).length}` }] : []),
-                  ...(Object.values(perMedia).some((p) => p.inspirationId) ? [{ label: 'Inspiración', value: `${Object.values(perMedia).filter((p) => p.inspirationId).length}` }] : []),
                 ].map(({ label, value, highlight }, i, arr) => (
                   <div key={label} style={{
                     padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -1315,30 +1494,23 @@ export default function NewPostPage() {
   // SELF-SERVICE MODE — Editor + Ideas + Inspiración
   // ══════════════════════════════════════════════════════════════════════
   return (
-    <div className="page-content" style={{ maxWidth: 1200 }}>
-      <div style={{ padding: '24px 0 16px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            border: '2px solid var(--text-tertiary)',
-          }}>
-            <Paintbrush size={14} style={{ color: 'var(--text-secondary)' }} />
-          </div>
-          <div>
-            <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 2rem)', textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 4 }}>
-              Crear contenido
-            </h1>
-            <p style={{ color: 'var(--text-secondary)', fontSize: 13, fontFamily: f }}>
-              Edita, genera ideas y publica tu contenido
-            </p>
-          </div>
+    <div className="page-content dashboard-unified-page" style={{ maxWidth: 1200 }}>
+      <div className="dashboard-unified-header" style={{ padding: '48px 0 24px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
+        <div>
+          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: 'var(--text-primary)', lineHeight: 0.95, marginBottom: 10 }}>
+            Crear contenido
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontFamily: f }}>
+            Edita, genera ideas y publica tu contenido
+          </p>
         </div>
         <button onClick={() => setMode(null)} style={{
-          fontSize: 12, color: 'var(--text-tertiary)', background: 'var(--bg)',
-          border: '1px solid var(--border)', padding: '6px 14px',
-          cursor: 'pointer', fontFamily: f,
+          fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', background: 'none',
+          border: 'none', padding: 0, cursor: 'pointer', fontFamily: f,
+          textTransform: 'uppercase', letterSpacing: '0.08em',
+          display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
         }}>
-          ← Volver
+          <ArrowRight size={12} style={{ transform: 'rotate(180deg)' }} /> Volver
         </button>
       </div>
       <PostEditor brandName={brand?.name ?? 'Tu negocio'} allowStories={allowStories} onSave={handleSave} />

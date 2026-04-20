@@ -252,14 +252,13 @@ export function SiteFooter() {
       <div className="container">
 
         {/* ─── 4 COLUMNS ─── */}
-        <div style={S.grid}>
+        <div className="footer-grid" style={S.grid}>
 
           {/* Column 1 — Brand */}
           <div>
             <Link href="/" style={S.logo}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="NeuroPost" style={{ height: 32, width: 'auto', display: 'block' }} />
-              <span>Neuro<span style={S.logoAccent}>Post</span></span>
+              <img src="/logo-transparent.png" alt="NeuroPost" style={{ height: 40, width: 'auto', display: 'block' }} />
             </Link>
             <p style={S.brandDesc}>
               El equipo que gestiona las redes de tu negocio local. Hecho con amor en España.
@@ -338,7 +337,7 @@ export function SiteFooter() {
         </div>
 
         {/* ─── CENTRAL BAND: newsletter + socials ─── */}
-        <div style={S.band}>
+        <div className="footer-band" style={S.band}>
 
           {/* Label */}
           <p style={S.newsletterLabel}>
@@ -349,13 +348,14 @@ export function SiteFooter() {
           {subSent ? (
             <p style={S.newsletterOk}>¡Suscrito! Te llegará pronto.</p>
           ) : (
-            <form onSubmit={handleSubscribe} style={S.newsletterForm}>
+            <form onSubmit={handleSubscribe} className="footer-newsletter-form" style={S.newsletterForm}>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="tu@email.com"
                 required
+                className="footer-newsletter-input"
                 style={S.newsletterInput}
               />
               <button type="submit" style={S.newsletterBtn}>Suscribirse</button>
@@ -383,7 +383,7 @@ export function SiteFooter() {
         </div>
 
         {/* ─── BOTTOM BAR ─── */}
-        <div style={S.bottomBar}>
+        <div className="footer-bottom-bar" style={S.bottomBar}>
           <span style={S.bottomCopy}>© 2026 NeuroPost — Todos los derechos reservados</span>
           <span style={S.bottomTrust}>
             🔒 Datos protegidos&nbsp;&nbsp;·&nbsp;&nbsp;✓ RGPD compliant&nbsp;&nbsp;·&nbsp;&nbsp;⏱ Soporte 6 días/semana

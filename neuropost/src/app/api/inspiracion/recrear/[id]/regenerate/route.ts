@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server';
 import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createAdminClient } from '@/lib/supabase';
 import { startReplicatePrediction } from '@/lib/replicate';
+import { reserveRegenerationSlot, releaseRegenerationSlot } from '@/lib/plan-limits';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -38,7 +39,19 @@ export async function POST(
       return NextResponse.json({ error: 'Recreation not found' }, { status: 404 });
     }
 
-    // Reset to preparacion
+    // Atomically reserve a regeneration slot. Two concurrent regenerates
+    // cannot both pass this gate: the SQL function does the compare-and-swap
+    // in a single UPDATE. If Replicate fails below we release the slot.
+    const quota = await reserveRegenerationSlot(brand.id, id);
+    if (!quota.allowed) {
+      return NextResponse.json(
+        { error: quota.reason, used: quota.used, limit: quota.limit, upgradeUrl: quota.upgradeUrl },
+        { status: 429 },
+      );
+    }
+
+    // Reset to preparacion before calling Replicate. If Replicate rejects we
+    // roll back to 'pending' below — the row is in a safe transient state.
     await db
       .from('recreation_requests')
       .update({
@@ -65,27 +78,38 @@ export async function POST(
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? (process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
       : 'http://localhost:3000');
-    const webhookUrl = `${baseUrl}/api/webhooks/replicate?secret=${process.env.REPLICATE_WEBHOOK_SECRET ?? ''}`;
+    const webhookUrl = `${baseUrl}/api/webhooks/replicate`;
 
-    startReplicatePrediction({
-      prompt: replicatePrompt,
-      imageUrl: ref?.thumbnail_url ?? undefined,
-      webhookUrl,
-    }).then(async (prediction) => {
+    // Slot already reserved atomically above. If Replicate rejects we
+    // release it to avoid charging the user for a provider-side failure.
+    let prediction;
+    try {
+      prediction = await startReplicatePrediction({
+        prompt:   replicatePrompt,
+        imageUrl: ref?.thumbnail_url ?? undefined,
+        webhookUrl,
+      });
+    } catch (err) {
+      console.error(`[regenerate] Replicate prediction failed for recreation ${id}:`, err);
+      await releaseRegenerationSlot(id);
       await db
         .from('recreation_requests')
-        .update({
-          replicate_prediction_id: prediction.id,
-          replicate_status: prediction.status,
-        })
-        .eq('id', id);
-    }).catch((err: unknown) => {
-      console.error(`[regenerate] Replicate prediction failed for recreation ${id}:`, err);
-      db.from('recreation_requests')
         .update({ status: 'pending', replicate_status: 'failed' })
-        .eq('id', id)
-        .then(() => null);
-    });
+        .eq('id', id);
+      return NextResponse.json(
+        { error: 'No se pudo iniciar la generación. Inténtalo de nuevo en unos segundos.' },
+        { status: 502 },
+      );
+    }
+
+    // Replicate accepted — slot stays reserved, persist prediction id.
+    await db
+      .from('recreation_requests')
+      .update({
+        replicate_prediction_id: prediction.id,
+        replicate_status:        prediction.status,
+      })
+      .eq('id', id);
 
     return NextResponse.json({ ok: true, status: 'preparacion' });
   } catch (err) {

@@ -5,6 +5,8 @@ import {
   Bell,
   Bot,
   CheckSquare,
+  DollarSign,
+  FileText,
   Home,
   Inbox,
   Settings,
@@ -43,7 +45,7 @@ const BASE_GROUPS: WorkerNavGroup[] = [
   {
     label: 'Gestión',
     items: [
-      { href: '/worker/inbox', icon: Inbox, label: 'Inbox', badge: 'msg' },
+      { href: '/worker/inbox',    icon: Inbox, label: 'Inbox', badge: 'msg' },
       { href: '/worker/clientes', icon: Users, label: 'Clientes' },
       { href: '/worker/anuncios', icon: Bell, label: 'Notificaciones' },
       { href: '/worker/analytics', icon: BarChart3, label: 'Analytics' },
@@ -54,6 +56,8 @@ const BASE_GROUPS: WorkerNavGroup[] = [
 const ADMIN_GROUP: WorkerNavGroup = {
   label: 'Administración',
   items: [
+    { href: '/worker/finanzas', icon: DollarSign, label: 'Finanzas' },
+    { href: '/worker/auditoria', icon: FileText, label: 'Auditoría' },
     { href: '/worker/settings', icon: Settings, label: 'Configuración' },
   ],
 };

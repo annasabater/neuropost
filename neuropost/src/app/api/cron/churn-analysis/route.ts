@@ -5,9 +5,12 @@ import { Resend } from 'resend';
 import type { Brand } from '@/types';
 
 export async function GET(request: Request) {
-  const auth = request.headers.get('authorization');
-  if (auth !== `Bearer ${process.env.CRON_SECRET ?? ''}`) {
-    return new Response('Unauthorized', { status: 401 });
+  const auth      = request.headers.get('authorization');
+  const isVercel  = request.headers.get('x-vercel-cron') === '1';
+  const secret    = process.env.CRON_SECRET ?? '';
+  const validBearer = secret && auth === `Bearer ${secret}`;
+  if (!isVercel && !validBearer) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const db     = createAdminClient();

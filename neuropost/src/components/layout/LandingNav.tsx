@@ -41,10 +41,9 @@ export function LandingNav() {
 
   return (
     <nav style={{ boxShadow: navShadow ? '0 1px 0 #e5e7eb' : 'none', background: '#ffffff', borderBottom: '1px solid #e5e7eb' }}>
-      <Link href="/" className="nav-logo" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
+      <Link href="/" className="nav-logo" style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="NeuroPost" style={{ height: 36, width: 'auto', display: 'block' }} />
-        <span>NeuroPost</span>
+        <img src="/logo-transparent.png" alt="NeuroPost" style={{ height: 44, width: 'auto', display: 'block' }} />
       </Link>
       <ul className="nav-links">
         <li style={{ position: 'relative' }} onMouseEnter={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'block'; }} onMouseLeave={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'none'; }}>
@@ -78,7 +77,7 @@ export function LandingNav() {
         </li>
         <li><LanguageSelector /></li>
         <li><Link href="/login" className="nav-login">Entrar</Link></li>
-        <li><Link href="/register" className="nav-cta">Empezar gratis</Link></li>
+        <li><Link href="/register" className="nav-cta">Empezar</Link></li>
       </ul>
     </nav>
   );

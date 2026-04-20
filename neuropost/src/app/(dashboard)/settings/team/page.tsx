@@ -87,7 +87,7 @@ export default function TeamPage() {
             Función de plan Pro
           </p>
           <p style={{ color: 'var(--muted)', marginBottom: 20 }}>
-            La gestión de equipo está disponible en los planes Pro y Agency.
+            La gestión de equipo está disponible en los planes Pro y Total.
           </p>
           <Link href="/pricing#pricing-top" className="btn-primary">Ver planes</Link>
         </div>

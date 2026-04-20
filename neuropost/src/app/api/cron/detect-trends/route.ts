@@ -7,9 +7,12 @@ import type { Brand, BrandRules } from '@/types';
 const SECTORS = ['heladeria', 'restaurante', 'cafeteria', 'gym', 'clinica', 'barberia', 'boutique'];
 
 export async function GET(request: Request) {
-  const auth = request.headers.get('authorization');
-  if (auth !== `Bearer ${process.env.CRON_SECRET ?? ''}`) {
-    return new Response('Unauthorized', { status: 401 });
+  const auth      = request.headers.get('authorization');
+  const isVercel  = request.headers.get('x-vercel-cron') === '1';
+  const secret    = process.env.CRON_SECRET ?? '';
+  const validBearer = secret && auth === `Bearer ${secret}`;
+  if (!isVercel && !validBearer) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const db = createAdminClient();
@@ -44,13 +47,12 @@ export async function GET(request: Request) {
 
       trendsDetected += savedTrends.filter(Boolean).length;
 
-      // Adapt to brands in this sector whose plan includes trendsAgent
-      // (Total and Agency). Pro/Starter do not get trend adaptations.
+      // Adapt to brands in this sector whose plan includes trendsAgent (Total only).
       const { data: brands } = await db
         .from('brands')
         .select('*')
         .eq('sector', sector)
-        .in('plan', ['total', 'agency']);
+        .in('plan', ['total']);
 
       for (const brand of brands ?? []) {
         const b = brand as Brand;

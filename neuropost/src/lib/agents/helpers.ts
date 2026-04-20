@@ -25,7 +25,7 @@ export async function loadBrand(brandId: string): Promise<Brand | null> {
 }
 
 /**
- * Load brand + build AgentContext in one call.
+ * Load brand + brief tables + build AgentContext in one call.
  * Throws a descriptive error if the brand is missing — callers should catch
  * and return a `fail` HandlerResult.
  */
@@ -33,9 +33,34 @@ export async function loadBrandContext(brandId: string): Promise<{
   brand: Brand;
   ctx:   AgentContext;
 }> {
-  const brand = await loadBrand(brandId);
+  const db = createAdminClient() as DB;
+
+  const [
+    { data: brand },
+    { data: faqs },
+    { data: products },
+    { data: personas },
+    { data: competitors },
+  ] = await Promise.all([
+    db.from('brands').select('*').eq('id', brandId).single(),
+    db.from('brand_faqs').select('category, question, answer').eq('brand_id', brandId).eq('is_approved', true).order('display_order'),
+    db.from('brand_products').select('name, price_cents, currency, main_benefit, is_hero').eq('brand_id', brandId).order('display_order'),
+    db.from('brand_personas').select('persona_name, lifestyle, pains, desires, lingo_yes, lingo_no').eq('brand_id', brandId).order('display_order'),
+    db.from('brand_competitors_detailed').select('name, ig_handle, they_do_well, is_direct_competitor, is_reference, is_anti_reference').eq('brand_id', brandId).order('display_order'),
+  ]);
+
   if (!brand) throw new Error(`Brand not found: ${brandId}`);
-  return { brand, ctx: brandToAgentContext(brand) };
+
+  const ctx = brandToAgentContext(brand as Brand);
+
+  ctx.faqs        = faqs        ?? [];
+  ctx.products    = products    ?? [];
+  ctx.personas    = personas    ?? [];
+  ctx.competitors = competitors ?? [];
+  ctx.complianceFlags = (brand as Record<string, unknown>).compliance_flags as Record<string, unknown> ?? {};
+  ctx.services    = (brand as Record<string, unknown>).services as string[] ?? [];
+
+  return { brand: brand as Brand, ctx };
 }
 
 /**

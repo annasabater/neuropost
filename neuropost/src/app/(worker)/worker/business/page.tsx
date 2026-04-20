@@ -19,12 +19,12 @@ const C = {
   green: '#14B8A6',
 };
 
-const PLAN_PRICES = { starter: 29, pro: 69, total: 129, agency: 199 };
+const PLAN_PRICES = { starter: 21, pro: 63, total: 133 };
 
 export default function BusinessPage() {
   const [stats, setStats] = useState({
     totalBrands: 0,
-    byPlan: { starter: 0, pro: 0, total: 0, agency: 0 },
+    byPlan: { starter: 0, pro: 0, total: 0 },
     mrr: 0,
     arr: 0,
     activeTrials: 0,
@@ -40,7 +40,7 @@ export default function BusinessPage() {
       const { data: brands } = await (sb as any).from('brands').select('id, plan, trial_ends_at');
       const list = brands ?? [];
 
-      const byPlan = { starter: 0, pro: 0, total: 0, agency: 0 };
+      const byPlan = { starter: 0, pro: 0, total: 0 };
       let activeTrials = 0;
       const now = new Date();
       list.forEach((b: { plan: string; trial_ends_at: string | null }) => {
@@ -50,8 +50,7 @@ export default function BusinessPage() {
 
       const mrr = byPlan.starter * PLAN_PRICES.starter +
                   byPlan.pro * PLAN_PRICES.pro +
-                  byPlan.total * PLAN_PRICES.total +
-                  byPlan.agency * PLAN_PRICES.agency;
+                  byPlan.total * PLAN_PRICES.total;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { count: atRisk } = await (sb as any)

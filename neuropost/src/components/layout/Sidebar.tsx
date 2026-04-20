@@ -5,13 +5,15 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { ProgressLink } from '@/components/ui/ProgressLink';
 import {
-  LayoutDashboard, Calendar, MessageSquare, BarChart3,
+  LayoutDashboard, Calendar, CalendarDays, MessageSquare, BarChart3,
   Settings, LogOut, X, Image, Archive,
   Flame, Plus, Upload, ChevronDown, Link2, CreditCard, Palette,
   Sparkles, Send, Paintbrush, Camera,
 } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { createBrowserClient } from '@/lib/supabase';
+import { PLAN_META } from '@/types';
+import type { SubscriptionPlan } from '@/types';
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
@@ -93,6 +95,9 @@ export function Sidebar() {
         <NavItem href="/posts" label={t('posts')} icon={Image} />
         <NavItem href="/inspiracion" label={t('inspiration')} icon={Flame} />
         <NavItem href="/calendar" label={t('calendar')} icon={Calendar} />
+        {brand?.use_new_planning_flow && (
+          <NavItem href="/planificacion" label="Planificación" icon={CalendarDays} />
+        )}
 
         {/* Biblioteca */}
         <div className="dash-nav-group-label">Biblioteca</div>
@@ -107,6 +112,7 @@ export function Sidebar() {
         <div className="dash-nav-group-label">Otros</div>
         <NavItem href="/historial" label={t('history')} icon={Archive} />
         <NavItem href="/inbox" label="Inbox" icon={MessageSquare} badge={unreadComments} />
+        <NavItem href="/billing" label="Facturación" icon={CreditCard} />
       </div>
 
       {/* ── Profile section ── */}
@@ -131,8 +137,8 @@ export function Sidebar() {
             <p style={{ fontFamily: f, fontSize: 12, fontWeight: 600, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>
               {brand?.name ?? 'Mi negocio'}
             </p>
-            <p style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', margin: 0, textTransform: 'capitalize' }}>
-              {brand?.plan ?? 'starter'}
+            <p style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {PLAN_META[(brand?.plan ?? 'starter') as SubscriptionPlan]?.label ?? 'Esencial'}
             </p>
           </div>
           <ChevronDown size={12} style={{ color: '#9ca3af', flexShrink: 0, transform: profileOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />

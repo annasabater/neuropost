@@ -5,6 +5,28 @@
 import type { AgentContext } from '../shared/types';
 import type { PlannerInput } from './types';
 
+// ─── Sector alias: UI saves Spanish keys, timing maps use English ─────────────
+
+const SECTOR_ALIAS: Record<string, string> = {
+  restaurante: 'restaurant',
+  bar:         'restaurant',
+  cafeteria:   'restaurant',
+  cafè:        'restaurant',
+  heladeria:   'ice-cream',
+  gelateria:   'ice-cream',
+  pasteleria:  'restaurant',
+  boutique:    'retail',
+  moda:        'retail',
+  tienda:      'retail',
+  ecommerce:   'retail',
+  'e-commerce':'retail',
+  bazar:       'retail',
+};
+
+function normalizeSector(raw: string): string {
+  return SECTOR_ALIAS[raw.toLowerCase()] ?? raw;
+}
+
 // ─── Sector best-time knowledge ───────────────────────────────────────────────
 
 const SECTOR_TIMING: Record<string, string> = {
@@ -38,14 +60,15 @@ const SECTOR_TIMING: Record<string, string> = {
  * with deep knowledge of the business's sector timing patterns.
  */
 export function buildPlannerSystemPrompt(context: AgentContext): string {
-  const timing = SECTOR_TIMING[context.brandVoice.sector] ?? SECTOR_TIMING['other']!;
+  const sector = normalizeSector(context.brandVoice.sector);
+  const timing = SECTOR_TIMING[sector] ?? SECTOR_TIMING['other']!;
 
   return `You are an expert social media scheduling strategist for ${context.businessName}, a ${context.brandVoice.sector} business operating in timezone ${context.timezone}.
 
 ## Your role
 Build an optimal monthly posting calendar that maximises organic reach and engagement by aligning publication times with audience behaviour for this sector.
 
-## Sector timing intelligence — ${context.brandVoice.sector}
+## Sector timing intelligence — ${sector}
 ${timing.trim()}
 
 ## Scheduling rules

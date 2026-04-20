@@ -4,6 +4,10 @@ import { useEffect, useState, useCallback } from 'react';
 import { Check, X, Edit2, RefreshCw, SkipForward, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createBrowserClient } from '@/lib/supabase';
+import { WeeklyPlansQueue } from './_components/WeeklyPlansQueue';
+import { RetouchQueue }     from './_components/RetouchQueue';
+import { ColaQueue }        from './_components/ColaQueue';
+import { ReclamadasQueue }  from './_components/ReclamadasQueue';
 
 const C = {
   bg: '#ffffff',
@@ -40,7 +44,12 @@ interface Proposal {
   brands?: { name: string };
 }
 
+type Tab = 'proposals' | 'weekly-plans' | 'retouches' | 'cola' | 'mis-tareas';
+
 export default function ValidationPage() {
+  const [tab, setTab] = useState<Tab>('proposals');
+
+  // ── Proposals state ────────────────────────────────────────────────────────
   const [items, setItems] = useState<Proposal[]>([]);
   const [idx, setIdx] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -75,8 +84,6 @@ export default function ValidationPage() {
     const updates: Record<string, unknown> = {};
 
     if (act === 'approve') {
-      // Create the post via the worker API so plan limits (posts/week,
-      // carousel size, auto-publish availability) are enforced server-side.
       const scheduled_at = current.dia_publicacion
         ? `${current.dia_publicacion}T${current.hora_publicacion ?? '10:00'}:00`
         : null;
@@ -97,6 +104,7 @@ export default function ValidationPage() {
           status:        scheduled_at ? 'scheduled' : 'pending',
           quality_score: current.quality_score,
           scheduled_at,
+          proposal_id:   current.id,
         }),
       });
       const json = await res.json() as { post?: { id: string }; error?: string };
@@ -120,7 +128,7 @@ export default function ValidationPage() {
     } else if (act === 'regen-copy') {
       updates.status = 'pending_copy';
       updates.retry_count = (current.retry_count ?? 0) + 1;
-      toast.success('Regenerando caption...');
+      toast.success('Regenerando copy...');
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -130,9 +138,9 @@ export default function ValidationPage() {
     setActing(false);
   }, [current, idx, items]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (tab !== 'proposals') return;
       if (editingCaption) return;
       if (e.key === 'a' || e.key === 'A') action('approve');
       if (e.key === 'r' || e.key === 'R') action('reject');
@@ -141,7 +149,7 @@ export default function ValidationPage() {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [action, editingCaption]);
+  }, [action, editingCaption, tab]);
 
   async function saveCaption() {
     if (!current) return;
@@ -153,133 +161,176 @@ export default function ValidationPage() {
     toast.success('Caption actualizado');
   }
 
-  if (loading) return <div style={{ padding: 40, color: C.muted }}>Cargando cola de validación...</div>;
-  if (items.length === 0) return (
-    <div style={{ padding: 60, textAlign: 'center' }}>
-      <Check size={48} style={{ color: '#10b981', margin: '0 auto 16px' }} />
-      <h2 style={{ color: C.text, fontSize: 20, fontWeight: 700 }}>Cola vacía</h2>
-      <p style={{ color: C.muted, fontSize: 13 }}>No hay contenido pendiente de validación.</p>
-    </div>
-  );
-
-  if (!current) return null;
-
   return (
     <div style={{ padding: 28, color: C.text }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Validación de contenido</h1>
-          <p style={{ color: C.muted, fontSize: 13, margin: '2px 0 0' }}>
-            {idx + 1} de {items.length} — {current.brands?.name ?? 'Sin marca'}
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0} style={navBtn}>
-            <ChevronLeft size={14} />
-          </button>
-          <button onClick={() => setIdx((i) => Math.min(items.length - 1, i + 1))} disabled={idx === items.length - 1} style={navBtn}>
-            <ChevronRight size={14} />
-          </button>
+      {/* ── Tabs ── */}
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 16px' }}>Validación de contenido</h1>
+        <div style={{ display: 'flex', borderBottom: `2px solid ${C.border}`, gap: 0 }}>
+          {([
+            ['proposals',    'Propuestas (pieza individual)'],
+            ['weekly-plans', 'Planes semanales'],
+            ['retouches',    'Retoques pendientes'],
+            ['cola',         'Cola (pipeline clásico)'],
+            ['mis-tareas',   'Mis tareas reclamadas'],
+          ] as [Tab, string][]).map(([t, label]) => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              style={{
+                padding: '10px 20px',
+                background: 'none',
+                border: 'none',
+                borderBottom: tab === t ? `2px solid ${C.accent}` : '2px solid transparent',
+                marginBottom: -2,
+                color: tab === t ? C.accent : C.muted,
+                fontWeight: tab === t ? 700 : 400,
+                fontSize: 14,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Card */}
-      <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr' }}>
-          {/* Image */}
-          <div style={{ background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 380 }}>
-            {current.image_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={current.image_url} alt="" style={{ maxWidth: '100%', maxHeight: 480, objectFit: 'contain' }} />
-            ) : (
-              <span style={{ color: C.muted, fontSize: 12 }}>Sin imagen</span>
-            )}
-          </div>
-
-          {/* Content */}
-          <div style={{ padding: 24, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ marginBottom: 16 }}>
-              <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Tema</span>
-              <h2 style={{ fontSize: 18, fontWeight: 700, margin: '4px 0' }}>{current.tema}</h2>
-              <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                <span style={pill}>{current.categoria}</span>
-                <span style={pill}>{current.objetivo}</span>
-                {current.quality_score && (
-                  <span style={{ ...pill, background: '#10b98122', color: '#10b981' }}>
-                    QC {current.quality_score}/10
-                  </span>
-                )}
-              </div>
+      {/* ── Tab: Proposals (original code) ── */}
+      {tab === 'proposals' && (
+        <>
+          {loading ? (
+            <div style={{ padding: 40, color: C.muted }}>Cargando cola de validación...</div>
+          ) : items.length === 0 ? (
+            <div style={{ padding: 60, textAlign: 'center' }}>
+              <Check size={48} style={{ color: '#10b981', margin: '0 auto 16px' }} />
+              <h2 style={{ color: C.text, fontSize: 20, fontWeight: 700 }}>Cola vacía</h2>
+              <p style={{ color: C.muted, fontSize: 13 }}>No hay contenido pendiente de validación.</p>
             </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Caption Instagram</span>
-              {editingCaption ? (
-                <>
-                  <textarea
-                    value={captionDraft}
-                    onChange={(e) => setCaptionDraft(e.target.value)}
-                    rows={6}
-                    style={{
-                      width: '100%', padding: 10, marginTop: 4,
-                      background: C.bg1, border: `1px solid ${C.border}`, color: C.text,
-                      fontSize: 12, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
-                    }}
-                  />
-                  <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-                    <button onClick={saveCaption} style={{ ...primaryBtn, fontSize: 11, padding: '6px 14px' }}>Guardar</button>
-                    <button onClick={() => setEditingCaption(false)} style={{ ...secondaryBtn, fontSize: 11, padding: '6px 14px' }}>Cancelar</button>
-                  </div>
-                </>
-              ) : (
-                <p style={{ fontSize: 13, lineHeight: 1.6, margin: '4px 0', whiteSpace: 'pre-wrap', color: C.text }}>
-                  {current.caption_ig ?? <span style={{ color: C.muted, fontStyle: 'italic' }}>Sin caption</span>}
+          ) : !current ? null : (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>
+                  {idx + 1} de {items.length} — {current.brands?.name ?? 'Sin marca'}
                 </p>
-              )}
-            </div>
-
-            {current.hashtags && (
-              <div style={{ marginBottom: 16 }}>
-                <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Hashtags</span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-                  {[...(current.hashtags.branded ?? []), ...(current.hashtags.nicho ?? []), ...(current.hashtags.broad ?? [])].map((h) => (
-                    <span key={h} style={{ fontSize: 10, color: C.accent2, background: '#3b82f622', padding: '2px 6px', borderRadius: 0 }}>
-                      #{h.replace(/^#/, '')}
-                    </span>
-                  ))}
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0} style={navBtn}>
+                    <ChevronLeft size={14} />
+                  </button>
+                  <button onClick={() => setIdx((i) => Math.min(items.length - 1, i + 1))} disabled={idx === items.length - 1} style={navBtn}>
+                    <ChevronRight size={14} />
+                  </button>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Actions */}
-        <div style={{ display: 'flex', gap: 1, background: C.border, borderTop: `1px solid ${C.border}` }}>
-          <button onClick={() => action('approve')} disabled={acting} style={actBtn('#10b981')}>
-            <Check size={14} /> Aprobar (A)
-          </button>
-          <button onClick={() => { setCaptionDraft(current.caption_ig ?? ''); setEditingCaption(true); }} disabled={acting} style={actBtn(C.accent2)}>
-            <Edit2 size={13} /> Editar caption (E)
-          </button>
-          <button onClick={() => action('regen-image')} disabled={acting} style={actBtn('#f59e0b')}>
-            <RefreshCw size={13} /> Regenerar imagen
-          </button>
-          <button onClick={() => action('regen-copy')} disabled={acting} style={actBtn('#a855f7')}>
-            <RefreshCw size={13} /> Regenerar copy
-          </button>
-          <button onClick={() => action('reject')} disabled={acting} style={actBtn('#ef4444')}>
-            <X size={14} /> Rechazar (R)
-          </button>
-          <button onClick={() => action('skip')} disabled={acting} style={actBtn(C.muted)}>
-            <SkipForward size={13} /> Saltar (N)
-          </button>
-        </div>
-      </div>
+              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, overflow: 'hidden' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr' }}>
+                  <div style={{ background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 380 }}>
+                    {current.image_url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={current.image_url} alt="" style={{ maxWidth: '100%', maxHeight: 480, objectFit: 'contain' }} />
+                    ) : (
+                      <span style={{ color: C.muted, fontSize: 12 }}>Sin imagen</span>
+                    )}
+                  </div>
 
-      <p style={{ marginTop: 12, fontSize: 11, color: C.muted, textAlign: 'center' }}>
-        Atajos: A = aprobar · R = rechazar · E = editar · N = siguiente · ← → navegar
-      </p>
+                  <div style={{ padding: 24, display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ marginBottom: 16 }}>
+                      <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Tema</span>
+                      <h2 style={{ fontSize: 18, fontWeight: 700, margin: '4px 0' }}>{current.tema}</h2>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                        <span style={pill}>{current.categoria}</span>
+                        <span style={pill}>{current.objetivo}</span>
+                        {current.quality_score && (
+                          <span style={{ ...pill, background: '#10b98122', color: '#10b981' }}>
+                            QC {current.quality_score}/10
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ marginBottom: 16 }}>
+                      <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Caption Instagram</span>
+                      {editingCaption ? (
+                        <>
+                          <textarea
+                            value={captionDraft}
+                            onChange={(e) => setCaptionDraft(e.target.value)}
+                            rows={6}
+                            style={{
+                              width: '100%', padding: 10, marginTop: 4,
+                              background: C.bg1, border: `1px solid ${C.border}`, color: C.text,
+                              fontSize: 12, fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box',
+                            }}
+                          />
+                          <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                            <button onClick={saveCaption} style={{ ...primaryBtn, fontSize: 11, padding: '6px 14px' }}>Guardar</button>
+                            <button onClick={() => setEditingCaption(false)} style={{ ...secondaryBtn, fontSize: 11, padding: '6px 14px' }}>Cancelar</button>
+                          </div>
+                        </>
+                      ) : (
+                        <p style={{ fontSize: 13, lineHeight: 1.6, margin: '4px 0', whiteSpace: 'pre-wrap', color: C.text }}>
+                          {current.caption_ig ?? <span style={{ color: C.muted, fontStyle: 'italic' }}>Sin caption</span>}
+                        </p>
+                      )}
+                    </div>
+
+                    {current.hashtags && (
+                      <div style={{ marginBottom: 16 }}>
+                        <span style={{ fontSize: 10, color: C.muted, textTransform: 'uppercase', letterSpacing: 1 }}>Hashtags</span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                          {[...(current.hashtags.branded ?? []), ...(current.hashtags.nicho ?? []), ...(current.hashtags.broad ?? [])].map((h) => (
+                            <span key={h} style={{ fontSize: 10, color: C.accent2, background: '#3b82f622', padding: '2px 6px', borderRadius: 0 }}>
+                              #{h.replace(/^#/, '')}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 1, background: C.border, borderTop: `1px solid ${C.border}` }}>
+                  <button onClick={() => action('approve')} disabled={acting} style={actBtn('#10b981')}>
+                    <Check size={14} /> Aprobar (A)
+                  </button>
+                  <button onClick={() => { setCaptionDraft(current.caption_ig ?? ''); setEditingCaption(true); }} disabled={acting} style={actBtn(C.accent2)}>
+                    <Edit2 size={13} /> Editar caption (E)
+                  </button>
+                  <button onClick={() => action('regen-image')} disabled={acting} style={actBtn('#f59e0b')}>
+                    <RefreshCw size={13} /> Regenerar imagen
+                  </button>
+                  <button onClick={() => action('regen-copy')} disabled={acting} style={actBtn('#a855f7')}>
+                    <RefreshCw size={13} /> Regenerar copy
+                  </button>
+                  <button onClick={() => action('reject')} disabled={acting} style={actBtn('#ef4444')}>
+                    <X size={14} /> Rechazar (R)
+                  </button>
+                  <button onClick={() => action('skip')} disabled={acting} style={actBtn(C.muted)}>
+                    <SkipForward size={13} /> Saltar (N)
+                  </button>
+                </div>
+              </div>
+
+              <p style={{ marginTop: 12, fontSize: 11, color: C.muted, textAlign: 'center' }}>
+                Atajos: A = aprobar · R = rechazar · E = editar · N = siguiente · ← → navegar
+              </p>
+            </>
+          )}
+        </>
+      )}
+
+      {/* ── Tab: Weekly Plans ── */}
+      {tab === 'weekly-plans' && <WeeklyPlansQueue />}
+
+      {/* ── Tab: Retoques pendientes ── */}
+      {tab === 'retouches' && <RetouchQueue />}
+
+      {/* ── Tab: Cola (pipeline clásico) ── */}
+      {tab === 'cola' && <ColaQueue />}
+
+      {/* ── Tab: Mis tareas reclamadas ── */}
+      {tab === 'mis-tareas' && <ReclamadasQueue />}
     </div>
   );
 }

@@ -5,11 +5,15 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase';
 import toast from 'react-hot-toast';
-import type { SocialSector, BrandTone, PublishMode, PostGoal, VisualStyle } from '@/types';
-import { TONE_OPTIONS, PUBLISH_MODE_OPTIONS } from '@/lib/brand-options';
+import type { SocialSector, BrandTone, PostGoal, VisualStyle } from '@/types';
+import { TONE_OPTIONS } from '@/lib/brand-options';
 import { useTagInput } from '@/hooks/useTagInput';
 import CouponInput from '@/components/billing/CouponInput';
 import { getTemplateForSector } from '@/lib/industry-templates';
+import Step6BriefAvanzado, {
+  type BriefState,
+  emptyBriefState,
+} from './Step6BriefAvanzado';
 
 interface ContentCategoryDraft {
   category_key: string;
@@ -608,7 +612,7 @@ function MockPost({ img, caption, index }: { img: string; caption: string; index
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 1 | 2 | 3 | 4 | 5 | 6;
 
 type PlanId = 'starter' | 'pro' | 'total';
 
@@ -631,8 +635,8 @@ const ONBOARDING_PLANS: {
 }[] = [
   {
     id:       'starter',
-    name:     'Starter',
-    price:     25,
+    name:     'Esencial',
+    price:     21,
     desc:     'Para presencia activa',
     features: [
       '📷  2 fotos/semana · 🎬  Carruseles hasta 3 · Sin vídeo/reel',
@@ -647,8 +651,8 @@ const ONBOARDING_PLANS: {
   },
   {
     id:       'pro',
-    name:     'Pro',
-    price:     76,
+    name:     'Crecimiento',
+    price:     63,
     desc:     'Máximo alcance',
     featured: true,
     badge:    'Más popular',
@@ -665,8 +669,8 @@ const ONBOARDING_PLANS: {
   },
   {
     id:    'total',
-    name:  'Total',
-    price:  161,
+    name:  'Profesional',
+    price:  133,
     desc:  'Control completo',
     badge: 'Completo',
     features: [
@@ -711,7 +715,7 @@ export default function OnboardingPage() {
   const [forbidden,        setForbidden]        = useState<string[]>([]);
   const [fbInput,          setFbInput]          = useState('');
   const [objective]                             = useState<PostGoal>('engagement');
-  const [publishMode,      setPublishMode]      = useState<PublishMode>('semi');
+  const publishMode = 'semi' as const;
   const [country, setCountry] = useState('España');
   const [city, setCity] = useState('');
   const INITIAL_PRIMARY_COLOR = '#0F766E';
@@ -724,6 +728,7 @@ export default function OnboardingPage() {
   const [promoCodeId,      setPromoCodeId]      = useState<string | null>(null);
   const [discountText,     setDiscountText]     = useState('');
   const [selectedPlan,     setSelectedPlan]     = useState<PlanId>('pro');
+  const [brief,            setBrief]            = useState<BriefState>(emptyBriefState());
 
   // ── Content categories ────────────────────────────────────────────────────────
   const [contentCategories, setContentCategories] = useState<ContentCategoryDraft[]>([]);
@@ -745,7 +750,6 @@ export default function OnboardingPage() {
       if (brand.hashtags?.length) setKeywords(brand.hashtags);
       if (brand.location)     setLocation(brand.location);
       if (brand.city)         setCity(brand.city);
-      if (brand.publish_mode) setPublishMode(brand.publish_mode as PublishMode);
       if (brand.slogans?.[0]) setSlogan(brand.slogans[0]);
       if (brand.colors?.primary)   setPrimaryColor(brand.colors.primary);
       if (brand.colors?.secondary) setSecondaryColor(brand.colors.secondary);
@@ -884,6 +888,31 @@ export default function OnboardingPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? (isRedo ? 'Error al actualizar el negocio' : 'Error al crear el negocio'));
+
+      if (json.brand?.id) {
+        // Persist brief (non-blocking — if it fails the brand is still created)
+        try {
+          await fetch(`/api/brands/${json.brand.id}/brief`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(brief),
+          });
+        } catch (e) {
+          console.error('Brief save failed (non-blocking)', e);
+        }
+
+        // Trigger onboarding pipeline (build_taxonomy → generate_ideas → plan_week)
+        try {
+          await fetch('/api/webhooks/onboarding', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ brand_id: json.brand.id }),
+          });
+        } catch (e) {
+          console.error('Pipeline trigger failed (non-blocking)', e);
+        }
+      }
+
       toast.success(isRedo ? '¡Marca actualizada correctamente!' : '¡Negocio configurado correctamente!');
       router.push(isRedo ? '/brand' : '/dashboard');
     } catch (err) {
@@ -1186,7 +1215,105 @@ export default function OnboardingPage() {
     </div>
   );
 
-  const rightContent = [rightStep1, rightStep2, rightStep3, rightStep4, rightStep5][step - 1];
+  const rightStep6Brief = (
+    <div style={{
+      display: 'flex', flexDirection: 'column', gap: 20,
+      padding: '32px 28px', maxWidth: 440,
+    }}>
+      {/* Header del "equipo" */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <div style={{
+          width: 58, height: 58, flexShrink: 0,
+          background: 'linear-gradient(135deg, #0F766E 0%, #0a5249 100%)',
+          color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: FONT_C, fontSize: '1.7rem', fontWeight: 900, letterSpacing: '-0.03em',
+        }}>
+          N
+        </div>
+        <div>
+          <div style={{
+            fontFamily: FONT_C, fontWeight: 900, fontSize: '1.15rem',
+            color: INK, letterSpacing: '0.01em', lineHeight: 1.1, marginBottom: 3,
+          }}>
+            Tu equipo en NeuroPost
+          </div>
+          <div style={{
+            fontFamily: FONT, fontSize: 12, color: MUTED, letterSpacing: '0.02em',
+          }}>
+            Los que vamos a escribir por ti
+          </div>
+        </div>
+      </div>
+
+      {/* Quote del equipo */}
+      <div style={{
+        padding: '16px 18px', background: '#ffffff',
+        borderLeft: `3px solid ${ACCENT}`,
+        fontFamily: FONT, fontSize: 14, color: INK, lineHeight: 1.65,
+        fontStyle: 'italic',
+      }}>
+        &ldquo;Vamos a escribir los posts de tu cuenta durante los próximos meses.
+        Cuanto más nos cuentes aquí, menos te vamos a molestar después —
+        y mejor va a sonar todo lo que publiquemos en tu nombre.&rdquo;
+      </div>
+
+      {/* Lo que nos ayuda saber */}
+      <div>
+        <div style={{
+          fontFamily: FONT, fontSize: 10, fontWeight: 800, color: MUTED,
+          letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12,
+        }}>
+          Lo que más nos ayuda saber de ti
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+          {[
+            { num: '01', title: 'Las preguntas que más te hacen', line: 'Para responder igual que responderías tú, sin inventar nada.' },
+            { num: '02', title: 'Tus productos o servicios estrella', line: 'Para mencionarlos por nombre real, no hablar de "nuestros servicios".' },
+            { num: '03', title: 'A quién le hablas', line: 'Para que el copy hable el mismo idioma que tu cliente.' },
+            { num: '04', title: 'Tus reglas del juego', line: 'Tu sector tiene normas. Nos adaptamos a ellas.' },
+            { num: '05', title: 'Quién te inspira (y quién no)', line: 'Para diferenciarte de tu competencia, no imitarla.' },
+          ].map((item) => (
+            <div key={item.num} style={{ display: 'flex', gap: 12 }}>
+              <div style={{
+                width: 26, height: 26, flexShrink: 0, marginTop: 1,
+                background: '#ffffff', border: `1px solid ${BORDER}`,
+                color: ACCENT, fontFamily: FONT_C, fontSize: 12, fontWeight: 900,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                letterSpacing: '-0.02em',
+              }}>
+                {item.num}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontFamily: FONT, fontSize: 13, fontWeight: 700, color: INK,
+                  marginBottom: 2, lineHeight: 1.35,
+                }}>
+                  {item.title}
+                </div>
+                <div style={{
+                  fontFamily: FONT, fontSize: 12, color: MUTED, lineHeight: 1.5,
+                }}>
+                  {item.line}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Disclaimer pequeño al final */}
+      <div style={{
+        marginTop: 4, padding: '12px 14px', background: '#ffffff',
+        border: `1px solid ${BORDER}`,
+        fontFamily: FONT, fontSize: 12, color: MUTED, lineHeight: 1.55,
+      }}>
+        Puedes saltarte este paso y completarlo después desde tu dashboard.
+        Cada bloque que rellenes sube la calidad de tu contenido.
+      </div>
+    </div>
+  );
+
+  const rightContent = [rightStep1, rightStep2, rightStep3, rightStep4, rightStep6Brief, rightStep5][step - 1];
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -1204,12 +1331,12 @@ export default function OnboardingPage() {
         {/* Progress */}
         <div style={{ marginBottom: 36, flexShrink: 0 }}>
           <div style={{ display: 'flex', gap: 2, marginBottom: 8 }}>
-            {([1,2,3,4,5] as Step[]).map((s) => (
+            {([1,2,3,4,5,6] as Step[]).map((s) => (
               <div key={s} style={{ flex: 1, height: 2, background: s <= step ? INK : '#e5e7eb', transition: 'background 0.3s' }} />
             ))}
           </div>
           <p style={{ fontSize: 10, color: MUTED, fontFamily: FONT, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-            Paso {step} de 5
+            Paso {step} de 6
           </p>
         </div>
 
@@ -1277,9 +1404,6 @@ export default function OnboardingPage() {
                   style={{ width: '100%', padding: '9px 12px', border: '1px solid #d4d4d8', fontFamily: FONT, fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', background: '#fff' }}
                   autoFocus
                 />
-                <p style={{ fontFamily: FONT, fontSize: '0.7rem', color: MUTED, marginTop: 5 }}>
-                  El agente usará esto para adaptar el contenido a tu negocio específico.
-                </p>
               </div>
             )}
 
@@ -1664,7 +1788,7 @@ export default function OnboardingPage() {
                     onChange={(e) => setCity(e.target.value)}
                   />
                   <p style={{ fontFamily: FONT, fontSize: '0.72rem', color: MUTED, marginTop: 5, lineHeight: 1.4 }}>
-                    Con tu municipio el agente detecta fiestas locales y las marca en tu calendario.
+                    Con tu municipio detectamos fiestas locales y las marcamos en tu calendario.
                   </p>
                 </div>
 
@@ -1870,56 +1994,35 @@ export default function OnboardingPage() {
                 })()}
               </div>
 
-              {/* Publish mode — moved here from the old step 5. Frequency is
-                  derived from the selected plan later, so we only ask how much
-                  control the user wants over approvals. */}
+              {/* Publish mode — always supervised (semi). Auto removed for trust-building. */}
               <div>
                 <Label>Modo de publicación</Label>
-                <div style={{ fontFamily: FONT, fontSize: '0.78rem', color: MUTED, marginBottom: 10, lineHeight: 1.5 }}>
-                  ¿Cómo quieres que gestionemos tu contenido?
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-                  {PUBLISH_MODE_OPTIONS.map((m) => {
-                    const active = publishMode === m.value;
-                    return (
-                      <button
-                        key={m.value}
-                        type="button"
-                        onClick={() => setPublishMode(m.value)}
-                        style={{
-                          position: 'relative',
-                          padding: '16px 14px',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          border: `1.5px solid ${active ? ACCENT : '#e5e7eb'}`,
-                          background: active ? 'rgba(15,118,110,0.08)' : '#ffffff',
-                          outline: 'none',
-                          transition: 'all 0.15s',
-                          boxShadow: active ? `0 0 0 3px rgba(15,118,110,0.1)` : 'none',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 6,
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                          <span style={{ fontFamily: FONT_C, fontWeight: 800, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.04em', color: active ? INK : '#374151' }}>
-                            {m.label}
-                          </span>
-                          {m.value === 'semi' && (
-                            <span style={{ fontFamily: FONT, fontSize: 9, fontWeight: 700, color: ACCENT, background: '#f0fdf4', padding: '2px 6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                              Recomendado
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ fontFamily: FONT, fontSize: 11, color: MUTED, lineHeight: 1.45 }}>
-                          {m.desc}
-                        </div>
-                        {active && (
-                          <span style={{ color: ACCENT, fontWeight: 900, fontSize: 14, marginTop: 2 }}>✓</span>
-                        )}
-                      </button>
-                    );
-                  })}
+                <div style={{
+                  padding: '16px 18px', background: '#ffffff',
+                  border: `1.5px solid ${ACCENT}`,
+                  display: 'flex', alignItems: 'flex-start', gap: 14,
+                }}>
+                  <div style={{
+                    width: 22, height: 22, flexShrink: 0, marginTop: 2,
+                    background: ACCENT, color: '#ffffff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <div style={{
+                      fontFamily: FONT, fontSize: 13.5, fontWeight: 800, color: INK,
+                      marginBottom: 4, letterSpacing: '-0.01em',
+                    }}>
+                      Tú apruebas cada post antes de publicarlo
+                    </div>
+                    <div style={{ fontFamily: FONT, fontSize: 12.5, color: MUTED, lineHeight: 1.55 }}>
+                      Así mantienes el control total de lo que aparece en tus redes.
+                      Te enviamos los posts listos para un clic de aprobación.
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1931,8 +2034,19 @@ export default function OnboardingPage() {
           </div>
         )}
 
-        {/* ── Step 5: Subscription plan + coupon ── */}
+        {/* ── Step 5: Brief Avanzado (optional) ── */}
         {step === 5 && (
+          <Step6BriefAvanzado
+            sector={sector}
+            brief={brief}
+            setBrief={setBrief}
+            onContinue={() => setStep(6)}
+            onSkip={() => setStep(6)}
+          />
+        )}
+
+        {/* ── Step 6: Subscription plan + coupon ── */}
+        {step === 6 && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
             <SectionTitle>Elige tu plan</SectionTitle>
             <StepSub>Selecciona el plan que mejor se adapta a tu negocio. Puedes cambiarlo cuando quieras.</StepSub>
@@ -2022,7 +2136,7 @@ export default function OnboardingPage() {
             </div>
 
             <div style={{ display: 'flex', gap: 10, flexShrink: 0, paddingBottom: 4 }}>
-              <BtnBack onClick={() => setStep(4)} />
+              <BtnBack onClick={() => setStep(5)} />
               <BtnPrimary onClick={handleSubmit} disabled={saving}>
                 {saving ? (
                   <><span style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} /> Configurando...</>

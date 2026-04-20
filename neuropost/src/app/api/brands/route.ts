@@ -37,9 +37,20 @@ export async function POST(request: Request) {
       .from('brands').select('id').eq('user_id', user.id).maybeSingle();
     if (existing) return NextResponse.json({ brand: existing }, { status: 200 });
 
+    // Pull GDPR marketing consent from auth user_metadata (set at /register)
+    const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+    const consent = meta.marketing_consent === true;
+    const consentAt = typeof meta.marketing_consent_at === 'string' ? meta.marketing_consent_at : (consent ? new Date().toISOString() : null);
+
     const { data, error } = await supabase
       .from('brands')
-      .insert({ ...brandFields, user_id: user.id, plan: 'starter' })
+      .insert({
+        ...brandFields,
+        user_id:              user.id,
+        plan:                 'starter',
+        marketing_consent:    consent,
+        marketing_consent_at: consentAt,
+      })
       .select()
       .single();
     if (error) {
@@ -52,6 +63,20 @@ export async function POST(request: Request) {
       const rows = (incomingCategories as { category_key: string; name: string; source: string; active: boolean }[])
         .map((c) => ({ brand_id: data.id, category_key: c.category_key, name: c.name, source: c.source ?? 'template', active: c.active ?? true }));
       await supabase.from('content_categories').insert(rows).then(() => void 0);
+    }
+
+    // Seed notification_preferences — opt-in marketing toggles only when
+    // the user checked the consent box at /register.
+    if (data?.id) {
+      await supabase.from('notification_preferences').upsert(
+        {
+          brand_id:              data.id,
+          marketing_email:       consent,
+          newsletter_email:      consent,
+          product_updates_email: consent,
+        },
+        { onConflict: 'brand_id' },
+      ).then(() => void 0);
     }
 
     // Fire holiday detection agent for the current + next year (fire-and-forget)
@@ -102,6 +127,13 @@ export async function PATCH(request: Request) {
       ...allowedFields
     } = body;
 
+    // Fetch current location before updating to detect changes
+    const { data: current } = await supabase
+      .from('brands')
+      .select('id, location')
+      .eq('user_id', user.id)
+      .single();
+
     const { data, error } = await supabase
       .from('brands')
       .update(allowedFields)
@@ -109,6 +141,23 @@ export async function PATCH(request: Request) {
       .select()
       .single();
     if (error) throw error;
+
+    // Re-trigger holiday agent when location changes
+    const locationChanged = 'location' in allowedFields && allowedFields.location !== current?.location;
+    if (locationChanged && data?.id) {
+      const currentYear = new Date().getFullYear();
+      for (const yr of [currentYear, currentYear + 1]) {
+        queueJob({
+          brand_id: data.id,
+          agent_type: 'scheduling',
+          action: 'detect_holidays',
+          input: { year: yr, force_refresh: true },
+          priority: 55,
+          requested_by: 'system',
+        }).catch(() => null);
+      }
+    }
+
     return NextResponse.json({ brand: data as Brand });
   } catch (err) {
     return apiError(err, 'brands');

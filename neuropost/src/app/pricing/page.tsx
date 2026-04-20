@@ -36,15 +36,17 @@ const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 const PLANS: Plan[] = [
   {
-    name:          'Starter',
-    monthlyPrice:   25,
+    name:          'Esencial',
+    monthlyPrice:   21,
     annualPrice:    21,
-    annualSavings:  48,
+    annualSavings:  0,  // 252€/año ÷ 12 = 21€
     desc:          'Para presencia activa',
-    content:       ['✔ 2 fotos/semana', '✔ Carruseles hasta 3', '✔ Sin vídeo/reel'],
-    highlight:     'Ideal para empezar con redes',
+    content:       ['✔ 2 fotos/semana', '✔ Carruseles hasta 3', '✔ Sin vídeo/reel', '✔ Instagram + Facebook'],
+    highlight:     'Ideal para empezar con redes. Precio por 1 red social.',
     featured: false,
     features: [
+      '1 red social incluida',
+      '+15 EUR/mes por red adicional',
       'Publicación programada',
       'Calendario avanzado',
       'Edición de contenido',
@@ -55,16 +57,19 @@ const PLANS: Plan[] = [
     ],
   },
   {
-    name:          'Pro',
-    monthlyPrice:   76,
-    annualPrice:    63,
-    annualSavings:  158,
+    name:          'Crecimiento',
+    monthlyPrice:   63,
+    annualPrice:    60,
+    annualSavings:  38,
     desc:          'Máximo alcance',
-    content:       ['✔ 4 fotos/semana', '✔ 2 vídeos/reels ≤90s/sem', '✔ Carruseles hasta 8'],
-    highlight:     'Vídeo/reel optimizados a ≤90s para máximo alcance en Instagram',
+    content:       ['✔ 4 fotos/semana', '✔ 2 vídeos/reels/sem', '✔ Carruseles hasta 8', '✔ Instagram + Facebook + TikTok'],
+    highlight:     'Vídeo/reel + TikTok para máximo alcance. Precio por 1 red social.',
     featured: true,
-    badge: '⚡ Más popular',
+    badge: 'Más popular',
     features: [
+      '1 red social incluida',
+      '+15 EUR/mes por red adicional',
+      'TikTok disponible',
       'Publicación programada',
       'Ideas basadas en tendencias y tu contenido',
       'Mejores horas para publicar',
@@ -75,16 +80,19 @@ const PLANS: Plan[] = [
     ],
   },
   {
-    name:          'Total',
-    monthlyPrice:   161,
-    annualPrice:    133,
-    annualSavings:  336,
+    name:          'Profesional',
+    monthlyPrice:   133,
+    annualPrice:    113,
+    annualSavings:  239,
     desc:          'Control completo',
-    content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels ≤90s/sem', '✔ Carruseles hasta 20'],
-    highlight:     'Conversión máxima de leads a ventas',
+    content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels/sem', '✔ Carruseles hasta 20', '✔ Instagram + Facebook + TikTok'],
+    highlight:     'Conversión máxima. Precio por 1 red social.',
     featured: false,
-    badge: '🚀 Completo',
+    badge: 'Completo',
     features: [
+      '1 red social incluida',
+      '+15 EUR/mes por red adicional',
+      'TikTok disponible',
       'Publicación programada',
       'Ideas basadas en tendencias y tu contenido',
       'Mejores horas para publicar',
@@ -97,28 +105,31 @@ const PLANS: Plan[] = [
 ];
 
 const COMPARISON_ROWS: ComparisonRow[] = [
-  { feature: 'Fotos por semana',              starter: '2',       pro: '4',               total: 'Hasta 20' },
-  { feature: 'Vídeo/reel por semana',         starter: '—',       pro: '2 (≤90s)',         total: '10 (≤90s)' },
-  { feature: 'Carruseles (máx. fotos)',        starter: 'Hasta 3', pro: 'Hasta 8',          total: 'Hasta 20' },
-  { feature: 'Publicación programada',         starter: '✓',       pro: '✓',               total: '✓' },
-  { feature: 'Calendario avanzado',            starter: '✓',       pro: '✓',               total: '✓' },
-  { feature: 'Edición de contenido',           starter: '✓',       pro: '✓',               total: '✓' },
-  { feature: 'Solicitudes personalizadas',     starter: '✓',       pro: '✓',               total: '✓' },
-  { feature: 'IA integrada',                  starter: '✓',       pro: '✓',               total: '✓' },
-  { feature: 'Ideas basadas en tendencias',    starter: '—',       pro: '✓',               total: '✓' },
-  { feature: 'Mejores horas para publicar',    starter: '—',       pro: '✓',               total: '✓' },
-  { feature: 'Análisis de rendimiento',        starter: '✓',       pro: '✓',               total: '✓' },
-  { feature: 'Soporte',                        starter: 'Email',   pro: 'Prioritario',     total: '24h' },
+  { feature: 'Precio base (1 red)',           starter: '21 EUR/mes', pro: '63 EUR/mes',       total: '133 EUR/mes' },
+  { feature: 'Red social extra',              starter: '+15 EUR/mes', pro: '+15 EUR/mes',      total: '+15 EUR/mes' },
+  { feature: 'Redes disponibles',             starter: 'IG, FB',     pro: 'IG, FB, TikTok',   total: 'IG, FB, TikTok' },
+  { feature: 'Fotos por semana',              starter: '2',          pro: '4',                total: 'Hasta 20' },
+  { feature: 'Vídeo/reel por semana',         starter: '—',          pro: '2',                total: '10' },
+  { feature: 'Carruseles (máx. fotos)',        starter: 'Hasta 3',   pro: 'Hasta 8',          total: 'Hasta 20' },
+  { feature: 'Publicación programada',         starter: '✓',         pro: '✓',               total: '✓' },
+  { feature: 'Calendario avanzado',            starter: '✓',         pro: '✓',               total: '✓' },
+  { feature: 'Edición de contenido',           starter: '✓',         pro: '✓',               total: '✓' },
+  { feature: 'Solicitudes personalizadas',     starter: '✓',         pro: '✓',               total: '✓' },
+  { feature: 'IA integrada',                  starter: '✓',         pro: '✓',               total: '✓' },
+  { feature: 'Ideas basadas en tendencias',    starter: '—',         pro: '✓',               total: '✓' },
+  { feature: 'Mejores horas para publicar',    starter: '—',         pro: '✓',               total: '✓' },
+  { feature: 'Análisis de rendimiento',        starter: '✓',         pro: '✓',               total: '✓' },
+  { feature: 'Soporte',                        starter: 'Email',     pro: 'Prioritario',     total: '24h' },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function annualPrice(monthly: number): number {
-  return Math.round(monthly * 0.85);
+function annualPriceForPlan(plan: Plan): number {
+  return plan.annualPrice;
 }
 
-function annualSavings(monthly: number): number {
-  return Math.round((monthly - annualPrice(monthly)) * 12);
+function annualSavingsForPlan(plan: Plan): number {
+  return plan.annualSavings;
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -524,8 +535,8 @@ function PlanRecommender({ billing }: { billing: BillingCycle }) {
   const extraPhotos = Math.max(0, photosPerWeek - includedPhotos);
   const extraVideos = Math.max(0, videosPerWeek - includedVideos);
 
-  const basePrice = billing === 'annual' ? annualPrice(recommended.monthlyPrice) : recommended.monthlyPrice;
-  const savings = annualSavings(recommended.monthlyPrice);
+  const basePrice = billing === 'annual' ? annualPriceForPlan(recommended) : recommended.monthlyPrice;
+  const savings = annualSavingsForPlan(recommended);
 
   return (
     <section
@@ -621,9 +632,9 @@ function PlanRecommender({ billing }: { billing: BillingCycle }) {
               <span style={{ fontSize: 16, verticalAlign: 'top' }}>€</span>{basePrice}
               <span style={{ fontFamily: f, fontSize: 12, fontWeight: 500, color: '#9ca3af' }}>/mes</span>
             </p>
-            {billing === 'annual' && (
+            {billing === 'annual' && savings > 0 && (
               <p style={{ fontFamily: f, fontSize: 12, fontWeight: 700, color: '#34d399', marginBottom: 12 }}>
-                Ahorras €{savings}/año
+                Ahorras {savings} €/año
               </p>
             )}
 
@@ -800,17 +811,16 @@ export default function PricingPage() {
                       <span>/mes</span>
                     </div>
 
-                    {isAnnual && (
-                      <div style={{
-                        display: 'inline-flex', alignItems: 'center', gap: '6px',
-                        background: plan.featured ? 'rgba(15,118,110,0.22)' : 'var(--accent-light)',
-                        color: plan.featured ? '#7cf5ea' : 'var(--accent)',
-                        fontFamily: f, fontSize: '0.78rem', fontWeight: 800,
-                        padding: '4px 12px', borderRadius: '0', marginBottom: '8px',
-                      }}>
-                        Ahorras €{plan.annualSavings}/año
-                      </div>
-                    )}
+                    <div style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '6px',
+                      background: plan.featured ? 'rgba(15,118,110,0.22)' : 'var(--accent-light)',
+                      color: plan.featured ? '#7cf5ea' : 'var(--accent)',
+                      fontFamily: f, fontSize: '0.78rem', fontWeight: 800,
+                      padding: '4px 12px', borderRadius: '0', marginBottom: '8px',
+                      visibility: isAnnual && plan.annualSavings > 0 ? 'visible' : 'hidden',
+                    }}>
+                      {plan.annualSavings > 0 ? `Ahorras ${plan.annualSavings} €/año` : '\u00A0'}
+                    </div>
 
                     <div className="plan-desc">{plan.desc}</div>
 
@@ -848,7 +858,7 @@ export default function PricingPage() {
                       ))}
                     </ul>
                     <Link href="/register" className="plan-btn" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>
-                      Empezar gratis →
+                      Empezar →
                     </Link>
                   </div>
                 );
@@ -1059,7 +1069,7 @@ export default function PricingPage() {
                 display: 'inline-block',
               }}
             >
-              Crear cuenta gratis →
+              Crear cuenta →
             </Link>
             <Link
               href="/pricing#pricing-top"

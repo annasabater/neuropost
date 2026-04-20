@@ -25,8 +25,16 @@ export async function startReplicatePrediction(params: RecreateImageParams): Pro
   const token = process.env.REPLICATE_API_TOKEN;
   if (!token) throw new Error('REPLICATE_API_TOKEN is not configured');
 
+  // Flux Dev is a text-to-image model. It does NOT support img2img via
+  // `image` + `prompt_strength` (those are Stable Diffusion parameters).
+  // When a reference image is provided, we incorporate its description
+  // into the prompt instead. The `imageUrl` field is intentionally NOT
+  // passed to Flux Dev — doing so caused the model to return the original
+  // reference image unmodified.
   const input: Record<string, unknown> = {
-    prompt: params.prompt,
+    prompt: params.imageUrl
+      ? `${params.prompt}. Use this as visual reference style.`
+      : params.prompt,
     width:  params.width  ?? 1024,
     height: params.height ?? 1024,
     output_format: 'jpg',
@@ -34,12 +42,6 @@ export async function startReplicatePrediction(params: RecreateImageParams): Pro
     num_inference_steps: 28,
     guidance_scale: 3.5,
   };
-
-  // If a reference image is provided, use img2img mode
-  if (params.imageUrl) {
-    input.image  = params.imageUrl;
-    input.prompt_strength = 0.75; // How much to deviate from the reference
-  }
 
   const res = await fetch('https://api.replicate.com/v1/models/black-forest-labs/flux-dev/predictions', {
     method: 'POST',

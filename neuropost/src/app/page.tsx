@@ -193,10 +193,10 @@ export default function LandingPage() {
 
   const homePlans = [
     {
-      name:          'Starter',
-      monthlyPrice:   25,
+      name:          'Esencial',
+      monthlyPrice:   21,
       annualPrice:    21,
-      annualSavings:  48,
+      annualSavings:  0,  // 252€/año ÷ 12 = 21€ → sin ahorro
       desc:          'Para presencia activa',
       content:       ['✔ 2 fotos/semana', '✔ Carruseles hasta 3', '✔ Sin vídeo/reel'],
       highlight:     'Ideal para empezar con redes',
@@ -211,10 +211,10 @@ export default function LandingPage() {
       ],
     },
     {
-      name:          'Pro',
-      monthlyPrice:   76,
-      annualPrice:    63,
-      annualSavings:  158,
+      name:          'Crecimiento',
+      monthlyPrice:   63,
+      annualPrice:    60,
+      annualSavings:  38,
       desc:          'Máximo alcance',
       featured:      true,
       badge:         '⚡ Más popular',
@@ -231,10 +231,10 @@ export default function LandingPage() {
       ],
     },
     {
-      name:          'Total',
-      monthlyPrice:   161,
-      annualPrice:    133,
-      annualSavings:  336,
+      name:          'Profesional',
+      monthlyPrice:   133,
+      annualPrice:    113,
+      annualSavings:  239,
       desc:          'Control completo',
       badge:         '🚀 Completo',
       content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels ≤90s/sem', '✔ Carruseles hasta 20'],
@@ -276,7 +276,10 @@ export default function LandingPage() {
       <Script id="faq-schema" type="application/ld+json" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       {/* ─── NAV ─── */}
       <nav style={{ boxShadow: navShadow ? '0 1px 0 #e5e7eb' : 'none', background: '#ffffff', borderBottom: '1px solid #e5e7eb' }}>
-        <a href="/" className="nav-logo">NeuroPost</a>
+        <a href="/" className="nav-logo">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-transparent.png" alt="NeuroPost" style={{ height: 44, width: 'auto', display: 'block' }} />
+        </a>
         <ul className="nav-links">
           <li style={{ position: 'relative' }} onMouseEnter={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'block'; }} onMouseLeave={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'none'; }}>
             <a href="#funciones" style={{ cursor: 'pointer' }}>Producto</a>
@@ -309,7 +312,7 @@ export default function LandingPage() {
           </li>
           <li><LanguageSelector /></li>
           <li><Link href="/login" className="nav-login">Entrar</Link></li>
-          <li><Link href="/register" className="nav-cta">Empezar gratis</Link></li>
+          <li><Link href="/register" className="nav-cta">Empezar</Link></li>
         </ul>
       </nav>
 
@@ -319,7 +322,7 @@ export default function LandingPage() {
           <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 20 }}>
             Tu equipo de redes sociales
           </div>
-          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.8rem, 6vw, 4.5rem)', textTransform: 'uppercase', letterSpacing: '-0.01em', lineHeight: 0.95, color: '#111111', marginBottom: 24 }}>
+          <h1 className="landing-h1" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.8rem, 6vw, 4.5rem)', textTransform: 'uppercase', letterSpacing: '-0.01em', lineHeight: 0.95, color: '#111111', marginBottom: 24 }}>
             Nos encargamos de <span style={{ color: '#0F766E' }}>tus redes</span> para que tú te encargues de tu negocio
           </h1>
           <p style={{ fontFamily: f, fontSize: 17, color: '#6b7280', lineHeight: 1.7, maxWidth: 560, margin: '0 auto 24px' }}>
@@ -367,7 +370,7 @@ export default function LandingPage() {
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: 40, gap: 24, flexWrap: 'wrap' }}>
             <div>
               <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>Resultados reales</div>
-              <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#ffffff', lineHeight: 0.95 }}>
+              <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#ffffff', lineHeight: 0.95 }}>
                 Porque lo que no se ve,<br />no se vende
               </h2>
             </div>
@@ -389,7 +392,7 @@ export default function LandingPage() {
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: 40 }}>
             <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>Portfolio</div>
-            <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
+            <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
               Lo que publicamos por ti
             </h2>
             <p style={{ fontFamily: f, fontSize: 15, color: '#6b7280', marginTop: 12 }}>Contenido real para negocios como el tuyo</p>
@@ -412,7 +415,7 @@ export default function LandingPage() {
       {/* ─── SECTORES — scroll horitzontal ─── */}
       <section id="sectores" style={{ padding: '80px 0', background: '#f5f5f5' }}>
         <div className="container" style={{ marginBottom: 40 }}>
-          <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
+          <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
             Funciona para cualquier negocio local
           </h2>
         </div>
@@ -434,7 +437,7 @@ export default function LandingPage() {
       <section id="como-funciona" style={{ padding: '80px 0' }}>
         <div className="container" style={{ marginBottom: 40 }}>
           <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>En 4 pasos</div>
-          <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
+          <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
             De cero a publicar<br />en menos de 10 minutos
           </h2>
         </div>
@@ -457,7 +460,7 @@ export default function LandingPage() {
               <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#14b8a6', marginBottom: 12 }}>
                 Tour del producto
               </div>
-              <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#ffffff', lineHeight: 0.95, marginBottom: 14 }}>
+              <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#ffffff', lineHeight: 0.95, marginBottom: 14 }}>
                 Mira la app
                 <br />
                 por dentro
@@ -540,7 +543,7 @@ export default function LandingPage() {
       <section className="pricing" id="precios" style={{ padding: '80px 0', background: '#f5f5f5' }}>
         <div className="container" style={{ marginBottom: 40, textAlign: 'center' }}>
           <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>Precios claros</div>
-          <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
+          <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
             Sin sorpresas. Cancela cuando quieras.
           </h2>
           <div style={{ display: 'inline-flex', background: '#ffffff', border: '1px solid var(--border)', borderRadius: '0', padding: '4px', gap: '4px', marginTop: 24 }}>
@@ -588,29 +591,33 @@ export default function LandingPage() {
               const { name, desc, featured, badge, features, content, highlight } = plan;
               return (
               <div key={name} className="pricing-home-card" style={{ background: featured ? '#111111' : '#ffffff', border: featured ? 'none' : '1px solid #e5e7eb', padding: '40px 24px', display: 'flex', flexDirection: 'column' }}>
-                {(badge || featured) && (
-                  <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#0F766E', background: '#f0fdf4', padding: '3px 10px', alignSelf: 'flex-start', marginBottom: 16 }}>
-                    {badge ?? 'Más popular'}
-                  </span>
-                )}
+                <span style={{
+                  fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em',
+                  color: '#0F766E', background: '#f0fdf4', padding: '3px 10px', alignSelf: 'flex-start', marginBottom: 16,
+                  visibility: (badge || featured) ? 'visible' : 'hidden',
+                }}>
+                  {badge ?? (featured ? 'Más popular' : '\u00A0')}
+                </span>
                 <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: featured ? '#ffffff' : '#111111', marginBottom: 4 }}>{name}</p>
                 <p style={{ fontFamily: fc, fontWeight: 900, fontSize: '3rem', color: featured ? '#ffffff' : '#111111', lineHeight: 1, marginBottom: 4 }}>
                   <span style={{ fontSize: 18, verticalAlign: 'top' }}>€</span>{homeDisplayPrice(plan)}<span style={{ fontSize: 14, fontWeight: 400, color: '#9ca3af' }}>/mes</span>
                 </p>
-                {homeBilling === 'annual' && (
-                  <p style={{ fontFamily: f, fontSize: 12, fontWeight: 700, color: featured ? '#d1d5db' : '#0F766E', marginBottom: 10 }}>
-                    {`Ahorras €${homeSavings(plan)}/año`}
-                  </p>
-                )}
+                <p style={{
+                  fontFamily: f, fontSize: 12, fontWeight: 700,
+                  color: featured ? '#d1d5db' : '#0F766E', marginBottom: 10,
+                  visibility: homeBilling === 'annual' && homeSavings(plan) > 0 ? 'visible' : 'hidden',
+                }}>
+                  {homeSavings(plan) > 0 ? `Ahorras ${homeSavings(plan)} €/año` : '\u00A0'}
+                </p>
                 <p style={{ fontFamily: f, fontSize: 13, color: featured ? '#9ca3af' : '#6b7280', marginBottom: 16 }}>{desc}</p>
 
                 {/* Content block */}
-                <div style={{ border: `1px solid ${featured ? 'rgba(255,255,255,0.15)' : '#e5e7eb'}`, padding: '10px 12px', marginBottom: 16 }}>
+                <div style={{ border: `1px solid ${featured ? 'rgba(255,255,255,0.15)' : '#e5e7eb'}`, padding: '10px 12px', marginBottom: 16, minHeight: 160, display: 'flex', flexDirection: 'column' }}>
                   <p style={{ fontFamily: fc, fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: featured ? 'rgba(255,255,255,0.5)' : '#9ca3af', marginBottom: 8 }}>Contenido incluido</p>
                   {content.map((item) => (
                     <p key={item} style={{ fontFamily: f, fontSize: 13, fontWeight: 600, color: featured ? '#ffffff' : '#111111', marginBottom: 3 }}>{item}</p>
                   ))}
-                  <p style={{ fontFamily: f, fontSize: 11, fontStyle: 'italic', color: featured ? 'rgba(255,255,255,0.5)' : '#9ca3af', marginTop: 6 }}>{highlight}</p>
+                  <p style={{ fontFamily: f, fontSize: 11, fontStyle: 'italic', color: featured ? 'rgba(255,255,255,0.5)' : '#9ca3af', marginTop: 'auto', paddingTop: 6 }}>{highlight}</p>
                 </div>
 
                 <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
@@ -625,7 +632,7 @@ export default function LandingPage() {
                   background: featured ? '#ffffff' : '#111111', color: featured ? '#111111' : '#ffffff',
                   fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
                 }}>
-                  Empezar gratis →
+                  Empezar →
                 </Link>
               </div>
               );
@@ -647,7 +654,7 @@ export default function LandingPage() {
       <section id="testimonios" style={{ padding: '80px 0' }}>
         <div className="container" style={{ marginBottom: 40 }}>
           <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>Casos reales</div>
-          <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
+          <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95 }}>
             Lo que dicen nuestros clientes
           </h2>
         </div>
@@ -682,7 +689,7 @@ export default function LandingPage() {
               <>
                 <div style={{ marginBottom: 42 }}>
                   <div style={{ fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#0F766E', marginBottom: 12 }}>FAQ</div>
-                  <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(1.8rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95, marginBottom: 12 }}>
+                  <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(1.8rem, 4vw, 3rem)', textTransform: 'uppercase', color: '#111111', lineHeight: 0.95, marginBottom: 12 }}>
                     Respuestas sin rodeos,
                     <br />
                     con foco en tu negocio
@@ -866,14 +873,14 @@ export default function LandingPage() {
       {/* ─── CTA FINAL ─── */}
       <section style={{ padding: '80px 0', background: '#111111' }}>
         <div className="container" style={{ textAlign: 'center' }}>
-          <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', color: '#ffffff', lineHeight: 0.95, marginBottom: 12 }}>
+          <h2 className="landing-h2" style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.5rem)', textTransform: 'uppercase', color: '#ffffff', lineHeight: 0.95, marginBottom: 12 }}>
             Tu competencia ya tiene<br />a alguien que <span style={{ color: '#0F766E' }}>lleva sus redes</span>
           </h2>
           
           <div style={{ display: 'flex', justifyContent: 'center', margin: '0 auto 16px' }}>
             <Link href="/register"
               style={{ display: 'inline-block', padding: '16px 40px', background: '#ffffff', color: '#111111', textDecoration: 'none', fontFamily: fc, fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>
-              Crear cuenta gratis
+              Crear cuenta
             </Link>
           </div>
           
