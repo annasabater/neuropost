@@ -70,8 +70,8 @@ const SCOPE_PILLS: { key: Scope; label: string }[] = [
   { key: 'all',          label: 'Todo' },
   { key: 'sugerencias',  label: 'Sugerencias' },
   { key: 'guardadas',    label: 'Guardadas' },
-  { key: 'solicitudes',  label: 'Solicitudes' },
   { key: 'favorites',    label: 'Favoritos' },
+  { key: 'solicitudes',  label: 'Solicitudes' },
 ];
 
 // ─── Request types ────────────────────────────────────────────────────────────
@@ -682,9 +682,14 @@ export default function InspiracionPage() {
       {/* ── Header ────────────────────────────────────────────────────────── */}
       <div className="dashboard-unified-header inspi-header" style={{ padding: '48px 0 24px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: 'var(--text-primary)', lineHeight: 0.95 }}>
-            Inspiración
-          </h1>
+          <div>
+            <p style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--accent)', margin: '0 0 6px' }}>
+              Tu biblioteca de ideas
+            </p>
+            <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: 'var(--text-primary)', lineHeight: 0.95, margin: 0 }}>
+              Inspiración
+            </h1>
+          </div>
           {/* ⓘ info toggle */}
           <div style={{ position: 'relative' }}>
             <button
@@ -696,14 +701,14 @@ export default function InspiracionPage() {
               i
             </button>
             {infoOpen && (
-              <div style={{ position: 'absolute', top: 'calc(100% + 10px)', left: 0, zIndex: 200, background: 'var(--bg)', border: '1px solid #0F766E', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '16px 18px', width: 320, lineHeight: 1.6 }}>
+              <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 200, background: 'var(--bg)', border: '1px solid #0F766E', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', padding: '20px 22px', width: 'min(480px, calc(100vw - 32px))', lineHeight: 1.6 }}>
                 <div style={{ fontFamily: fc, fontWeight: 800, fontSize: 13, color: '#111827', marginBottom: 8, letterSpacing: '0.01em', textTransform: 'uppercase' }}>
                   Cómo funciona
                 </div>
-                <div style={{ fontFamily: f, fontSize: 13, color: '#374151' }}>
-                  <strong>1.</strong> Guarda lo que te inspire — es tu biblioteca personal.<br />
-                  <strong>2.</strong> Cuando veas algo que quieras en tu cuenta, pulsa <em>Enviar solicitud</em>.<br />
-                  <strong>3.</strong> Lo recreamos con tu marca y lo añadimos a tu calendario.
+                <div style={{ fontFamily: f, fontSize: 13, color: '#374151', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div><strong>1.</strong> Guarda lo que te inspire — es tu biblioteca personal.</div>
+                  <div><strong>2.</strong> Cuando veas algo que quieras en tu cuenta, pulsa <em>Enviar solicitud</em>.</div>
+                  <div><strong>3.</strong> Lo recreamos con tu marca y lo añadimos a tu calendario.</div>
                 </div>
                 <button type="button" onClick={() => setInfoOpen(false)} style={{ position: 'absolute', top: 8, right: 10, background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: 16, lineHeight: 1, padding: 2 }}>×</button>
               </div>

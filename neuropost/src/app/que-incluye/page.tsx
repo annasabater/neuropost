@@ -220,9 +220,12 @@ const SERVICES = [
 ];
 
 const PLAN_BADGES: Record<string, { bg: string; color: string }> = {
-  Starter: { bg: '#f5f5f5', color: '#374151' },
-  Pro:     { bg: '#e6f9f0', color: '#0F766E' },
-  Total:   { bg: '#111111', color: '#ffffff' },
+  Starter:      { bg: '#f5f5f5', color: '#374151' },
+  Pro:          { bg: '#e6f9f0', color: '#0F766E' },
+  Total:        { bg: '#111111', color: '#ffffff' },
+  Esencial:     { bg: '#f5f5f5', color: '#374151' },
+  Crecimiento:  { bg: '#e6f9f0', color: '#0F766E' },
+  Profesional:  { bg: '#111111', color: '#ffffff' },
 };
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
@@ -322,7 +325,7 @@ function ServiceSection({ svc, idx }: { svc: typeof SERVICES[0]; idx: number }) 
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
               <span style={{ fontFamily: f, fontSize: 11, fontWeight: 700, color: '#9ca3af' }}>Incluido en:</span>
               {svc.plans.map((p) => (
-                <span key={p} style={{ fontFamily: f, fontSize: 11, fontWeight: 700, padding: '2px 10px', background: PLAN_BADGES[p].bg, color: PLAN_BADGES[p].color, textTransform: 'uppercase', letterSpacing: '0.04em', transition: 'transform .15s ease' }}>
+                <span key={p} style={{ fontFamily: f, fontSize: 11, fontWeight: 700, padding: '2px 10px', background: (PLAN_BADGES[p] ?? PLAN_BADGES.Esencial).bg, color: (PLAN_BADGES[p] ?? PLAN_BADGES.Esencial).color, textTransform: 'uppercase', letterSpacing: '0.04em', transition: 'transform .15s ease' }}>
                   {p}
                 </span>
               ))}

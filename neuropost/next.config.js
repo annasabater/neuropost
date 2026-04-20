@@ -16,6 +16,8 @@ const CSP = [
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  allowedDevOrigins: ['192.168.56.1'],
+
   generateBuildId: async () => 'build-' + randomUUID().replace(/-/g, '').slice(0, 12),
 
   transpilePackages: ['@neuropost/agents'],

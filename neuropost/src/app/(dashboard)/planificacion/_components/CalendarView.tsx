@@ -37,9 +37,21 @@ function getStatusMeta(post: CalendarPost): { label: string; color: string; bg: 
   return                               { label: 'Listo',             color: '#374151', bg: '#f3f4f6', dot: '#9ca3af' };
 }
 
-function getWeekDays(weekStart: string): Date[] {
+function getDisplayDays(weekStart: string, posts: CalendarPost[]): Date[] {
+  // Start from the content week (week_start + 7), not the planning week
   const base = new Date(weekStart + 'T00:00:00Z');
-  return Array.from({ length: 7 }, (_, i) => {
+  base.setUTCDate(base.getUTCDate() + 7);
+  // end at max(content_week_start+6, latest post date)
+  let endUTC = base.getUTCDate() + 6;
+  for (const p of posts) {
+    if (p.scheduled_at) {
+      const d = new Date(p.scheduled_at);
+      const diffDays = Math.floor((d.getTime() - base.getTime()) / 86400000);
+      if (diffDays > endUTC - base.getUTCDate()) endUTC = base.getUTCDate() + diffDays;
+    }
+  }
+  const count = endUTC - base.getUTCDate() + 1;
+  return Array.from({ length: count }, (_, i) => {
     const d = new Date(base);
     d.setUTCDate(base.getUTCDate() + i);
     return d;
@@ -76,46 +88,42 @@ export function CalendarView({ plan, weekId }: Props) {
     return <div style={{ padding: 40, color: 'var(--text-secondary)', fontFamily: f }}>Cargando calendario...</div>;
   }
 
-  const weekDays = getWeekDays(plan.week_start);
+  const weekDays = getDisplayDays(plan.week_start, posts);
 
   return (
-    <div style={{ padding: '32px 28px', maxWidth: 800, color: 'var(--text-primary)', fontFamily: f }}>
+    <div style={{ color: 'var(--text-primary)', fontFamily: f }}>
 
-      {/* Back */}
-      <button type="button" onClick={() => router.push('/planificacion')} style={backBtn}>
-        <ArrowLeft size={14} /> Mis planes
-      </button>
-
-      {/* Header */}
-      <div style={{ marginTop: 20, marginBottom: 28 }}>
-        <h1 style={{
+      <div style={{ padding: '24px 28px' }}>
+        <button type="button" onClick={() => router.push('/planificacion')} style={{ ...backBtn, marginBottom: 16 }}>
+          <ArrowLeft size={14} /> Mis planes
+        </button>
+        <h2 style={{
           fontFamily: fc, fontWeight: 900,
-          fontSize: 'clamp(1.6rem, 3.5vw, 2.4rem)',
-          textTransform: 'uppercase', letterSpacing: '0.02em',
-          color: 'var(--text-primary)', margin: '0 0 6px', lineHeight: 1,
+          fontSize: 'clamp(1.4rem, 3vw, 2rem)',
+          textTransform: 'uppercase', letterSpacing: '0.01em',
+          color: 'var(--text-primary)', margin: '0 0 4px', lineHeight: 1,
         }}>
           Semana del {formatWeek(plan.week_start)}
-        </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: 0 }}>
+        </h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 13, margin: '0 0 24px' }}>
           Todo listo. Estas son las publicaciones programadas para esta semana.
         </p>
-      </div>
-
-      {/* ── Mini weekly calendar strip ── */}
+      {/* ── Calendar strip — extends to cover all post dates ── */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)',
+        display: 'grid', gridTemplateColumns: `repeat(${weekDays.length}, 1fr)`,
         border: '1px solid var(--border)', marginBottom: 32,
         overflow: 'hidden',
       }}>
         {weekDays.map((day, i) => {
           const dayPosts = posts.filter((p) => p.scheduled_at && isSameUTCDay(p.scheduled_at, day));
           const isToday  = new Date().toDateString() === day.toDateString();
+          const isOutsideWeek = i >= 7;
           return (
             <div
               key={i}
               style={{
-                borderRight: i < 6 ? '1px solid var(--border)' : 'none',
-                background: isToday ? 'rgba(15,118,110,0.04)' : 'var(--bg)',
+                borderRight: i < weekDays.length - 1 ? '1px solid var(--border)' : 'none',
+                background: isToday ? 'rgba(15,118,110,0.04)' : isOutsideWeek ? '#fafafa' : 'var(--bg)',
               }}
             >
               {/* Day header */}
@@ -123,36 +131,59 @@ export function CalendarView({ plan, weekId }: Props) {
                 padding: '10px 0 8px',
                 textAlign: 'center',
                 borderBottom: '1px solid var(--border)',
-                background: isToday ? 'rgba(15,118,110,0.08)' : 'var(--bg-1)',
+                background: isToday ? 'rgba(15,118,110,0.08)' : isOutsideWeek ? '#f3f4f6' : 'var(--bg-1)',
               }}>
                 <div style={{
                   fontFamily: fc, fontWeight: 800,
                   fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em',
-                  color: isToday ? 'var(--accent)' : 'var(--text-secondary)',
+                  color: isToday ? 'var(--accent)' : isOutsideWeek ? '#9ca3af' : 'var(--text-secondary)',
                 }}>
-                  {DAYS_ES[i]}
+                  {DAYS_ES[i % 7]}
                 </div>
                 <div style={{
                   fontSize: 18, fontWeight: 700,
-                  color: isToday ? 'var(--accent)' : 'var(--text-primary)',
+                  color: isToday ? 'var(--accent)' : isOutsideWeek ? '#9ca3af' : 'var(--text-primary)',
                   lineHeight: 1.2,
                 }}>
                   {day.getUTCDate()}
                 </div>
               </div>
-              {/* Post dots */}
-              <div style={{ padding: '8px 6px', display: 'flex', flexDirection: 'column', gap: 4, minHeight: 40 }}>
+              {/* Post cards in cell */}
+              <div style={{ padding: '6px 5px', display: 'flex', flexDirection: 'column', gap: 4, minHeight: 48 }}>
                 {dayPosts.map((p) => {
                   const m = getStatusMeta(p);
+                  const time = p.scheduled_at
+                    ? new Date(p.scheduled_at).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })
+                    : null;
                   return (
                     <div key={p.id} style={{
-                      display: 'flex', alignItems: 'center', gap: 4,
-                      fontSize: 10, color: 'var(--text-secondary)',
+                      background: m.bg,
+                      borderLeft: `2px solid ${m.dot}`,
+                      padding: '3px 5px',
+                      overflow: 'hidden',
                     }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: m.dot, flexShrink: 0 }} />
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {time && (
+                        <div style={{ fontFamily: fc, fontWeight: 700, fontSize: 9, color: m.color, lineHeight: 1.2 }}>
+                          {time}
+                        </div>
+                      )}
+                      <div style={{
+                        fontSize: 9, fontWeight: 600, textTransform: 'uppercase',
+                        letterSpacing: '0.03em', color: m.color,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
                         {p.format}
-                      </span>
+                      </div>
+                      {p.caption && (
+                        <div style={{
+                          fontSize: 8.5, color: 'var(--text-secondary)', lineHeight: 1.3,
+                          overflow: 'hidden', display: '-webkit-box',
+                          WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                          marginTop: 1,
+                        }}>
+                          {p.caption}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -279,12 +310,15 @@ export function CalendarView({ plan, weekId }: Props) {
           onSuccess={load}
         />
       )}
+      </div>{/* end padding wrapper */}
     </div>
   );
 }
 
 function formatWeek(weekStart: string): string {
+  // +7: show content week, not planning week
   const d = new Date(weekStart + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + 7);
   return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', timeZone: 'UTC' });
 }
 

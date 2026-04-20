@@ -120,20 +120,15 @@ export default function PlanReviewPage() {
       auto_approved: 'auto-aprobado, en producción',
     };
     return (
-      <div style={{ padding: '32px 28px', maxWidth: 560, color: 'var(--text-primary)', fontFamily: f }}>
-        <button type="button" onClick={() => router.push('/planificacion')} style={backBtn}>
-          <ArrowLeft size={14} /> Mis planes
-        </button>
-        <div style={{ marginTop: 24 }}>
-          <h1 style={{
-            fontFamily: fc, fontWeight: 900,
-            fontSize: 'clamp(1.5rem, 3vw, 2rem)',
-            textTransform: 'uppercase', letterSpacing: '0.02em',
-            color: 'var(--text-primary)', margin: '0 0 6px', lineHeight: 1,
-          }}>
+      <div style={{ color: 'var(--text-primary)', fontFamily: f }}>
+        <div style={{ padding: '24px 28px' }}>
+          <button type="button" onClick={() => router.push('/planificacion')} style={{ ...backBtn, marginBottom: 16 }}>
+            <ArrowLeft size={14} /> Mis planes
+          </button>
+          <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(1.4rem, 3vw, 2rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: 'var(--text-primary)', margin: '0 0 16px', lineHeight: 1 }}>
             Semana del {formatWeek(plan.week_start)}
-          </h1>
-          <div style={{ marginTop: 20, padding: '20px 24px', border: '1px solid var(--border)', background: 'var(--bg)' }}>
+          </h2>
+          <div style={{ maxWidth: 560, padding: '20px 24px', border: '1px solid var(--border)', background: 'var(--bg)' }}>
             <span style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5,
@@ -155,49 +150,31 @@ export default function PlanReviewPage() {
 
   // ── Client reviewing ──────────────────────────────────────────────────────
   return (
-    <div style={{ padding: '32px 28px', maxWidth: 800, color: 'var(--text-primary)', fontFamily: f }}>
+    <div style={{ color: 'var(--text-primary)', fontFamily: f }}>
 
-      {/* Back */}
-      <button type="button" onClick={() => router.push('/planificacion')} style={backBtn}>
-        <ArrowLeft size={14} /> Mis planes
-      </button>
-
-      {/* Header + counter row */}
-      <div style={{ marginTop: 20, marginBottom: 28, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{
-            fontFamily: fc, fontWeight: 900,
-            fontSize: 'clamp(1.6rem, 3.5vw, 2.4rem)',
-            textTransform: 'uppercase', letterSpacing: '0.02em',
-            color: 'var(--text-primary)', margin: '0 0 6px', lineHeight: 1,
-          }}>
-            Semana del {formatWeek(plan.week_start)}
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 13, margin: 0 }}>
-            Revisa cada propuesta y dinos qué te cuadra. Cuando acabes, confirma el plan.
-          </p>
+      <div style={{ padding: '24px 28px' }}>
+        <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <button type="button" onClick={() => router.push('/planificacion')} style={{ ...backBtn, marginBottom: 12 }}>
+              <ArrowLeft size={14} /> Mis planes
+            </button>
+            <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(1.4rem, 3vw, 2rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: 'var(--text-primary)', margin: '0 0 4px', lineHeight: 1 }}>
+              Semana del {formatWeek(plan.week_start)}
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 13, margin: 0 }}>
+              Revisa cada propuesta y dinos qué te cuadra. Cuando acabes, confirma el plan.
+            </p>
+          </div>
+          {/* Progress badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: allReviewed ? '#d1fae5' : 'var(--bg-1)', border: `1px solid ${allReviewed ? '#6ee7b7' : 'var(--border)'}`, flexShrink: 0 }}>
+            <span style={{ fontFamily: fc, fontWeight: 900, fontSize: 32, lineHeight: 1, color: allReviewed ? '#065f46' : 'var(--text-primary)' }}>
+              {reviewed}<span style={{ fontSize: 18, color: 'var(--text-secondary)', fontWeight: 700 }}>/{ideas.length}</span>
+            </span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.3, maxWidth: 80 }}>
+              {allReviewed ? '✓ Todo revisado' : 'ideas revisadas'}
+            </span>
+          </div>
         </div>
-
-        {/* Big progress badge */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 20px',
-          background: allReviewed ? '#d1fae5' : 'var(--bg-1)',
-          border: `1px solid ${allReviewed ? '#6ee7b7' : 'var(--border)'}`,
-          flexShrink: 0,
-        }}>
-          <span style={{
-            fontFamily: fc, fontWeight: 900, fontSize: 32, lineHeight: 1,
-            color: allReviewed ? '#065f46' : 'var(--text-primary)',
-          }}>
-            {reviewed}<span style={{ fontSize: 18, color: 'var(--text-secondary)', fontWeight: 700 }}>/{ideas.length}</span>
-          </span>
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.3, maxWidth: 80 }}>
-            {allReviewed ? '✓ Todo revisado' : 'ideas revisadas'}
-          </span>
-        </div>
-      </div>
-
       {/* Ideas */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 100 }}>
         {ideas.map((idea, ideaIdx) => {
@@ -332,9 +309,11 @@ export default function PlanReviewPage() {
         })}
       </div>
 
+      </div>{/* end padding '24px 28px' */}
+
       {/* Sticky footer */}
       <div style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0,
+        position: 'fixed', bottom: 0, left: 272, right: 0,
         background: 'var(--bg)', borderTop: '2px solid var(--border)',
         padding: '14px 28px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -392,7 +371,9 @@ export default function PlanReviewPage() {
 }
 
 function formatWeek(weekStart: string): string {
+  // +7: week_start is the planning week; display the content week (following week)
   const d = new Date(weekStart + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + 7);
   return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', timeZone: 'UTC' });
 }
 

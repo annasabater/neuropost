@@ -6,7 +6,7 @@ import { useTranslations } from 'next-intl';
 import { ProgressLink } from '@/components/ui/ProgressLink';
 import {
   LayoutDashboard, Calendar, CalendarDays, MessageSquare, BarChart3,
-  Settings, LogOut, X, Image, Archive,
+  Settings, LogOut, X, Image,
   Flame, Plus, Upload, ChevronDown, Link2, CreditCard, Palette,
   Sparkles, Send, Paintbrush, Camera,
 } from 'lucide-react';
@@ -110,7 +110,6 @@ export function Sidebar() {
 
         {/* Otros */}
         <div className="dash-nav-group-label">Otros</div>
-        <NavItem href="/historial" label={t('history')} icon={Archive} />
         <NavItem href="/inbox" label="Inbox" icon={MessageSquare} badge={unreadComments} />
         <NavItem href="/billing" label="Facturación" icon={CreditCard} />
       </div>
