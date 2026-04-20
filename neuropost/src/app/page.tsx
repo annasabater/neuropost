@@ -278,7 +278,7 @@ export default function LandingPage() {
       <nav style={{ boxShadow: navShadow ? '0 1px 0 #e5e7eb' : 'none', background: '#ffffff', borderBottom: '1px solid #e5e7eb' }}>
         <a href="/" className="nav-logo">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-transparent.png" alt="NeuroPost" style={{ height: 44, width: 'auto', display: 'block' }} />
+          <img src="/logo-header-t.png" alt="NeuroPost" style={{ height: 38, width: 'auto', display: 'block' }} />
         </a>
         <ul className="nav-links">
           <li style={{ position: 'relative' }} onMouseEnter={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'block'; }} onMouseLeave={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'none'; }}>
