@@ -227,7 +227,7 @@ export interface PostVersion {
   image_url?: string | null;   // image snapshot at this version (populated from regenerations)
 }
 
-export type StoryType = 'repost' | 'new' | 'auto';
+export type PostStoryType = 'repost' | 'new' | 'auto';
 
 export interface Post {
   id:                 string;
@@ -252,7 +252,7 @@ export interface Post {
   approved_by:        string | null;
   metrics:            Record<string, number> | null;
   is_story:           boolean;
-  story_type:         StoryType | null;
+  story_type:         PostStoryType | null;
   created_at:         string;
   /** What the client uploaded: photos, a video, or nothing. */
   source_type:        SourceType;
@@ -1022,6 +1022,35 @@ export type ContentIdeaStatus =
   | 'in_production'
   | 'produced';
 
+// ─── Sprint 10: Story / brand-material types ─────────────────────────────────
+
+export type ContentKind         = 'post' | 'story';
+export type StoryType           = 'schedule' | 'quote' | 'promo' | 'data' | 'custom' | 'photo';
+export type BrandMaterialCategory = 'schedule' | 'promo' | 'data' | 'quote' | 'free';
+export type StoryTemplateKind   = 'system' | 'custom';
+
+export interface StoryTemplate {
+  id:            string;
+  kind:          StoryTemplateKind;
+  brand_id:      string | null;
+  name:          string;
+  layout_config: Record<string, unknown>;
+  preview_url:   string | null;
+  created_at:    string;
+}
+
+export interface BrandMaterial {
+  id:            string;
+  brand_id:      string;
+  category:      BrandMaterialCategory;
+  content:       Record<string, unknown>;
+  active:        boolean;
+  valid_until:   string | null;
+  display_order: number;
+  created_at:    string;
+  updated_at:    string;
+}
+
 export interface ContentIdea {
   id:                     string;
   week_id:                string;
@@ -1044,6 +1073,11 @@ export interface ContentIdea {
   status:                 ContentIdeaStatus;
   proposal_id:            string | null;
   post_id:                string | null;
+  // Sprint 10
+  content_kind:           ContentKind;
+  story_type:             StoryType | null;
+  template_id:            string | null;
+  rendered_image_url:     string | null;
   created_at:             string;
   updated_at:             string;
 }
