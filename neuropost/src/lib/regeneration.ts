@@ -73,23 +73,25 @@ async function getOrCreateWeeklyUsage(
   const supabase = createAdminClient() as any;
   const ws = toDateStr(weekStart);
 
-  const { data: existing } = await supabase
+  // Upsert so concurrent requests don't race on INSERT after a failed SELECT.
+  const { error: upsertError } = await supabase
+    .from('weekly_usage')
+    .upsert(
+      { brand_id: brandId, week_start: ws, plan, photo_posts_used: 0, video_posts_used: 0 },
+      { onConflict: 'brand_id,week_start', ignoreDuplicates: true },
+    );
+
+  if (upsertError) throw new Error(`weekly_usage upsert failed: ${upsertError.message}`);
+
+  const { data: row, error: selectError } = await supabase
     .from('weekly_usage')
     .select('*')
     .eq('brand_id', brandId)
     .eq('week_start', ws)
     .single();
 
-  if (existing) return existing as WeeklyUsageRow;
-
-  const { data: created, error } = await supabase
-    .from('weekly_usage')
-    .insert({ brand_id: brandId, week_start: ws, plan, photo_posts_used: 0, video_posts_used: 0 })
-    .select()
-    .single();
-
-  if (error) throw new Error(`weekly_usage insert failed: ${error.message}`);
-  return created as WeeklyUsageRow;
+  if (selectError) throw new Error(`weekly_usage select failed: ${selectError.message}`);
+  return row as WeeklyUsageRow;
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
