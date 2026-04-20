@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Plus, Trash2, BookmarkCheck } from 'lucide-react';
+import { X, Plus, Trash2, BookmarkCheck, ChevronDown, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { InspirationItem, InspirationSource } from './InspirationCard';
 
@@ -38,13 +38,24 @@ export function SavePopover({
   const [hasUnfiled,     setHasUnfiled]     = useState<boolean>(!!item.is_saved && (item.saved_collection_ids ?? []).length === 0);
   const [withCollection, setWithCollection] = useState<boolean>((item.saved_collection_ids ?? []).length > 0);
   const [selected,       setSelected]       = useState<string | null>(item.saved_collection_ids?.[0] ?? null);
-  const [notes,          setNotes]          = useState<string>('');
   const [loading,        setLoading]        = useState(false);
+  const [dropdownOpen,   setDropdownOpen]   = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [creating,       setCreating]       = useState(false);
   const [newName,        setNewName]        = useState('');
   const [creatingInline, setCreatingInline] = useState(false);
 
   const popoverRef = useRef<HTMLDivElement>(null);
+
+  // Close custom dropdown on outside click
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    function handle(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setDropdownOpen(false);
+    }
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [dropdownOpen]);
 
   // ── Fetch authoritative state on open (in case the prop is stale) ────────
   useEffect(() => {
@@ -108,7 +119,6 @@ export function SavePopover({
         source,
         item_id: item.id,
         collection_id: withCollection ? selected : null,
-        notes: notes.trim() || null,
       };
       const res = await fetch('/api/inspiracion/save', {
         method: 'POST',
@@ -254,24 +264,63 @@ export function SavePopover({
           Añadir a colección
         </label>
 
-        {/* Collection select */}
+        {/* Collection select — custom dropdown */}
         {withCollection && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {collections.length > 0 && (
-              <select
-                value={selected ?? ''}
-                onChange={(e) => setSelected(e.target.value || null)}
-                style={{
-                  width: '100%', padding: '8px 10px',
-                  border: '1px solid var(--border)', background: 'var(--bg)',
-                  color: 'var(--text-primary)', fontSize: 13, fontFamily: f,
-                }}
-              >
-                <option value="">— Elegir colección —</option>
-                {collections.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
+              <div ref={dropdownRef} style={{ position: 'relative' }}>
+                {/* Trigger */}
+                <button
+                  type="button"
+                  onClick={() => setDropdownOpen(o => !o)}
+                  style={{
+                    width: '100%', padding: '9px 12px',
+                    border: `1px solid ${dropdownOpen ? 'var(--accent)' : 'var(--border)'}`,
+                    background: 'var(--bg)', color: selected ? 'var(--text-primary)' : 'var(--text-tertiary)',
+                    fontFamily: f, fontSize: 13, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
+                    transition: 'border-color 0.12s',
+                  }}
+                >
+                  <span style={{ fontWeight: selected ? 600 : 400 }}>
+                    {selected ? collections.find(c => c.id === selected)?.name ?? 'Elegir colección' : 'Elegir colección'}
+                  </span>
+                  <ChevronDown size={14} color="var(--text-tertiary)"
+                    style={{ transform: dropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s', flexShrink: 0 }} />
+                </button>
+
+                {/* Options list */}
+                {dropdownOpen && (
+                  <div style={{
+                    position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
+                    background: 'var(--bg)', border: '1px solid var(--border)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.10)', padding: '4px 0',
+                    maxHeight: 180, overflowY: 'auto',
+                  }}>
+                    {collections.map(c => {
+                      const isSelected = selected === c.id;
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          onClick={() => { setSelected(c.id); setDropdownOpen(false); }}
+                          style={{
+                            width: '100%', padding: '9px 14px',
+                            border: 'none', background: isSelected ? 'var(--accent-soft)' : 'transparent',
+                            color: isSelected ? 'var(--accent)' : 'var(--text-primary)',
+                            fontFamily: f, fontSize: 13, fontWeight: isSelected ? 600 : 400,
+                            textAlign: 'left', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          }}
+                        >
+                          {c.name}
+                          {isSelected && <Check size={13} />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             )}
 
             {/* + Nueva colección */}
@@ -290,7 +339,7 @@ export function SavePopover({
                   style={{
                     flex: 1, padding: '8px 10px',
                     border: '1px solid var(--border)', background: 'var(--bg)',
-                    color: 'var(--text-primary)', fontSize: 13, fontFamily: f,
+                    color: 'var(--text-primary)', fontSize: 13, fontFamily: f, outline: 'none',
                   }}
                 />
                 <button
@@ -298,11 +347,11 @@ export function SavePopover({
                   onClick={createInline}
                   disabled={creating || !newName.trim()}
                   style={{
-                    padding: '0 10px',
+                    padding: '0 12px',
                     background: 'var(--accent)', color: '#fff', border: 'none',
                     fontFamily: fc, fontSize: 11, fontWeight: 700,
                     textTransform: 'uppercase', letterSpacing: '0.06em',
-                    cursor: creating ? 'not-allowed' : 'pointer',
+                    cursor: creating || !newName.trim() ? 'not-allowed' : 'pointer',
                     opacity: creating || !newName.trim() ? 0.5 : 1,
                   }}
                 >
@@ -314,9 +363,8 @@ export function SavePopover({
                 type="button"
                 onClick={() => setCreatingInline(true)}
                 style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                  padding: '6px 4px',
-                  background: 'none', border: 'none',
+                  display: 'inline-flex', alignItems: 'center', gap: 5,
+                  padding: '5px 2px', background: 'none', border: 'none',
                   color: 'var(--accent)', fontSize: 12, fontWeight: 600,
                   cursor: 'pointer', fontFamily: f,
                 }}
@@ -326,25 +374,6 @@ export function SavePopover({
             )}
           </div>
         )}
-
-        {/* Notes (optional) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-          <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-tertiary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Notas <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, opacity: 0.7 }}>— opcional</span>
-          </label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            rows={2}
-            placeholder="Por qué la guardas, para cuándo, qué te inspira…"
-            style={{
-              width: '100%', padding: '8px 10px',
-              border: '1px solid var(--border)', background: 'var(--bg)',
-              color: 'var(--text-primary)', fontSize: 12, fontFamily: f,
-              resize: 'vertical', outline: 'none', boxSizing: 'border-box',
-            }}
-          />
-        </div>
       </div>
 
       {/* Footer actions */}

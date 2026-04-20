@@ -118,8 +118,11 @@ export async function GET(request: Request) {
     } else if (scope === 'bank') {
       query = query.eq('source', 'bank');
     } else {
-      // 'all' → bank items (public) + legacy items belonging to this brand
-      query = query.or(`source.eq.bank,and(source.eq.legacy,brand_id.eq.${brand.id})`);
+      // 'all' → public bank items (excluding user uploads) + legacy items belonging to this brand
+      // web_upload items are only shown in Guardadas > Mis subidas
+      query = query.or(
+        `and(source.eq.bank,or(source_platform.is.null,source_platform.neq.web_upload)),and(source.eq.legacy,brand_id.eq.${brand.id})`,
+      );
     }
 
     // ── Extra filters ─────────────────────────────────────────────────────
@@ -133,8 +136,6 @@ export async function GET(request: Request) {
     }
     if (tags.length > 0) query = query.overlaps('tags', tags);
     if (search) {
-      // title/notes exist on legacy; mood/category exist on both; search
-      // across the union's visible columns.
       query = query.or(
         `title.ilike.%${search}%,notes.ilike.%${search}%,mood.ilike.%${search}%,category.ilike.%${search}%`,
       );

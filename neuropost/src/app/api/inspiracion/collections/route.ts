@@ -146,8 +146,17 @@ export async function DELETE(request: Request) {
     if (!brandId) return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
 
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+    const id   = searchParams.get('id');
+    const mode = searchParams.get('mode') ?? 'keep'; // 'keep' | 'remove_items'
     if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
+
+    if (mode === 'remove_items') {
+      // Delete all saved items that belong to this collection
+      await db.from('inspiration_saved')
+        .delete()
+        .eq('brand_id', brandId)
+        .eq('collection_id', id);
+    }
 
     const { error } = await db
       .from('inspiration_collections')

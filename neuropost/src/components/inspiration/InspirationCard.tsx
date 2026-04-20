@@ -43,6 +43,8 @@ export type InspirationItem = {
   /** Bank category (e.g. 'cafeteria'). Not present on legacy rows. */
   category?:         string | null;
   created_at:        string;
+  /** Set when the item has a pending/in_progress reference_request. */
+  has_active_request?: boolean;
   recreation?: {
     id: string;
     status: string;
@@ -171,25 +173,19 @@ export function InspirationCard({ item, onFavorite, onSave, onRequest, onOpen }:
           pointerEvents: 'none',
         }} />
 
-        {/* Format badge — top left */}
-        {fmtMeta && (
-          <span style={{
-            position: 'absolute', top: 7, left: 7,
-            display: 'inline-flex', alignItems: 'center', gap: 3,
-            background: 'rgba(0,0,0,0.50)', color: '#fff',
-            padding: '3px 7px',
-            fontFamily: fc, fontSize: 8, fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '0.08em',
-            backdropFilter: 'blur(4px)',
-          }}>
-            {fmtMeta.icon} {fmtMeta.label}
-          </span>
-        )}
+        {/* Hover overlay */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: 'rgba(0,0,0,0.22)',
+          opacity: hover ? 1 : 0,
+          transition: 'opacity 0.2s ease',
+          pointerEvents: 'none',
+        }} />
 
-        {/* Carousel slide counter — bottom left */}
+        {/* Carousel slide counter — top left */}
         {isCarousel && (
           <span style={{
-            position: 'absolute', top: 7, left: fmtMeta ? 78 : 7,
+            position: 'absolute', top: 7, left: 7,
             background: 'rgba(0,0,0,0.55)', color: '#fff',
             padding: '3px 7px',
             fontFamily: fc, fontSize: 8, fontWeight: 700,
