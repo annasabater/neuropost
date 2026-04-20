@@ -1,10 +1,14 @@
 import { NextResponse } from 'next/server';
+import { rateLimitAgents } from '@/lib/ratelimit';
+import { apiError } from '@/lib/api-utils';
 import { requireSuperAdmin, adminErrorResponse } from '@/lib/admin';
 import { createAdminClient } from '@/lib/supabase';
 import Stripe from 'stripe';
 
 export async function POST(request: Request) {
   try {
+    const rl = await rateLimitAgents(request);
+    if (rl) return rl;
     await requireSuperAdmin();
     const { brandId, percentOff = 50 } = await request.json() as { brandId: string; percentOff?: number };
 

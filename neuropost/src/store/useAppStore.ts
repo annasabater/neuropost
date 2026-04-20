@@ -230,10 +230,10 @@ export const selectUnreadBadge   = (s: AppState) =>
 /** Returns true if the current brand plan includes the given feature. */
 export function planIncludes(plan: SubscriptionPlan | undefined, feature: 'unlimited_posts' | 'multi_platform' | 'multi_brand' | 'auto_publish'): boolean {
   switch (feature) {
-    case 'unlimited_posts': return plan === 'pro' || plan === 'agency';
-    case 'multi_platform':  return plan === 'pro' || plan === 'agency';
-    case 'multi_brand':     return plan === 'agency';
-    case 'auto_publish':    return plan === 'pro' || plan === 'agency';
+    case 'unlimited_posts': return plan === 'pro' || plan === 'total';
+    case 'multi_platform':  return plan === 'pro' || plan === 'total';
+    case 'multi_brand':     return plan === 'total';
+    case 'auto_publish':    return plan === 'pro' || plan === 'total';
     default:                return false;
   }
 }

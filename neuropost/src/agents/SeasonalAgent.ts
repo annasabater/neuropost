@@ -74,9 +74,35 @@ export async function generateSeasonalContent(input: {
   brandName:        string;
   brandVoiceDoc:    string;
   previousYearPost: string | null;
+  /** Words the brand has marked as forbidden. */
+  forbiddenWords?:  string[];
+  /** Topics the brand wants to avoid. */
+  forbiddenTopics?: string[];
+  /** Drop all emojis from captions. */
+  noEmojis?:        boolean;
+  /** Format preferences to honour the brand kit. */
+  likesCarousels?:  boolean;
+  includeVideos?:   boolean;
 }): Promise<SeasonalContent> {
+  const constraints: string[] = [];
+  if (input.forbiddenWords?.length) {
+    constraints.push(`NO uses jamás estas palabras: ${input.forbiddenWords.join(', ')}.`);
+  }
+  if (input.forbiddenTopics?.length) {
+    constraints.push(`Evita por completo estos temas: ${input.forbiddenTopics.join(', ')}.`);
+  }
+  if (input.noEmojis) {
+    constraints.push('NO uses emojis ni emoticonos en el caption ni en la alternativa.');
+  }
+  if (input.likesCarousels === false) {
+    constraints.push('El cliente NO quiere carruseles — elige "imagen" o "reel" como formato.');
+  }
+  if (input.includeVideos === false) {
+    constraints.push('El cliente NO incluye vídeos — elige "imagen" o "carrusel" como formato.');
+  }
+
   const message = await client.messages.create({
-    model:      'claude-opus-4-6',
+    model:      'claude-haiku-4-5-20251001',
     max_tokens: 1200,
     system: `Eres el creador de contenido de ${input.brandName}, una ${input.sector}.
 Genera el contenido para ${input.fecha} que cae en ${input.diasRestantes} días.
@@ -87,6 +113,7 @@ El contenido debe:
 - Tener el tono de marca correcto
 - Incluir una oferta o promoción si tiene sentido para la fecha
 - No repetir el contenido del año anterior
+${constraints.length ? `\nREGLAS ESTRICTAS DE LA MARCA:\n${constraints.map(c => `- ${c}`).join('\n')}` : ''}
 
 Devuelve SOLO JSON válido:
 {

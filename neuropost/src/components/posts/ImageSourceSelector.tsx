@@ -17,10 +17,10 @@ type QualityOption = { value: NanoBananaQuality; label: string; time: string; ic
 const QUALITY_OPTIONS: QualityOption[] = [
   { value: 'fast',  label: 'Fast',  time: '~5 seg',  icon: '⚡', minPlan: 'starter' },
   { value: 'pro',   label: 'Pro',   time: '~10 seg', icon: '✨', minPlan: 'pro'     },
-  { value: 'ultra', label: 'Ultra', time: '~15 seg, 4K', icon: '💎', minPlan: 'agency' },
+  { value: 'ultra', label: 'Ultra', time: '~15 seg, 4K', icon: '💎', minPlan: 'total' },
 ];
 
-const PLAN_ORDER: SubscriptionPlan[] = ['starter', 'pro', 'total', 'agency'];
+const PLAN_ORDER: SubscriptionPlan[] = ['starter', 'pro', 'total'];
 
 function planIndex(p: SubscriptionPlan) { return PLAN_ORDER.indexOf(p); }
 

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { getStripeClient } from '@/lib/stripe';
 
 export async function GET(request: Request) {
@@ -69,7 +70,6 @@ export async function GET(request: Request) {
       durationInMonths: coupon.duration_in_months ?? null,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'stripe/validate-coupon');
   }
 }

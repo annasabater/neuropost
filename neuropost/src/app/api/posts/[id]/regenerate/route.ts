@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { brandToAgentContext } from '@/lib/agentContext';
 import { runCopywriterAgent } from '@neuropost/agents';
+import { canRegenerate, registerRegeneration } from '@/lib/regeneration';
 import type { Brand, Post, PostVersion } from '@/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -12,7 +14,10 @@ type DB = any;
  * Body: { mode: 'full' | 'copy' }
  *   full — regenerate caption + hashtags (keep image)
  *   copy — alias for full (image stays, only text changes)
- * Saves the current caption/hashtags as a new entry in post.versions before overwriting.
+ *
+ * Enforces weekly regeneration limits:
+ *   - First 3 regenerations per post are free
+ *   - From the 4th onward, 1 post is deducted from the weekly quota
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -28,15 +33,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       .from('posts').select('*').eq('id', id).eq('brand_id', brand.id).single();
     if (postError || !post) return NextResponse.json({ error: 'Post not found' }, { status: 404 });
 
-    const p = post as Post;
-
-    // Save current text as a version snapshot
-    const prevVersions: PostVersion[] = Array.isArray(p.versions) ? p.versions : [];
-    if (p.caption) {
-      prevVersions.push({ caption: p.caption, hashtags: p.hashtags ?? [], savedAt: new Date().toISOString() });
+    // ── Quota check ────────────────────────────────────────────────────────────
+    const check = await canRegenerate(id, brand.id);
+    if (!check.allowed) {
+      return NextResponse.json(
+        { error: check.reason, upgradeUrl: check.upgradeUrl, limitReached: true },
+        { status: 403 },
+      );
     }
 
-    // Regenerate copy using the CopywriterAgent
+    const p = post as Post;
+
+    // ── Regenerate copy ────────────────────────────────────────────────────────
+    const prevVersions: PostVersion[] = Array.isArray(p.versions) ? p.versions : [];
+    if (p.caption) {
+      prevVersions.push({ caption: p.caption, hashtags: p.hashtags ?? [], savedAt: new Date().toISOString(), image_url: p.image_url ?? null });
+    }
+
     const ctx    = brandToAgentContext(brand as Brand);
     const result = await runCopywriterAgent(
       {
@@ -52,9 +65,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
           lightingCondition: 'natural',
           suggestedCrop:     null,
         },
-        goal:          'engagement',
-        platforms:     Array.isArray(p.platform) ? p.platform : [p.platform ?? 'instagram'],
-        postContext:   `Regeneración del post para ${brand.name}. Sector: ${brand.sector}. Tono: ${brand.tone}.`,
+        goal:        'engagement',
+        platforms:   Array.isArray(p.platform) ? p.platform : [p.platform ?? 'instagram'],
+        postContext: `Regeneración del post para ${brand.name}. Sector: ${brand.sector}. Tono: ${brand.tone}.`,
       },
       ctx,
     );
@@ -71,8 +84,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       ...(result.data.hashtags.broad   ?? []).slice(0, 3),
     ];
 
-    const newCaption   = copy?.caption   ?? p.caption   ?? '';
-    const newHashtags  = allHashtags.length ? allHashtags : p.hashtags;
+    const newCaption  = copy?.caption  ?? p.caption  ?? '';
+    const newHashtags = allHashtags.length ? allHashtags : p.hashtags;
 
     const { data: updated, error: updateError } = await supabase
       .from('posts')
@@ -90,20 +103,31 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
     if (updateError) throw updateError;
 
-    // Log activity
+    // ── Register the regeneration (increments counter + deducts quota if needed)
+    await registerRegeneration(id, brand.id);
+
+    // ── Activity log ───────────────────────────────────────────────────────────
     await supabase.from('activity_log').insert({
       brand_id:    brand.id,
       user_id:     user.id,
       action:      'regenerate_post',
       entity_type: 'post',
       entity_id:   id,
-      details:     { mode: 'copy', versionsCount: prevVersions.length },
+      details:     {
+        mode:            'copy',
+        versionsCount:   prevVersions.length,
+        regenCount:      check.regenerationCount + 1,
+        costQuota:       check.willCostQuota,
+      },
     }).catch(() => { /* non-critical */ });
 
-    return NextResponse.json({ post: updated as Post });
+    return NextResponse.json({
+      post:          updated as Post,
+      regenCount:    check.regenerationCount + 1,
+      willCostQuota: check.willCostQuota,
+      quotaAfter:    check.quotaAfter,
+    });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'posts/[id]/regenerate');
   }
 }

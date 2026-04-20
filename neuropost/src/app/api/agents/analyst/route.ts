@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { rateLimitAgents } from '@/lib/ratelimit';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { brandToAgentContext } from '@/lib/agentContext';
 import { runAnalystAgent } from '@neuropost/agents';
@@ -7,6 +9,8 @@ import type { AnalystInput, PostMetrics, AccountMetrics, CommunityMetrics, Plann
 
 export async function POST(request: Request) {
   try {
+    const rl = await rateLimitAgents(request);
+    if (rl) return rl;
     const user     = await requireServerUser();
     const body     = await request.json() as { month: number; year: number };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,7 +75,7 @@ export async function POST(request: Request) {
           return {
             postId:         p.id,
             contentPieceId: p.id,
-            platform:       (Array.isArray(p.platform) ? p.platform[0] : p.platform) as 'instagram' | 'facebook',
+            platform:       'instagram' as const,
             publishedAt:    p.published_at ?? p.created_at,
             reach,
             impressions,
@@ -86,9 +90,7 @@ export async function POST(request: Request) {
     );
 
     // ── Account-level metrics from stored posts (approximated from post data) ─
-    const igPosts = postMetrics.filter((pm) => pm.platform === 'instagram');
-    const fbPosts = postMetrics.filter((pm) => pm.platform === 'facebook');
-
+    // TODO [FASE 2]: Facebook — add facebook account metrics when fb_page_id is present
     const accountMetrics: AccountMetrics[] = [
       ...(typedBrand.ig_account_id ? [{
         platform:         'instagram' as const,
@@ -97,18 +99,8 @@ export async function POST(request: Request) {
         followersGained:  0,
         profileVisits:    0,
         websiteClicks:    0,
-        totalReach:       igPosts.reduce((s, p) => s + p.reach, 0),
-        totalImpressions: igPosts.reduce((s, p) => s + p.impressions, 0),
-      }] : []),
-      ...(typedBrand.fb_page_id ? [{
-        platform:         'facebook' as const,
-        followersStart:   0,
-        followersEnd:     0,
-        followersGained:  0,
-        profileVisits:    0,
-        websiteClicks:    0,
-        totalReach:       fbPosts.reduce((s, p) => s + p.reach, 0),
-        totalImpressions: fbPosts.reduce((s, p) => s + p.impressions, 0),
+        totalReach:       postMetrics.reduce((s, p) => s + p.reach, 0),
+        totalImpressions: postMetrics.reduce((s, p) => s + p.impressions, 0),
       }] : []),
     ];
 
@@ -146,6 +138,27 @@ export async function POST(request: Request) {
       completionRate:  plannedPosts > 0 ? Math.round((published / plannedPosts) * 100) : 0,
     };
 
+    // If there are no published posts this month, the analyst agent would
+    // throw "postMetrics cannot be empty". Instead we return a structured
+    // empty-state response so the UI can show a friendly message.
+    if (posts.length === 0 && postMetrics.length === 0) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          summary: `No hay posts publicados en ${body.month}/${body.year}. Publica tu primer contenido para empezar a ver tus analíticas.`,
+          insights: [],
+          recommendations: [
+            { action: 'Publica tu primer post este mes para empezar a generar datos de rendimiento.', priority: 'high', estimatedImpact: 'Sin datos no es posible analizar el rendimiento.' },
+          ],
+          postMetrics: [],
+          accountMetrics,
+          communityMetrics,
+          plannerMetrics,
+          period: { month: body.month, year: body.year },
+        },
+      });
+    }
+
     const input: AnalystInput = {
       period: { month: body.month, year: body.year },
       postMetrics:     postMetrics.length ? postMetrics : [],
@@ -155,11 +168,9 @@ export async function POST(request: Request) {
     };
 
     const result = await runAnalystAgent(input, brandToAgentContext(typedBrand));
-    if (!result.success) return NextResponse.json({ error: result.error?.message }, { status: 500 });
+    if (!result.success) return NextResponse.json({ error: 'Error al procesar la solicitud' }, { status: 500 });
     return NextResponse.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'POST /api/agents/analyst');
   }
 }

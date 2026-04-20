@@ -47,15 +47,31 @@
   "nav": {
     "dashboard": "Home",
     "newPost": "New post",
+    "posts": "Posts",
     "calendar": "Calendar",
     "ideas": "Ideas",
+    "myFeed": "My feed",
+    "inspiration": "Inspiration",
     "comments": "Comments",
     "analytics": "Analytics",
+    "history": "History",
+    "news": "News",
+    "chat": "Chat",
+    "requests": "Requests",
+    "support": "Support",
     "brandKit": "Brand Kit",
     "competition": "Competition",
     "trends": "Trends",
     "settings": "Settings",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "logout": "Sign out",
+    "statusPage": "Service status",
+    "groups": {
+      "content": "CONTENT",
+      "management": "MANAGEMENT",
+      "team": "NEUROPOST TEAM",
+      "brand": "BRAND"
+    }
   },
   "auth": {
     "login": {
@@ -78,6 +94,8 @@
     "register": {
       "title": "Create your account",
       "subtitle": "Start managing your social media with AI",
+      "titleAlt": "Create your account",
+      "subtitleAlt": "Start free. No credit card.",
       "name": "Full name",
       "email": "Email",
       "password": "Password",
@@ -87,9 +105,26 @@
       "privacyLink": "privacy policy",
       "submit": "Create account →",
       "loading": "Creating account...",
+      "creating": "Creating account...",
+      "createFree": "Create free account",
       "hasAccount": "Already have an account?",
       "login": "Sign in",
       "trial": "14 days free · No credit card required",
+      "passwordInvalid": "Password doesn't meet requirements.",
+      "checkEmail": "Check your email to confirm your account!",
+      "rules": {
+        "min8": "Minimum 8 characters",
+        "uppercase": "1 uppercase letter",
+        "lowercase": "1 lowercase letter",
+        "number": "1 number",
+        "special": "1 special character (!@#$…)"
+      },
+      "strength": {
+        "weak": "Very weak",
+        "fair": "Weak",
+        "good": "Good",
+        "strong": "Strong"
+      },
       "errors": {
         "nameRequired": "Name is required",
         "emailInvalid": "Invalid email address",
@@ -103,8 +138,32 @@
       "subtitle": "We'll send a link to your email",
       "email": "Email",
       "submit": "Send link",
+      "loading": "Sending...",
+      "backToLogin": "Back to login",
+      "sentMessage": "✅ We've sent you an email with the link to reset your password. Check your inbox (and spam folder).",
       "success": "Check your inbox",
       "successDetail": "We've sent you a link to reset your password"
+    },
+    "resetPassword": {
+      "title": "New password",
+      "subtitle": "Enter your new password. Minimum 8 characters.",
+      "newPassword": "New password",
+      "confirm": "Confirm password",
+      "saving": "Saving...",
+      "submit": "Save password",
+      "updated": "Password updated successfully",
+      "noMatch": "Passwords don't match"
+    },
+    "acceptInvite": {
+      "loading": "Processing invitation…",
+      "success": "Welcome to the team!",
+      "error": "Invalid invitation",
+      "idle": "Team invitation",
+      "checking": "Checking your invitation…",
+      "redirecting": "Redirecting to dashboard…",
+      "accepted": "Invitation accepted! You now have access to the team.",
+      "invalidLink": "Invalid invitation link.",
+      "goToLogin": "Go to login"
     }
   },
   "onboarding": {
@@ -163,17 +222,32 @@
     "metrics": {
       "published": "Published this month",
       "scheduled": "Scheduled",
-      "pending": "Pending approval",
+      "pending": "Proposals to review",
       "plan": "Plan"
     },
     "sections": {
-      "pendingApproval": "{count} post pending approval|{count} posts pending approval",
-      "pendingSubtitle": "Review and approve them so the AI publishes them on schedule",
-      "pendingAction": "Review posts →",
+      "contentHub": "Your content",
+      "pendingApproval": "{count} team proposal|{count} team proposals",
+      "pendingSubtitle": "Your team has processed these requests. Review them, accept or ask for another version.",
+      "pendingAction": "View proposals",
       "upcomingDates": "Upcoming important dates",
       "quickActions": "Quick actions",
       "recentPosts": "Recent posts",
       "planUsage": "Plan usage this month"
+    },
+    "modes": {
+      "auto": {
+        "title": "Automatic",
+        "description": "Every week we generate content proposals tailored to your business, trends and season. Just approve."
+      },
+      "request": {
+        "title": "Request",
+        "description": "Ask for what you need: edits, promos, carousels. Upload your photos or use saved inspiration."
+      },
+      "selfService": {
+        "title": "Create yourself",
+        "description": "Use our editing tools, idea generation and inspiration library to create your own content."
+      }
     },
     "planLimit": {
       "nearLimit": "Almost at the limit — {remaining} posts remaining",
@@ -196,6 +270,23 @@
   },
   "posts": {
     "title": "Posts",
+    "subtitle": "Manage all your content",
+    "noCaption": "No caption",
+    "formats": {
+      "image": "Image",
+      "reel": "Reel",
+      "carousel": "Carousel",
+      "story": "Story"
+    },
+    "goals": {
+      "promotion": "Promotion",
+      "community": "Community"
+    },
+    "generating": "Generating...",
+    "empty": {
+      "title": "No posts",
+      "subtitle": "Create your first post with AI"
+    },
     "new": {
       "title": "New post",
       "generateButton": "✦ Generate with AI",
@@ -212,6 +303,8 @@
       }
     },
     "status": {
+      "all": "All",
+      "request": "In progress",
       "draft": "Draft",
       "generated": "Generated",
       "pending": "Pending",
@@ -245,14 +338,48 @@
   },
   "ideas": {
     "title": "Content ideas",
+    "subtitle": "Describe what you want to publish and we'll prepare complete ideas",
     "placeholder": "Ask for ideas for your business...",
-    "generate": "Generate ideas",
+    "inputPlaceholder": "E.g.: Summer ideas, August promos, special recipes...",
+    "sectorLabel": "Ideas for your sector",
+    "campaignsLabel": "Preset campaigns",
+    "generate": "Generate",
+    "generating": "Generating...",
+    "ideasCount": "{count} ideas ready",
+    "regenerate": "Regenerate",
+    "copy": "Copy",
+    "copied": "Caption copied",
+    "anyTime": "Any time",
+    "emptyTitle": "Ready to inspire you",
+    "emptySub": "Write an idea, use a preset campaign or choose a suggestion from your sector",
     "addToCalendar": "Add to calendar",
     "createPost": "Create post",
-    "empty": "Tell me about your business and I'll give you ideas →"
+    "empty": "Tell me about your business and I'll give you ideas →",
+    "campaigns": {
+      "summer": "Summer campaign",
+      "valentines": "Valentine's Day",
+      "backToSchool": "Back to school",
+      "blackFriday": "Black Friday",
+      "christmas": "Christmas",
+      "newYear": "New Year",
+      "loyalty": "Loyalty",
+      "launch": "Product launch"
+    }
   },
   "comments": {
     "title": "Comments",
+    "communityTitle": "Community",
+    "communitySubtitle": "Manage comments and messages with AI",
+    "processAI": "Process with AI",
+    "processing": "Processing…",
+    "stats": {
+      "total": "Total",
+      "autoReplied": "Auto-replied",
+      "escalated": "Escalated",
+      "sentiment": "Sentiment"
+    },
+    "aiSummary": "AI Summary",
+    "analyzed": "{count} interactions analyzed",
     "filters": {
       "unread": "Unread", "all": "All", "replied": "Replied",
       "negative": "Negative", "escalated": "Escalated"
@@ -269,6 +396,19 @@
   },
   "analytics": {
     "title": "Analytics",
+    "subtitle": "Monthly performance report",
+    "generate": "Generate report",
+    "generated": "Report generated",
+    "generating": "Generating…",
+    "whatWorking": "What's working?",
+    "keepDoing": "Keep doing this",
+    "stopDoing": "Stop doing this",
+    "opportunities": "Opportunities",
+    "noDataTitle": "No data",
+    "noDataSub": "Select the month and generate the AI report to see what's working",
+    "noInsights": "Not enough data this month",
+    "noImprove": "Nothing to improve detected",
+    "noOpps": "No opportunities detected",
     "period": {
       "thisMonth": "This month", "lastMonth": "Last month", "last3Months": "Last 3 months"
     },
@@ -288,6 +428,8 @@
   },
   "brandKit": {
     "title": "Brand Kit",
+    "subtitle": "Define the visual elements and tone of your brand",
+    "needOnboarding": "Complete onboarding first",
     "sections": {
       "identity": "Identity", "colors": "Colors", "fonts": "Fonts",
       "voice": "Brand voice", "slogans": "Slogans", "hashtags": "Favourite hashtags",
@@ -298,36 +440,39 @@
   },
   "settings": {
     "title": "Settings",
-    "sections": {
-      "account": "My account", "plan": "My plan", "connections": "Connections",
-      "notifications": "Notifications", "publishRules": "Publish rules",
-      "team": "Team", "privacy": "Privacy", "language": "Language"
+    "subtitle": "Configure your business, publishing mode and rules",
+    "saving": "Saving...",
+    "sections": { "account": "My account", "plan": "My plan", "connections": "Connections", "notifications": "Notifications", "publishRules": "Publishing rules", "team": "Team", "privacy": "Privacy", "language": "Language" },
+    "nav": { "business": "Business", "visualStyle": "Visual style", "publishMode": "Publishing", "rules": "Rules", "social": "Social media", "export": "Export data", "plan": "Plan", "account": "Account", "team": "Team" },
+    "business": { "title": "Business information", "name": "Business name", "location": "Location", "sector": "Sector", "tone": "Communication tone" },
+    "visualStyle": { "title": "Visual style", "subtitle": "The AI will adapt editing, emojis and content type based on this style", "note": "Changing the style affects new content only. Already published content won't change." },
+    "publishMode": { "title": "Publishing mode", "subtitle": "Choose how you want us to manage publishing your content" },
+    "rules": { "title": "Content rules", "noPublishDays": "No-publish days", "noPublishNote": "Won't publish on {days}", "forbiddenWords": "Forbidden words", "forbiddenTopics": "Forbidden topics", "noEmojis": "No emojis", "noEmojisDesc": "The AI won't use emojis in content", "noAutoReply": "Don't auto-reply to negative comments", "noAutoReplyDesc": "They will be escalated for manual review" },
+    "notifSection": { "title": "Email notifications", "subtitle": "Choose which events we notify you about by email.", "publishTitle": "Publishing notifications", "publishDesc": "Receive an email when a post is published", "commentsTitle": "Comment notifications", "commentsDesc": "Receive an email when a new comment arrives", "save": "Save notifications" },
+    "social": { "title": "Social media", "notConnected": "Not connected", "tokenExpires": "Token expires:" },
+    "export": { "title": "Export data", "subtitle": "Download all your posts in your preferred format.", "json": "Export JSON", "csv": "Export CSV" },
+    "billing": { "title": "Plan & billing", "manageSubscription": "Manage subscription", "upgradeTitle": "Upgrade to Pro", "upgradeDesc": "Unlock unlimited posts, automatic publishing and more for €29/month.", "upgradeCTA": "Upgrade to Pro — €29/month", "agencyCTA": "Agency — €79/month" },
+    "account": { "title": "Account", "name": "Full name", "email": "Account email", "password": "Password", "timezone": "Timezone", "saveChanges": "Save changes", "saved": "Changes saved ✓", "changePassword": "Change password", "newPassword": "New password", "confirmPassword": "Confirm password", "changingPassword": "Changing...", "dangerZone": "Danger zone", "dangerDesc": "Deleting your account will permanently delete all your data, posts and settings. This action cannot be undone.", "deleteAccount": "Delete my account", "deleteConfirmPrompt": "Type DELETE to confirm:", "deleteConfirmWord": "DELETE", "deleteConfirmBtn": "Permanently delete account", "deleting": "Deleting...", "cancel": "Cancel" },
+    "team": { "title": "Team", "subtitle": "Manage your team members and their permissions.", "manage": "Manage team →" },
+    "plan": { "current": "Current plan", "usage": "Usage this month", "postsUsed": "{used} of {limit} posts", "changePlan": "Change plan" },
+    "connections": { "instagram": "Instagram Business", "facebook": "Facebook Page", "connect": "Connect", "connected": "Connected", "disconnected": "Disconnected", "reconnect": "Reconnect" },
+    "styles": {
+      "creative": { "label": "Creative & Colourful", "desc": "Vibrant colours, emojis, dynamic text" },
+      "elegant":  { "label": "Elegant & Minimal",    "desc": "No emojis, short sophisticated phrases" },
+      "warm":     { "label": "Warm & Close",          "desc": "Friendly tone, informal, proximity" },
+      "dynamic":  { "label": "Dynamic & Modern",      "desc": "Short, imperative phrases, high energy" }
     },
-    "account": {
-      "name": "Full name", "email": "Email", "password": "Password",
-      "timezone": "Timezone", "saveChanges": "Save changes", "saved": "Changes saved ✓"
-    },
-    "plan": {
-      "current": "Current plan",
-      "usage": "Usage this month",
-      "postsUsed": "{used} of {limit} posts",
-      "changePlan": "Change plan"
-    },
-    "connections": {
-      "instagram": "Instagram Business", "facebook": "Facebook Page",
-      "connected": "Connected", "disconnected": "Disconnected",
-      "reconnect": "Reconnect"
-    },
-    "language": {
-      "title": "App language",
-      "subtitle": "Choose the language you want to use NeuroPost in",
-      "saved": "Language updated"
-    }
+    "language": { "title": "App language", "subtitle": "Choose the language you want to use NeuroPost in", "saved": "Language updated" }
   },
   "notifications": {
     "title": "Notifications",
     "markAllRead": "Mark all as read",
     "empty": "No new notifications",
+    "unread": "{count} unread",
+    "upToDate": "All caught up",
+    "emptyTitle": "No notifications",
+    "emptySub": "Approvals, posts, trends and comments will appear here",
+    "view": "View",
     "types": {
       "approval_needed": "Post pending approval",
       "published": "Post published successfully",
@@ -336,16 +481,38 @@
       "limit_reached": "You've reached your plan limit",
       "trend_detected": "New trend adapted to your business",
       "meta_connected": "Account connected successfully",
-      "token_expired": "Your Instagram connection has expired"
+      "token_expired": "Your Instagram connection has expired",
+      "payment_failed": "Payment failed",
+      "plan_activated": "Plan activated",
+      "team_invite": "Team invitation"
     }
   },
   "trends": {
     "title": "Trends",
+    "weekTitle": "This week's trends",
     "subtitle": "What's working in your sector this week",
+    "weekSubtitle": "Viral content adapted to your business",
+    "thisWeek": "This week ({count})",
+    "history": "History",
+    "loading": "Loading trends...",
+    "noNew": "No new trends this week.",
+    "autoDetect": "Detected automatically every Monday.",
     "viralScore": "Viral score",
+    "scoreViral": "Viral score",
+    "expiresIn": "Expires in:",
+    "using": "Creating...",
     "useTrend": "Use this trend",
+    "useTrendShort": "Use trend",
+    "used": "✓ Used",
+    "ignored": "✗ Ignored",
     "ignore": "Ignore",
-    "empty": "Detecting trends for this week..."
+    "empty": "Detecting trends for this week...",
+    "newCount": "{count} new",
+    "urgency": {
+      "alta": "High",
+      "media": "Medium",
+      "baja": "Low"
+    }
   },
   "errors": {
     "generic": "Something went wrong. We've logged it.",

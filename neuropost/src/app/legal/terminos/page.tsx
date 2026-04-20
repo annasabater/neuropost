@@ -8,15 +8,17 @@ export const metadata: Metadata = {
 /* ─── Shared legal style tokens ─────────────────────────────────────────────── */
 const s = {
   page: {
-    padding: '60px 0 80px',
-    background: 'var(--cream)',
+    padding: '64px 0 90px',
+    background: '#ffffff',
     minHeight: '100vh',
   } as React.CSSProperties,
   breadcrumb: {
-    fontFamily: "'Cabinet Grotesk', sans-serif",
-    fontSize: '0.85rem',
+    fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+    fontSize: '12px',
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
     color: 'var(--muted)',
-    marginBottom: '40px',
+    marginBottom: '36px',
     display: 'flex',
     alignItems: 'center',
     gap: '6px',
@@ -27,40 +29,43 @@ const s = {
     fontWeight: 600,
   } as React.CSSProperties,
   hero: {
-    marginBottom: '56px',
-    paddingBottom: '40px',
+    marginBottom: '52px',
+    paddingBottom: '32px',
     borderBottom: '1px solid var(--border)',
   } as React.CSSProperties,
   heroTitle: {
-    fontFamily: "'Cabinet Grotesk', sans-serif",
+    fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif",
     fontWeight: 900,
-    fontSize: 'clamp(2rem, 4vw, 2.8rem)',
+    fontSize: 'clamp(2.1rem, 4.4vw, 3.1rem)',
     color: 'var(--ink)',
-    letterSpacing: '-0.04em',
-    lineHeight: 1.1,
-    marginBottom: '16px',
+    textTransform: 'uppercase',
+    letterSpacing: '-0.01em',
+    lineHeight: 0.95,
+    marginBottom: '14px',
   } as React.CSSProperties,
   heroMeta: {
-    fontFamily: "'Cabinet Grotesk', sans-serif",
-    fontSize: '0.88rem',
+    fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+    fontSize: '14px',
     color: 'var(--muted)',
+    lineHeight: 1.7,
   } as React.CSSProperties,
   section: {
-    marginBottom: '48px',
+    marginBottom: '40px',
   } as React.CSSProperties,
   sectionTitle: {
-    fontFamily: "'Cabinet Grotesk', sans-serif",
+    fontFamily: "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif",
     fontWeight: 800,
-    fontSize: '1.2rem',
+    fontSize: '1.6rem',
     color: 'var(--ink)',
-    marginBottom: '16px',
-    letterSpacing: '-0.02em',
+    marginBottom: '12px',
+    letterSpacing: '0.01em',
+    textTransform: 'uppercase',
   } as React.CSSProperties,
   paragraph: {
-    fontFamily: "'Literata', Georgia, serif",
-    fontSize: '1rem',
+    fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+    fontSize: '15px',
     color: 'var(--ink)',
-    lineHeight: '1.8',
+    lineHeight: '1.75',
     marginBottom: '12px',
   } as React.CSSProperties,
   list: {
@@ -68,10 +73,10 @@ const s = {
     marginBottom: '12px',
   } as React.CSSProperties,
   listItem: {
-    fontFamily: "'Literata', Georgia, serif",
-    fontSize: '1rem',
+    fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+    fontSize: '15px',
     color: 'var(--ink)',
-    lineHeight: '1.8',
+    lineHeight: '1.75',
     marginBottom: '4px',
   } as React.CSSProperties,
   divider: {
@@ -136,7 +141,7 @@ export default function TerminosPage() {
           <p style={s.paragraph}>
             NeuroPost ofrece distintos planes de suscripción con diferentes funcionalidades y límites de uso. Los precios
             actualizados y las características de cada plan están disponibles en la{' '}
-            <Link href="/#precios" style={{ color: 'var(--orange)' }}>página de precios</Link>.
+            <Link href="/pricing" style={{ color: 'var(--orange)' }}>página de precios</Link>.
           </p>
           <p style={s.paragraph}>
             Los precios se indican en euros (€) e incluyen el IVA aplicable. NeuroPost se reserva el derecho de modificar sus
@@ -151,7 +156,7 @@ export default function TerminosPage() {
           <ul style={s.list}>
             <li style={s.listItem}><strong>Cancela cuando quieras:</strong> puedes cancelar tu suscripción en cualquier momento desde el panel de configuración, sin permanencia mínima ni penalización.</li>
             <li style={s.listItem}><strong>Sin reembolso del mes en curso:</strong> al cancelar, mantendrás el acceso al servicio hasta el final del período de facturación en curso. No se realizan reembolsos proporcionales por los días no utilizados.</li>
-            <li style={s.listItem}><strong>Período de prueba:</strong> todos los planes incluyen 14 días de prueba gratuita sin necesidad de tarjeta de crédito. Al finalizar el período de prueba, el servicio quedará suspendido hasta que introduzcas un método de pago válido.</li>
+            <li style={s.listItem}><strong>Acceso al servicio:</strong> el acceso al servicio está condicionado a la contratación de un plan de pago. Al registrarte, podrás explorar la plataforma hasta completar la suscripción.</li>
           </ul>
         </div>
         <div style={s.divider} />

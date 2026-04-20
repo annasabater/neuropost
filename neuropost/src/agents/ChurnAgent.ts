@@ -75,7 +75,7 @@ export async function generateRetentionEmail(input: {
   const tone = input.churnRisk === 'critical' ? 'urgente y personal' : 'amigable y motivador';
 
   const message = await client.messages.create({
-    model:      'claude-opus-4-6',
+    model:      'claude-haiku-4-5-20251001',
     max_tokens: 800,
     system: `Eres el equipo de éxito de clientes de NeuroPost, un SaaS de gestión de redes sociales con IA.
 Escribe un email de retención ${tone} para un cliente que está dejando de usar la plataforma.

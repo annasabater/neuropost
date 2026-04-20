@@ -15,31 +15,39 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const supabase = createBrowserClient();
 
     async function loadBrand() {
+      // getUser() validates the JWT server-side — safer than getSession()
+      // If the refresh token is invalid it returns an error (no exception thrown)
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
+        setBrand(null);
+        setBrandLoading(false);
+        // If the token is genuinely invalid, sign out cleanly to clear stale cookies
+        if (error?.message?.includes('Refresh Token')) {
+          await supabase.auth.signOut();
+          window.location.replace('/login');
+        }
+        return;
+      }
       setBrandLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('brands')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-        setBrand(data ?? null);
+      try {
+        const res = await fetch('/api/brands');
+        if (res.ok) {
+          const json = await res.json();
+          setBrand(json.brand ?? null);
+        } else {
+          setBrand(null);
+        }
+      } catch {
+        setBrand(null);
       }
       setBrandLoading(false);
     }
 
     loadBrand();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session?.user) {
-        setBrandLoading(true);
-        const { data } = await supabase
-          .from('brands')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single();
-        setBrand(data ?? null);
-        setBrandLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        loadBrand();
       }
       if (event === 'SIGNED_OUT') {
         setBrand(null);
@@ -57,12 +65,13 @@ export function Providers({ children }: { children: React.ReactNode }) {
         position="bottom-right"
         toastOptions={{
           style: {
-            background: '#0f0e0c',
-            color: '#faf8f3',
+            background: '#0e1018',
+            color: '#e8edf8',
             fontFamily: "'Cabinet Grotesk', sans-serif",
             fontSize: '14px',
             fontWeight: '600',
             borderRadius: '10px',
+            border: '1px solid #1a1d2e',
           },
         }}
       />

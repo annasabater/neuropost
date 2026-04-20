@@ -1,16 +1,20 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { ExternalLink, RefreshCw, Trash2 } from 'lucide-react';
+import { useAppStore } from '@/store/useAppStore';
+
+const f  = "var(--font-barlow), 'Barlow', sans-serif";
+const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 interface AccountStatus {
   accountId?:        string;
   pageId?:           string;
   username?:         string | null;
   pageName?:         string | null;
-  tokenStatus:       'ok' | 'expiring_soon' | 'expired' | 'missing';
+  openId?:           string;
+  tokenStatus:       'ok' | 'valid' | 'expiring_soon' | 'expired' | 'missing' | 'unknown';
   daysLeft:          number | null;
   expiresAt:         string | null;
   tokenRefreshedAt?: string | null;
@@ -19,188 +23,244 @@ interface AccountStatus {
 interface ConnectionStatus {
   instagram: AccountStatus | null;
   facebook:  AccountStatus | null;
+  tiktok:    AccountStatus | null;
 }
 
 function StatusBadge({ status }: { status: AccountStatus['tokenStatus'] }) {
-  const map = {
-    ok:            { label: 'Conectado',    bg: '#e6f9f0', color: '#1a7a45' },
+  const map: Record<string, { label: string; bg: string; color: string }> = {
+    ok:            { label: 'Conectado',     bg: '#e6f9f0', color: '#1a7a45' },
+    valid:         { label: 'Conectado',     bg: '#e6f9f0', color: '#1a7a45' },
     expiring_soon: { label: 'Expira pronto', bg: '#fff8e1', color: '#b45309' },
-    expired:       { label: 'Token expirado', bg: '#fff0f0', color: '#dc2626' },
+    expired:       { label: 'Token expirado',bg: '#fff0f0', color: '#dc2626' },
     missing:       { label: 'Sin conectar',  bg: '#f5f5f5', color: '#777' },
+    unknown:       { label: 'Sin conectar',  bg: '#f5f5f5', color: '#777' },
   };
-  const s = map[status];
+  const s = map[status] ?? map.missing;
   return (
-    <span style={{ background: s.bg, color: s.color, padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 700 }}>
+    <span style={{ background: s.bg, color: s.color, padding: '3px 10px', fontSize: 11, fontWeight: 700, fontFamily: f }}>
       {s.label}
     </span>
   );
 }
 
-export default function ConnectionsPage() {
-  const [status,  setStatus]  = useState<ConnectionStatus | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [disconnecting, setDisconnecting] = useState(false);
+function PlatformCard({
+  emoji, name, description, capabilities, connected, status,
+  onConnect, onDisconnect, connectLabel, connectNote,
+}: {
+  emoji: string;
+  name: string;
+  description: string;
+  capabilities: string[];
+  connected: boolean;
+  status: AccountStatus | null;
+  onConnect: () => void;
+  onDisconnect: () => void;
+  connectLabel: string;
+  connectNote?: string;
+}) {
+  const [confirm, setConfirm] = useState(false);
 
-  async function fetchStatus() {
+  return (
+    <div className="settings-section" style={{ marginBottom: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: connected ? 16 : 8 }}>
+        <span style={{ fontSize: 22, lineHeight: 1 }}>{emoji}</span>
+        <h2 className="settings-section-title" style={{ margin: 0, fontFamily: fc }}>{name}</h2>
+        {status && <StatusBadge status={status.tokenStatus} />}
+      </div>
+
+      {connected && status ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {/* Account info */}
+          <p style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600, fontFamily: f }}>
+            {status.username ? `@${status.username}` : status.pageName ?? status.pageId ?? status.openId ?? 'Conectado'}
+          </p>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
+            {capabilities.map((c) => (
+              <span key={c} style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', background: '#e6f9f0', color: '#1a7a45', fontFamily: f }}>{c}</span>
+            ))}
+          </div>
+          {status.daysLeft !== null && (
+            <p style={{ fontSize: 13, color: 'var(--muted)', fontFamily: f }}>
+              Token válido {status.daysLeft > 0 ? `${status.daysLeft} días más` : '(expirado — reconecta)'}
+            </p>
+          )}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+            <button type="button" className="btn-outline" onClick={onConnect}>
+              <RefreshCw size={14} /> Reconectar
+            </button>
+            {!confirm ? (
+              <button type="button" className="btn-outline" onClick={() => setConfirm(true)}
+                style={{ color: '#dc2626', borderColor: '#dc2626', fontSize: 13 }}>
+                <Trash2 size={13} /> Desconectar
+              </button>
+            ) : (
+              <>
+                <button type="button" className="btn-outline" onClick={() => { onDisconnect(); setConfirm(false); }}
+                  style={{ color: '#dc2626', borderColor: '#dc2626', fontSize: 13 }}>
+                  Sí, desconectar
+                </button>
+                <button type="button" className="btn-outline" onClick={() => setConfirm(false)} style={{ fontSize: 13 }}>
+                  Cancelar
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div>
+          <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10, fontFamily: f }}>{description}</p>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+            {capabilities.map((c) => (
+              <span key={c} style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', background: 'var(--bg-1)', color: 'var(--ink)', border: '1px solid var(--border)', fontFamily: f }}>{c}</span>
+            ))}
+          </div>
+          <button type="button" className="btn-primary" onClick={onConnect}>
+            <ExternalLink size={14} /> {connectLabel}
+          </button>
+          {connectNote && (
+            <p style={{ fontSize: 12, color: 'var(--muted)', marginTop: 8, fontFamily: f }}>{connectNote}</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function ConnectionsPage() {
+  const setBrand = useAppStore((s) => s.setBrand);
+  const [status,  setStatus]  = useState<ConnectionStatus>({ instagram: null, facebook: null, tiktok: null });
+  const [loading, setLoading] = useState(true);
+
+  const fetchStatus = useCallback(async () => {
     setLoading(true);
     try {
-      const res  = await fetch('/api/meta/status');
-      const json = await res.json();
-      setStatus(json);
+      const [metaRes, ttRes, brandRes] = await Promise.all([
+        fetch('/api/meta/status'),
+        fetch('/api/tiktok/status'),
+        fetch('/api/brands'),
+      ]);
+      const meta = await metaRes.json() as { instagram?: AccountStatus | null; facebook?: AccountStatus | null };
+      const tt   = await ttRes.json()  as { connected?: boolean; username?: string; openId?: string; daysLeft?: number; tokenStatus?: string };
+      const brandJson = brandRes.ok
+        ? await brandRes.json() as { brand?: Parameters<typeof setBrand>[0] }
+        : null;
+
+      setStatus({
+        instagram: meta.instagram ?? null,
+        facebook:  meta.facebook  ?? null,
+        tiktok:    tt.connected
+          ? { openId: tt.openId, username: tt.username, tokenStatus: (tt.tokenStatus ?? 'valid') as AccountStatus['tokenStatus'], daysLeft: tt.daysLeft ?? null, expiresAt: null }
+          : null,
+      });
+
+      if (brandJson?.brand !== undefined) {
+        setBrand(brandJson.brand ?? null);
+      }
     } finally {
       setLoading(false);
     }
-  }
+  }, [setBrand]);
 
-  useEffect(() => { fetchStatus(); }, []);
+  useEffect(() => { void fetchStatus(); }, [fetchStatus]);
 
-  async function connectMeta() {
-    const res  = await fetch('/api/meta/oauth-url');
-    const json = await res.json();
-    if (json.url) window.location.href = json.url;
-  }
-
-  async function disconnect() {
-    if (!confirm('¿Seguro que quieres desconectar tus cuentas de Instagram y Facebook?')) return;
-    setDisconnecting(true);
+  async function connectInstagram() {
     try {
-      await fetch('/api/meta/status', { method: 'DELETE' });
-      toast.success('Cuentas desconectadas');
-      fetchStatus();
-    } catch {
-      toast.error('Error al desconectar');
-    } finally {
-      setDisconnecting(false);
+      const res = await fetch('/api/meta/instagram-auth-url');
+      const json = await res.json() as { url?: string; error?: string };
+      if (!res.ok || !json.url) throw new Error(json.error ?? 'No se pudo iniciar la conexión con Instagram');
+      window.location.href = json.url;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al conectar Instagram');
     }
   }
 
-  const anyConnected = status?.instagram || status?.facebook;
+  async function connectFacebook() {
+    try {
+      const res = await fetch('/api/meta/oauth-url?source=facebook');
+      const json = await res.json() as { url?: string; error?: string };
+      if (!res.ok || !json.url) throw new Error(json.error ?? 'No se pudo iniciar la conexión con Facebook');
+      window.location.href = json.url;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al conectar Facebook');
+    }
+  }
+
+  async function connectTikTok() {
+    try {
+      const res = await fetch('/api/tiktok/auth-url');
+      const json = await res.json() as { url?: string; error?: string };
+      if (!res.ok || !json.url) throw new Error(json.error ?? 'No se pudo iniciar la conexión con TikTok');
+      window.location.href = json.url;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Error al conectar TikTok');
+    }
+  }
+
+  async function disconnectMeta() {
+    await fetch('/api/meta/status', { method: 'DELETE' });
+    toast.success('Instagram y Facebook desconectados');
+    fetchStatus();
+  }
+
+  async function disconnectTikTok() {
+    await fetch('/api/tiktok/status', { method: 'DELETE' });
+    toast.success('TikTok desconectado');
+    fetchStatus();
+  }
 
   return (
     <div className="page-content">
       <div className="page-header">
         <div className="page-header-text">
           <h1 className="page-title">Conexiones</h1>
-          <p className="page-sub">Conecta tus cuentas de Instagram y Facebook</p>
+          <p className="page-sub">Conecta tus redes sociales para publicar directamente desde NeuroPost</p>
         </div>
-        <Link href="/settings" style={{ fontSize: 13, color: 'var(--muted)' }}>← Ajustes</Link>
       </div>
 
       {loading ? (
-        <p style={{ color: 'var(--muted)' }}>Cargando estado de conexiones...</p>
+        <p style={{ color: 'var(--muted)', fontFamily: f }}>Cargando estado de conexiones...</p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           {/* Instagram */}
-          <div className="settings-section" style={{ marginBottom: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: status?.instagram ? 16 : 0 }}>
-              <span style={{ fontSize: 20, lineHeight: 1 }}>📷</span>
-              <h2 className="settings-section-title" style={{ margin: 0 }}>Instagram Business</h2>
-              {status?.instagram && <StatusBadge status={status.instagram.tokenStatus} />}
-            </div>
-
-            {status?.instagram ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <p style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600 }}>
-                  {status.instagram.username
-                    ? `Cuenta: @${status.instagram.username}`
-                    : `Cuenta: @${status.instagram.accountId}`}
-                </p>
-                {status.instagram.daysLeft !== null && (
-                  <p style={{ fontSize: 13, color: 'var(--muted)' }}>
-                    Token válido {status.instagram.daysLeft > 0
-                      ? `${status.instagram.daysLeft} días más`
-                      : '(expirado)'}
-                  </p>
-                )}
-                {status.instagram.tokenRefreshedAt && (
-                  <p style={{ fontSize: 12, color: 'var(--muted)' }}>
-                    Última actualización: {new Date(status.instagram.tokenRefreshedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                )}
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button className="btn-outline" onClick={connectMeta} style={{ alignSelf: 'flex-start' }}>
-                    <RefreshCw size={14} /> Reconectar
-                  </button>
-                  <button className="btn-primary" onClick={connectMeta} style={{ alignSelf: 'flex-start' }}>
-                    <ExternalLink size={14} /> Conectar otra cuenta
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ marginTop: 8 }}>
-                <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
-                  Necesitas una cuenta de Instagram Business o Creator vinculada a una página de Facebook.
-                </p>
-                <button className="btn-primary" onClick={connectMeta}>
-                  <ExternalLink size={14} /> Conectar Instagram
-                </button>
-              </div>
-            )}
-          </div>
+          <PlatformCard
+            emoji="📷" name="Instagram"
+            description="Conecta tu cuenta Business o Creator para publicar fotos, vídeos y reels."
+            capabilities={['Fotos', 'Vídeos', 'Reels', 'Carruseles', 'Historias']}
+            connected={!!status.instagram}
+            status={status.instagram}
+            onConnect={connectInstagram}
+            onDisconnect={disconnectMeta}
+            connectLabel="Conectar con Instagram"
+            connectNote="Necesitas cuenta Business o Creator (puedes cambiarlo gratis desde la app de Instagram)."
+          />
 
           {/* Facebook */}
-          <div className="settings-section" style={{ marginBottom: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: status?.facebook ? 16 : 0 }}>
-              <span style={{ fontSize: 20, lineHeight: 1 }}>👍</span>
-              <h2 className="settings-section-title" style={{ margin: 0 }}>Facebook Page</h2>
-              {status?.facebook && <StatusBadge status={status.facebook.tokenStatus} />}
-            </div>
+          <PlatformCard
+            emoji="📘" name="Facebook"
+            description="Conecta tu Página de Facebook para publicar fotos y vídeos directamente."
+            capabilities={['Fotos', 'Vídeos', 'Posts de texto']}
+            connected={!!status.facebook}
+            status={status.facebook}
+            onConnect={connectFacebook}
+            onDisconnect={disconnectMeta}
+            connectLabel="Conectar con Facebook"
+            connectNote="Necesitas ser administrador de una Página de Facebook (no perfil personal)."
+          />
 
-            {status?.facebook ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <p style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 600 }}>
-                  {status.facebook.pageName
-                    ? `Página: ${status.facebook.pageName}`
-                    : `Página ID: ${status.facebook.pageId}`}
-                </p>
-                {status.facebook.daysLeft !== null && (
-                  <p style={{ fontSize: 13, color: 'var(--muted)' }}>
-                    Token válido {status.facebook.daysLeft > 0
-                      ? `${status.facebook.daysLeft} días más`
-                      : '(expirado)'}
-                  </p>
-                )}
-                {status.facebook.tokenRefreshedAt && (
-                  <p style={{ fontSize: 12, color: 'var(--muted)' }}>
-                    Última actualización: {new Date(status.facebook.tokenRefreshedAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                  </p>
-                )}
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <button className="btn-outline" onClick={connectMeta} style={{ alignSelf: 'flex-start' }}>
-                    <RefreshCw size={14} /> Reconectar
-                  </button>
-                  <button className="btn-primary" onClick={connectMeta} style={{ alignSelf: 'flex-start' }}>
-                    <ExternalLink size={14} /> Conectar otra página
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div style={{ marginTop: 8 }}>
-                <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
-                  Conecta con el mismo botón de Instagram — ambas cuentas se conectan juntas a través de Facebook Login.
-                </p>
-                <button className="btn-outline" onClick={connectMeta}>
-                  <ExternalLink size={14} /> Conectar mediante Facebook
-                </button>
-              </div>
-            )}
-          </div>
+          {/* TikTok */}
+          <PlatformCard
+            emoji="🎵" name="TikTok"
+            description="Conecta tu cuenta de TikTok para publicar vídeos directamente. Solo compatible con el formato Reel."
+            capabilities={['Vídeos', 'Reels']}
+            connected={!!status.tiktok}
+            status={status.tiktok}
+            onConnect={connectTikTok}
+            onDisconnect={disconnectTikTok}
+            connectLabel="Conectar con TikTok"
+            connectNote="Solo se pueden publicar vídeos (no fotos ni carruseles). La cuenta debe ser Business o Creator."
+          />
 
-          {/* Disconnect all */}
-          {anyConnected && (
-            <div style={{ marginTop: 8 }}>
-              <button
-                className="btn-outline"
-                onClick={disconnect}
-                disabled={disconnecting}
-                style={{ color: 'var(--red, #dc2626)', borderColor: 'var(--red, #dc2626)', fontSize: 13 }}
-              >
-                <Trash2 size={13} />
-                {disconnecting ? 'Desconectando...' : 'Desconectar todas las cuentas'}
-              </button>
-            </div>
-          )}
         </div>
       )}
     </div>

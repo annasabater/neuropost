@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { Bell, Menu, Plus } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
 import { PLAN_LIMITS } from '@/types';
-import { ThemeToggle } from './ThemeToggle';
-import { LanguageSelector } from '@/components/ui/LanguageSelector';
 
 export function TopNav() {
   const toggleSidebar       = useAppStore((s) => s.toggleSidebar);
@@ -38,28 +36,28 @@ export function TopNav() {
             alignItems:  'center',
             gap:         8,
             padding:     '5px 12px',
-            borderRadius: 20,
-            background:  nearLimit ? '#fef2f2' : 'var(--surface)',
-            border:      `1px solid ${nearLimit ? '#fca5a5' : 'var(--border)'}`,
-            fontSize:    '0.78rem',
+            borderRadius: 'var(--r-full)',
+            background:  nearLimit ? 'var(--red-dim)' : 'var(--surface-2)',
+            border:      `1px solid ${nearLimit ? 'rgba(239,68,68,0.2)' : 'var(--border)'}`,
+            fontSize:    '12px',
             fontFamily:  "'Cabinet Grotesk', sans-serif",
             fontWeight:  600,
-            color:       nearLimit ? '#dc2626' : 'var(--muted)',
+            color:       nearLimit ? 'var(--red)' : 'var(--text-2)',
             cursor:      'default',
           }}
         >
-          <div style={{ width: 56, height: 6, borderRadius: 4, background: 'var(--border)', overflow: 'hidden' }}>
+          <div style={{ width: 56, height: 3, borderRadius: 2, background: 'var(--surface-3)', overflow: 'hidden' }}>
             <div style={{
               height:     '100%',
               width:      `${pct}%`,
-              borderRadius: 4,
-              background:  pct >= 100 ? '#dc2626' : pct >= 80 ? '#d97706' : 'var(--orange)',
+              borderRadius: 2,
+              background:  pct >= 100 ? 'var(--red)' : pct >= 80 ? 'var(--yellow)' : 'linear-gradient(90deg, var(--orange), #14B8A6)',
               transition:  'width 0.3s ease',
             }} />
           </div>
-          <span>{used}/{limit} posts</span>
+          <span>{used}/{limit}</span>
           {nearLimit && (
-            <Link href="/settings/plan" style={{ color: '#dc2626', textDecoration: 'none', fontWeight: 700 }}>
+            <Link href="/settings/plan" style={{ color: 'var(--orange)', textDecoration: 'none', fontWeight: 700, fontSize: '11px' }}>
               Ampliar →
             </Link>
           )}
@@ -67,15 +65,7 @@ export function TopNav() {
       )}
 
       <div className="topbar-actions">
-        <Link href="/posts/new" className="btn-primary btn-orange topbar-new-btn">
-          <Plus size={16} />
-          <span>Nuevo post</span>
-        </Link>
-
-        <LanguageSelector />
-        <ThemeToggle />
-
-        <Link href="/notifications" className="topbar-icon-btn" aria-label="Notificaciones">
+        <Link href="/inbox?tab=notificaciones" className="topbar-icon-btn" aria-label="Notificaciones">
           <Bell size={18} />
           {unreadNotifications > 0 && (
             <span className="topbar-badge">{unreadNotifications}</span>

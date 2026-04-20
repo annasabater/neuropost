@@ -7,6 +7,12 @@ import { createHmac } from 'crypto';
 
 const GRAPH_BASE = 'https://graph.facebook.com/v19.0';
 
+function getRequiredEnv(name: 'META_APP_ID' | 'META_APP_SECRET' | 'META_REDIRECT_URI' | 'META_IG_REDIRECT_URI' | 'NEXTAUTH_SECRET'): string {
+  const value = process.env[name]?.trim();
+  if (!value) throw new Error(`Missing ${name} environment variable`);
+  return value;
+}
+
 // ─── Error ────────────────────────────────────────────────────────────────────
 
 export class MetaGraphError extends Error {
@@ -48,28 +54,29 @@ async function graphFetch<T>(
 
 const enc = new TextEncoder();
 
-export async function signMetaState(userId: string): Promise<string> {
-  const secret = enc.encode(process.env.NEXTAUTH_SECRET ?? 'neuropost-secret-key');
+export async function signMetaState(userId: string, source: 'instagram' | 'facebook' = 'instagram'): Promise<string> {
+  const secret = enc.encode(getRequiredEnv('NEXTAUTH_SECRET'));
   const key    = await crypto.subtle.importKey('raw', secret, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const ts     = Date.now().toString();
-  const data   = `${userId}.${ts}`;
+  const data   = `${userId}.${source}.${ts}`;
   const sig    = await crypto.subtle.sign('HMAC', key, enc.encode(data));
   const sigB64 = Buffer.from(sig).toString('base64url');
   return Buffer.from(`${data}.${sigB64}`).toString('base64url');
 }
 
-export async function verifyMetaState(state: string): Promise<string> {
+export async function verifyMetaState(state: string): Promise<{ userId: string; source: 'instagram' | 'facebook' }> {
   const decoded = Buffer.from(state, 'base64url').toString();
   const dots    = decoded.split('.');
-  if (dots.length !== 3) throw new Error('Invalid state format');
-  const [userId, ts, sigB64] = dots;
+  if (dots.length !== 4) throw new Error('Invalid state format');
+  const [userId, source, ts, sigB64] = dots as [string, 'instagram' | 'facebook', string, string];
+  if (source !== 'instagram' && source !== 'facebook') throw new Error('Invalid state source');
   if (Date.now() - parseInt(ts) > 30 * 60 * 1000) throw new Error('State expired');
-  const secret   = enc.encode(process.env.NEXTAUTH_SECRET ?? 'neuropost-secret-key');
+  const secret   = enc.encode(getRequiredEnv('NEXTAUTH_SECRET'));
   const key      = await crypto.subtle.importKey('raw', secret, { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
   const sigBytes = Buffer.from(sigB64, 'base64url');
-  const valid    = await crypto.subtle.verify('HMAC', key, sigBytes, enc.encode(`${userId}.${ts}`));
+  const valid    = await crypto.subtle.verify('HMAC', key, sigBytes, enc.encode(`${userId}.${source}.${ts}`));
   if (!valid) throw new Error('Invalid state signature');
-  return userId;
+  return { userId, source };
 }
 
 // ─── Webhook signature verification ──────────────────────────────────────────
@@ -87,8 +94,8 @@ export function verifyMetaWebhookSignature(payload: string, signature: string): 
 // ─── OAuth helpers ────────────────────────────────────────────────────────────
 
 export function getOAuthUrl(state: string): string {
-  const appId       = process.env.META_APP_ID       ?? '';
-  const redirectUri = process.env.META_REDIRECT_URI ?? '';
+  const appId       = getRequiredEnv('META_APP_ID');
+  const redirectUri = getRequiredEnv('META_REDIRECT_URI');
 
   const params = new URLSearchParams({
     client_id:     appId,
@@ -112,9 +119,9 @@ export function getOAuthUrl(state: string): string {
 }
 
 export async function exchangeCodeForToken(code: string): Promise<{ accessToken: string; expiresIn: number }> {
-  const appId       = process.env.META_APP_ID       ?? '';
-  const appSecret   = process.env.META_APP_SECRET   ?? '';
-  const redirectUri = process.env.META_REDIRECT_URI ?? '';
+  const appId       = getRequiredEnv('META_APP_ID');
+  const appSecret   = getRequiredEnv('META_APP_SECRET');
+  const redirectUri = getRequiredEnv('META_REDIRECT_URI');
 
   const result = await graphFetch<{ access_token: string; expires_in: number }>(
     `oauth/access_token?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&client_secret=${appSecret}&code=${code}`,
@@ -124,8 +131,8 @@ export async function exchangeCodeForToken(code: string): Promise<{ accessToken:
 }
 
 export async function getLongLivedToken(shortToken: string): Promise<{ accessToken: string; expiresIn: number }> {
-  const appId     = process.env.META_APP_ID     ?? '';
-  const appSecret = process.env.META_APP_SECRET ?? '';
+  const appId     = getRequiredEnv('META_APP_ID');
+  const appSecret = getRequiredEnv('META_APP_SECRET');
 
   const result = await graphFetch<{ access_token: string; expires_in: number }>(
     `oauth/access_token?grant_type=fb_exchange_token&client_id=${appId}&client_secret=${appSecret}&fb_exchange_token=${shortToken}`,
@@ -151,6 +158,16 @@ export interface IGBusinessAccount {
   username?: string;
 }
 
+export interface IGMediaItem {
+  id:            string;
+  caption?:      string;
+  media_type:    'IMAGE' | 'VIDEO' | 'CAROUSEL_ALBUM' | 'STORY' | string;
+  media_url?:    string;
+  thumbnail_url?: string;
+  permalink?:    string;
+  timestamp?:    string;
+}
+
 export async function getFacebookPages(userAccessToken: string): Promise<FacebookPage[]> {
   const result = await graphFetch<{ data: FacebookPage[] }>(
     `me/accounts?access_token=${userAccessToken}&fields=id,name,access_token`,
@@ -163,6 +180,13 @@ export async function getIGAccountFromPage(pageId: string, pageToken: string): P
     `${pageId}?fields=instagram_business_account%7Bid%2Cusername%7D&access_token=${pageToken}`,
   );
   return result.instagram_business_account ?? null;
+}
+
+export async function getIGFeedMedia(igAccountId: string, accessToken: string, limit = 9): Promise<IGMediaItem[]> {
+  const result = await graphFetch<{ data: IGMediaItem[] }>(
+    `${igAccountId}/media?fields=id,caption,media_type,media_url,thumbnail_url,permalink,timestamp&limit=${limit}&access_token=${accessToken}`,
+  );
+  return result.data ?? [];
 }
 
 // ─── Container polling ────────────────────────────────────────────────────────
@@ -323,6 +347,7 @@ export async function publishStoryToInstagram({
 
 // ─── Facebook Publishing ──────────────────────────────────────────────────────
 
+/** Publishes a photo post to a Facebook Page. */
 export async function publishToFacebook({
   pageId,
   imageUrl,
@@ -339,14 +364,203 @@ export async function publishToFacebook({
     {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ url: imageUrl, message: caption, access_token: accessToken, published: true }),
+      body:    JSON.stringify({
+        url:          imageUrl,
+        caption,
+        published:    true,
+        access_token: accessToken,
+      }),
     },
   );
 
-  const postId    = result.post_id ?? result.id;
-  const permalink = `https://www.facebook.com/${postId.replace('_', '/posts/')}`;
+  // photos endpoint returns { id, post_id } — post_id is the feed post, id is the photo
+  const postId = result.post_id ?? result.id;
+
+  // Fetch permalink from the post object
+  let permalink = '';
+  try {
+    const postData = await graphFetch<{ permalink_url?: string }>(
+      `${postId}?fields=permalink_url&access_token=${accessToken}`,
+    );
+    permalink = postData.permalink_url ?? '';
+  } catch {
+    // Non-fatal — permalink is cosmetic
+  }
 
   return { postId, permalink, publishedAt: new Date().toISOString() };
+}
+
+/** Publishes a video/reel to a Facebook Page. */
+export async function publishVideoToFacebook({
+  pageId,
+  videoUrl,
+  caption,
+  accessToken,
+}: {
+  pageId:      string;
+  videoUrl:    string;
+  caption:     string;
+  accessToken: string;
+}): Promise<MetaPublishResult> {
+  // Step 1 — Upload video (async processing on Meta side)
+  const upload = await graphFetch<{ id: string }>(
+    `${pageId}/videos`,
+    {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        file_url:     videoUrl,
+        description:  caption,
+        published:    true,
+        access_token: accessToken,
+      }),
+    },
+  );
+
+  return { postId: upload.id, permalink: '', publishedAt: new Date().toISOString() };
+}
+
+/** Publishes a text-only post to a Facebook Page. */
+export async function publishTextToFacebook({
+  pageId,
+  message,
+  accessToken,
+}: {
+  pageId:      string;
+  message:     string;
+  accessToken: string;
+}): Promise<MetaPublishResult> {
+  const result = await graphFetch<{ id: string }>(
+    `${pageId}/feed`,
+    {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ message, published: true, access_token: accessToken }),
+    },
+  );
+
+  return { postId: result.id, permalink: '', publishedAt: new Date().toISOString() };
+}
+
+// =============================================================================
+// Instagram Login (sin Facebook)
+// Docs: https://developers.facebook.com/docs/instagram-platform/instagram-api-with-instagram-login
+// =============================================================================
+// Flujo alternativo que no requiere Página de Facebook.
+// El usuario solo necesita una cuenta de Instagram Business o Creator.
+//
+// Base URLs distintas al flujo de Facebook:
+//   Auth:   https://api.instagram.com/oauth/authorize
+//   Token:  https://api.instagram.com/oauth/access_token  (short-lived)
+//   LL tok: https://graph.instagram.com/access_token      (long-lived, 60 días)
+//   Graph:  https://graph.instagram.com/v19.0
+// =============================================================================
+
+const IG_AUTH_BASE  = 'https://api.instagram.com';
+const IG_GRAPH_BASE = 'https://graph.instagram.com/v19.0';
+
+/** Builds the Instagram direct OAuth URL (no Facebook required). */
+export function getInstagramLoginUrl(state: string): string {
+  const appId       = getRequiredEnv('META_APP_ID');
+  const redirectUri = getRequiredEnv('META_IG_REDIRECT_URI');
+
+  const params = new URLSearchParams({
+    client_id:     appId,
+    redirect_uri:  redirectUri,
+    scope:         [
+      'instagram_business_basic',
+      'instagram_business_content_publish',
+      'instagram_business_manage_comments',
+      'instagram_business_manage_messages',
+    ].join(','),
+    response_type: 'code',
+    state,
+  });
+
+  return `${IG_AUTH_BASE}/oauth/authorize?${params}`;
+}
+
+/** Exchanges the authorization code for a short-lived Instagram user token. */
+export async function exchangeInstagramCode(
+  code: string,
+): Promise<{ accessToken: string; userId: string }> {
+  const appId       = getRequiredEnv('META_APP_ID');
+  const appSecret   = getRequiredEnv('META_APP_SECRET');
+  const redirectUri = getRequiredEnv('META_IG_REDIRECT_URI');
+
+  const body = new URLSearchParams({
+    client_id:     appId,
+    client_secret: appSecret,
+    grant_type:    'authorization_code',
+    redirect_uri:  redirectUri,
+    code,
+  });
+
+  const res = await fetch(`${IG_AUTH_BASE}/oauth/access_token`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body:    body.toString(),
+  });
+  const data = await res.json() as { access_token?: string; user_id?: string; error_message?: string };
+  if (!res.ok || !data.access_token) {
+    throw new Error(`Instagram token exchange failed: ${data.error_message ?? res.statusText}`);
+  }
+  return { accessToken: data.access_token, userId: String(data.user_id ?? '') };
+}
+
+/** Exchanges a short-lived Instagram token for a long-lived one (60 days). */
+export async function getInstagramLongLivedToken(
+  shortToken: string,
+): Promise<{ accessToken: string; expiresIn: number }> {
+  const appSecret = getRequiredEnv('META_APP_SECRET');
+
+  const params = new URLSearchParams({
+    grant_type:        'ig_exchange_token',
+    client_secret:     appSecret,
+    access_token:      shortToken,
+  });
+
+  const res = await fetch(`${IG_GRAPH_BASE}/access_token?${params}`);
+  const data = await res.json() as { access_token?: string; expires_in?: number; error?: { message: string } };
+  if (!res.ok || !data.access_token) {
+    throw new Error(`Instagram long-lived token failed: ${data.error?.message ?? res.statusText}`);
+  }
+  return { accessToken: data.access_token, expiresIn: data.expires_in ?? 5_184_000 };
+}
+
+/** Refreshes an existing long-lived Instagram token (call before it expires). */
+export async function refreshInstagramLongLivedToken(
+  token: string,
+): Promise<{ accessToken: string; expiresIn: number }> {
+  const params = new URLSearchParams({
+    grant_type:   'ig_refresh_token',
+    access_token: token,
+  });
+
+  const res = await fetch(`${IG_GRAPH_BASE}/refresh_access_token?${params}`);
+  const data = await res.json() as { access_token?: string; expires_in?: number; error?: { message: string } };
+  if (!res.ok || !data.access_token) {
+    throw new Error(`Instagram token refresh failed: ${data.error?.message ?? res.statusText}`);
+  }
+  return { accessToken: data.access_token, expiresIn: data.expires_in ?? 5_184_000 };
+}
+
+export interface InstagramProfile {
+  id:        string;
+  username?: string;
+  name?:     string;
+}
+
+/** Fetches the Instagram user profile (id, username) with the given token. */
+export async function getInstagramProfile(accessToken: string): Promise<InstagramProfile> {
+  const params = new URLSearchParams({
+    fields:       'id,username,name',
+    access_token: accessToken,
+  });
+  const res  = await fetch(`${IG_GRAPH_BASE}/me?${params}`);
+  const data = await res.json() as InstagramProfile & { error?: { message: string } };
+  if (!res.ok) throw new Error(`Instagram profile fetch failed: ${data.error?.message ?? res.statusText}`);
+  return { id: data.id, username: data.username, name: data.name };
 }
 
 // ─── Comments ─────────────────────────────────────────────────────────────────

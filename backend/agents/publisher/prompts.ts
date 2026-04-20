@@ -31,6 +31,17 @@ Before any social media post goes live you must verify it meets these standards:
 4. Hashtags must relate to the caption content.
 5. Alt-text must be factual and free of promotional language.
 
+## Sector-specific compliance for ${context.brandVoice.sector}
+${Object.keys(context.complianceFlags ?? {}).length > 0
+  ? Object.entries(context.complianceFlags!).map(([k, v]) => `- ${k}: ${JSON.stringify(v)}`).join('\n')
+  : 'No compliance flags configured — apply sector defaults.'}
+
+Cross-reference each flag with the caption being reviewed:
+- If promises_physical_results=true and caption contains specific weight/size claims → block.
+- If shows_real_cases=false and caption mentions named clients or success percentages → block.
+- If shows_before_after='no' and caption or alt-text describes before/after imagery → block.
+- If requires_sanitary_disclaimer=true and caption promotes a medical treatment without a disclaimer → recommend "review" and add a note to include disclaimer.
+
 ## Scoring
 - 8–10: On-brand, safe → recommend "publish"
 - 5–7:  Minor issues, fixable → recommend "review"

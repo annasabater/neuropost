@@ -18,9 +18,9 @@ export async function GET(request: Request) {
   }
 
   const user = data.user;
-
-  // Create profile if this is a new user (upsert is idempotent)
   const admin = createAdminClient();
+
+  // Check if profile exists
   const { data: existingProfile } = await admin
     .from('profiles')
     .select('id')
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
     .maybeSingle();
 
   if (!existingProfile) {
-    // Extract name from user metadata (Google OAuth populates this)
+    // New user — create profile and send welcome email
     const fullName = user.user_metadata?.full_name
       ?? user.user_metadata?.name
       ?? user.email?.split('@')[0]
@@ -40,7 +40,6 @@ export async function GET(request: Request) {
       avatar_url: user.user_metadata?.avatar_url ?? null,
     });
 
-    // Send welcome email
     try {
       const { sendWelcomeEmail } = await import('@/lib/email');
       if (user.email) {
@@ -48,9 +47,22 @@ export async function GET(request: Request) {
       }
     } catch { /* email failure never blocks onboarding */ }
 
-    // New user → go to onboarding
+    // New user → always onboarding
     return NextResponse.redirect(new URL('/onboarding', origin));
   }
 
+  // Existing user — check if they have a brand (onboarding completed)
+  const { data: brand } = await admin
+    .from('brands')
+    .select('id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (!brand) {
+    // Has profile but no brand → needs onboarding
+    return NextResponse.redirect(new URL('/onboarding', origin));
+  }
+
+  // Has profile + brand → go to dashboard (or next param)
   return NextResponse.redirect(new URL(next, origin));
 }

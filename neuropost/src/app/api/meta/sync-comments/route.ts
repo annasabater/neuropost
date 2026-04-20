@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getIGComments } from '@/lib/meta';
 import { createAdminClient } from '@/lib/supabase';
+import { queueJob } from '@/lib/agents/queue';
 
 // Called by Vercel Cron: GET /api/meta/sync-comments
 export async function GET(request: Request) {
@@ -69,6 +70,30 @@ export async function GET(request: Request) {
           read:     false,
           metadata: { post_id: post.id, external_id: c.id },
         });
+
+        // Queue agent to generate reply for the synced comment (fire-and-forget)
+        queueJob({
+          brand_id:     brand.id,
+          agent_type:   'support',
+          action:       'handle_interactions',
+          input:        {
+            source:       'comment',
+            interactions: [{
+              id:         c.id,
+              type:       'comment',
+              platform:   'instagram',
+              authorId:   c.username,
+              authorName: c.username,
+              text:       c.text,
+              timestamp:  new Date().toISOString(),
+              postId:     post.ig_post_id,
+            }],
+            autoPostReplies: false,
+            external_id: c.id,
+          },
+          priority:     55,
+          requested_by: 'cron',
+        }).catch(() => null);
 
         total++;
       }

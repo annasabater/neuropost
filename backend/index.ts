@@ -37,6 +37,8 @@ import type { PlannerInput, PlannerOutput } from './agents/planner/types';
 import type { CommunityInput, CommunityOutput } from './agents/community/types';
 import type { AnalystInput, AnalystOutput } from './agents/analyst/types';
 import type { PublisherInput, PublisherOutput } from './agents/publisher/types';
+import type { SupportInput, SupportOutput } from './agents/support/types';
+import type { ExtractorInput, ExtractorOutput } from './agents/creative-extractor/types';
 
 import { CopywriterAgent } from './agents/copywriter/copywriter-agent';
 import { IdeasAgent } from './agents/ideas/ideas-agent';
@@ -44,6 +46,8 @@ import { PlannerAgent } from './agents/planner/planner-agent';
 import { CommunityAgent } from './agents/community/community-agent';
 import { AnalystAgent } from './agents/analyst/analyst-agent';
 import { PublisherAgent } from './agents/publisher/publisher-agent';
+import { SupportAgent } from './agents/support/support-agent';
+import { CreativeExtractorAgent } from './agents/creative-extractor/creative-extractor-agent';
 
 // ─── Copywriter ───────────────────────────────────────────────────────────────
 export type {
@@ -116,6 +120,25 @@ export type {
   PublishStatus,
 } from './agents/publisher/types';
 
+// ─── Support ──────────────────────────────────────────────────────────────────
+export type {
+  SupportInput,
+  SupportOutput,
+  SupportSource,
+  SupportCategory,
+  SupportSolutionStep,
+  SupportMessageHistoryItem,
+} from './agents/support/types';
+
+// ─── Creative Extractor ───────────────────────────────────────────────────────
+export type {
+  ExtractorInput,
+  ExtractorOutput,
+  ExtractorPlatform,
+  CreativeRecipe,
+  HookType,
+} from './agents/creative-extractor/types';
+
 // ─── Run functions ────────────────────────────────────────────────────────────
 
 export function runEditorAgent(
@@ -165,4 +188,18 @@ export function runPublisherAgent(
   ctx: AgentContext,
 ): Promise<AgentResult<PublisherOutput>> {
   return new PublisherAgent().run(input, ctx);
+}
+
+export function runSupportAgent(
+  input: SupportInput,
+  ctx: AgentContext,
+): Promise<AgentResult<SupportOutput>> {
+  return new SupportAgent().run(input, ctx);
+}
+
+export function runCreativeExtractorAgent(
+  input: ExtractorInput,
+  ctx: AgentContext,
+): Promise<AgentResult<ExtractorOutput>> {
+  return new CreativeExtractorAgent().run(input, ctx);
 }

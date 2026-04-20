@@ -99,7 +99,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       }}>
         {/* Logo */}
         <div style={{ padding: '20px 20px 8px', borderBottom: `1px solid ${A.border}` }}>
-          <span style={{ fontWeight: 800, fontSize: 18, color: A.orange, letterSpacing: -0.5 }}>NeuroPost</span>
+          <Link href="/" style={{ fontWeight: 800, fontSize: 18, color: A.orange, letterSpacing: -0.5, textDecoration: 'none' }}>NeuroPost</Link>
           <span style={{ marginLeft: 8, fontSize: 10, color: A.muted, background: '#2a2927', padding: '2px 6px', borderRadius: 4, verticalAlign: 'middle' }}>
             ADMIN
           </span>

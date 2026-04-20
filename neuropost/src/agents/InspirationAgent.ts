@@ -37,7 +37,7 @@ export interface AnalyzeReferenceInput {
 
 export async function analyzeReference(input: AnalyzeReferenceInput): Promise<InspirationAnalysisResult> {
   const message = await client.messages.create({
-    model:      'claude-opus-4-6',
+    model:      'claude-haiku-4-5-20251001',
     max_tokens: 2000,
     system: `Eres el director creativo de NeuroPost.
 Analiza esta imagen de referencia que un cliente quiere usar como inspiración para su contenido.

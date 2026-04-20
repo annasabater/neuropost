@@ -51,9 +51,9 @@ export function ApprovalPanel({ post, onApprove, onReject, onSchedule, onPublish
 
   const qs = post.quality_score;
   const qsColor = qs == null ? 'var(--muted)'
-    : qs >= 8 ? '#16a34a'
-    : qs >= 6 ? '#d97706'
-    : '#dc2626';
+    : qs >= 8 ? 'var(--accent)'
+    : qs >= 6 ? 'var(--warning)'
+    : 'var(--error)';
 
   return (
     <div className="approval-panel">
@@ -65,8 +65,8 @@ export function ApprovalPanel({ post, onApprove, onReject, onSchedule, onPublish
           gap:          10,
           padding:      '10px 14px',
           borderRadius: 10,
-          background:   qs >= 8 ? '#f0fdf4' : qs >= 6 ? '#fffbeb' : '#fef2f2',
-          border:       `1px solid ${qs >= 8 ? '#86efac' : qs >= 6 ? '#fde68a' : '#fca5a5'}`,
+          background:   qs >= 8 ? 'var(--accent-bg)' : qs >= 6 ? 'var(--warning-dim)' : 'var(--error-dim)',
+          border:       `1px solid var(--border)`,
           marginBottom: 14,
         }}>
           <Star size={16} fill={qsColor} color={qsColor} />
@@ -172,7 +172,7 @@ export function ApprovalPanel({ post, onApprove, onReject, onSchedule, onPublish
         )}
 
         {isPublished && (
-          <p style={{ fontSize: '0.85rem', color: '#16a34a', fontWeight: 600 }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--accent)', fontWeight: 600 }}>
             ✓ Publicado correctamente
           </p>
         )}
@@ -216,12 +216,18 @@ export function ApprovalPanel({ post, onApprove, onReject, onSchedule, onPublish
               min={new Date().toISOString().slice(0, 10)}
               onChange={(e) => setScheduleDate(e.target.value)}
               className="schedule-input"
+              aria-label="Fecha de programación"
+              title="Fecha de programación"
+              placeholder="Selecciona una fecha"
             />
             <input
               type="time"
               value={scheduleTime}
               onChange={(e) => setScheduleTime(e.target.value)}
               className="schedule-input"
+              aria-label="Hora de programación"
+              title="Hora de programación"
+              placeholder="Selecciona una hora"
             />
             <button
               className="btn-primary btn-orange"

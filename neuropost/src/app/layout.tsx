@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Literata } from 'next/font/google';
+import { Literata, Barlow, Barlow_Condensed } from 'next/font/google';
 import Script from 'next/script';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
@@ -18,14 +18,31 @@ const literata = Literata({
   display: 'swap',
 });
 
+const barlow = Barlow({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-barlow',
+  display: 'swap',
+});
+
+const barlowCondensed = Barlow_Condensed({
+  subsets: ['latin'],
+  weight: ['700', '800', '900'],
+  variable: '--font-barlow-condensed',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
   title: 'NeuroPost — Gestión de redes sociales con IA para negocios locales',
   description:
-    'Llevamos Instagram y Facebook de tu negocio. La IA publica, responde comentarios y hace crecer tu cuenta. 14 días gratis, sin tarjeta.',
-  keywords: ['gestión redes sociales', 'instagram para negocios', 'community manager ia', 'marketing negocios locales', 'automatizar instagram', 'facebook negocios'],
+    'Gestionamos tus redes sociales con IA: Instagram, TikTok y Facebook. Contenido profesional, publicación automática y estrategia adaptada a cada plataforma.',
+  icons: {
+    apple: '/icon.svg',
+  },
+  keywords: ['gestión instagram', 'instagram para negocios', 'community manager ia', 'marketing negocios locales', 'automatizar instagram', 'instagram negocios locales'],
   openGraph: {
-    title: 'NeuroPost — Tu negocio en redes, sin esfuerzo',
-    description: 'Creamos y publicamos contenido para Instagram y Facebook de tu negocio local con IA.',
+    title: 'NeuroPost — Tu Instagram, sin esfuerzo',
+    description: 'Creamos y publicamos contenido para el Instagram de tu negocio local con IA.',
     url: 'https://neuropost.es',
     siteName: 'NeuroPost',
     locale: 'es_ES',
@@ -48,22 +65,26 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     // suppressHydrationWarning prevents React complaining about data-theme set before hydration
-    <html lang={locale} className={literata.variable} suppressHydrationWarning>
+    <html lang={locale} className={`${literata.variable} ${barlow.variable} ${barlowCondensed.variable}`} suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
-        <meta name="theme-color" content="#ff5c1a" />
+        <meta name="theme-color" content="#4f46e5" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <meta name="apple-mobile-web-app-title" content="NeuroPost" />
-        <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/icon.svg" />
+        <link rel="manifest" href="/manifest.json" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
           href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&display=swap"
           rel="stylesheet"
         />
-        <script
+      </head>
+      <body>
+        <Script
+          id="schema-app"
           type="application/ld+json"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify({
             '@context': 'https://schema.org',
             '@type': 'SoftwareApplication',
@@ -76,12 +97,32 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             aggregateRating: { '@type': 'AggregateRating', ratingValue: '4.9', reviewCount: '200' },
           })}}
         />
-      </head>
-      <body>
+        <Script
+          id="schema-org"
+          type="application/ld+json"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: 'NeuroPost',
+            url: 'https://neuropost.es',
+            logo: 'https://neuropost.es/icon.svg',
+            sameAs: ['https://www.instagram.com/neuropost.es'],
+            contactPoint: {
+              '@type': 'ContactPoint',
+              contactType: 'customer support',
+              availableLanguage: ['Spanish', 'English', 'French', 'Portuguese'],
+            },
+          })}}
+        />
         {/* Runs before React hydrates — prevents dark/light flash on load */}
-        <Script id="theme-init" strategy="beforeInteractive">{`
-          (function(){try{var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})()`}
-        </Script>
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme')||'light';document.documentElement.setAttribute('data-theme',t);}catch(e){}})()`,
+          }}
+        />
         <NextIntlClientProvider locale={locale} messages={messages}>
           <PageProgressBar />
           <Providers>{children}</Providers>

@@ -10,10 +10,14 @@ type FeedPost = {
 };
 
 const STYLE_COLORS: Record<VisualStyle, { bg: string; accent: string; text: string }> = {
-  creative: { bg: '#FF6B9D', accent: '#FF9500', text: '#fff' },
-  elegant:  { bg: '#D4C5B0', accent: '#8B7355', text: '#2C2C2C' },
-  warm:     { bg: '#D4916A', accent: '#F2CDA0', text: '#fff' },
-  dynamic:  { bg: '#1C1C1E', accent: '#FF3B30', text: '#fff' },
+  creative:  { bg: '#FF6B9D', accent: '#FF9500', text: '#fff' },
+  elegant:   { bg: '#D4C5B0', accent: '#8B7355', text: '#2C2C2C' },
+  warm:      { bg: '#D4916A', accent: '#F2CDA0', text: '#fff' },
+  dynamic:   { bg: '#1C1C1E', accent: '#FF3B30', text: '#fff' },
+  editorial: { bg: '#F4EBD0', accent: '#8A9E8A', text: '#5C5C5C' },
+  dark:      { bg: '#0D0D0D', accent: '#C4A882', text: '#fff' },
+  fresh:     { bg: '#C8E6C9', accent: '#388E3C', text: '#1B5E20' },
+  vintage:   { bg: '#C4956A', accent: '#D4B896', text: '#3E2723' },
 };
 
 interface Props {

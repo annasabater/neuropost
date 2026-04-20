@@ -203,7 +203,7 @@ export function FeedbackWidget() {
       <style>{`
         @keyframes feedbackPulse {
           0%, 100% { box-shadow: 0 4px 16px rgba(0,0,0,0.18); }
-          50%       { box-shadow: 0 4px 24px rgba(255,92,26,0.45); }
+          50%       { box-shadow: 0 4px 24px rgba(15,118,110,0.45); }
         }
       `}</style>
     </div>

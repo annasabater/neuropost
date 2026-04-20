@@ -27,8 +27,18 @@ export function buildCopywriterSystemPrompt(context: AgentContext): string {
 - Real caption examples from this brand:
 ${examples}
 
+## Product catalog (use when generating posts about products)
+${context.products && context.products.length > 0
+  ? context.products.map(p => `- ${p.name}${p.price_cents ? ` (${(p.price_cents / 100).toFixed(2)}${p.currency ?? 'EUR'})` : ''}${p.main_benefit ? ` — ${p.main_benefit}` : ''}${p.is_hero ? ' ★ hero' : ''}`).join('\n')
+  : 'No catalog provided — write about the business generically.'}
+
+## Target audience
+${context.personas && context.personas.length > 0
+  ? context.personas.map(p => `- ${p.persona_name}${p.lifestyle ? ` · ${p.lifestyle}` : ''}\n  wants: ${p.desires.join(', ')}\n  struggles with: ${p.pains.join(', ')}\n  uses words: ${p.lingo_yes.join(', ')}\n  avoid words: ${p.lingo_no.join(', ')}`).join('\n\n')
+  : 'No personas provided — write for a broad audience.'}
+
 ## Craft rules
-1. Match the tone precisely — read the examples carefully.
+1. Match the tone precisely — read the examples carefully. Use the audience's vocabulary ('uses words') and avoid forbidden words for both the brand (forbiddenWords) and the personas (avoid words).
 2. Instagram captions: conversational, 150–300 chars (story first, hashtags after two line breaks).
 3. Facebook posts: punchy, 40–80 chars, no hashtags in copy body.
 4. Hashtags: use the language code "${brandVoice.language}" as a guide for local vs. global mix.

@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
+import { rateLimitAgents } from '@/lib/ratelimit';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { fetchCompetitorPublicData, analyzeCompetitor } from '@/agents/CompetitorAgent';
-import type { Brand } from '@/types';
+import { checkFeature } from '@/lib/plan-limits';
+import { normalizePreferences } from '@/lib/plan-features';
+import type { Brand, BrandRules } from '@/types';
 
 export async function POST(request: Request) {
   try {
+    const rl = await rateLimitAgents(request);
+    if (rl) return rl;
     const user = await requireServerUser();
     const { competitorUsername } = await request.json() as { competitorUsername: string };
 
@@ -15,6 +21,12 @@ export async function POST(request: Request) {
 
     const b = brand as Brand;
 
+    // Plan gate — competitor analysis is a Total+ feature.
+    const gate = await checkFeature(b.id, 'competitorAgent');
+    if (!gate.allowed) {
+      return NextResponse.json({ error: gate.reason, upgradeUrl: gate.upgradeUrl }, { status: 402 });
+    }
+
     // Need Meta access token to query IG Graph API
     const accessToken = b.ig_access_token ?? b.fb_access_token;
     if (!accessToken) {
@@ -22,6 +34,9 @@ export async function POST(request: Request) {
     }
 
     const { profile, posts } = await fetchCompetitorPublicData(competitorUsername, accessToken);
+
+    const rules = (b.rules ?? null) as BrandRules | null;
+    const prefs = normalizePreferences(b.plan, rules?.preferences);
 
     const result = await analyzeCompetitor({
       competitorUsername,
@@ -31,6 +46,11 @@ export async function POST(request: Request) {
       clientSector:     b.sector ?? 'otro',
       clientBrandVoice: b.brand_voice_doc ?? `${b.name}, ${b.sector}, tono ${b.tone}`,
       clientName:       b.name,
+      forbiddenWords:   rules?.forbiddenWords,
+      forbiddenTopics:  rules?.forbiddenTopics,
+      noEmojis:         rules?.noEmojis,
+      likesCarousels:   prefs.likesCarousels,
+      includeVideos:    prefs.includeVideos,
     });
 
     // Save analysis
@@ -55,8 +75,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ analysis: saved, result });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'POST /api/agents/competitor/analyze');
   }
 }

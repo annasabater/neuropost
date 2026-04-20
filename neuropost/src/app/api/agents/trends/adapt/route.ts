@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
+import { rateLimitAgents } from '@/lib/ratelimit';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { adaptTrendToBrand } from '@/agents/TrendsAgent';
-import type { Brand } from '@/types';
+import { checkFeature } from '@/lib/plan-limits';
+import { normalizePreferences } from '@/lib/plan-features';
+import type { Brand, BrandRules } from '@/types';
 
 export async function POST(request: Request) {
   try {
+    const rl = await rateLimitAgents(request);
+    if (rl) return rl;
     const user = await requireServerUser();
     const { trendId } = await request.json() as { trendId: string };
 
@@ -21,6 +27,12 @@ export async function POST(request: Request) {
 
     const b = brand as Brand;
 
+    // Plan gate — trends agent is a Total+ feature.
+    const gate = await checkFeature(b.id, 'trendsAgent');
+    if (!gate.allowed) {
+      return NextResponse.json({ error: gate.reason, upgradeUrl: gate.upgradeUrl }, { status: 402 });
+    }
+
     // Get recent posts
     const { data: recentPosts } = await supabase
       .from('posts')
@@ -28,6 +40,10 @@ export async function POST(request: Request) {
       .eq('brand_id', b.id)
       .order('created_at', { ascending: false })
       .limit(5);
+
+    // Hydrate rules + preferences for the agent.
+    const rules = (b.rules ?? null) as BrandRules | null;
+    const prefs = normalizePreferences(b.plan, rules?.preferences);
 
     const adapted = await adaptTrendToBrand({
       trend: {
@@ -39,10 +55,15 @@ export async function POST(request: Request) {
         expiresIn:   trend.expires_in,
         hashtags:    trend.hashtags ?? [],
       },
-      brandVoiceDoc: b.brand_voice_doc ?? `Negocio: ${b.name}, Sector: ${b.sector}, Tono: ${b.tone}`,
-      sector:        b.sector ?? 'otro',
-      tone:          b.tone   ?? 'cercano',
-      recentPosts:   (recentPosts ?? []).map((p: { caption: string }) => p.caption ?? ''),
+      brandVoiceDoc:   b.brand_voice_doc ?? `Negocio: ${b.name}, Sector: ${b.sector}, Tono: ${b.tone}`,
+      sector:          b.sector ?? 'otro',
+      tone:            b.tone   ?? 'cercano',
+      recentPosts:     (recentPosts ?? []).map((p: { caption: string }) => p.caption ?? ''),
+      forbiddenWords:  rules?.forbiddenWords,
+      forbiddenTopics: rules?.forbiddenTopics,
+      noEmojis:        rules?.noEmojis,
+      likesCarousels:  prefs.likesCarousels,
+      includeVideos:   prefs.includeVideos,
     });
 
     // Save to brand_trends
@@ -70,8 +91,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ brandTrend, adapted });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'POST /api/agents/trends/adapt');
   }
 }

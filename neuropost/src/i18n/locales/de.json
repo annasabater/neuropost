@@ -63,7 +63,7 @@
   "posts": {
     "title": "Beiträge",
     "new": { "title": "Neuer Beitrag", "generateButton": "✦ Mit KI generieren", "generating": "Wird generiert...", "qualityScore": "Beitragsqualität", "captionPlaceholder": "Beschriftung schreiben oder bearbeiten...", "hashtagsPlaceholder": "Hashtag hinzufügen", "actions": { "approve": "Genehmigen und planen", "publishNow": "Jetzt veröffentlichen", "saveDraft": "Entwurf speichern", "regenerate": "Neu generieren", "regenerateCaption": "Beschriftung neu generieren" } },
-    "status": { "draft": "Entwurf", "generated": "Generiert", "pending": "Ausstehend", "approved": "Genehmigt", "scheduled": "Geplant", "published": "Veröffentlicht", "failed": "Fehlgeschlagen", "cancelled": "Abgebrochen" },
+    "status": { "all": "Alle", "request": "In Vorbereitung", "draft": "Entwurf", "generated": "Generiert", "pending": "Ausstehend", "approved": "Genehmigt", "scheduled": "Geplant", "published": "Veröffentlicht", "failed": "Fehlgeschlagen", "cancelled": "Abgebrochen" },
     "toast": { "published": "🚀 Beitrag auf Instagram veröffentlicht!", "approved": "✅ Beitrag genehmigt", "saved": "💾 Entwurf gespeichert", "failed": "❌ Veröffentlichung fehlgeschlagen. Bitte erneut versuchen" }
   },
   "calendar": {

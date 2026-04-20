@@ -66,7 +66,8 @@ export async function PATCH(request: Request) {
 
     if (error) throw error;
 
-    // Notify client when worker approves
+    // When worker approves: update posts.status → 'pending' so client can see it,
+    // then notify the client.
     if (body.status === 'sent_to_client') {
       const { data: queue } = await db
         .from('content_queue')
@@ -74,6 +75,12 @@ export async function PATCH(request: Request) {
         .eq('id', body.queueId)
         .single();
       if (queue) {
+        // Make the post visible to the client for their review
+        await db
+          .from('posts')
+          .update({ status: 'pending' })
+          .eq('id', queue.post_id);
+
         await db.from('notifications').insert({
           brand_id: queue.brand_id,
           type:     'approval_needed',

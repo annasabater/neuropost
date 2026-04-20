@@ -11,7 +11,7 @@
 
 import Anthropic from '@anthropic-ai/sdk';
 import { editImage } from '@/lib/imageGeneration';
-import type { VisualStyle } from '@/types';
+import type { VisualStyle, BrandColors } from '@/types';
 
 const anthropic = new Anthropic();
 
@@ -26,6 +26,12 @@ export interface ImageEditInput {
   visualStyle:       VisualStyle;
   brandContext:      string;
   brandId?:          string;
+  /** Brand palette — injected into the edit prompt. */
+  colors?:           BrandColors | null;
+  /** Words to avoid in any overlay text. */
+  forbiddenWords?:   string[];
+  /** If true, no emojis/emoticons should appear in the image. */
+  noEmojis?:         boolean;
 }
 
 export interface ImageEditOutput {
@@ -38,10 +44,14 @@ export interface ImageEditOutput {
 // ─── Style edit hints for Claude ─────────────────────────────────────────────
 
 const STYLE_EDIT_HINTS: Record<VisualStyle, string> = {
-  creative: 'boost color saturation, make lighting more dramatic, increase contrast and vibrancy',
-  elegant:  'reduce saturation to neutral tones, soften lighting, add subtle vignette, clean minimal feel',
-  warm:     'add warm golden tones, soften highlights, enhance earthy colors, cozy atmosphere',
-  dynamic:  'increase contrast dramatically, deepen shadows, sharpen details, high-energy look',
+  creative:  'boost color saturation, make lighting more dramatic, increase contrast and vibrancy',
+  elegant:   'reduce saturation to neutral tones, soften lighting, add subtle vignette, clean minimal feel',
+  warm:      'add warm golden tones, soften highlights, enhance earthy colors, cozy atmosphere',
+  dynamic:   'increase contrast dramatically, deepen shadows, sharpen details, high-energy look',
+  editorial: 'natural tones, slight desaturation, documentary feel, authentic and organic look',
+  dark:      'deep shadows, low-key lighting, moody contrast, premium and exclusive atmosphere',
+  fresh:     'bright and airy, soft greens and whites, natural light, clean organic feel',
+  vintage:   'warm sepia tones, slight grain, faded highlights, nostalgic handcrafted atmosphere',
 };
 
 export async function runImageEditAgent(input: ImageEditInput): Promise<ImageEditOutput> {
@@ -51,6 +61,18 @@ export async function runImageEditAgent(input: ImageEditInput): Promise<ImageEdi
 
   const start = Date.now();
   const strength = STRENGTH_BY_LEVEL[Math.min(input.editLevel, 4)];
+
+  // Brand-aware extras appended to the edit prompt.
+  const brandRules: string[] = [];
+  if (input.colors?.primary) {
+    brandRules.push(`Bias the grading toward brand colors: primary ${input.colors.primary}${input.colors.secondary ? `, secondary ${input.colors.secondary}` : ''}.`);
+  }
+  if (input.forbiddenWords?.length) {
+    brandRules.push(`Do NOT add any of these words as visible text: ${input.forbiddenWords.join(', ')}.`);
+  }
+  if (input.noEmojis) {
+    brandRules.push('Do NOT add emoji characters or cartoonish icons.');
+  }
 
   // ── Step 1: Claude translates the analysis into a precise edit prompt ───────
   const promptMsg = await anthropic.messages.create({
@@ -64,7 +86,7 @@ Analysis: ${input.editingNarrative}
 Visual style target: ${input.visualStyle} — ${STYLE_EDIT_HINTS[input.visualStyle]}
 Brand context: ${input.brandContext}
 Edit intensity: ${input.editLevel}/4 (${Math.round(strength * 100)}% change)
-
+${brandRules.length ? `\nBrand rules:\n${brandRules.map(r => `- ${r}`).join('\n')}\n` : ''}
 Write ONLY the edit prompt in English. 1-2 sentences max. Be specific about:
 - color adjustments
 - lighting changes

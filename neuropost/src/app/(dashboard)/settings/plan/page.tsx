@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { Check, ExternalLink } from 'lucide-react';
+import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { useAppStore } from '@/store/useAppStore';
-import type { SubscriptionPlan } from '@/types';
+import type { Brand, SubscriptionPlan } from '@/types';
+import { PLAN_META } from '@/types';
 import CouponInput from '@/components/billing/CouponInput';
+
+type BillingCycle = 'monthly' | 'annual';
 
 // ─── Inline ApplyCouponForm ───────────────────────────────────────────────────
 
@@ -50,10 +52,10 @@ function ApplyCouponForm() {
           value={code}
           onChange={(e) => { setCode(e.target.value.toUpperCase()); setMessage(''); setError(''); }}
           onKeyDown={(e) => { if (e.key === 'Enter') handleApply(); }}
-          placeholder="CODIGO2025"
+          placeholder="CODIGO2026"
           style={{
-            border:      `1px solid ${error ? '#ef4444' : message ? '#22c55e' : 'var(--border)'}`,
-            borderRadius: 8,
+            border:      `1px solid ${error ? '#ef4444' : message ? 'var(--accent)' : 'var(--border)'}`,
+            borderRadius: 0,
             padding:     '10px 14px',
             fontFamily:  'Cabinet Grotesk, sans-serif',
             fontSize:    14,
@@ -66,10 +68,10 @@ function ApplyCouponForm() {
           onClick={handleApply}
           disabled={!code.trim() || loading}
           style={{
-            background:  !code.trim() || loading ? '#fdba74' : 'var(--orange)',
+            background:  !code.trim() || loading ? '#9ca3af' : 'var(--accent)',
             color:       'white',
             border:      'none',
-            borderRadius: 8,
+            borderRadius: 0,
             padding:     '10px 20px',
             fontWeight:  700,
             cursor:      !code.trim() || loading ? 'not-allowed' : 'pointer',
@@ -82,7 +84,7 @@ function ApplyCouponForm() {
         </button>
       </div>
       {message && (
-        <p style={{ fontSize: 13, color: '#16a34a', marginTop: 6, fontFamily: 'Cabinet Grotesk, sans-serif' }}>
+        <p style={{ fontSize: 13, color: '#0F766E', marginTop: 6, fontFamily: 'Cabinet Grotesk, sans-serif' }}>
           ✓ {message}
         </p>
       )}
@@ -96,49 +98,103 @@ function ApplyCouponForm() {
 }
 
 const PLANS: {
-  id:      SubscriptionPlan;
-  name:    string;
-  price:   string;
-  perks:   string[];
-  popular: boolean;
+  id:            SubscriptionPlan;
+  name:          string;
+  monthlyPrice:  number;
+  annualPrice:   number;
+  annualSavings: number;
+  desc:          string;
+  content:       string[];
+  highlight:     string;
+  perks:         string[];
+  featured:      boolean;
+  badge?:        string;
 }[] = [
   {
-    id:      'starter',
-    name:    'Starter',
-    price:   '29€/mes',
-    perks:   ['2 posts/semana', 'Instagram o Facebook', 'Generación con IA', 'Planificador de contenido', 'Aprobación manual'],
-    popular: false,
+    id:            'starter',
+    name:          'Esencial',
+    monthlyPrice:   21,
+    annualPrice:    21,
+    annualSavings:  0,
+    desc:          'Para presencia activa',
+    content:       ['✔ 2 fotos/semana', '✔ Carruseles hasta 3', '✔ Sin vídeo/reel', '✔ Instagram + Facebook'],
+    highlight:     'Precio por 1 red social. +15 EUR/mes por red adicional.',
+    perks: [
+      '1 red social incluida',
+      '+15 EUR/mes por red adicional',
+      'Publicación programada',
+      'Calendario avanzado',
+      'Edición de contenido',
+      'Solicitudes personalizadas',
+      'Análisis de rendimiento',
+      'IA integrada',
+      'Soporte por email',
+    ],
+    featured: false,
   },
   {
-    id:      'pro',
-    name:    'Pro',
-    price:   '69€/mes',
-    perks:   ['5 posts + 3 historias/semana', 'Instagram + Facebook', 'Publicación automática', 'Análisis de métricas', '14 días de prueba gratis'],
-    popular: true,
+    id:            'pro',
+    name:          'Crecimiento',
+    monthlyPrice:   63,
+    annualPrice:    60,
+    annualSavings:  38,
+    desc:          'Máximo alcance',
+    content:       ['✔ 4 fotos/semana', '✔ 2 vídeos/reels/sem', '✔ Carruseles hasta 8', '✔ IG + FB + TikTok'],
+    highlight:     'Vídeo/reel + TikTok. Precio por 1 red social.',
+    perks: [
+      '1 red social incluida',
+      '+15 EUR/mes por red adicional',
+      'TikTok disponible',
+      'Publicación programada',
+      'Ideas basadas en tendencias y tu contenido',
+      'Mejores horas para publicar',
+      'Solicitudes personalizadas',
+      'Análisis de rendimiento',
+      'IA integrada',
+      'Soporte prioritario',
+    ],
+    featured: true,
+    badge:    'Más popular',
   },
   {
-    id:      'total',
-    name:    'Total',
-    price:   '129€/mes',
-    perks:   ['7 posts + 7 historias/semana', 'Agente competencia', 'Detección de tendencias', 'Analytics avanzado', 'Estilos visuales IA'],
-    popular: false,
-  },
-  {
-    id:      'agency',
-    name:    'Agency',
-    price:   '199€/mes',
-    perks:   ['Todo lo de Total', 'Hasta 10 marcas', 'Panel multicliente', 'Soporte prioritario 24 h'],
-    popular: false,
+    id:            'total',
+    name:          'Profesional',
+    monthlyPrice:   133,
+    annualPrice:    113,
+    annualSavings:  239,
+    desc:          'Control completo',
+    content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels/sem', '✔ Carruseles hasta 20', '✔ IG + FB + TikTok'],
+    highlight:     'Conversión máxima. Precio por 1 red social.',
+    perks: [
+      '1 red social incluida',
+      '+15 EUR/mes por red adicional',
+      'TikTok disponible',
+      'Publicación programada',
+      'Ideas basadas en tendencias y tu contenido',
+      'Mejores horas para publicar',
+      'Solicitudes personalizadas',
+      'Análisis de rendimiento',
+      'IA integrada',
+      'Soporte 24h',
+    ],
+    featured: false,
+    badge:    'Completo',
   },
 ];
 
 export default function PlanPage() {
   const brand       = useAppStore((s) => s.brand);
+  const setBrand    = useAppStore((s) => s.setBrand);
   const params      = useSearchParams();
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('annual');
   const [billing,   setBilling]   = useState(false);
   const [upgrading, setUpgrading] = useState<SubscriptionPlan | null>(null);
   const [promoCodeId, setPromoCodeId] = useState<string | null>(null);
   const [, setDiscountText] = useState('');
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(
+    (brand?.subscribed_platforms as string[] | undefined)?.length ? (brand?.subscribed_platforms as string[]) : ['instagram'],
+  );
+  const refreshedRef = useRef(false);
 
   const [subStatus, setSubStatus] = useState<{
     status: string;
@@ -153,9 +209,37 @@ export default function PlanPage() {
     } | null;
   } | null>(null);
 
+  // After returning from Stripe checkout, refresh the brand in the global store
+  // so the new plan propagates to the whole app immediately.
   useEffect(() => {
-    if (params.get('success') === 'true')    toast.success('🎉 Plan activado correctamente');
-    if (params.get('cancelled') === 'true')  toast.error('Pago cancelado');
+    if (params.get('success') !== 'true' || refreshedRef.current) return;
+    refreshedRef.current = true;
+    toast.success('Plan activado correctamente');
+
+    // Webhook may have a few seconds delay — poll up to 8s until plan changes
+    const startPlan = brand?.plan;
+    let attempts = 0;
+    const interval = setInterval(async () => {
+      attempts++;
+      try {
+        const res  = await fetch('/api/brands');
+        const data = await res.json() as { brand?: Brand };
+        if (data.brand) {
+          setBrand(data.brand);
+          if (data.brand.plan !== startPlan || attempts >= 4) {
+            clearInterval(interval);
+          }
+        }
+      } catch { /* non-blocking */ }
+      if (attempts >= 4) clearInterval(interval);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params]);
+
+  useEffect(() => {
+    if (params.get('cancelled') === 'true') toast.error('Pago cancelado');
   }, [params]);
 
   useEffect(() => {
@@ -171,7 +255,11 @@ export default function PlanPage() {
       const res  = await fetch('/api/stripe/checkout', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ plan, ...(promoCodeId ? { promoCodeId } : {}) }),
+        body:    JSON.stringify({
+          plan,
+          platforms: selectedPlatforms,
+          ...(promoCodeId ? { promoCodeId } : {}),
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? 'Error');
@@ -199,35 +287,59 @@ export default function PlanPage() {
 
   const currentPlan = brand?.plan ?? 'starter';
 
+  const f  = "var(--font-barlow), 'Barlow', sans-serif";
+  const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
+
   return (
     <div className="page-content">
+      {/* Back link */}
+      <a
+        href="/settings#plan"
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 20,
+          fontFamily: f, fontSize: 13, color: 'var(--text-secondary)', textDecoration: 'none',
+          padding: '7px 14px', border: '1px solid var(--border)', background: 'var(--bg-1)',
+        }}
+      >
+        <ArrowLeft size={14} /> Volver a Ajustes
+      </a>
+
       <div className="page-header">
         <div className="page-header-text">
-          <h1 className="page-title">Plan y facturación</h1>
-          <p className="page-sub">Plan actual: <strong style={{ textTransform: 'capitalize' }}>{currentPlan}</strong>
+          <h1 className="page-title">Elige tu plan</h1>
+          <p className="page-sub">
+            Plan activo:{' '}
+            <strong style={{ fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              {PLAN_META[currentPlan].label}
+            </strong>
             {brand?.trial_ends_at && new Date(brand.trial_ends_at) > new Date() && (
-              <span style={{ marginLeft: 8, background: '#e6f9f0', color: '#1a7a45', padding: '2px 8px', borderRadius: 20, fontSize: 12 }}>
-                Prueba gratis activa
+              <span style={{ marginLeft: 8, background: '#e6f9f0', color: '#1a7a45', padding: '2px 8px', fontSize: 12, fontWeight: 700 }}>
+                Prueba gratis activa hasta el{' '}
+                {new Date(brand.trial_ends_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+              </span>
+            )}
+            {brand?.plan_cancels_at && (
+              <span style={{ marginLeft: 8, background: '#fff3e0', color: '#e65100', padding: '2px 8px', fontSize: 12, fontWeight: 700 }}>
+                Cancela el {new Date(brand.plan_cancels_at).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
               </span>
             )}
           </p>
         </div>
-        <Link href="/settings" style={{ fontSize: 13, color: 'var(--muted)' }}>← Ajustes</Link>
       </div>
 
       {subStatus?.discount && (
-        <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 10, padding: '12px 16px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 0, padding: '12px 16px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 20 }}>🏷️</span>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 14, color: '#92400e' }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--accent)' }}>
               Descuento activo
               {subStatus.discount.code && (
-                <span style={{ fontFamily: 'monospace', background: '#fde68a', padding: '1px 6px', borderRadius: 4, marginLeft: 6 }}>
+                <span style={{ fontFamily: 'monospace', background: 'var(--accent-soft)', color: 'var(--accent)', padding: '1px 6px', borderRadius: 0, marginLeft: 6 }}>
                   {subStatus.discount.code}
                 </span>
               )}
             </div>
-            <div style={{ fontSize: 13, color: '#b45309', marginTop: 2 }}>
+            <div style={{ fontSize: 13, color: 'var(--accent)', marginTop: 2 }}>
               {subStatus.discount.percentOff
                 ? `${subStatus.discount.percentOff}% de descuento`
                 : subStatus.discount.amountOff
@@ -243,57 +355,145 @@ export default function PlanPage() {
         </div>
       )}
 
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 24 }}>
+        <div style={{ display: 'inline-flex', background: '#ffffff', border: '1px solid var(--border)', borderRadius: 0, padding: '4px', gap: '4px' }}>
+          {(['monthly', 'annual'] as const).map((cycle) => (
+            <button
+              key={cycle}
+              onClick={() => setBillingCycle(cycle)}
+              style={{
+                padding: '9px 22px',
+                borderRadius: 0,
+                border: 'none',
+                cursor: 'pointer',
+                fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                fontWeight: 700,
+                fontSize: '0.88rem',
+                transition: 'all 0.2s',
+                background: billingCycle === cycle ? 'var(--accent)' : 'transparent',
+                color: billingCycle === cycle ? '#ffffff' : 'var(--text-secondary)',
+              }}
+            >
+              {cycle === 'monthly' ? 'Mensual' : 'Anual'}
+              {cycle === 'annual' && (
+                <span
+                  style={{
+                    marginLeft: '6px',
+                    background: billingCycle === 'annual' ? 'rgba(255,255,255,0.2)' : 'var(--accent-light)',
+                    color: billingCycle === 'annual' ? '#ffffff' : 'var(--accent)',
+                    borderRadius: 0,
+                    padding: '2px 8px',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                  }}
+                >
+                  −15%
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Plans grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 32 }}>
+      <div style={{ overflowX: 'auto', overflowY: 'visible', paddingTop: 10, paddingBottom: 4, marginBottom: 32 }}>
+      <div className="pricing-grid" style={{ minWidth: 720, display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12, alignItems: 'stretch' }}>
         {PLANS.map((plan) => {
           const isCurrent = plan.id === currentPlan;
+          const displayPrice = billingCycle === 'annual' ? plan.annualPrice : plan.monthlyPrice;
+          const savings = plan.annualSavings;
+
           return (
             <div
               key={plan.id}
-              style={{
-                border:       `2px solid ${plan.popular ? 'var(--orange)' : isCurrent ? 'var(--ink)' : 'var(--border)'}`,
-                borderRadius: 14,
-                padding:      24,
-                position:     'relative',
-                background:   isCurrent ? 'var(--orange-light, #fff5f0)' : '#fff',
-              }}
+              className={`plan${plan.featured ? ' featured' : ''}`}
             >
-              {plan.popular && (
-                <span style={{
-                  position: 'absolute', top: -12, left: '50%', transform: 'translateX(-50%)',
-                  background: 'var(--orange)', color: '#fff', padding: '3px 14px',
-                  borderRadius: 20, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap',
-                }}>
-                  MÁS POPULAR
-                </span>
+              {plan.badge && (
+                <div className="plan-badge">{plan.badge}</div>
               )}
+
               {isCurrent && (
                 <span style={{
                   position: 'absolute', top: -12, right: 16,
                   background: 'var(--ink)', color: '#fff', padding: '3px 14px',
-                  borderRadius: 20, fontSize: 11, fontWeight: 700,
+                  borderRadius: 0, fontSize: 11, fontWeight: 700,
                 }}>
                   ACTIVO
                 </span>
               )}
 
-              <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 800, fontSize: 18, marginBottom: 4 }}>{plan.name}</p>
-              <p style={{ fontFamily: "'Cabinet Grotesk', sans-serif", fontWeight: 700, fontSize: 24, color: 'var(--orange)', marginBottom: 16 }}>{plan.price}</p>
+              <div className="plan-name">{plan.name}</div>
+              <div className="plan-price">
+                <sup>€</sup>
+                {displayPrice}
+                <span>/mes</span>
+              </div>
 
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {billingCycle === 'annual' && (
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: plan.featured ? 'rgba(15,118,110,0.22)' : 'var(--accent-light)',
+                    color: plan.featured ? '#7cf5ea' : 'var(--accent)',
+                    fontFamily: "var(--font-barlow), 'Barlow', sans-serif",
+                    fontSize: '0.78rem',
+                    fontWeight: 800,
+                    padding: '4px 12px',
+                    borderRadius: 0,
+                    marginBottom: '8px',
+                  }}
+                >
+                  Ahorras €{savings}/año
+                </div>
+              )}
+
+              <div className="plan-desc">{plan.desc}</div>
+
+              {/* Content block */}
+              <div style={{
+                border: `1px solid ${plan.featured ? 'rgba(255,255,255,0.2)' : 'var(--border)'}`,
+                padding: '10px 12px',
+                marginBottom: 12,
+              }}>
+                <div style={{
+                  fontSize: 10, fontWeight: 800, textTransform: 'uppercase',
+                  letterSpacing: '0.08em', marginBottom: 8,
+                  color: plan.featured ? 'rgba(255,255,255,0.6)' : 'var(--muted)',
+                  fontFamily: fc,
+                }}>
+                  Contenido incluido
+                </div>
+                {plan.content.map((item) => (
+                  <div key={item} style={{
+                    fontSize: 13, fontWeight: 600, marginBottom: 4,
+                    color: plan.featured ? '#ffffff' : 'var(--ink)',
+                    fontFamily: f,
+                  }}>
+                    {item}
+                  </div>
+                ))}
+                <div style={{
+                  fontSize: 11, marginTop: 8, fontStyle: 'italic',
+                  color: plan.featured ? 'rgba(255,255,255,0.6)' : 'var(--muted)',
+                  fontFamily: f,
+                }}>
+                  {plan.highlight}
+                </div>
+              </div>
+
+              <ul className="plan-features">
                 {plan.perks.map((perk) => (
-                  <li key={perk} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)' }}>
-                    <Check size={14} style={{ color: 'var(--orange)', flexShrink: 0 }} />
-                    {perk}
-                  </li>
+                  <li key={perk}>{perk}</li>
                 ))}
               </ul>
 
               {isCurrent ? (
-                <button className="btn-outline btn-full" disabled style={{ opacity: 0.5 }}>Plan actual</button>
+                <button className="plan-btn" disabled style={{ opacity: 0.5, cursor: 'not-allowed' }}>Plan actual</button>
               ) : (
                 <button
-                  className={plan.popular ? 'btn-primary btn-full' : 'btn-outline btn-full'}
+                  className="plan-btn"
                   onClick={() => handleUpgrade(plan.id)}
                   disabled={upgrading === plan.id}
                 >
@@ -303,6 +503,72 @@ export default function PlanPage() {
             </div>
           );
         })}
+      </div>
+      </div>
+
+      {/* ── Platform selector ── */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ border: '1px solid var(--border)', background: 'var(--bg)' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-1)' }}>
+            <h3 style={{ fontFamily: fc, fontSize: 14, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', margin: 0, color: 'var(--text-primary)' }}>
+              Redes sociales
+            </h3>
+            <p style={{ fontFamily: f, fontSize: 12, color: 'var(--text-tertiary)', margin: '4px 0 0' }}>
+              1 red incluida en el precio base · +15 EUR/mes por cada red adicional
+            </p>
+          </div>
+          <div style={{ padding: '18px 20px', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {([
+              { id: 'instagram', label: 'Instagram', icon: '📷', always: true, requiresPlan: null as string[] | null },
+              { id: 'facebook', label: 'Facebook', icon: '📘', always: false, requiresPlan: null as string[] | null },
+              { id: 'tiktok', label: 'TikTok', icon: '🎵', always: false, requiresPlan: ['pro', 'total'] as string[] | null },
+            ]).map(({ id, label, icon, always, requiresPlan }) => {
+              const active = selectedPlatforms.includes(id);
+              const planBlocked = requiresPlan && !requiresPlan.includes(currentPlan);
+              const disabled = always || planBlocked;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => {
+                    if (disabled) return;
+                    setSelectedPlatforms(prev =>
+                      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id],
+                    );
+                  }}
+                  style={{
+                    flex: 1, minWidth: 120, padding: '14px 18px',
+                    border: `2px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                    background: active ? 'rgba(15,118,110,0.06)' : 'var(--bg)',
+                    cursor: disabled && !always ? 'not-allowed' : always ? 'default' : 'pointer',
+                    opacity: planBlocked ? 0.5 : 1,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                    textAlign: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: 20 }}>{icon}</span>
+                  <span style={{ fontFamily: f, fontSize: 13, fontWeight: active ? 700 : 500, color: active ? 'var(--accent)' : 'var(--text-primary)' }}>
+                    {label}
+                  </span>
+                  <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)' }}>
+                    {always ? 'Incluida' : planBlocked ? 'Plan Crecimiento+' : active ? '+15 EUR/mes' : 'Añadir +15 EUR/mes'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {/* Price summary */}
+          {selectedPlatforms.length > 1 && (
+            <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', background: 'var(--bg-1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontFamily: f, fontSize: 12, color: 'var(--text-secondary)' }}>
+                {selectedPlatforms.length} redes seleccionadas ({selectedPlatforms.length - 1} extra)
+              </span>
+              <span style={{ fontFamily: fc, fontSize: 14, fontWeight: 800, color: 'var(--accent)' }}>
+                +{(selectedPlatforms.length - 1) * 15} EUR/mes
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Coupon for upgrade */}
@@ -327,14 +593,6 @@ export default function PlanPage() {
         </div>
       )}
 
-      {/* Apply coupon to existing subscription */}
-      <div style={{ border: '1px solid var(--border)', borderRadius: 14, padding: 24, marginTop: 32 }}>
-        <h3 style={{ margin: '0 0 8px', fontSize: 16 }}>Aplicar código de descuento</h3>
-        <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--muted)' }}>
-          Si tienes un código promocional, puedes aplicarlo a tu suscripción actual. El descuento se aplicará a partir del próximo ciclo de facturación.
-        </p>
-        <ApplyCouponForm />
-      </div>
     </div>
   );
 }

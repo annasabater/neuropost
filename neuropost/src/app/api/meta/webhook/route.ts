@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { verifyMetaWebhookSignature } from '@/lib/meta';
 import { createAdminClient } from '@/lib/supabase';
+import { queueJob } from '@/lib/agents/queue';
 
 // ─── Webhook verification (GET) ────────────────────────────────────────────────
 
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
 
         await supabase.from('comments').insert({
           brand_id:    brand.id,
-          platform:    body.object === 'instagram' ? 'instagram' : 'facebook',
+          platform:    'instagram', // TODO [FASE 2]: Facebook — body.object === 'facebook'
           external_id: externalId,
           author:      val.from?.name ?? 'Unknown',
           content:     val.text ?? '',
@@ -94,6 +95,30 @@ export async function POST(request: Request) {
           read:     false,
           metadata: { external_id: externalId },
         });
+
+        // Queue agent to generate reply for the comment (fire-and-forget)
+        queueJob({
+          brand_id:     brand.id,
+          agent_type:   'support',
+          action:       'handle_interactions',
+          input:        {
+            source:       'comment',
+            interactions: [{
+              id:         externalId,
+              type:       'comment',
+              platform:   'instagram',
+              authorId:   val.from?.id ?? 'unknown',
+              authorName: val.from?.name ?? 'Unknown',
+              text:       val.text ?? '',
+              timestamp:  new Date().toISOString(),
+              postId:     val.media_id ?? val.post_id ?? undefined,
+            }],
+            autoPostReplies: false,
+            external_id: externalId,
+          },
+          priority:     60,
+          requested_by: 'cron',
+        }).catch(() => null);
       }
     }
   }

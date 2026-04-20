@@ -10,6 +10,8 @@ const PUBLIC_API = [
   '/api/cron/',
   '/api/auth/',
   '/auth/callback',
+  '/api/telegram/webhook',      // Telegram POST → validated via x-telegram-bot-api-secret-token
+  '/api/inspiration/ingest',    // Cron → validated via Authorization: Bearer ${CRON_SECRET}
 ];
 
 const PROTECTED = [
@@ -18,10 +20,10 @@ const PROTECTED = [
   '/tendencias', '/competencia', '/community',
   '/resumen', '/contactos', '/churn', '/captacion',
   '/mi-feed', '/worker',
-  '/chat', '/solicitudes', '/historial', '/soporte',
+  '/chat', '/solicitudes', '/historial', '/soporte', '/inbox', '/biblioteca',
 ];
 const ADMIN_PATHS = ['/admin', '/cupones'];
-const AUTH_ONLY = ['/login', '/register'];
+const AUTH_ONLY = ['/login'];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -77,7 +79,17 @@ export async function proxy(request: NextRequest) {
 
   // Has session → bounce away from login/register
   if (user && isAuthOnly) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    const { data: brand } = await supabase
+      .from('brands')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    return NextResponse.redirect(new URL(brand ? '/dashboard' : '/onboarding', request.url));
+  }
+
+  // No session + onboarding → redirect to register (not login)
+  if (!user && pathname === '/onboarding') {
+    return NextResponse.redirect(new URL('/register', request.url));
   }
 
   // No session → redirect to login, saving intended destination
@@ -85,6 +97,18 @@ export async function proxy(request: NextRequest) {
     const loginUrl = new URL('/login', request.url);
     loginUrl.searchParams.set('redirectTo', pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  // Onboarding with session → skip if already has brand
+  if (user && pathname === '/onboarding') {
+    const { data: brand } = await supabase
+      .from('brands')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (brand) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
   }
 
   // Admin routes — require superadmin role in app_metadata

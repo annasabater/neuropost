@@ -1,7 +1,11 @@
 import { NextResponse } from 'next/server';
-import { requireServerUser, createServerClient } from '@/lib/supabase';
+import { requireServerUser, createServerClient, createAdminClient } from '@/lib/supabase';
 import { checkPostLimit } from '@/lib/plan-limits';
 import { requirePermission } from '@/lib/rbac';
+import { syncPostIntoFeedQueue } from '@/lib/feedQueue';
+import { queueJob } from '@/lib/agents/queue';
+import { apiError } from '@/lib/api-utils';
+import { rateLimitWrite } from '@/lib/ratelimit';
 import type { Post, Brand } from '@/types';
 import { PLAN_LIMITS } from '@/types';
 
@@ -31,9 +35,7 @@ export async function GET(request: Request) {
     if (error) throw error;
     return NextResponse.json({ posts: (data as Post[]) ?? [] });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'GET /api/posts');
   }
 }
 
@@ -84,6 +86,7 @@ export async function POST(request: Request) {
     if (error) throw error;
 
     const insertedPost = data as Post;
+    await syncPostIntoFeedQueue(createAdminClient(), insertedPost);
 
     // Auto-publish: call shared publisher directly (avoids HTTP auth issues)
     if (canAutoPublish && insertedPost.image_url) {
@@ -93,29 +96,170 @@ export async function POST(request: Request) {
       } catch { /* non-blocking — post is already approved in DB */ }
     }
 
-    // Notification
-    if (canAutoPublish) {
-      await supabase.from('notifications').insert({
-        brand_id: brand.id,
-        type:     'published',
-        message:  'Post creado y publicado automáticamente.',
-        read:     false,
-        metadata: { postId: insertedPost.id },
-      });
-    } else if (insertedPost.status === 'pending') {
-      await supabase.from('notifications').insert({
-        brand_id: brand.id,
-        type:     'approval_needed',
-        message:  'Un nuevo post requiere tu aprobación.',
-        read:     false,
-        metadata: { postId: insertedPost.id },
-      });
+    // ── Auto-pipeline for client requests ─────────────────────────────────────
+    // When a client submits a request (status:'request'), automatically start
+    // the generation pipeline so the worker doesn't have to do anything manually.
+    if (effectiveStatus === 'request') {
+      // Notify workers: new request received
+      void (supabase as DB).from('worker_notifications').insert({
+        type: 'new_request',
+        message: `Nueva solicitud de ${(brand as Brand).name}: ${insertedPost.caption?.slice(0, 50) ?? 'contenido'}`,
+        brand_id: insertedPost.brand_id,
+        brand_name: (brand as Brand).name ?? null,
+        read: false,
+        metadata: { post_id: insertedPost.id, format: insertedPost.format },
+      }).then(() => null);
+
+      autoStartPipeline(insertedPost, brand as Brand).catch((e) =>
+        console.error('[posts/POST] pipeline error', e),
+      );
     }
 
     return NextResponse.json({ post: insertedPost }, { status: 201 });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'POST /api/posts');
+  }
+}
+
+// =============================================================================
+// autoStartPipeline — fires after a client request post is created
+// =============================================================================
+// Three paths:
+//   A. Video/reel format    → generate_human_video (HiggsField AI)
+//   B. No image (photo)     → generate_image (Replicate) → validate → caption
+//   C. Image provided       → validate_image → generate_caption
+// =============================================================================
+async function autoStartPipeline(post: Post, brand: Brand): Promise<void> {
+  let clientDesc = '';
+  let inspirationId: string | null = null;
+  let perImageInspirationId: string | null = null;
+  let videoDuration: number | null = null;
+  let sourceFiles: string[] = [];
+  try {
+    const meta = JSON.parse(post.ai_explanation ?? '{}') as Record<string, unknown>;
+    const perImg  = meta.per_image as Array<{ note?: string; inspiration_id?: string }> | undefined;
+    const perNote = perImg?.[0]?.note?.trim();
+    clientDesc    = perNote || String(meta.global_description ?? meta.client_notes ?? post.caption ?? '');
+    perImageInspirationId = perImg?.[0]?.inspiration_id ?? null;
+    inspirationId = perImageInspirationId ?? (meta.global_inspiration_ids as string[] | null)?.[0] ?? null;
+    videoDuration = typeof meta.video_duration === 'number' ? meta.video_duration : null;
+    sourceFiles   = Array.isArray(meta.source_files) ? (meta.source_files as string[]) : [];
+  } catch {
+    clientDesc = post.caption ?? '';
+  }
+
+  let inspirationPrompt = '';
+  if (inspirationId) {
+    try {
+      const db = createAdminClient() as DB;
+      const { data: ref } = await db
+        .from('inspiration_references')
+        .select('title, notes, style_tags')
+        .eq('id', inspirationId).single();
+      if (ref) {
+        inspirationPrompt = [
+          ref.title  ? `Inspired by: "${ref.title}"` : '',
+          ref.notes  ?? '',
+          (ref.style_tags as string[] | null)?.length
+            ? `style: ${(ref.style_tags as string[]).join(', ')}` : '',
+        ].filter(Boolean).join(', ');
+      }
+    } catch { /* non-critical */ }
+  }
+
+  const basePrompt = [inspirationPrompt, clientDesc].filter(Boolean).join('. ')
+    || `Contenido para ${brand.name}, sector ${brand.sector}`;
+
+  const pipelineMeta = {
+    _post_id:         post.id,
+    _photo_index:     0,
+    _original_prompt: basePrompt,
+    _auto_pipeline:   true,
+  };
+
+  const isVideoFormat = post.format === 'video' || post.format === 'reel';
+
+  if (isVideoFormat) {
+    // Path A: Video/reel → always route to HiggsField AI
+    await queueJob({
+      brand_id:    post.brand_id,
+      agent_type:  'content',
+      action:      'generate_human_video',
+      input: {
+        userPrompt:        basePrompt,
+        format:            'video' as const,
+        sector:            brand.sector       ?? 'restaurante',
+        visualStyle:       brand.visual_style ?? 'warm',
+        brandContext:      brand.brand_voice_doc
+          ?? `${brand.name} — sector ${brand.sector}, tono ${brand.tone ?? 'cercano'}`,
+        referenceImageUrl: sourceFiles[0] ?? post.image_url ?? undefined,
+        durationSec:       videoDuration ?? 10,
+        brandId:           post.brand_id,
+        colors:            brand.colors ?? null,
+        forbiddenWords:    (brand.rules as { forbiddenWords?: string[] } | null)?.forbiddenWords ?? [],
+        ...pipelineMeta,
+      },
+      priority:     80,
+      requested_by: 'client',
+    });
+  } else if (!post.image_url) {
+    // Path B: no image → generate from scratch (Replicate)
+    await queueJob({
+      brand_id:    post.brand_id,
+      agent_type:  'content',
+      action:      'generate_image',
+      input: {
+        userPrompt:     basePrompt,
+        sector:         brand.sector       ?? 'restaurante',
+        visualStyle:    brand.visual_style ?? 'warm',
+        brandContext:   brand.brand_voice_doc
+          ?? `${brand.name} — sector ${brand.sector}, tono ${brand.tone ?? 'cercano'}`,
+        colors:         brand.colors ?? null,
+        forbiddenWords: (brand.rules as { forbiddenWords?: string[] } | null)?.forbiddenWords ?? [],
+        noEmojis:       brand.visual_style === 'elegant' || brand.visual_style === 'dark',
+        format:         post.format === 'story' ? 'story'
+                      : post.format === 'reel'  ? 'reel_cover' : 'post',
+        brandId:        post.brand_id,
+        ...pipelineMeta,
+      },
+      priority:     80,
+      requested_by: 'client',
+    });
+  } else {
+    // Path C: user uploaded a photo → img2img via NanoBanana
+    // Claude Vision analyses the photo, enhances the prompt, NanaBanana edits it.
+    // Result lands in needs_review so the user sees it immediately.
+    const numOutputs = (() => {
+      try {
+        const meta = JSON.parse(post.ai_explanation ?? '{}') as Record<string, unknown>;
+        const extra = typeof meta.extra_photos === 'number' ? meta.extra_photos : 0;
+        return Math.min(1 + extra, 4);
+      } catch { return 1; }
+    })();
+    await queueJob({
+      brand_id:    post.brand_id,
+      agent_type:  'content',
+      action:      'generate_image',
+      input: {
+        userPrompt:        basePrompt,
+        sector:            brand.sector       ?? 'restaurante',
+        visualStyle:       brand.visual_style ?? 'warm',
+        brandContext:      brand.brand_voice_doc
+          ?? `${brand.name} — sector ${brand.sector}, tono ${brand.tone ?? 'cercano'}`,
+        colors:            brand.colors ?? null,
+        forbiddenWords:    (brand.rules as { forbiddenWords?: string[] } | null)?.forbiddenWords ?? [],
+        noEmojis:          brand.visual_style === 'elegant' || brand.visual_style === 'dark',
+        format:            post.format === 'story' ? 'story'
+                         : post.format === 'reel'  ? 'reel_cover' : 'post',
+        brandId:           post.brand_id,
+        // img2img: pass user's uploaded photo as reference
+        referenceImageUrl: sourceFiles[0] ?? post.image_url ?? undefined,
+        editStrength:      0.65,
+        numOutputs,
+        ...pipelineMeta,
+      },
+      priority:     80,
+      requested_by: 'client',
+    });
   }
 }

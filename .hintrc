@@ -1,0 +1,27 @@
+{
+  "extends": [
+    "development"
+  ],
+  "hints": {
+    "axe/forms": [
+      "default",
+      {
+        "select-name": "off",
+        "label": "off"
+      }
+    ],
+    "apple-touch-icons": "off",
+    "axe/aria": [
+      "default",
+      {
+        "aria-valid-attr-value": "off"
+      }
+    ],
+    "axe/name-role-value": [
+      "default",
+      {
+        "button-name": "off"
+      }
+    ]
+  }
+}

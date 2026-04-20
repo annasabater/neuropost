@@ -1,8 +1,32 @@
-'use client';
-
-import { useState, useEffect } from 'react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { BLOG_POSTS } from '@/lib/blog-posts';
+import { SiteFooter } from '@/components/layout/SiteFooter';
+import { LandingNav } from '@/components/layout/LandingNav';
+
+export const metadata: Metadata = {
+  title: 'Blog — Recursos para negocios locales | NeuroPost',
+  description: 'Guías, estrategias y tendencias para crecer en Instagram y Facebook sin complicaciones. Consejos prácticos para negocios locales.',
+  openGraph: {
+    title: 'Blog — Recursos para negocios locales | NeuroPost',
+    description: 'Guías, estrategias y tendencias para crecer en Instagram y Facebook. Consejos prácticos para negocios locales.',
+    url: 'https://neuropost.es/blog',
+    siteName: 'NeuroPost',
+    locale: 'es_ES',
+    type: 'website',
+    images: [{ url: 'https://neuropost.es/og', width: 1200, height: 630, alt: 'Blog de NeuroPost — Recursos para negocios locales' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Blog — Recursos para negocios locales | NeuroPost',
+    description: 'Guías y estrategias para crecer en Instagram y Facebook.',
+    images: ['https://neuropost.es/og'],
+  },
+  alternates: { canonical: 'https://neuropost.es/blog' },
+};
+
+const f = "var(--font-barlow), 'Barlow', sans-serif";
+const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr);
@@ -10,63 +34,48 @@ function formatDate(dateStr: string): string {
 }
 
 export default function BlogPage() {
-  const [navShadow, setNavShadow] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setNavShadow(window.scrollY > 20);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
   return (
     <>
-      {/* ─── NAV ─── */}
-      <nav style={{ boxShadow: navShadow ? '0 4px 20px rgba(0,0,0,0.06)' : 'none' }}>
-        <Link href="/" className="nav-logo">
-          <span className="logo-dot" />
-          NeuroPost
-        </Link>
-        <ul className="nav-links">
-          <li><Link href="/#funciones">Funciones</Link></li>
-          <li><Link href="/#precios">Precios</Link></li>
-          <li><Link href="/about">Nosotros</Link></li>
-          <li><Link href="/login" className="nav-login">Iniciar sesión</Link></li>
-          <li><Link href="/register" className="nav-cta">Empezar gratis</Link></li>
-        </ul>
-      </nav>
+      <LandingNav />
 
       {/* ─── HERO ─── */}
       <section style={{
-        paddingTop: '120px',
-        paddingBottom: '64px',
-        background: 'var(--warm)',
+        paddingTop: '140px',
+        paddingBottom: '60px',
+        background: '#ffffff',
         borderBottom: '1px solid var(--border)',
       }}>
-        <div className="container" style={{ textAlign: 'center' }}>
+        <div className="container" style={{ maxWidth: 900, textAlign: 'center' }}>
           <div style={{
-            display: 'inline-block',
-            background: 'var(--orange-light)',
-            color: 'var(--orange)',
-            fontFamily: "'Cabinet Grotesk', sans-serif",
-            fontWeight: 700,
-            fontSize: '0.8rem',
+            fontFamily: f,
+            fontWeight: 600,
+            fontSize: 11,
             textTransform: 'uppercase',
-            letterSpacing: '0.1em',
-            padding: '6px 16px',
-            borderRadius: '20px',
-            marginBottom: '20px',
+            letterSpacing: '0.14em',
+            color: '#0F766E',
+            marginBottom: 14,
           }}>
-            Blog
+            Recursos
           </div>
-          <h1 style={{ marginBottom: '16px', fontSize: 'clamp(2rem, 5vw, 3rem)' }}>
+          <h1 style={{
+            marginBottom: 12,
+            fontFamily: fc,
+            fontWeight: 900,
+            fontSize: 'clamp(2.4rem, 5vw, 4rem)',
+            textTransform: 'uppercase',
+            letterSpacing: '-0.01em',
+            lineHeight: 0.95,
+            color: '#111111',
+          }}>
             Recursos para negocios locales
           </h1>
           <p style={{
-            color: 'var(--muted)',
-            fontSize: '1.1rem',
-            maxWidth: '520px',
+            color: '#6b7280',
+            fontSize: 16,
+            lineHeight: 1.75,
+            maxWidth: 700,
             margin: '0 auto',
-            fontFamily: "'Cabinet Grotesk', sans-serif",
+            fontFamily: f,
           }}>
             Guías, estrategias y tendencias para crecer en Instagram y Facebook sin complicaciones.
           </p>
@@ -74,12 +83,14 @@ export default function BlogPage() {
       </section>
 
       {/* ─── ARTICLES ─── */}
-      <section style={{ padding: '64px 0 80px' }}>
+      <section style={{ padding: '56px 0 80px' }}>
         <div className="container">
-          <div style={{
+          <div className="blog-grid-squares" style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: '28px',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: 1,
+            background: '#e5e7eb',
+            border: '1px solid #e5e7eb',
           }}>
             {BLOG_POSTS.map((post) => (
               <Link
@@ -88,61 +99,50 @@ export default function BlogPage() {
                 style={{ textDecoration: 'none' }}
               >
                 <article style={{
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  borderRadius: '16px',
-                  padding: '28px',
+                  background: '#ffffff',
+                  border: '1px solid #e5e7eb',
+                  padding: '24px 22px',
                   height: '100%',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '12px',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)';
-                  (e.currentTarget as HTMLElement).style.boxShadow = '0 12px 32px rgba(0,0,0,0.09)';
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.transform = '';
-                  (e.currentTarget as HTMLElement).style.boxShadow = '';
-                }}
-                >
+                  transition: 'background 0.2s ease',
+                }}>
                   {/* Read time tag */}
                   <span style={{
                     display: 'inline-block',
-                    background: 'var(--orange-light)',
-                    color: 'var(--orange)',
-                    fontFamily: "'Cabinet Grotesk', sans-serif",
+                    background: '#f0fdfa',
+                    color: '#0F766E',
+                    fontFamily: f,
                     fontWeight: 700,
-                    fontSize: '0.75rem',
+                    fontSize: 10,
                     textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    padding: '4px 12px',
-                    borderRadius: '20px',
+                    letterSpacing: '0.1em',
+                    padding: '3px 10px',
                     alignSelf: 'flex-start',
                   }}>
                     {post.readTime} min
                   </span>
 
                   <h2 style={{
-                    fontFamily: "'Cabinet Grotesk', sans-serif",
-                    fontSize: '1.15rem',
+                    fontFamily: fc,
+                    fontSize: 24,
                     fontWeight: 800,
-                    color: 'var(--ink)',
-                    lineHeight: 1.3,
+                    textTransform: 'uppercase',
+                    color: '#111111',
+                    lineHeight: 1.05,
                     margin: 0,
                   }}>
                     {post.title}
                   </h2>
 
                   <p style={{
-                    color: 'var(--muted)',
-                    fontSize: '0.92rem',
-                    lineHeight: 1.6,
+                    color: '#6b7280',
+                    fontSize: 14,
+                    lineHeight: 1.7,
                     flexGrow: 1,
                     margin: 0,
-                    fontFamily: "'Cabinet Grotesk', sans-serif",
+                    fontFamily: f,
                   }}>
                     {post.excerpt}
                   </p>
@@ -152,10 +152,10 @@ export default function BlogPage() {
                     alignItems: 'center',
                     gap: '12px',
                     paddingTop: '12px',
-                    borderTop: '1px solid var(--border)',
-                    fontSize: '0.82rem',
-                    color: 'var(--muted)',
-                    fontFamily: "'Cabinet Grotesk', sans-serif",
+                    borderTop: '1px solid #e5e7eb',
+                    fontSize: 12,
+                    color: '#6b7280',
+                    fontFamily: f,
                   }}>
                     <span>{formatDate(post.date)}</span>
                     <span>·</span>
@@ -170,67 +170,44 @@ export default function BlogPage() {
 
       {/* ─── CTA ─── */}
       <section style={{
-        background: 'var(--ink)',
-        color: 'var(--cream)',
+        background: '#111111',
+        color: '#f5f5f5',
         padding: '80px 0',
         textAlign: 'center',
       }}>
         <div className="container">
-          <h2 style={{ color: 'var(--cream)', marginBottom: '16px' }}>
+          <h2 style={{ color: '#f5f5f5', marginBottom: '12px', fontFamily: fc, fontWeight: 900, textTransform: 'uppercase', fontSize: 'clamp(2rem, 5vw, 3.2rem)', lineHeight: 0.95 }}>
             ¿Quieres que llevemos tu Instagram?
           </h2>
           <p style={{
-            color: 'rgba(250,248,243,0.65)',
-            fontFamily: "'Cabinet Grotesk', sans-serif",
-            fontSize: '1.05rem',
+            color: '#9ca3af',
+            fontFamily: f,
+            fontSize: 15,
             marginBottom: '32px',
           }}>
-            Automatiza tus redes con IA. 14 días gratis, sin tarjeta de crédito.
+            Automatiza tus redes con IA. Sin compromiso.
           </p>
           <Link
             href="/register"
-            className="btn-primary"
             style={{
               display: 'inline-block',
-              padding: '16px 36px',
-              borderRadius: '8px',
-              fontFamily: "'Cabinet Grotesk', sans-serif",
+              padding: '14px 30px',
+              background: '#ffffff',
+              color: '#111111',
+              fontFamily: fc,
               fontWeight: 700,
-              fontSize: '1rem',
+              fontSize: 13,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
               textDecoration: 'none',
             }}
           >
-            Empezar gratis →
+            Empezar →
           </Link>
         </div>
       </section>
 
-      {/* ─── FOOTER ─── */}
-      <footer style={{
-        background: 'var(--ink)',
-        borderTop: '1px solid rgba(255,255,255,0.08)',
-        padding: '40px 0',
-      }}>
-        <div className="container" style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '16px',
-        }}>
-          <Link href="/" className="nav-logo" style={{ color: 'var(--cream)' }}>
-            <span className="logo-dot" />
-            NeuroPost
-          </Link>
-          <span style={{
-            color: 'rgba(250,248,243,0.4)',
-            fontFamily: "'Cabinet Grotesk', sans-serif",
-            fontSize: '0.85rem',
-          }}>
-            © 2025 NeuroPost · Todos los derechos reservados
-          </span>
-        </div>
-      </footer>
+      <SiteFooter />
     </>
   );
 }

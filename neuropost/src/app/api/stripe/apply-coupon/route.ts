@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
 import { getStripeClient } from '@/lib/stripe';
 
@@ -80,6 +81,6 @@ export async function POST(request: Request) {
     if (stripeCode === 'coupon_already_applied') {
       return NextResponse.json({ success: false, error: 'Este código ya está aplicado a tu cuenta' });
     }
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'stripe/apply-coupon');
   }
 }

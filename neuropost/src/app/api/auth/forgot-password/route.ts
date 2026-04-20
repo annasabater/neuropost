@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { createAdminClient } from '@/lib/supabase';
 
 export async function POST(request: Request) {
@@ -10,14 +11,13 @@ export async function POST(request: Request) {
     const appUrl   = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${appUrl}/reset-password`,
+      redirectTo: `${appUrl}/auth/confirm`,
     });
 
     if (error) throw error;
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'auth/forgot-password');
   }
 }

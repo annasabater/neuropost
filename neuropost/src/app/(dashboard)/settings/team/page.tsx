@@ -80,7 +80,6 @@ export default function TeamPage() {
             <h1 className="page-title">Equipo</h1>
             <p className="page-sub">Gestiona los miembros de tu equipo</p>
           </div>
-          <Link href="/settings" style={{ fontSize: 13, color: 'var(--muted)' }}>← Ajustes</Link>
         </div>
         <div className="settings-section" style={{ textAlign: 'center', padding: 40 }}>
           <Crown size={40} style={{ color: 'var(--orange)', margin: '0 auto 16px' }} />
@@ -88,9 +87,9 @@ export default function TeamPage() {
             Función de plan Pro
           </p>
           <p style={{ color: 'var(--muted)', marginBottom: 20 }}>
-            La gestión de equipo está disponible en los planes Pro y Agency.
+            La gestión de equipo está disponible en los planes Pro y Total.
           </p>
-          <Link href="/settings/plan" className="btn-primary">Ver planes</Link>
+          <Link href="/pricing#pricing-top" className="btn-primary">Ver planes</Link>
         </div>
       </div>
     );
@@ -103,7 +102,6 @@ export default function TeamPage() {
           <h1 className="page-title">Equipo</h1>
           <p className="page-sub">Invita colaboradores para gestionar tu marca</p>
         </div>
-        <Link href="/settings" style={{ fontSize: 13, color: 'var(--muted)' }}>← Ajustes</Link>
       </div>
 
       {/* Invite form */}

@@ -4,16 +4,25 @@ import type { Platform, PostFormat } from '@/types';
 
 interface Props {
   imageUrl:  string | null;
+  videoUrl?: string | null;
   caption:   string;
   hashtags:  string[];
   platform:  Platform;
   format:    PostFormat;
   brandName?: string;
+  videoDuration?: number | null;
 }
 
-export function PostPreview({ imageUrl, caption, hashtags, platform, format, brandName = 'Tu negocio' }: Props) {
+const PLATFORM_LABEL: Record<string, string> = {
+  instagram: 'Instagram',
+  facebook: 'Facebook',
+  tiktok: 'TikTok',
+};
+
+export function PostPreview({ imageUrl, videoUrl, caption, hashtags, platform, format, brandName = 'Tu negocio', videoDuration }: Props) {
+  const isVideo = format === 'video' || format === 'reel';
+  const aspectClass = isVideo ? 'preview-aspect-reel' : format === 'carousel' ? 'preview-aspect-sq' : 'preview-aspect-sq';
   const isInstagram = platform === 'instagram';
-  const aspectClass = format === 'reel' ? 'preview-aspect-reel' : format === 'carousel' ? 'preview-aspect-sq' : 'preview-aspect-sq';
 
   return (
     <div className={`post-preview-card post-preview-${platform}`}>
@@ -24,23 +33,30 @@ export function PostPreview({ imageUrl, caption, hashtags, platform, format, bra
         </div>
         <div>
           <p className="post-preview-name">{brandName}</p>
-          {isInstagram && <p className="post-preview-meta">Instagram</p>}
-          {!isInstagram && <p className="post-preview-meta">Facebook</p>}
+          <p className="post-preview-meta">{PLATFORM_LABEL[platform] ?? platform}</p>
         </div>
         <span className="post-preview-platform-badge">{platform}</span>
       </div>
 
-      {/* Image */}
+      {/* Media */}
       <div className={`post-preview-image ${aspectClass}`}>
-        {imageUrl ? (
+        {isVideo && videoUrl ? (
+          <video
+            src={videoUrl}
+            controls
+            poster={imageUrl ?? undefined}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          />
+        ) : imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={imageUrl} alt="Vista previa" />
         ) : (
           <div className="post-preview-placeholder">
-            <span>Sin imagen</span>
+            <span>{isVideo ? 'Sin vídeo' : 'Sin imagen'}</span>
           </div>
         )}
-        {format === 'reel' && <span className="preview-format-label">▶ Reel</span>}
+        {format === 'video' && <span className="preview-format-label">▶ Vídeo{videoDuration ? ` ${videoDuration}s` : ''}</span>}
+        {format === 'reel' && <span className="preview-format-label">▶ Reel{videoDuration ? ` ${videoDuration}s` : ''}</span>}
         {format === 'carousel' && <span className="preview-format-label">⊞ Carrusel</span>}
       </div>
 

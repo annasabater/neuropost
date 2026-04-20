@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { apiError } from '@/lib/api-utils';
 import { requireServerUser, createServerClient } from '@/lib/supabase';
+import { queueJob } from '@/lib/agents/queue';
 import type { Brand } from '@/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -17,9 +19,7 @@ export async function GET() {
     if (error && error.code !== 'PGRST116') throw error;
     return NextResponse.json({ brand: (data as Brand | null) ?? null });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'brands');
   }
 }
 
@@ -29,22 +29,78 @@ export async function POST(request: Request) {
     const body     = await request.json();
     const supabase = await createServerClient() as DB;
 
+    // Remove fields that don't exist as columns in the brands table
+    const { publish_frequency: _pf, promo_code_id: _pc, content_categories: incomingCategories, ...brandFields } = body;
+
     // Guard against duplicate brands per user
     const { data: existing } = await supabase
       .from('brands').select('id').eq('user_id', user.id).maybeSingle();
     if (existing) return NextResponse.json({ brand: existing }, { status: 200 });
 
+    // Pull GDPR marketing consent from auth user_metadata (set at /register)
+    const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+    const consent = meta.marketing_consent === true;
+    const consentAt = typeof meta.marketing_consent_at === 'string' ? meta.marketing_consent_at : (consent ? new Date().toISOString() : null);
+
     const { data, error } = await supabase
       .from('brands')
-      .insert({ ...body, user_id: user.id, plan: 'starter' })
+      .insert({
+        ...brandFields,
+        user_id:              user.id,
+        plan:                 'starter',
+        marketing_consent:    consent,
+        marketing_consent_at: consentAt,
+      })
       .select()
       .single();
-    if (error) throw error;
+    if (error) {
+      console.error('[POST /api/brands] Supabase error:', JSON.stringify(error));
+      return NextResponse.json({ error: error.message ?? error.details ?? JSON.stringify(error) }, { status: 500 });
+    }
+
+    // Seed content_categories if provided by onboarding
+    if (Array.isArray(incomingCategories) && incomingCategories.length > 0 && data?.id) {
+      const rows = (incomingCategories as { category_key: string; name: string; source: string; active: boolean }[])
+        .map((c) => ({ brand_id: data.id, category_key: c.category_key, name: c.name, source: c.source ?? 'template', active: c.active ?? true }));
+      await supabase.from('content_categories').insert(rows).then(() => void 0);
+    }
+
+    // Seed notification_preferences — opt-in marketing toggles only when
+    // the user checked the consent box at /register.
+    if (data?.id) {
+      await supabase.from('notification_preferences').upsert(
+        {
+          brand_id:              data.id,
+          marketing_email:       consent,
+          newsletter_email:      consent,
+          product_updates_email: consent,
+        },
+        { onConflict: 'brand_id' },
+      ).then(() => void 0);
+    }
+
+    // Fire holiday detection agent for the current + next year (fire-and-forget)
+    if (data?.id) {
+      const currentYear = new Date().getFullYear();
+      for (const yr of [currentYear, currentYear + 1]) {
+        queueJob({
+          brand_id: data.id,
+          agent_type: 'scheduling',
+          action: 'detect_holidays',
+          input: { year: yr },
+          priority: 40,
+          requested_by: 'cron',
+        }).catch(() => null);
+      }
+    }
+
     return NextResponse.json({ brand: data as Brand }, { status: 201 });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+  } catch (err: unknown) {
+    console.error('[POST /api/brands] CATCH:', JSON.stringify(err, Object.getOwnPropertyNames(err as object)));
+    const message = err instanceof Error ? err.message
+      : (typeof err === 'object' && err !== null && 'message' in err) ? String((err as Record<string, unknown>).message)
+      : JSON.stringify(err);
+    return apiError(err, 'brands');
   }
 }
 
@@ -71,6 +127,13 @@ export async function PATCH(request: Request) {
       ...allowedFields
     } = body;
 
+    // Fetch current location before updating to detect changes
+    const { data: current } = await supabase
+      .from('brands')
+      .select('id, location')
+      .eq('user_id', user.id)
+      .single();
+
     const { data, error } = await supabase
       .from('brands')
       .update(allowedFields)
@@ -78,10 +141,25 @@ export async function PATCH(request: Request) {
       .select()
       .single();
     if (error) throw error;
+
+    // Re-trigger holiday agent when location changes
+    const locationChanged = 'location' in allowedFields && allowedFields.location !== current?.location;
+    if (locationChanged && data?.id) {
+      const currentYear = new Date().getFullYear();
+      for (const yr of [currentYear, currentYear + 1]) {
+        queueJob({
+          brand_id: data.id,
+          agent_type: 'scheduling',
+          action: 'detect_holidays',
+          input: { year: yr, force_refresh: true },
+          priority: 55,
+          requested_by: 'system',
+        }).catch(() => null);
+      }
+    }
+
     return NextResponse.json({ brand: data as Brand });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    if (message === 'UNAUTHENTICATED') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    return NextResponse.json({ error: message }, { status: 500 });
+    return apiError(err, 'brands');
   }
 }

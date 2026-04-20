@@ -45,6 +45,19 @@ export async function POST(request: Request) {
     }).select().single();
     if (error) throw error;
 
+    // Notify client that worker sent a message
+    try {
+      await db.from('notifications').insert({
+        brand_id,
+        type: 'chat_message',
+        message: 'Nuevo mensaje del equipo de NeuroPost.',
+        read: false,
+        metadata: { messageId: msg.id },
+      });
+    } catch (notifErr) {
+      console.error('[chat/worker] Failed to insert notification:', notifErr);
+    }
+
     return NextResponse.json({ message: msg });
   } catch (err) {
     const { error, status } = workerErrorResponse(err);

@@ -35,6 +35,43 @@ export async function checkPostLimit(brandId: string): Promise<PlanLimitResult> 
   return { allowed: true };
 }
 
+/** Check if a brand can generate another video this week. */
+export async function checkVideoLimit(brandId: string): Promise<PlanLimitResult> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createServerClient() as any;
+  const { data: brand } = await supabase
+    .from('brands').select('plan, videos_this_week').eq('id', brandId).single();
+
+  const plan  = (brand?.plan ?? 'starter') as SubscriptionPlan;
+  const limit = PLAN_LIMITS[plan].videosPerWeek;
+
+  if (limit === 0) {
+    return {
+      allowed:    false,
+      reason:     `La generación de vídeo no está incluida en el plan ${plan}.`,
+      upgradeUrl: `${appUrl()}/settings/plan`,
+    };
+  }
+
+  const used = brand?.videos_this_week ?? 0;
+  if (used >= limit) {
+    return {
+      allowed:    false,
+      reason:     `Has alcanzado el límite de ${limit} vídeos/semana del plan ${plan}. Se restablece cada lunes.`,
+      upgradeUrl: `${appUrl()}/settings/plan`,
+    };
+  }
+  return { allowed: true };
+}
+
+/** Increment video counter after successful generation. */
+export async function incrementVideoCounter(brandId: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createServerClient() as any;
+  const { data } = await supabase.from('brands').select('videos_this_week').eq('id', brandId).single();
+  if (data) await supabase.from('brands').update({ videos_this_week: (data.videos_this_week ?? 0) + 1 }).eq('id', brandId);
+}
+
 /** Check if a brand can publish a story this week. */
 export async function checkStoryLimit(brandId: string): Promise<PlanLimitResult> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -120,26 +157,109 @@ export async function incrementPostCounter(brandId: string): Promise<void> {
 
 // ─── Image quality by plan ────────────────────────────────────────────────────
 
-import type { NanoBananaQuality } from './nanoBanana';
+import type { ImageQuality } from './imageGeneration';
 
-export const IMAGE_QUALITY_BY_PLAN: Record<SubscriptionPlan, NanoBananaQuality> = {
-  starter: 'fast',   // quick and economical
-  pro:     'pro',    // standard quality
-  total:   'pro',    // standard quality + priority
-  agency:  'ultra',  // maximum 4K quality
+export const IMAGE_QUALITY_BY_PLAN: Record<SubscriptionPlan, ImageQuality> = {
+  starter: 'standard',
+  pro:     'pro',
+  total:   'pro',
 };
 
-export const IMAGE_QUALITY_LABEL: Record<NanoBananaQuality, string> = {
-  fast:  'Generació estàndard',
-  pro:   'Generació Pro (qualitat alta)',
-  ultra: 'Generació Ultra (màxima qualitat 4K)',
+export const IMAGE_QUALITY_LABEL: Record<ImageQuality, string> = {
+  standard: 'Generació estàndard',
+  pro:      'Generació Pro (qualitat alta)',
 };
 
-export const IMAGE_QUALITY_TIME: Record<NanoBananaQuality, string> = {
-  fast:  '~5 seg',
-  pro:   '~10 seg',
-  ultra: '~15 seg',
+export const IMAGE_QUALITY_TIME: Record<ImageQuality, string> = {
+  standard: '~20 seg',
+  pro:      '~30 seg',
 };
+
+// ─── Recreation regeneration limits ───────────────────────────────────────────
+//
+// Per-recreation caps on how many times a client can re-run Replicate for the
+// same recreation_request. Independent from the weekly post/video/story counters.
+// Mapping per plan — easy to extend when new tiers (or an Agency bump) arrive.
+
+export const REGENERATION_LIMITS: Record<SubscriptionPlan, number> = {
+  starter: 3,
+  pro:     6,
+  total:   6,
+};
+
+export interface RegenerationLimitCheck extends PlanLimitResult {
+  used?:  number;
+  limit?: number;
+}
+
+/**
+ * Reserve one regeneration slot atomically.
+ *
+ * Looks up the brand's plan limit, then delegates the compare-and-swap to
+ * `increment_regeneration_if_available(p_recreation_id, p_limit)` — a SQL
+ * function that only updates when regeneration_count < limit. Two concurrent
+ * callers cannot both reserve the last slot: Postgres serialises the UPDATE.
+ *
+ * On failure path (Replicate rejects the prediction after reservation), call
+ * {@link releaseRegenerationSlot} to refund the slot.
+ *
+ * Migration: supabase/migrations/20260419_atomic_regeneration_count.sql
+ */
+export async function reserveRegenerationSlot(
+  brandId: string,
+  recreationId: string,
+): Promise<RegenerationLimitCheck> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createServerClient() as any;
+
+  const { data: brand } = await supabase
+    .from('brands').select('plan').eq('id', brandId).single();
+  const plan  = (brand?.plan ?? 'starter') as SubscriptionPlan;
+  const limit = REGENERATION_LIMITS[plan];
+
+  const { data, error } = await supabase.rpc('increment_regeneration_if_available', {
+    p_recreation_id: recreationId,
+    p_limit:         limit,
+  });
+
+  if (error) {
+    throw new Error(`reserveRegenerationSlot RPC failed: ${error.message}`);
+  }
+
+  const row: { new_count: number; allowed: boolean } | undefined = Array.isArray(data) ? data[0] : data;
+
+  if (!row?.allowed) {
+    // No row returned → the WHERE guard rejected (quota exhausted).
+    // Read the current value for the error message.
+    const { data: rec } = await supabase
+      .from('recreation_requests').select('regeneration_count').eq('id', recreationId).single();
+    const used = rec?.regeneration_count ?? limit;
+    return {
+      allowed:    false,
+      reason:     `Has alcanzado el límite de regeneraciones para tu plan (${used}/${limit}). Contacta con soporte o mejora tu plan.`,
+      upgradeUrl: `${appUrl()}/settings/plan`,
+      used,
+      limit,
+    };
+  }
+
+  return { allowed: true, used: row.new_count, limit };
+}
+
+/**
+ * Refund a previously reserved slot. Wraps `decrement_regeneration_count`
+ * so the counter floors at 0 even on double-release.
+ */
+export async function releaseRegenerationSlot(recreationId: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const supabase = await createServerClient() as any;
+  const { error } = await supabase.rpc('decrement_regeneration_count', {
+    p_recreation_id: recreationId,
+  });
+  if (error) {
+    console.error(`[releaseRegenerationSlot] RPC failed for ${recreationId}:`, error.message);
+  }
+}
 
 /** Increment story counter after successful story publish. */
 export async function incrementStoryCounter(brandId: string): Promise<void> {
@@ -148,3 +268,38 @@ export async function incrementStoryCounter(brandId: string): Promise<void> {
   const { data } = await supabase.from('brands').select('stories_this_week').eq('id', brandId).single();
   if (data) await supabase.from('brands').update({ stories_this_week: (data.stories_this_week ?? 0) + 1 }).eq('id', brandId);
 }
+
+// ─── Content quotas by plan (Sprint 9) ───────────────────────────────────────
+//
+// Defines weekly content output and feature flags per plan tier.
+// Keys match brands.plan column values: 'starter' | 'pro' | 'total'.
+// custom_story_templates: -1 = unlimited.
+
+export const PLAN_CONTENT_QUOTAS = {
+  starter: {
+    posts_per_week:          2,
+    stories_per_week:        3,
+    allowed_post_formats:    ['carousel'] as const,
+    posts_mix_configurable:  false,
+    custom_story_templates:  0,
+    stories_builder:         false,
+  },
+  pro: {
+    posts_per_week:          4,
+    stories_per_week:        5,
+    allowed_post_formats:    ['carousel', 'reel'] as const,
+    posts_mix_configurable:  true,
+    custom_story_templates:  3,
+    stories_builder:         true,
+  },
+  total: {
+    posts_per_week:          7,
+    stories_per_week:        12,
+    allowed_post_formats:    ['carousel', 'reel'] as const,
+    posts_mix_configurable:  true,
+    custom_story_templates:  -1,
+    stories_builder:         true,
+  },
+} as const;
+
+export type PlanKey = keyof typeof PLAN_CONTENT_QUOTAS;
