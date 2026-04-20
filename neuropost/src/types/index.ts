@@ -186,6 +186,8 @@ export interface Brand {
   human_review_config:        HumanReviewConfig;
   auto_approve_after_days:    number;
   compliance_flags:           Record<string, unknown>;
+  /** Weekly content format mix preferences. Applied to the next generated plan. */
+  content_mix_preferences?:   { posts?: { carousel?: number; reel?: number }; stories_templates_enabled?: string[] } | null;
 }
 
 // ─── Database: Profile ────────────────────────────────────────────────────────

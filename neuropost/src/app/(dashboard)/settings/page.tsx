@@ -160,6 +160,7 @@ export default function SettingsPage() {
     { id: 'notificaciones', label: t('sections.notifications') },
     { id: 'redes',          label: t('nav.social') },
     { id: 'exportar',       label: t('nav.export') },
+    { id: 'contenido',      label: 'Contenido' },
     { id: 'plan',           label: t('nav.plan') },
     { id: 'cuenta',         label: t('nav.account') },
   ];
@@ -1243,6 +1244,25 @@ export default function SettingsPage() {
                 {t('export.csv')}
               </a>
             </div>
+          </div>
+
+          {/* ── Contenido ── */}
+          <div id="contenido" className="settings-section">
+            <h2 className="settings-section-title">Contenido</h2>
+            <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: 16 }}>
+              Elige cuántos carruseles y reels generar cada semana según tu plan.
+            </p>
+            <a
+              href="/settings/content"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '9px 18px', border: '1px solid var(--border)', background: 'var(--bg)',
+                fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontSize: 13, fontWeight: 600,
+                color: 'var(--text-primary)', textDecoration: 'none',
+              }}
+            >
+              Configurar mix de contenido →
+            </a>
           </div>
 
           {/* ── Plan y facturación ── */}

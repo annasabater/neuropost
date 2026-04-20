@@ -268,3 +268,38 @@ export async function incrementStoryCounter(brandId: string): Promise<void> {
   const { data } = await supabase.from('brands').select('stories_this_week').eq('id', brandId).single();
   if (data) await supabase.from('brands').update({ stories_this_week: (data.stories_this_week ?? 0) + 1 }).eq('id', brandId);
 }
+
+// ─── Content quotas by plan (Sprint 9) ───────────────────────────────────────
+//
+// Defines weekly content output and feature flags per plan tier.
+// Keys match brands.plan column values: 'starter' | 'pro' | 'total'.
+// custom_story_templates: -1 = unlimited.
+
+export const PLAN_CONTENT_QUOTAS = {
+  starter: {
+    posts_per_week:          2,
+    stories_per_week:        3,
+    allowed_post_formats:    ['carousel'] as const,
+    posts_mix_configurable:  false,
+    custom_story_templates:  0,
+    stories_builder:         false,
+  },
+  pro: {
+    posts_per_week:          4,
+    stories_per_week:        5,
+    allowed_post_formats:    ['carousel', 'reel'] as const,
+    posts_mix_configurable:  true,
+    custom_story_templates:  3,
+    stories_builder:         true,
+  },
+  total: {
+    posts_per_week:          7,
+    stories_per_week:        12,
+    allowed_post_formats:    ['carousel', 'reel'] as const,
+    posts_mix_configurable:  true,
+    custom_story_templates:  -1,
+    stories_builder:         true,
+  },
+} as const;
+
+export type PlanKey = keyof typeof PLAN_CONTENT_QUOTAS;
