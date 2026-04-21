@@ -129,6 +129,9 @@ export async function POST(request: Request) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error('[inspiracion/contribuir]', msg);
+    if (msg.includes('credit balance is too low') || msg.includes('insufficient_quota')) {
+      return NextResponse.json({ error: 'El servicio de análisis no está disponible en este momento. Contacta con soporte.' }, { status: 503 });
+    }
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

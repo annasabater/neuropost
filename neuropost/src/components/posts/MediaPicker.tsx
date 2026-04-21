@@ -38,9 +38,10 @@ interface MediaPickerProps {
   selected: SelectedMedia[];
   onChange: (items: SelectedMedia[]) => void;
   max?: number;
+  hideLabel?: boolean;
 }
 
-export function MediaPicker({ selected, onChange, max = 10 }: MediaPickerProps) {
+export function MediaPicker({ selected, onChange, max = 10, hideLabel = false }: MediaPickerProps) {
   const [tab, setTab] = useState<'library' | 'instagram'>('library');
   const [library, setLibrary] = useState<LibraryItem[]>([]);
   const [igFeed, setIgFeed] = useState<IGItem[]>([]);
@@ -115,12 +116,14 @@ export function MediaPicker({ selected, onChange, max = 10 }: MediaPickerProps) 
 
   return (
     <div>
-      <label style={{
-        display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600,
-        textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af', marginBottom: 8,
-      }}>
-        Adjuntar imágenes de referencia <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span>
-      </label>
+      {!hideLabel && (
+        <label style={{
+          display: 'block', fontFamily: f, fontSize: 10, fontWeight: 600,
+          textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af', marginBottom: 8,
+        }}>
+          Adjuntar imágenes de referencia <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span>
+        </label>
+      )}
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 12 }}>
@@ -134,10 +137,10 @@ export function MediaPicker({ selected, onChange, max = 10 }: MediaPickerProps) 
 
       {/* Grid */}
       <div style={{
-        border: '1px solid #e5e7eb',
+        border: '1px solid var(--border)',
         maxHeight: 240,
         overflowY: 'auto',
-        background: '#f9fafb',
+        background: 'var(--bg)',
       }}>
         {tab === 'library' && (
           loadingLib ? (
@@ -149,7 +152,7 @@ export function MediaPicker({ selected, onChange, max = 10 }: MediaPickerProps) 
               <p style={{ fontFamily: f, fontSize: 12, color: '#9ca3af' }}>No hay contenido en tu biblioteca</p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: '#e5e7eb' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: '#fff' }}>
               {library.map((item) => {
                 const isSel = selectedIds.has(item.id);
                 return (
@@ -223,7 +226,7 @@ export function MediaPicker({ selected, onChange, max = 10 }: MediaPickerProps) 
               <p style={{ fontFamily: f, fontSize: 12, color: '#9ca3af' }}>No se encontraron publicaciones</p>
             </div>
           ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: '#e5e7eb' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: '#fff' }}>
               {igFeed.map((item) => {
                 if (!item.imageUrl) return null;
                 const isSel = selectedIds.has(item.id);

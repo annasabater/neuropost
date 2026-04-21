@@ -93,6 +93,7 @@ interface ReferenceRequest {
   cancelled_at:     string | null;
   thumbnail_url:    string | null;
   item_label:       string | null;
+  own_media_urls?:  string[] | null;
 }
 
 const BADGES_BY_STATUS: Record<string, { label: string; bg: string; color: string }> = {
@@ -104,11 +105,10 @@ const BADGES_BY_STATUS: Record<string, { label: string; bg: string; color: strin
 };
 
 const TIMING_LABELS: Record<string, string> = {
-  next_week:     'Semana que viene',
-  specific_date: 'Fecha concreta',
-  // legacy keys kept for existing rows
+  next_week:      'Semana que viene',
+  next_two_weeks: 'Semana que viene',
+  specific_date:  'Fecha concreta',
   asap:           'Sin prisa',
-  next_two_weeks: 'Próximas 2 semanas',
 };
 
 function isThisWeek(dateStr: string): boolean {
@@ -141,10 +141,13 @@ export default function InspiracionPage() {
   const [requests,        setRequests]        = useState<ReferenceRequest[]>([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [statusFilter,    setStatusFilter]    = useState<string>('all');
+  const [viewRequest,     setViewRequest]     = useState<ReferenceRequest | null>(null);
   const [requestModal,    setRequestModal]    = useState<InspirationItem | null>(null);
   const [reqComment,      setReqComment]      = useState('');
   const [reqTiming,       setReqTiming]       = useState<TimingPref>('next_week');
   const [reqDate,         setReqDate]         = useState('');
+  const [reqModalMedia,   setReqModalMedia]   = useState<SelectedMedia[]>([]);
+  const [reqMediaOpen,    setReqMediaOpen]    = useState(false);
   const [reqSubmitting,   setReqSubmitting]   = useState(false);
 
   function openRequestModal(item: InspirationItem) {
@@ -152,9 +155,11 @@ export default function InspiracionPage() {
     setReqComment('');
     setReqTiming('next_week');
     setReqDate('');
+    setReqModalMedia([]);
+    setReqMediaOpen(false);
   }
 
-  const reqDateIsThisWeek = reqTiming === 'specific_date' && reqDate ? isThisWeek(reqDate) : false;
+  const reqDateIsThisWeek = reqDate ? isThisWeek(reqDate) : false;
 
   async function handleSubmitRequest() {
     if (!requestModal) return;
@@ -175,8 +180,9 @@ export default function InspiracionPage() {
           source:             requestModal.source ?? 'legacy',
           item_id:            requestModal.id,
           client_comment:     reqComment.trim() || null,
-          timing_preference:  reqTiming,
-          preferred_date:     reqTiming === 'specific_date' ? (reqDate || null) : null,
+          timing_preference:  reqDate ? 'specific_date' : 'next_two_weeks',
+          preferred_date:     reqDate || null,
+          own_media_urls:     reqModalMedia.map(m => m.url),
         }),
       });
       const json = await res.json();
@@ -203,7 +209,7 @@ export default function InspiracionPage() {
       const res = await fetch(`/api/inspiracion/requests/${id}/cancel`, { method: 'POST' });
       if (!res.ok) { toast.error('No se pudo cancelar'); return; }
       toast.success('Solicitud cancelada');
-      setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'cancelled' as const } : r));
+      setRequests(prev => prev.filter(r => r.id !== id));
     } catch { toast.error('Error'); }
   }
 
@@ -738,16 +744,18 @@ export default function InspiracionPage() {
             )}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowAdd(true)}
-          className="inspi-header-cta"
-          title="Guardar nueva referencia"
-          style={{ background: '#0D9488', color: '#fff', border: 'none', padding: '12px 28px', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0, boxShadow: '0 2px 12px rgba(13,148,136,0.35)' }}
-        >
-          <Plus size={15} />
-          <span className="inspi-cta-label">Guardar referencia</span>
-        </button>
+        {scope !== 'guardadas' && (
+          <button
+            type="button"
+            onClick={() => setShowAdd(true)}
+            className="inspi-header-cta"
+            title="Guardar nueva referencia"
+            style={{ background: '#0D9488', color: '#fff', border: 'none', padding: '12px 28px', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0, boxShadow: '0 2px 12px rgba(13,148,136,0.35)' }}
+          >
+            <Plus size={15} />
+            <span className="inspi-cta-label">Guardar referencia</span>
+          </button>
+        )}
       </div>
 
       {/* ── Filter bar ─────────────────────────────────────────────────────── */}
@@ -989,24 +997,25 @@ export default function InspiracionPage() {
 
       {/* ── Solicitudes tab ────────────────────────────────────────────────── */}
       {scope === 'solicitudes' && (() => {
+        const visibleRequests = requests.filter(r => r.status !== 'cancelled');
         const filtered = statusFilter === 'all'
-          ? requests
-          : requests.filter(r => r.status === statusFilter);
-        const countFor = (s: string) => s === 'all' ? requests.length : requests.filter(r => r.status === s).length;
+          ? visibleRequests
+          : visibleRequests.filter(r => r.status === statusFilter);
+        const countFor = (s: string) => s === 'all' ? visibleRequests.length : visibleRequests.filter(r => r.status === s).length;
 
         return (
           <div style={{ marginTop: 20 }}>
             {/* Status sub-tabs */}
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 20 }}>
-              {(['all','pending','in_progress','scheduled','published','cancelled'] as const).map(s => {
-                const labels: Record<string, string> = { all: 'Todas', pending: 'Pendientes', in_progress: 'En proceso', scheduled: 'En calendario', published: 'Publicadas', cancelled: 'Canceladas' };
+              {(['all','pending','in_progress','scheduled','published'] as const).map(s => {
+                const labels: Record<string, string> = { all: 'Todas', pending: 'Pendientes', in_progress: 'En proceso', scheduled: 'En calendario', published: 'Publicadas' };
                 const active = statusFilter === s;
                 const n = countFor(s);
                 if (s !== 'all' && n === 0) return null;
                 return (
                   <button key={s} type="button" onClick={() => setStatusFilter(s)}
-                    style={{ padding: '6px 12px', fontSize: 12, fontWeight: 700, background: active ? '#111827' : 'var(--bg)', color: active ? '#fff' : 'var(--text-tertiary)', border: `1px solid ${active ? '#111827' : 'var(--border)'}`, cursor: 'pointer', fontFamily: f }}>
-                    {labels[s]} <span style={{ opacity: 0.6, marginLeft: 4 }}>({n})</span>
+                    style={{ padding: '5px 12px', border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 99, background: active ? 'var(--accent)' : 'transparent', color: active ? '#fff' : 'var(--text-secondary)', fontFamily: f, fontSize: 12, fontWeight: active ? 700 : 500, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, transition: 'all 0.12s' }}>
+                    {labels[s]} <span style={{ opacity: 0.75, fontWeight: 400 }}>({n})</span>
                   </button>
                 );
               })}
@@ -1018,18 +1027,15 @@ export default function InspiracionPage() {
               <div style={{ padding: '80px 20px', textAlign: 'center' }}>
                 <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 16, textTransform: 'uppercase', color: 'var(--text-primary)', marginBottom: 8 }}>Sin solicitudes</p>
                 <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-tertiary)', maxWidth: 360, margin: '0 auto 20px' }}>
-                  Cuando guardes algo y quieras que lo recreemos, pulsa <strong>Enviar solicitud</strong> en la card.
+                  Cuando guardes algo y quieras que lo recreemos, pulsa <strong>Enviar solicitud</strong>.
                 </p>
-                <button type="button" onClick={() => setFilter({ scope: 'guardadas' })} style={{ background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', padding: '10px 22px', fontFamily: fc, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', cursor: 'pointer' }}>
-                  Ver Guardadas
-                </button>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {filtered.map(req => {
                   const badge = BADGES_BY_STATUS[req.status] ?? BADGES_BY_STATUS.pending;
                   return (
-                    <div key={req.id} style={{ display: 'grid', gridTemplateColumns: '80px 1fr auto', gap: 14, padding: 14, background: 'var(--bg)', border: '1px solid var(--border)', alignItems: 'start' }}>
+                    <div key={req.id} onClick={() => setViewRequest(req)} style={{ display: 'grid', gridTemplateColumns: '80px 1fr auto', gap: 14, padding: 14, background: 'var(--bg)', border: '1px solid var(--border)', alignItems: 'start', cursor: 'pointer' }}>
                       {/* Thumbnail */}
                       {req.thumbnail_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -1050,15 +1056,12 @@ export default function InspiracionPage() {
                             Enviada {fmtDate(req.created_at)}
                           </span>
                         </div>
-                        {req.item_label && (
-                          <p style={{ fontFamily: fc, fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{req.item_label}</p>
-                        )}
+
                         {req.client_comment && (
                           <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-secondary)', fontStyle: 'italic', margin: 0 }}>"{req.client_comment}"</p>
                         )}
                         <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', margin: 0 }}>
-                          {TIMING_LABELS[req.timing_preference ?? 'next_two_weeks']}
-                          {req.preferred_date && ` · ${fmtDate(req.preferred_date)}`}
+                          {req.preferred_date ? fmtDate(req.preferred_date) : 'Cuando el equipo lo considere'}
                         </p>
                         {req.status === 'scheduled' && req.scheduled_for && (
                           <p style={{ fontFamily: f, fontSize: 12, color: '#0F766E', fontWeight: 600, margin: 0 }}>
@@ -1070,7 +1073,7 @@ export default function InspiracionPage() {
                       {/* Actions */}
                       <div>
                         {req.status === 'pending' && (
-                          <button type="button" onClick={() => handleCancelRequest(req.id)}
+                          <button type="button" onClick={(e) => { e.stopPropagation(); handleCancelRequest(req.id); }}
                             style={{ padding: '6px 12px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-tertiary)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: f }}>
                             Cancelar
                           </button>
@@ -1120,7 +1123,7 @@ export default function InspiracionPage() {
                 Ver todas las guardadas
               </button>
             )}
-            {(scope === 'all' || scope === 'favorites' || (scope === 'guardadas' && activeCollection === 'all')) && (
+            {scope === 'all' && (
               <button type="button" onClick={() => setShowAdd(true)} style={{ background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', padding: '10px 22px', fontFamily: fc, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', cursor: 'pointer' }}>
                 Guardar referencia
               </button>
@@ -1637,57 +1640,55 @@ export default function InspiracionPage() {
               </button>
             </div>
 
-            {/* Preview */}
+            {/* 1 — Referencia */}
             {requestModal.thumbnail_url && (
-              <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center', background: '#000' }}>
+              <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#fff' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={requestModal.thumbnail_url} alt="Referencia"
-                  style={{ maxWidth: '100%', maxHeight: 140, objectFit: 'contain', display: 'block' }} />
+                  style={{ maxWidth: '100%', maxHeight: 200, objectFit: 'contain', display: 'block' }} />
               </div>
             )}
 
-            {/* Comment */}
+            {/* 2 — Adjuntar fotos / vídeos propios (collapsible) */}
             <div style={{ marginBottom: 18 }}>
-              <label style={labelSm}>Comentario <span style={{ opacity: 0.6, textTransform: 'none', fontWeight: 400, letterSpacing: 0 }}>— opcional</span></label>
+              <button
+                type="button"
+                onClick={() => setReqMediaOpen(o => !o)}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginBottom: reqMediaOpen ? 10 : 0 }}
+              >
+                <span style={labelSm}>TU BIBLIOTECA <span style={{ opacity: 0.6, textTransform: 'none', fontWeight: 400, letterSpacing: 0 }}>— opcional · adjuntar imágenes y vídeos de referencia</span></span>
+                <span style={{ fontFamily: f, fontSize: 16, color: 'var(--text-tertiary)', lineHeight: 1 }}>
+                  {reqMediaOpen ? '▲' : '▼'}
+                </span>
+              </button>
+              {reqMediaOpen && (
+                <MediaPicker selected={reqModalMedia} onChange={setReqModalMedia} max={maxImages} hideLabel />
+              )}
+            </div>
+
+            {/* 3 — Prompt */}
+            <div style={{ marginBottom: 18 }}>
+              <label style={labelSm}>PROMPT <span style={{ opacity: 0.6, textTransform: 'none', fontWeight: 400, letterSpacing: 0 }}>— opcional</span></label>
               <textarea
                 value={reqComment}
                 onChange={e => setReqComment(e.target.value)}
-                placeholder="¿Qué quieres que hagamos distinto? Estilo, mensaje, formato…"
+                placeholder="¿Qué quieres que hagamos distinto? Estilo, mensaje, tono, formato…"
                 rows={3}
                 style={{ ...inputSt, resize: 'vertical' }}
               />
             </div>
 
-            {/* Timing */}
+            {/* 4 — Fecha */}
             <div style={{ marginBottom: 24 }}>
-              <label style={labelSm}>¿Cuándo lo necesitas?</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {([
-                  ['next_week',     'Semana que viene'],
-                  ['specific_date', 'Seleccionar fecha concreta'],
-                ] as const).map(([val, lbl]) => (
-                  <label key={val} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: `1px solid ${reqTiming === val ? 'var(--accent)' : 'var(--border)'}`, background: reqTiming === val ? 'var(--accent-soft)' : 'transparent', cursor: 'pointer' }}>
-                    <input
-                      type="radio" name="timing" value={val} checked={reqTiming === val}
-                      onChange={() => setReqTiming(val)}
-                      style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
-                    />
-                    <span style={{ fontFamily: f, fontSize: 13, color: 'var(--text-primary)', fontWeight: reqTiming === val ? 600 : 400 }}>{lbl}</span>
-                  </label>
-                ))}
-              </div>
-              {reqTiming === 'specific_date' && (
-                <div style={{ marginTop: 8 }}>
-                  <input
-                    type="date" value={reqDate} onChange={e => setReqDate(e.target.value)}
-                    style={{ ...inputSt }}
-                  />
-                  {reqDateIsThisWeek && (
-                    <p style={{ fontFamily: f, fontSize: 12, color: '#0F766E', marginTop: 6, fontWeight: 600 }}>
-                      Esta fecha es esta semana — te llevaremos a crear el contenido directamente.
-                    </p>
-                  )}
-                </div>
+              <label style={labelSm}>FECHA <span style={{ opacity: 0.6, textTransform: 'none', fontWeight: 400, letterSpacing: 0 }}>— opcional</span></label>
+              <input
+                type="date" value={reqDate} onChange={e => setReqDate(e.target.value)}
+                style={{ ...inputSt }}
+              />
+              {reqDateIsThisWeek && (
+                <p style={{ fontFamily: f, fontSize: 12, color: '#0F766E', marginTop: 6, fontWeight: 600 }}>
+                  Esta fecha es esta semana — te llevaremos a crear el contenido directamente.
+                </p>
               )}
             </div>
 
@@ -1704,6 +1705,89 @@ export default function InspiracionPage() {
           </div>
         </div>
       )}
+
+      {/* ══════════════════════════════════════════════════════════════════════
+           MODAL: Detalle de solicitud
+         ══════════════════════════════════════════════════════════════════════ */}
+      {viewRequest && (() => {
+        const badge = BADGES_BY_STATUS[viewRequest.status] ?? BADGES_BY_STATUS.pending;
+        const ownMedia = viewRequest.own_media_urls?.filter(Boolean) ?? [];
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+            onClick={() => setViewRequest(null)}>
+            <div style={{ background: 'var(--bg)', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}
+              onClick={e => e.stopPropagation()}>
+
+              {/* Image grande */}
+              {viewRequest.thumbnail_url && (
+                <div style={{ paddingTop: 20, background: '#fff' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={viewRequest.thumbnail_url} alt=""
+                    style={{ width: '100%', maxHeight: 320, objectFit: 'contain', display: 'block' }} />
+                </div>
+              )}
+
+              <div style={{ padding: '20px 24px 28px' }}>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ padding: '4px 10px', background: badge.bg, color: badge.color, fontFamily: f, fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                      {badge.label}
+                    </span>
+                    <span style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>
+                      Enviada {fmtDate(viewRequest.created_at)}
+                    </span>
+                  </div>
+                  <button type="button" onClick={() => setViewRequest(null)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4 }}>
+                    <X size={18} />
+                  </button>
+                </div>
+
+                {/* Timing */}
+                <div style={{ marginBottom: viewRequest.client_comment || ownMedia.length ? 14 : 0 }}>
+                  <span style={labelSm}>Cuándo</span>
+                  <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-secondary)', margin: 0 }}>
+                    {viewRequest.preferred_date ? fmtDate(viewRequest.preferred_date) : 'Cuando el equipo lo considere'}
+                  </p>
+                </div>
+
+                {/* Prompt */}
+                {viewRequest.client_comment && (
+                  <div style={{ marginBottom: ownMedia.length ? 14 : 0 }}>
+                    <span style={labelSm}>Prompt</span>
+                    <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-secondary)', fontStyle: 'italic', margin: 0 }}>
+                      &ldquo;{viewRequest.client_comment}&rdquo;
+                    </p>
+                  </div>
+                )}
+
+                {/* Imágenes propias */}
+                {ownMedia.length > 0 && (
+                  <div>
+                    <span style={labelSm}>Tus imágenes adjuntas</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, marginTop: 6 }}>
+                      {ownMedia.map((url, i) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img key={i} src={url} alt="" style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Cancelar si pending */}
+                {viewRequest.status === 'pending' && (
+                  <button type="button"
+                    onClick={() => { handleCancelRequest(viewRequest.id); setViewRequest(null); }}
+                    style={{ marginTop: 20, width: '100%', padding: '10px', background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-tertiary)', fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                    Cancelar solicitud
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* ── Delete collection dialog ─────────────────────────────────────── */}
       {deleteDialog && (
