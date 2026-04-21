@@ -276,9 +276,12 @@ export default function LandingPage() {
       <Script id="faq-schema" type="application/ld+json" strategy="afterInteractive" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
       {/* ─── NAV ─── */}
       <nav style={{ boxShadow: navShadow ? '0 1px 0 #e5e7eb' : 'none', background: '#ffffff', borderBottom: '1px solid #e5e7eb' }}>
-        <a href="/" className="nav-logo">
+        <a href="/" className="nav-logo" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-header.png" alt="NeuroPost" style={{ height: 38, width: 'auto', display: 'block' }} />
+          <img src="/logo-transparent.png" alt="NeuroPost" style={{ height: 36, width: 'auto', display: 'block' }} />
+          <span className="nav-logo-text" style={{ fontFamily: fc, fontWeight: 800, fontSize: 'clamp(14px, 2vw, 20px)', letterSpacing: '0.06em', textTransform: 'uppercase', lineHeight: 1 }}>
+            <span style={{ color: '#0c746c' }}>NEURO</span><span style={{ color: '#c8cbcd' }}>POST</span>
+          </span>
         </a>
         <ul className="nav-links">
           <li style={{ position: 'relative' }} onMouseEnter={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'block'; }} onMouseLeave={(e) => { const d = e.currentTarget.querySelector('[data-drop]') as HTMLElement; if (d) d.style.display = 'none'; }}>
