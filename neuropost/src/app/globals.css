@@ -1173,6 +1173,7 @@ h2 {
 /* Mobile */
 @media (max-width: 768px) {
   nav .nav-links { display: none; }
+  .nav-logo-text { display: none; }
   .hero-grid, .showcase-row, .faq-grid, .footer-grid { grid-template-columns: 1fr; gap: 32px; }
   .showcase-row.reverse { direction: ltr; }
   .features-grid, .steps, .pricing-grid, .testimonials-grid { grid-template-columns: 1fr; }
