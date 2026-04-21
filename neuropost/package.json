@@ -14,10 +14,16 @@
     "test:reminders": "npx tsx scripts/test_reminders.ts",
     "test:sprint6": "npx tsx scripts/test_sprint6.ts",
     "test:sprint11": "npx tsx scripts/test_sprint11.ts",
-    "test:sprint12": "npx tsx scripts/test_sprint12.ts"
+    "test:sprint12": "npx tsx scripts/test_sprint12.ts",
+    "test:edited-image-url": "npx tsx scripts/test_edited_image_url.ts",
+    "test:visual-strategist": "npx tsx scripts/test_visual_strategist.ts",
+    "test:sprint2-cockpit": "npx tsx scripts/test_sprint2_cockpit.ts",
+    "test:post-notifications": "npx tsx scripts/test_post_notifications.ts",
+    "test:sprint3-form": "npx tsx scripts/test_sprint3_form.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
+    "zod": "^3.24.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",

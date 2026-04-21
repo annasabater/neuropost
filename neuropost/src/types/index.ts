@@ -274,6 +274,8 @@ export interface Post {
   generation_done:    number;
   /** Timestamp of the last client retouch request for this post. */
   client_retouched_at: string | null;
+  /** Delivery mode selected by the client when creating the post. */
+  delivery_mode:       'instant' | 'reviewed' | null;
 }
 
 // ─── Database: Comment ────────────────────────────────────────────────────────

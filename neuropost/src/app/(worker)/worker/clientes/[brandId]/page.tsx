@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { X, Edit2, Save, Send, MessageCircle, LifeBuoy, BookOpen, Sparkles, Plus, Flag, Upload, Share2, Settings, BarChart3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { StatusProgressBar } from '@/components/posts/StatusProgressBar';
+import { WorkerCockpit }     from '@/components/worker/WorkerCockpit';
 import { PLAN_META } from '@/types';
 import type { SubscriptionPlan } from '@/types';
 
@@ -38,9 +39,22 @@ type Brand = Record<string, unknown> & {
   meta_token_expires_at?: string;
 };
 
+type AgentBrief = {
+  intent:     string;
+  mode:       'txt2img' | 'img2img';
+  prompt:     string;
+  guidance:   number;
+  strength:   number | null;
+  model:      string;
+  confidence: number;
+  reasoning:  string;
+  risk_flags: string[];
+};
+
 type Post = Record<string, unknown> & {
   id: string;
   image_url?: string;
+  edited_image_url?: string;
   caption?: string;
   hashtags?: string[];
   format?: string;
@@ -49,6 +63,7 @@ type Post = Record<string, unknown> & {
   agent_id?: string;
   agent_name?: string;
   ai_explanation?: string;
+  agent_brief?: AgentBrief | null;
 };
 
 type Agent = { id: string; name: string };
@@ -305,6 +320,78 @@ function ModalPhotoEditor({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── AgentBriefSection ─────────────────────────────────────────────────────────
+function AgentBriefSection({
+  brief, confidence, confColor, C, f, fc,
+}: {
+  brief:      AgentBrief;
+  confidence: number;
+  confColor:  string;
+  C:          Record<string, string>;
+  f:          string;
+  fc:         string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ borderBottom: `1px solid ${C.border}` }}>
+      <button
+        type="button"
+        onClick={() => setOpen(v => !v)}
+        style={{ width: '100%', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Sparkles size={14} color={C.accent} />
+          <span style={{ fontSize: 10, fontWeight: 800, color: C.accent, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.1em' }}>Brief del agente</span>
+          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', background: '#f0fdf4', color: confColor, border: `1px solid ${confColor}`, fontFamily: fc }}>
+            {confidence}% confianza
+          </span>
+        </span>
+        <span style={{ fontSize: 12, color: C.muted, fontFamily: f }}>{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div style={{ padding: '0 20px 16px' }}>
+          <p style={{ fontSize: 12, color: C.text, fontFamily: f, marginBottom: 10, lineHeight: 1.5 }}>
+            <strong style={{ fontFamily: fc }}>Intención: </strong>{brief.intent}
+          </p>
+          <p style={{ fontSize: 12, color: C.muted, fontFamily: f, marginBottom: 10, lineHeight: 1.5, fontStyle: 'italic' }}>
+            {brief.reasoning}
+          </p>
+          <div style={{ background: C.bg1, border: `1px solid ${C.border}`, padding: '10px 12px', marginBottom: 10 }}>
+            <p style={{ fontSize: 9, fontWeight: 800, color: C.muted, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Prompt Replicate</p>
+            <p style={{ fontSize: 12, color: C.text, fontFamily: f, lineHeight: 1.5, margin: 0 }}>{brief.prompt}</p>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+            <span style={{ fontSize: 10, fontFamily: fc, padding: '3px 8px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+              {brief.mode}
+            </span>
+            <span style={{ fontSize: 10, fontFamily: fc, padding: '3px 8px', background: C.bg1, color: C.muted, border: `1px solid ${C.border}` }}>
+              {brief.model}
+            </span>
+            <span style={{ fontSize: 10, fontFamily: fc, padding: '3px 8px', background: C.bg1, color: C.muted, border: `1px solid ${C.border}` }}>
+              guidance {brief.guidance}
+            </span>
+            {brief.strength !== null && (
+              <span style={{ fontSize: 10, fontFamily: fc, padding: '3px 8px', background: C.bg1, color: C.muted, border: `1px solid ${C.border}` }}>
+                strength {brief.strength}
+              </span>
+            )}
+          </div>
+          {brief.risk_flags.length > 0 && (
+            <div>
+              <p style={{ fontSize: 9, fontWeight: 800, color: '#b45309', fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Flags</p>
+              <ul style={{ margin: 0, paddingLeft: 16 }}>
+                {brief.risk_flags.map((flag, i) => (
+                  <li key={i} style={{ fontSize: 11, color: '#b45309', fontFamily: f, marginBottom: 3 }}>{flag}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1315,13 +1402,25 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
         onSave={updatePromoCode}
       />
 
-      <ModalPhotoEditor
-        isOpen={photoModalOpen}
-        onClose={() => setPhotoModalOpen(false)}
-        post={selectedPhoto}
-        agents={agents}
-        onSave={(agentId) => updatePhotoAgent(selectedPhoto!.id, agentId)}
-      />
+      {photoModalOpen && selectedPhoto && (
+        <WorkerCockpit
+          post={{
+            id:               selectedPhoto.id,
+            brand_id:         String(selectedPhoto.brand_id ?? brand?.id ?? ''),
+            image_url:        selectedPhoto.image_url ?? null,
+            edited_image_url: selectedPhoto.edited_image_url ?? null,
+            caption:          selectedPhoto.caption ?? null,
+            hashtags:         selectedPhoto.hashtags ?? null,
+            format:           selectedPhoto.format ?? null,
+            status:           selectedPhoto.status,
+            ai_explanation:   selectedPhoto.ai_explanation ?? null,
+            agent_brief:      (selectedPhoto.agent_brief as Record<string, unknown> | null) ?? null,
+            created_at:       selectedPhoto.created_at,
+          }}
+          brandName={brand?.name}
+          onClose={() => setPhotoModalOpen(false)}
+        />
+      )}
 
       {/* MODAL NUEVA SOLICITUD */}
       {newRequestOpen && (
@@ -1475,6 +1574,39 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
                 </div>
                 <button onClick={() => setRequestModalPost(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted, padding: 4 }}><X size={20} /></button>
               </div>
+              {/* ── Image comparison: original vs generated ──────────────────── */}
+              {(requestModalPost.image_url || requestModalPost.edited_image_url) && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', borderBottom: `1px solid ${C.border}` }}>
+                  <div style={{ padding: '14px 20px', borderRight: `1px solid ${C.border}` }}>
+                    <p style={{ fontSize: 9, fontWeight: 800, color: C.muted, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Original del cliente</p>
+                    {requestModalPost.image_url ? (
+                      <img src={String(requestModalPost.image_url)} alt="Original" style={{ width: '100%', maxHeight: 200, objectFit: 'contain', display: 'block', background: C.bg1, border: `1px solid ${C.border}` }} />
+                    ) : (
+                      <div style={{ height: 120, background: C.bg1, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: C.muted, fontFamily: f }}>Sin imagen original</div>
+                    )}
+                  </div>
+                  <div style={{ padding: '14px 20px' }}>
+                    <p style={{ fontSize: 9, fontWeight: 800, color: C.accent, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Versión generada</p>
+                    {requestModalPost.edited_image_url ? (
+                      <img src={String(requestModalPost.edited_image_url)} alt="Versión generada" style={{ width: '100%', maxHeight: 200, objectFit: 'contain', display: 'block', background: C.bg1, border: `1px solid ${C.border}` }} />
+                    ) : (
+                      <div style={{ height: 120, background: C.bg1, border: `2px dashed ${C.border}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                        <div style={{ width: 28, height: 28, border: `2px solid ${C.muted}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: C.muted }}>⟳</div>
+                        <span style={{ fontSize: 11, color: C.muted, fontFamily: f }}>Pendiente de generar</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {/* ── Agent Brief (Visual Strategist) — collapsible ──────────────── */}
+              {requestModalPost.agent_brief && (() => {
+                const brief = requestModalPost.agent_brief!;
+                const confidence = Math.round(brief.confidence * 100);
+                const confColor = confidence >= 75 ? '#0F766E' : confidence >= 50 ? '#b45309' : '#dc2626';
+                return (
+                  <AgentBriefSection brief={brief} confidence={confidence} confColor={confColor} C={C} f={f} fc={fc} />
+                );
+              })()}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
                 {/* LEFT: lo que pide el cliente */}
                 <div style={{ padding: '20px 24px', borderRight: `1px solid ${C.border}` }}>

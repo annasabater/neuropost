@@ -18,6 +18,7 @@
 //   growth:retention_email           → generateRetentionEmail
 
 import { runImageGenerateAgent, type ImageGenerateInput } from '@/agents/ImageGenerateAgent';
+import { type AgentBrief } from '@/agents/VisualStrategistAgent';
 import { runVideoGenerateAgent, type VideoGenerateInput } from '@/agents/VideoGenerateAgent';
 import { runHiggsFieldAgent,    type HiggsFieldInput    } from '@/agents/HiggsFieldAgent';
 import { runImageEditAgent,     type ImageEditInput     } from '@/agents/ImageEditAgent';
@@ -88,22 +89,188 @@ async function runPlain<T>(
 }
 
 // -----------------------------------------------------------------------------
+// handleBriefGeneration — called by imageGenerateHandler when _agent_brief present
+// -----------------------------------------------------------------------------
+// Maps the AgentBrief produced by VisualStrategistAgent directly to
+// generateImage / editImage, writes edited_image_url on the post, and inserts
+// a post_revisions row so workers have full audit history.
+async function handleBriefGeneration(
+  brief:              AgentBrief,
+  postId:             string,
+  brandId:            string,
+  jobId:              string,
+  referenceImageUrl?: string,
+  revisionId?:        string,
+  needsWorkerReview?: boolean,
+): Promise<{ primaryUrl: string; generationMs: number }> {
+  const { generateImage, editImage } = await import('@/lib/imageGeneration');
+  const t0 = Date.now();
+  let imageResult: Awaited<ReturnType<typeof generateImage>>;
+
+  // brief.primary_image_url is authoritative; fall back to the passed referenceImageUrl
+  // for briefs produced before Sprint 1 v2 (backward compat).
+  const imageUrlForEdit = brief.primary_image_url ?? referenceImageUrl;
+  const genPrompt = brief.generation_prompt;
+
+  if (brief.mode === 'img2img' && imageUrlForEdit) {
+    imageResult = await editImage({
+      imageUrl:  imageUrlForEdit,
+      prompt:    genPrompt,
+      strength:  brief.strength ?? 0.65,
+      guidance:  brief.guidance,
+    });
+  } else {
+    imageResult = await generateImage({
+      prompt:   genPrompt,
+      guidance: brief.guidance,
+    });
+  }
+
+  const generationMs = Date.now() - t0;
+  let primaryUrl = imageResult.image_url;
+
+  // Upload to Supabase Storage
+  try {
+    const { createAdminClient } = await import('@/lib/supabase');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db  = createAdminClient() as any;
+    const res = await fetch(primaryUrl);
+    const blob = await res.blob();
+    const prefix = brief.mode === 'img2img' ? 'edited' : 'generated';
+    const fileName = `${prefix}/vs-${Date.now()}-${crypto.randomUUID().replace(/-/g,'').slice(0,12)}.jpg`;
+    const { error: upErr } = await db.storage.from('assets').upload(fileName, blob, { contentType: 'image/jpeg', upsert: false });
+    if (!upErr) {
+      const { data: { publicUrl } } = db.storage.from('assets').getPublicUrl(fileName);
+      primaryUrl = publicUrl;
+    }
+  } catch { /* non-blocking: use Replicate URL directly */ }
+
+  // Persist on post
+  {
+    const { createAdminClient } = await import('@/lib/supabase');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const db = createAdminClient() as any;
+
+    // instant mode (needsWorkerReview=false): skip worker queue, go straight to client
+    const newStatus = needsWorkerReview === false ? 'client_review' : 'pending';
+
+    await db.from('posts').update({
+      edited_image_url:         primaryUrl,
+      status:                   newStatus,
+      agent_brief:              brief,
+      agent_brief_generated_at: new Date().toISOString(),
+    }).eq('id', postId);
+
+    // Update existing placeholder revision (worker regenerate flow) or insert new one
+    if (revisionId) {
+      await db.from('post_revisions').update({
+        image_url:        primaryUrl,
+        cost_usd:         0.04,
+        duration_seconds: Math.round(generationMs / 1000),
+        error_message:    null,
+        brief_snapshot:   brief,
+      }).eq('id', revisionId);
+    } else {
+      const { data: lastRev } = await db
+        .from('post_revisions')
+        .select('revision_index')
+        .eq('post_id', postId)
+        .order('revision_index', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      await db.from('post_revisions').insert({
+        post_id:          postId,
+        brand_id:         brandId,
+        agent_job_id:     jobId,
+        revision_index:   (lastRev?.revision_index ?? -1) + 1,
+        prompt:           brief.generation_prompt,
+        model:            brief.model,
+        strength:         brief.strength,
+        guidance:         brief.guidance,
+        image_url:        primaryUrl,
+        duration_seconds: Math.round(generationMs / 1000),
+        brief_snapshot:   brief,
+      });
+    }
+
+    // instant mode: notify client that their post is ready without worker review
+    if (needsWorkerReview === false) {
+      try {
+        const { data: post } = await db
+          .from('posts')
+          .select('format')
+          .eq('id', postId)
+          .single();
+        const { triggerPostNotification } = await import('@/lib/notifications/trigger-post-notification');
+        void triggerPostNotification('post.ready_auto', {
+          postId,
+          brandId,
+          format:   post?.format ?? null,
+          imageUrl: primaryUrl,
+        });
+      } catch { /* non-blocking */ }
+    }
+  }
+
+  return { primaryUrl, generationMs };
+}
+
+// -----------------------------------------------------------------------------
 // content:generate_image → ImageGenerateAgent
 // -----------------------------------------------------------------------------
 // Caller supplies the full ImageGenerateInput in job.input. Brand-related
 // fields (brandContext, colors, forbiddenWords, noEmojis) must be supplied
 // by the upstream caller — this handler stays thin and does not re-derive
 // them from the brand row. That's what the orchestrator is for.
+//
+// When _agent_brief is present (Visual Strategist flow), handleBriefGeneration
+// is called instead of runImageGenerateAgent.
 const imageGenerateHandler: AgentHandler = async (job) => {
   // brandId is optional on this agent (for asset upload); we don't enforce it.
   const rawInput = job.input as unknown as ImageGenerateInput & {
-    _post_id?:         string;
-    _photo_index?:     number;
-    _original_prompt?: string;
-    content_idea_id?:  string;
+    _post_id?:              string;
+    _photo_index?:          number;
+    _original_prompt?:      string;
+    content_idea_id?:       string;
+    _agent_brief?:          AgentBrief;
+    _revision_id?:          string;
+    _needs_worker_review?:  boolean;
   };
-  const { _post_id, _photo_index, _original_prompt, content_idea_id, ...agentInput } = rawInput;
+  const { _post_id, _photo_index, _original_prompt, content_idea_id, _agent_brief, _revision_id, _needs_worker_review, ...agentInput } = rawInput;
   const input = { ...agentInput, brandId: job.brand_id ?? undefined };
+
+  // ── Visual Strategist fast-path ──────────────────────────────────────────────
+  if (_agent_brief && _post_id && job.brand_id) {
+    try {
+      const { primaryUrl, generationMs } = await handleBriefGeneration(
+        _agent_brief,
+        _post_id,
+        job.brand_id,
+        job.id,
+        (agentInput as { referenceImageUrl?: string }).referenceImageUrl,
+        _revision_id,
+        _needs_worker_review,
+      );
+      void trackCost(job, 'replicate', `generate_image_brief_${_agent_brief.mode}`, 0.04, {
+        model: _agent_brief.model,
+        duration_seconds: Math.round(generationMs / 1000),
+      });
+      return {
+        type: 'ok',
+        outputs: [{
+          kind:        'image',
+          payload:     { imageUrl: primaryUrl, mode: _agent_brief.mode, brief: _agent_brief } as unknown as Record<string, unknown>,
+          preview_url: primaryUrl,
+          model:       _agent_brief.model,
+        }],
+      };
+    } catch (briefErr) {
+      const msg = briefErr instanceof Error ? briefErr.message : String(briefErr);
+      const transient = /timeout|rate.?limit|ECONN|503|504|overloaded|ETIMEDOUT|fetch failed/i.test(msg);
+      return transient ? { type: 'retry', error: msg } : { type: 'fail', error: msg };
+    }
+  }
 
   const result = await runPlain(
     () => runImageGenerateAgent(input),
@@ -137,12 +304,14 @@ const imageGenerateHandler: AgentHandler = async (job) => {
       // Build carousel_urls: primary + extras (for carrusel format)
       const allUrls = [primaryUrl, ...additionalUrls];
 
-      // 1. Update post — visible to client immediately in "Para revisar"
+      // 1. Update post — write generated result to edited_image_url (NOT image_url).
+      //    image_url is the original client upload and must never be overwritten
+      //    by the generation pipeline; edited_image_url holds every AI output.
       await db.from('posts').update({
-        image_url:     primaryUrl,
-        carousel_urls: allUrls.length > 1 ? allUrls : null,
-        status:        'pending',
-        ai_explanation: JSON.stringify({
+        edited_image_url: primaryUrl,
+        carousel_urls:    allUrls.length > 1 ? allUrls : null,
+        status:           'pending',
+        ai_explanation:   JSON.stringify({
           mode,
           enhanced_prompt: payload?.enhancedPrompt,
           all_urls:        allUrls,
