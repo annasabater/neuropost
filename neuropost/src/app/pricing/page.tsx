@@ -37,9 +37,9 @@ const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 const PLANS: Plan[] = [
   {
     name:          'Esencial',
-    monthlyPrice:   21,
-    annualPrice:    21,
-    annualSavings:  0,  // 252€/año ÷ 12 = 21€
+    monthlyPrice:   62,
+    annualPrice:    62,
+    annualSavings:  0,
     desc:          'Para presencia activa',
     content:       ['✔ 2 fotos/semana', '✔ Carruseles hasta 3', '✔ Sin vídeo/reel', '✔ Instagram + Facebook'],
     highlight:     'Ideal para empezar con redes. Precio por 1 red social.',
@@ -58,9 +58,9 @@ const PLANS: Plan[] = [
   },
   {
     name:          'Crecimiento',
-    monthlyPrice:   63,
-    annualPrice:    60,
-    annualSavings:  38,
+    monthlyPrice:   109,
+    annualPrice:    104,
+    annualSavings:  65,
     desc:          'Máximo alcance',
     content:       ['✔ 4 fotos/semana', '✔ 2 vídeos/reels/sem', '✔ Carruseles hasta 8', '✔ Instagram + Facebook + TikTok'],
     highlight:     'Vídeo/reel + TikTok para máximo alcance. Precio por 1 red social.',
@@ -81,9 +81,9 @@ const PLANS: Plan[] = [
   },
   {
     name:          'Profesional',
-    monthlyPrice:   133,
-    annualPrice:    113,
-    annualSavings:  239,
+    monthlyPrice:   189,
+    annualPrice:    161,
+    annualSavings:  340,
     desc:          'Control completo',
     content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels/sem', '✔ Carruseles hasta 20', '✔ Instagram + Facebook + TikTok'],
     highlight:     'Conversión máxima. Precio por 1 red social.',
@@ -105,7 +105,7 @@ const PLANS: Plan[] = [
 ];
 
 const COMPARISON_ROWS: ComparisonRow[] = [
-  { feature: 'Precio base (1 red)',           starter: '21 EUR/mes', pro: '63 EUR/mes',       total: '133 EUR/mes' },
+  { feature: 'Precio base (1 red)',           starter: '62 EUR/mes', pro: '109 EUR/mes',      total: '189 EUR/mes' },
   { feature: 'Red social extra',              starter: '+15 EUR/mes', pro: '+15 EUR/mes',      total: '+15 EUR/mes' },
   { feature: 'Redes disponibles',             starter: 'IG, FB',     pro: 'IG, FB, TikTok',   total: 'IG, FB, TikTok' },
   { feature: 'Fotos por semana',              starter: '2',          pro: '4',                total: 'Hasta 20' },
@@ -810,6 +810,7 @@ export default function PricingPage() {
                       {price}
                       <span>/mes</span>
                     </div>
+                    <div style={{ fontFamily: f, fontSize: '0.72rem', color: 'var(--muted)', marginBottom: 4 }}>IVA incluido</div>
 
                     <div style={{
                       display: 'inline-flex', alignItems: 'center', gap: '6px',

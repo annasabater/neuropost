@@ -24,7 +24,7 @@ const C = {
   green: '#0F766E',
 };
 
-const PLAN_PRICES: Record<string, number> = { starter: 21, pro: 63, total: 133 };
+const PLAN_PRICES: Record<string, number> = { starter: 62, pro: 109, total: 189 };
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TAB 1: MI-RENDIMIENTO
