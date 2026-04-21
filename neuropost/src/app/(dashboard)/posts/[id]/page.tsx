@@ -411,74 +411,115 @@ export default function PostDetailPage() {
       </div>
 
       {/* ── Hero media (full width) ── */}
-      {post.image_url && (
-        <div style={{ marginBottom: 16 }}>
-          {originalImages.length > 0 && (
-            <p style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--accent)', marginBottom: 6 }}>
-              Propuesta del equipo
-            </p>
-          )}
-
-          {/* Main hero image / video */}
-          <div style={{ background: '#000', border: '1px solid var(--border)' }}>
-            {/\.(mp4|mov|webm|avi)(\?|$)/i.test(post.image_url) ? (
-              <video src={post.image_url} controls style={{ width: '100%', maxHeight: 640, objectFit: 'contain', display: 'block' }} />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={post.image_url} alt="" style={{ width: '100%', maxHeight: 640, objectFit: 'contain', display: 'block', imageOrientation: 'from-image' }} />
-            )}
-          </div>
-
-          {/* AI asset alternatives (switch between generated versions) */}
-          <AssetVersions
-            postId={post.id}
-            currentImageUrl={post.image_url}
-            onImageChange={(url) => {
-              setPost(p => p ? { ...p, image_url: url } : p);
-              updatePost(post.id, { image_url: url });
-            }}
-            onApprove={async () => {
-              const res = await fetch(`/api/posts/${post.id}`, {
-                method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: 'pending' }),
-              });
-              if (res.ok) {
-                const json = await res.json();
-                updatePost(post.id, json.post);
-                setPost(json.post);
-              }
-            }}
-            onReject={(action) => {
-              if (action === 'delete') {
-                deleteRequest();
-              } else {
-                changeRequestStatus('request');
-              }
-            }}
-          />
-
-          {/* Original reference images (only when worker modified a client upload) */}
-          {originalImages.length > 0 && (
-            <div style={{ marginTop: 12 }}>
-              <p style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 6 }}>
-                Tu imagen original
+      {(() => {
+        // Semantic: edited_image_url = AI result; image_url = original client upload.
+        // Display the best available image; show comparison when both differ.
+        const heroUrl  = post.edited_image_url ?? post.image_url;
+        const origUrl  = (post.edited_image_url && post.image_url && post.edited_image_url !== post.image_url)
+          ? post.image_url : null;
+        if (!heroUrl) return null;
+        const isVideo  = (u: string) => /\.(mp4|mov|webm|avi)(\?|$)/i.test(u);
+        return (
+          <div style={{ marginBottom: 16 }}>
+            {(originalImages.length > 0 || origUrl) && (
+              <p style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--accent)', marginBottom: 6 }}>
+                Propuesta del equipo
               </p>
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                {originalImages.map((url, i) => (
-                  <div key={i} style={{ border: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0 }}>
-                    {/\.(mp4|mov|webm|avi)(\?|$)/i.test(url) ? (
-                      <video src={url} style={{ width: 160, height: 160, objectFit: 'cover', display: 'block' }} />
+            )}
+
+            {/* Main hero — shows edited_image_url when available, else image_url */}
+            <div style={{ background: '#000', border: '1px solid var(--border)' }}>
+              {isVideo(heroUrl) ? (
+                <video src={heroUrl} controls style={{ width: '100%', maxHeight: 640, objectFit: 'contain', display: 'block' }} />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={heroUrl} alt="" style={{ width: '100%', maxHeight: 640, objectFit: 'contain', display: 'block', imageOrientation: 'from-image' }} />
+              )}
+            </div>
+
+            {/* AI asset alternatives (switch between generated versions) */}
+            <AssetVersions
+              postId={post.id}
+              currentImageUrl={heroUrl}
+              onImageChange={(url) => {
+                setPost(p => p ? { ...p, edited_image_url: url } : p);
+                updatePost(post.id, { edited_image_url: url });
+              }}
+              onApprove={async () => {
+                const res = await fetch(`/api/posts/${post.id}`, {
+                  method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ status: 'pending' }),
+                });
+                if (res.ok) {
+                  const json = await res.json();
+                  updatePost(post.id, json.post);
+                  setPost(json.post);
+                }
+              }}
+              onReject={(action) => {
+                if (action === 'delete') {
+                  deleteRequest();
+                } else {
+                  changeRequestStatus('request');
+                }
+              }}
+            />
+
+            {/* Comparison: original client upload vs AI result (when both exist) */}
+            {origUrl && (
+              <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div>
+                  <p style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 6 }}>
+                    Tu imagen original
+                  </p>
+                  <div style={{ border: '1px solid var(--border)', overflow: 'hidden' }}>
+                    {isVideo(origUrl) ? (
+                      <video src={origUrl} style={{ width: '100%', maxHeight: 280, objectFit: 'cover', display: 'block' }} />
                     ) : (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={url} alt={`Original ${i + 1}`} style={{ width: 160, height: 160, objectFit: 'cover', display: 'block', imageOrientation: 'from-image' }} />
+                      <img src={origUrl} alt="Original" style={{ width: '100%', maxHeight: 280, objectFit: 'cover', display: 'block', imageOrientation: 'from-image' }} />
                     )}
                   </div>
-                ))}
+                </div>
+                <div>
+                  <p style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--accent)', marginBottom: 6 }}>
+                    Versión generada
+                  </p>
+                  <div style={{ border: '1px solid var(--border)', overflow: 'hidden' }}>
+                    {isVideo(heroUrl) ? (
+                      <video src={heroUrl} style={{ width: '100%', maxHeight: 280, objectFit: 'cover', display: 'block' }} />
+                    ) : (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={heroUrl} alt="Versión generada" style={{ width: '100%', maxHeight: 280, objectFit: 'cover', display: 'block', imageOrientation: 'from-image' }} />
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+
+            {/* Brief reference images (from ai_explanation metadata, separate from above) */}
+            {originalImages.length > 0 && !origUrl && (
+              <div style={{ marginTop: 12 }}>
+                <p style={{ fontFamily: f, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-tertiary)', marginBottom: 6 }}>
+                  Tu imagen original
+                </p>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                  {originalImages.map((url, i) => (
+                    <div key={i} style={{ border: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0 }}>
+                      {isVideo(url) ? (
+                        <video src={url} style={{ width: 160, height: 160, objectFit: 'cover', display: 'block' }} />
+                      ) : (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={url} alt={`Original ${i + 1}`} style={{ width: 160, height: 160, objectFit: 'cover', display: 'block', imageOrientation: 'from-image' }} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ── Content + actions panel (full width) ── */}
       <div style={{ marginBottom: 24 }}>

@@ -163,6 +163,43 @@ export async function POST(request: Request) {
   return NextResponse.json({ ok: true });
 }
 
+// ─── Helper: persist Replicate image into Supabase Storage ─────────────────────
+// Replicate's output URLs (`replicate.delivery/...`) expire after ~1 hour. If
+// we store them verbatim the Feed and post detail will go "Sin imagen" as soon
+// as the TTL elapses. We download the bytes and re-upload to the `posts`
+// bucket so we end up with a permanent public URL.
+//
+// Falls back to the original Replicate URL on any failure — never worse than
+// the old behaviour.
+async function persistReplicateImageToStorage(
+  db: DB,
+  brandId: string,
+  replicateUrl: string,
+): Promise<string> {
+  try {
+    const res = await fetch(replicateUrl);
+    if (!res.ok) throw new Error(`download failed: HTTP ${res.status}`);
+    const contentType = res.headers.get('content-type') ?? 'image/png';
+    const buffer = Buffer.from(await res.arrayBuffer());
+    const ext =
+      contentType.includes('png')  ? 'png'  :
+      contentType.includes('webp') ? 'webp' :
+      contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg' :
+      'jpg';
+    const key = `replicate/${brandId}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
+    const { error: uploadErr } = await db.storage
+      .from('posts')
+      .upload(key, buffer, { contentType, upsert: false });
+    if (uploadErr) throw uploadErr;
+    const { data: urlData } = db.storage.from('posts').getPublicUrl(key);
+    if (!urlData?.publicUrl) throw new Error('getPublicUrl returned empty');
+    return urlData.publicUrl;
+  } catch (e) {
+    console.warn(`[replicate-webhook] Could not persist ${replicateUrl} to storage — falling back`, e);
+    return replicateUrl;
+  }
+}
+
 // ─── Post image handler ────────────────────────────────────────────────────────
 
 async function handlePostWebhook(
@@ -182,7 +219,8 @@ async function handlePostWebhook(
       console.warn(`[replicate-webhook/post] rejected untrusted URLs`, rejected);
       return new Response('Untrusted image URL', { status: 400 });
     }
-    const generatedUrl = images[0];
+    // Persist to Supabase Storage so the URL survives past Replicate's TTL.
+    const generatedUrl = await persistReplicateImageToStorage(db, post.brand_id, images[0]);
 
     await db.from('posts').update({
       edited_image_url: generatedUrl,

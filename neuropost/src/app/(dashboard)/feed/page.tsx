@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Camera, Download, ExternalLink, LayoutGrid, List, RefreshCw, Search, X } from 'lucide-react';
+import { Calendar, Download, ExternalLink, LayoutGrid, List, RefreshCw, Search, TrendingUp, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const f  = "var(--font-barlow), 'Barlow', sans-serif";
@@ -12,7 +12,6 @@ const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Platform    = 'instagram' | 'facebook' | 'tiktok';
 type ViewMode    = 'grid' | 'list';
-type FilterRange = 'all' | '3m' | '1m';
 type PageMode    = 'pipeline' | 'historial';
 
 interface Published {
@@ -41,6 +40,16 @@ interface FeedData {
   queued:    Queued[];
 }
 
+interface PostMetrics {
+  reach:           number | null;
+  impressions:     number | null;
+  likes:           number | null;
+  comments:        number | null;
+  saves:           number | null;
+  shares:          number | null;
+  engagement_rate: number | null;
+}
+
 type Post = {
   id:               string;
   image_url:        string | null;
@@ -54,7 +63,18 @@ type Post = {
   created_at:       string;
   ig_post_id:       string | null;
   fb_post_id:       string | null;
+  metrics?:         PostMetrics | null;
 };
+
+interface DashboardMetrics {
+  thisWeek: {
+    posts: number; impressions: number; reach: number; likes: number;
+    comments: number; saves: number; shares: number; engagementRate: number;
+    bestHour: number | null;
+  };
+  changes: { impressions: number | null; reach: number | null; engagement: number | null; posts: number | null };
+  counts:  { pending: number; scheduled: number };
+}
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const PLATFORMS_META: Record<Platform, { label: string; connectHref: string }> = {
@@ -63,20 +83,14 @@ const PLATFORMS_META: Record<Platform, { label: string; connectHref: string }> =
   tiktok:    { label: 'TikTok',    connectHref: '/settings#redes' },
 };
 
-const STATUS_COLOR: Record<string, { label: string; color: string; bg: string }> = {
-  pending:    { label: 'Pendiente',  color: '#78350f', bg: '#fef3c7' },
-  scheduled:  { label: 'Programado', color: '#1e40af', bg: '#dbeafe' },
-  publishing: { label: 'Publicando', color: '#5b21b6', bg: '#ede9fe' },
-  failed:     { label: 'Fallido',    color: '#991b1b', bg: '#fee2e2' },
-};
-
-const ALL_PLATFORMS: { id: string; label: string }[] = [
+const ALL_PLATFORMS: { id: Platform; label: string }[] = [
   { id: 'instagram', label: 'Instagram' },
   { id: 'facebook',  label: 'Facebook'  },
   { id: 'tiktok',    label: 'TikTok'    },
 ];
 
-const ACCENT_GREEN = '#0F766E';
+const ACCENT = '#0F766E';
+const ACCENT_2 = '#0D9488';
 
 const FORMAT_LABELS: Record<string, string> = {
   image: 'Imagen', video: 'Vídeo', reel: 'Reel', carousel: 'Carrusel', story: 'Story',
@@ -92,7 +106,6 @@ function InstagramIcon({ size = 14, color = 'currentColor' }: { size?: number; c
     </svg>
   );
 }
-
 function FacebookIcon({ size = 14, color = 'currentColor' }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={color} aria-hidden="true">
@@ -100,7 +113,6 @@ function FacebookIcon({ size = 14, color = 'currentColor' }: { size?: number; co
     </svg>
   );
 }
-
 function TikTokIcon({ size = 14, color = 'currentColor' }: { size?: number; color?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={color} aria-hidden="true">
@@ -108,7 +120,6 @@ function TikTokIcon({ size = 14, color = 'currentColor' }: { size?: number; colo
     </svg>
   );
 }
-
 function PlatformIcon({ platform, size = 12, color = 'currentColor' }: { platform: string; size?: number; color?: string }) {
   if (platform === 'instagram') return <InstagramIcon size={size} color={color} />;
   if (platform === 'facebook')  return <FacebookIcon  size={size} color={color} />;
@@ -120,231 +131,332 @@ function getPostPlatforms(post: Post): string[] {
   return Array.isArray(post.platform) ? post.platform : post.platform ? [post.platform] : [];
 }
 
-// ── Historial: Grid Card ───────────────────────────────────────────────────────
-function GridCard({ post }: { post: Post }) {
-  const img       = post.edited_image_url ?? post.image_url;
-  const platforms = getPostPlatforms(post);
-  const date      = post.published_at ?? post.created_at;
-
-  return (
-    <Link href={`/posts/${post.id}`} className="hist-grid-card" style={{ display: 'block', textDecoration: 'none', color: 'inherit', position: 'relative' }}>
-      <div style={{ aspectRatio: '1', overflow: 'hidden', position: 'relative', background: '#0a0a0a' }}>
-        {img ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={img} alt="" className="hist-grid-img" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', imageOrientation: 'from-image' }} />
-        ) : (
-          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-2)' }}>
-            <span style={{ fontFamily: fc, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-tertiary)' }}>Sin imagen</span>
-          </div>
-        )}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.28) 0%, transparent 40%, transparent 55%, rgba(0,0,0,0.62) 100%)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: 4 }}>
-          {platforms.map((p) => (
-            <span key={p} style={{ width: 22, height: 22, background: ACCENT_GREEN, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <PlatformIcon platform={p} size={11} color="#fff" />
-            </span>
-          ))}
-        </div>
-        {(post.ig_post_id || post.fb_post_id) && (
-          <div style={{ position: 'absolute', top: 10, right: 10 }}>
-            <span style={{ width: 22, height: 22, background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <ExternalLink size={10} color="#fff" />
-            </span>
-          </div>
-        )}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px' }}>
-          {post.format && (
-            <span style={{ display: 'inline-block', fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.6)', marginBottom: 3 }}>
-              {FORMAT_LABELS[post.format] ?? post.format}
-            </span>
-          )}
-          <p style={{ fontFamily: f, fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.9)', margin: 0 }}>
-            {new Date(date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
-          </p>
-        </div>
-        <div className="hist-grid-overlay" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 0.22s' }}>
-          <span className="hist-grid-cta" style={{ fontFamily: fc, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#fff', background: 'var(--accent)', padding: '7px 16px', opacity: 0, transform: 'translateY(6px)', transition: 'opacity 0.22s, transform 0.22s' }}>
-            Ver post
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
+function fmtNum(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`;
+  return n.toString();
 }
 
-// ── Historial: List Row ────────────────────────────────────────────────────────
-function ListRow({ post, isLast }: { post: Post; isLast: boolean }) {
-  const img       = post.edited_image_url ?? post.image_url;
-  const platforms = getPostPlatforms(post);
-  const date      = post.published_at ?? post.created_at;
+function fmtDelta(pct: number | null): { text: string; color: string } | null {
+  if (pct == null) return null;
+  if (pct > 0) return { text: `↑ ${pct}%`, color: '#059669' };
+  if (pct < 0) return { text: `↓ ${Math.abs(pct)}%`, color: '#dc2626' };
+  return { text: '— 0%', color: '#9ca3af' };
+}
 
+function fmtScheduledDate(iso: string | null): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const today = new Date();
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate() + 1);
+  const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
+  const time = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  if (sameDay(d, today))    return `HOY · ${time}`;
+  if (sameDay(d, tomorrow)) return `MAÑANA · ${time}`;
+  return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }).toUpperCase() + ` · ${time}`;
+}
+
+// ── KPI strip ────────────────────────────────────────────────────────────────
+function KpiStrip({ items }: { items: Array<{ label: string; value: string; delta?: { text: string; color: string } | null; meta?: string }> }) {
   return (
-    <Link href={`/posts/${post.id}`} className="hist-list-row" style={{
-      display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px',
-      textDecoration: 'none', color: 'inherit', background: 'var(--bg)',
-      borderBottom: isLast ? 'none' : '1px solid var(--border)',
-    }}>
-      <div style={{ width: 48, height: 48, flexShrink: 0, overflow: 'hidden', background: 'var(--bg-2)' }}>
-        {img
-          // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', imageOrientation: 'from-image' }} />
-          : <div style={{ width: '100%', height: '100%', background: 'var(--bg-2)' }} />}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 5 }}>
-          {post.caption ? post.caption.slice(0, 90) : <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Sin descripción</span>}
-        </p>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {platforms.map((p) => {
-            const meta = ALL_PLATFORMS.find((x) => x.id === p);
-            return meta ? (
-              <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', background: `${ACCENT_GREEN}18`, fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: ACCENT_GREEN }}>
-                <PlatformIcon platform={p} size={9} color={ACCENT_GREEN} />
-                {meta.label}
-              </span>
-            ) : null;
-          })}
-          {post.format && (
-            <span style={{ fontFamily: f, fontSize: 10, color: 'var(--text-tertiary)', fontWeight: 500 }}>
-              {FORMAT_LABELS[post.format] ?? post.format}
-            </span>
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${items.length}, 1fr)`, border: '1px solid #e5e7eb', background: '#fff', marginBottom: 28 }}>
+      {items.map((it, i) => (
+        <div key={it.label} style={{ padding: '18px 22px', borderRight: i < items.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
+          <p style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#9ca3af', margin: '0 0 10px' }}>{it.label}</p>
+          <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 30, letterSpacing: '-0.02em', lineHeight: 1, color: '#111827', margin: 0 }}>{it.value}</p>
+          {it.delta && (
+            <p style={{ fontFamily: f, fontSize: 11, fontWeight: 600, color: it.delta.color, margin: '8px 0 0' }}>{it.delta.text}</p>
+          )}
+          {it.meta && !it.delta && (
+            <p style={{ fontFamily: f, fontSize: 11, color: '#9ca3af', margin: '8px 0 0' }}>{it.meta}</p>
           )}
         </div>
-      </div>
-      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <p style={{ fontFamily: f, fontSize: 12, color: 'var(--text-secondary)', fontWeight: 600, marginBottom: 4 }}>
-          {new Date(date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
-        </p>
-        {(post.ig_post_id || post.fb_post_id) && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontFamily: f, fontSize: 9, color: 'var(--accent)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            <ExternalLink size={9} /> Ver publicado
-          </span>
-        )}
-      </div>
-    </Link>
+      ))}
+    </div>
   );
 }
 
-// ── Queued Section ─────────────────────────────────────────────────────────────
-function QueuedSection({ platform, queued }: { platform: Platform; queued: Queued[] }) {
-  return (
-    <section style={{ marginBottom: 28 }}>
-      <h2 style={{ fontFamily: fc, fontSize: 16, fontWeight: 800, letterSpacing: '0.01em', color: 'var(--text-primary)', marginBottom: 8 }}>
-        Publicaciones pendientes ({queued.length})
-      </h2>
-      <p style={{ fontFamily: f, fontSize: 13, color: '#6b7280', marginBottom: 14 }}>
-        Contenido programado y solicitudes en proceso de publicación.
-      </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {queued.map(q => (
-          <Link key={q.id} href={`/posts/${q.postId}`} style={{
-            display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px',
-            border: '1px solid var(--border)', background: 'var(--bg)',
-            textDecoration: 'none', color: 'inherit', borderRadius: 6,
-          }}>
-            {q.imageUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={q.imageUrl} alt="" style={{ width: 44, height: 44, objectFit: 'cover', flexShrink: 0, borderRadius: 4 }} />
-            ) : (
-              <div style={{ width: 44, height: 44, background: 'var(--bg-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, borderRadius: 4 }}>
-                <Camera size={18} style={{ color: 'var(--text-tertiary)' }} />
-              </div>
-            )}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontFamily: f, fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {q.caption ? q.caption.slice(0, 60) : `Publicación para feed${q.imageUrl ? ' (imagen)' : ''}`}
-              </p>
-              <p style={{ fontFamily: f, fontSize: 12, color: '#6b7280', margin: 0 }}>
-                {PLATFORMS_META[platform].label} · {q.scheduledAt
-                  ? new Date(q.scheduledAt).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })
-                  : 'Sin fecha programada'}
-              </p>
-            </div>
-            <span style={{
-              padding: '2px 8px', flexShrink: 0,
-              background: STATUS_COLOR[q.status]?.bg ?? '#f3f4f6',
-              color: STATUS_COLOR[q.status]?.color ?? '#4b5563',
-              fontFamily: f, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-            }}>
-              {STATUS_COLOR[q.status]?.label ?? q.status}
-            </span>
-          </Link>
-        ))}
-      </div>
-    </section>
-  );
-}
+// ── Feed preview grid (published + scheduled interleaved) ────────────────────
+type GridItem =
+  | { kind: 'published'; id: string; imageUrl: string | null; caption: string | null; permalink: string | null; timestamp: string }
+  | { kind: 'scheduled'; id: string; postId: string; imageUrl: string | null; caption: string | null; scheduledAt: string | null; status: string };
 
-// ── Platform Panel ─────────────────────────────────────────────────────────────
-function PlatformPanel({ data }: { data: FeedData }) {
-  const meta = PLATFORMS_META[data.platform];
+function FeedPreviewGrid({ items, onlyUpcoming }: { items: GridItem[]; onlyUpcoming: boolean }) {
+  const filtered = onlyUpcoming ? items.filter(i => i.kind === 'scheduled') : items;
 
-  if (!data.connected) {
+  if (filtered.length === 0) {
     return (
-      <div>
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px 24px', textAlign: 'center', border: '1px solid var(--border)', marginBottom: 32 }}>
-          <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: '1.6rem', textTransform: 'uppercase', color: 'var(--ink)', marginBottom: 10 }}>
-            {meta.label} no conectado
-          </h2>
-          <p style={{ fontFamily: f, fontSize: 14, color: 'var(--muted)', maxWidth: 420, lineHeight: 1.7, marginBottom: 24 }}>
-            Conecta tu cuenta para ver tu feed real de {meta.label}. Mientras tanto, las publicaciones que hayas programado seguirán visibles abajo.
-          </p>
-          <Link href={meta.connectHref} style={{ padding: '10px 22px', background: '#0F766E', color: '#fff', textDecoration: 'none', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            Conectar {meta.label}
-          </Link>
-        </div>
-        {data.queued.length > 0 && <QueuedSection platform={data.platform} queued={data.queued} />}
+      <div style={{ padding: '60px 24px', border: '1px solid #e5e7eb', background: '#fff', textAlign: 'center' }}>
+        <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 18, textTransform: 'uppercase', color: '#111827', marginBottom: 8 }}>Sin publicaciones todavía</p>
+        <p style={{ fontFamily: f, fontSize: 13, color: '#9ca3af', marginBottom: 20 }}>
+          {onlyUpcoming ? 'No hay contenido programado para esta red.' : 'Crea tu primer post para ver el feed.'}
+        </p>
+        <Link href="/posts/new" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 18px', background: ACCENT, color: '#fff', textDecoration: 'none', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          + Crear publicación
+        </Link>
       </div>
     );
   }
 
   return (
-    <div>
-      <div style={{ padding: '12px 16px', border: '1px solid var(--border)', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#0D9488' }} />
-        <span style={{ fontFamily: f, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
-          {data.username ? `@${data.username}` : meta.label}
-        </span>
-        <span style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', marginLeft: 'auto' }}>
-          {data.published.length > 0 ? `${data.published.length} publicados` : 'Sin publicaciones en el feed'}
-        </span>
-      </div>
-      {data.queued.length > 0 && <QueuedSection platform={data.platform} queued={data.queued} />}
-      <section style={{ marginBottom: 32 }}>
-        <h2 style={{ fontFamily: fc, fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-primary)', marginBottom: 12 }}>
-          Publicados en {meta.label}
-        </h2>
-        {data.published.length === 0 ? (
-          <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-tertiary)' }}>
-            {data.platform === 'tiktok'
-              ? 'El feed público de TikTok aún no está disponible vía API. Se conectará cuando aprueben el scope research.'
-              : `No encontramos publicaciones en ${meta.label} todavía.`}
-          </p>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
-            {data.published.map(p => (
-              <a key={p.id} href={p.permalink ?? '#'} target="_blank" rel="noopener noreferrer" style={{ position: 'relative', display: 'block', aspectRatio: '1', border: '1px solid var(--border)', overflow: 'hidden', background: '#000', textDecoration: 'none' }}>
-                {p.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                ) : (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-1)', fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>Sin imagen</div>
-                )}
-                {p.permalink && (
-                  <span style={{ position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.6)', padding: 3, color: '#fff', display: 'inline-flex' }}>
-                    <ExternalLink size={10} />
-                  </span>
-                )}
-              </a>
-            ))}
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2, background: '#e5e7eb', border: '1px solid #e5e7eb' }}>
+      {filtered.map(it => {
+        const img = it.imageUrl;
+        const isScheduled = it.kind === 'scheduled';
+        const href = isScheduled ? `/posts/${it.postId}` : (it.permalink ?? `/posts/${it.id}`);
+        const external = !isScheduled && !!it.permalink;
+
+        const tile = (
+          <div style={{ position: 'relative', aspectRatio: '1', background: '#000', overflow: 'hidden' }}>
+            {img ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', imageOrientation: 'from-image', opacity: isScheduled ? 0.88 : 1 }} />
+            ) : (
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6', fontFamily: f, fontSize: 11, color: '#9ca3af' }}>Sin imagen</div>
+            )}
+
+            {isScheduled && (
+              <>
+                <div style={{ position: 'absolute', inset: 0, border: `2px solid ${ACCENT_2}`, pointerEvents: 'none' }} />
+                <div style={{ position: 'absolute', top: 8, left: 8, background: ACCENT, padding: '3px 8px', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <Calendar size={9} color="#fff" />
+                  <span style={{ fontFamily: f, fontSize: 9, fontWeight: 700, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.08em' }}>Programado</span>
+                </div>
+                <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75), transparent)', padding: '18px 10px 8px' }}>
+                  <p style={{ fontFamily: f, fontSize: 10, fontWeight: 700, color: '#fff', margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                    {fmtScheduledDate(it.scheduledAt)}
+                  </p>
+                </div>
+              </>
+            )}
+            {!isScheduled && external && (
+              <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.55)', padding: 4, display: 'inline-flex' }}>
+                <ExternalLink size={10} color="#fff" />
+              </div>
+            )}
           </div>
-        )}
-      </section>
+        );
+
+        return external ? (
+          <a key={`${it.kind}-${it.id}`} href={href} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', display: 'block' }}>{tile}</a>
+        ) : (
+          <Link key={`${it.kind}-${it.id}`} href={href} style={{ textDecoration: 'none', display: 'block' }}>{tile}</Link>
+        );
+      })}
     </div>
   );
 }
 
-// ── Main Page ──────────────────────────────────────────────────────────────────
+// ── Week timeline ────────────────────────────────────────────────────────────
+function WeekTimeline({ scheduled }: { scheduled: Queued[] }) {
+  const today = new Date();
+  const monday = new Date(today);
+  const day = monday.getDay();
+  monday.setDate(monday.getDate() - (day === 0 ? 6 : day - 1));
+  monday.setHours(0, 0, 0, 0);
+
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday); d.setDate(monday.getDate() + i);
+    const next = new Date(d); next.setDate(d.getDate() + 1);
+    const items = scheduled.filter(q => {
+      if (!q.scheduledAt) return false;
+      const t = new Date(q.scheduledAt).getTime();
+      return t >= d.getTime() && t < next.getTime();
+    });
+    return { date: d, items, isToday: d.toDateString() === today.toDateString() };
+  });
+
+  return (
+    <div style={{ marginTop: 32 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
+        <h2 style={{ fontFamily: fc, fontSize: 14, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#111827', margin: 0 }}>Esta semana</h2>
+        <p style={{ fontFamily: f, fontSize: 11, color: '#9ca3af', margin: 0 }}>
+          {monday.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} – {new Date(monday.getTime() + 6 * 86400000).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+        </p>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, background: '#e5e7eb', border: '1px solid #e5e7eb' }}>
+        {days.map(({ date, items, isToday }) => (
+          <div key={date.toISOString()} style={{ background: isToday ? '#f0fdfa' : '#fff', minHeight: 130, padding: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+              <span style={{ fontFamily: f, fontSize: 9, fontWeight: 600, color: isToday ? ACCENT : '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                {isToday ? 'Hoy' : date.toLocaleDateString('es-ES', { weekday: 'short' }).slice(0, 3)}
+              </span>
+              <span style={{ fontFamily: fc, fontSize: 18, fontWeight: 900, color: isToday ? ACCENT : '#111827', lineHeight: 1 }}>{date.getDate()}</span>
+            </div>
+            {items.length === 0 ? (
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontFamily: f, fontSize: 10, color: '#d1d5db' }}>—</span>
+              </div>
+            ) : (
+              items.slice(0, 3).map(q => (
+                <Link key={q.id} href={`/posts/${q.postId}`} style={{ position: 'relative', display: 'block', aspectRatio: '1', background: '#f3f4f6', textDecoration: 'none' }}>
+                  {q.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={q.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  ) : null}
+                  <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(0,0,0,0.65)', padding: '2px 4px' }}>
+                    <span style={{ fontFamily: f, fontSize: 8, fontWeight: 700, color: '#fff', letterSpacing: '0.05em' }}>
+                      {q.scheduledAt ? new Date(q.scheduledAt).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </span>
+                  </div>
+                </Link>
+              ))
+            )}
+            {items.length > 3 && (
+              <span style={{ fontFamily: f, fontSize: 10, color: '#6b7280', textAlign: 'center', marginTop: 2 }}>+{items.length - 3}</span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Historial: top performer card ────────────────────────────────────────────
+function TopCard({ post, rank }: { post: Post; rank: number }) {
+  const img = post.edited_image_url ?? post.image_url;
+  const m   = post.metrics;
+  const platforms = getPostPlatforms(post);
+  return (
+    <Link href={`/posts/${post.id}`} style={{ display: 'block', textDecoration: 'none', color: 'inherit', border: '1px solid #e5e7eb', background: '#fff' }}>
+      <div style={{ position: 'relative', aspectRatio: '16/10', background: '#000', overflow: 'hidden' }}>
+        {img ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        ) : null}
+        <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ background: '#111827', color: '#fff', fontFamily: fc, fontSize: 10, fontWeight: 900, padding: '3px 8px', letterSpacing: '0.08em' }}>#{rank}</span>
+          {platforms.map(p => (
+            <span key={p} style={{ width: 22, height: 22, background: ACCENT, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+              <PlatformIcon platform={p} size={11} color="#fff" />
+            </span>
+          ))}
+        </div>
+      </div>
+      <div style={{ padding: '14px 16px' }}>
+        <p style={{ fontFamily: f, fontSize: 12, color: '#111827', lineHeight: 1.4, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+          {post.caption ? post.caption.slice(0, 110) : <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Sin descripción</span>}
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 14, paddingTop: 12, borderTop: '1px solid #f3f4f6' }}>
+          <div>
+            <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 18, color: '#111827', margin: 0, lineHeight: 1 }}>{fmtNum(m?.reach ?? 0)}</p>
+            <p style={{ fontFamily: f, fontSize: 9, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '4px 0 0' }}>Alcance</p>
+          </div>
+          <div>
+            <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 18, color: '#111827', margin: 0, lineHeight: 1 }}>{fmtNum(m?.likes ?? 0)}</p>
+            <p style={{ fontFamily: f, fontSize: 9, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '4px 0 0' }}>Likes</p>
+          </div>
+          <div>
+            <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 18, color: ACCENT, margin: 0, lineHeight: 1 }}>{m?.engagement_rate != null ? `${m.engagement_rate.toFixed(1)}%` : '—'}</p>
+            <p style={{ fontFamily: f, fontSize: 9, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '4px 0 0' }}>Engagement</p>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ── Historial grid card (with inline metrics) ────────────────────────────────
+function HistorialGridCard({ post }: { post: Post }) {
+  const img       = post.edited_image_url ?? post.image_url;
+  const platforms = getPostPlatforms(post);
+  const date      = post.published_at ?? post.created_at;
+  const m         = post.metrics;
+  return (
+    <Link href={`/posts/${post.id}`} className="hist-grid-card" style={{ display: 'block', textDecoration: 'none', color: 'inherit', position: 'relative', background: '#000' }}>
+      <div style={{ aspectRatio: '1', overflow: 'hidden', position: 'relative' }}>
+        {img ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={img} alt="" className="hist-grid-img" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', imageOrientation: 'from-image' }} />
+        ) : (
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1f2937' }}>
+            <span style={{ fontFamily: fc, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#6b7280' }}>Sin imagen</span>
+          </div>
+        )}
+        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,0,0,0.35) 0%, transparent 32%, transparent 55%, rgba(0,0,0,0.72) 100%)', pointerEvents: 'none' }} />
+        <div style={{ position: 'absolute', top: 10, left: 10, display: 'flex', gap: 4 }}>
+          {platforms.map(p => (
+            <span key={p} style={{ width: 22, height: 22, background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <PlatformIcon platform={p} size={11} color="#fff" />
+            </span>
+          ))}
+        </div>
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '10px 12px', color: '#fff' }}>
+          {m ? (
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+              <span style={{ fontFamily: fc, fontWeight: 900, fontSize: 16, lineHeight: 1 }}>{fmtNum(m.reach ?? 0)}</span>
+              <span style={{ fontFamily: f, fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', opacity: 0.7 }}>alcance</span>
+              {m.engagement_rate != null && (
+                <span style={{ marginLeft: 'auto', fontFamily: fc, fontWeight: 900, fontSize: 14, color: '#5eead4' }}>{m.engagement_rate.toFixed(1)}%</span>
+              )}
+            </div>
+          ) : (
+            <p style={{ fontFamily: f, fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.85)', margin: 0 }}>
+              {new Date(date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </p>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ── Historial list row ───────────────────────────────────────────────────────
+function HistorialListRow({ post, isLast }: { post: Post; isLast: boolean }) {
+  const img       = post.edited_image_url ?? post.image_url;
+  const platforms = getPostPlatforms(post);
+  const date      = post.published_at ?? post.created_at;
+  const m         = post.metrics;
+  return (
+    <Link href={`/posts/${post.id}`} className="hist-list-row" style={{
+      display: 'grid', gridTemplateColumns: '56px 1fr auto auto', gap: 16, alignItems: 'center', padding: '14px 16px',
+      textDecoration: 'none', color: 'inherit', background: '#fff',
+      borderBottom: isLast ? 'none' : '1px solid #f3f4f6',
+    }}>
+      <div style={{ width: 56, height: 56, background: '#f3f4f6' }}>
+        {img && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        )}
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <p style={{ fontFamily: f, fontSize: 13, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 5, margin: 0 }}>
+          {post.caption ? post.caption.slice(0, 90) : <span style={{ color: '#9ca3af', fontStyle: 'italic' }}>Sin descripción</span>}
+        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 5 }}>
+          {platforms.map(p => (
+            <span key={p} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', background: `${ACCENT}15`, fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: ACCENT }}>
+              <PlatformIcon platform={p} size={9} color={ACCENT} /> {ALL_PLATFORMS.find(x => x.id === p)?.label}
+            </span>
+          ))}
+          {post.format && (
+            <span style={{ fontFamily: f, fontSize: 10, color: '#9ca3af' }}>{FORMAT_LABELS[post.format] ?? post.format}</span>
+          )}
+          <span style={{ fontFamily: f, fontSize: 10, color: '#9ca3af', marginLeft: 'auto' }}>
+            {new Date(date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </span>
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+        <div style={{ textAlign: 'right', minWidth: 60 }}>
+          <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 16, color: '#111827', margin: 0, lineHeight: 1 }}>{fmtNum(m?.reach ?? 0)}</p>
+          <p style={{ fontFamily: f, fontSize: 9, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '3px 0 0' }}>Alcance</p>
+        </div>
+        <div style={{ textAlign: 'right', minWidth: 50 }}>
+          <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 16, color: '#111827', margin: 0, lineHeight: 1 }}>{fmtNum(m?.likes ?? 0)}</p>
+          <p style={{ fontFamily: f, fontSize: 9, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '3px 0 0' }}>Likes</p>
+        </div>
+        <div style={{ textAlign: 'right', minWidth: 56 }}>
+          <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 16, color: ACCENT, margin: 0, lineHeight: 1 }}>{m?.engagement_rate != null ? `${m.engagement_rate.toFixed(1)}%` : '—'}</p>
+          <p style={{ fontFamily: f, fontSize: 9, fontWeight: 600, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '3px 0 0' }}>Eng.</p>
+        </div>
+      </div>
+      <ExternalLink size={14} style={{ color: '#d1d5db' }} />
+    </Link>
+  );
+}
+
+// ── Main page ────────────────────────────────────────────────────────────────
 export default function FeedPage() {
   const searchParams = useSearchParams();
   const initialTab  = (searchParams.get('platform') as Platform | null) ?? 'instagram';
@@ -352,25 +464,37 @@ export default function FeedPage() {
 
   const [mode, setMode] = useState<PageMode>(initialMode as PageMode);
 
+  // KPIs (shared across both tabs)
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+
   // Pipeline state
-  const [tab, setTab]               = useState<Platform>(
+  const [tab, setTab] = useState<Platform>(
     (['instagram', 'facebook', 'tiktok'] as const).includes(initialTab as Platform) ? initialTab as Platform : 'instagram',
   );
-  const [cache, setCache]           = useState<Partial<Record<Platform, FeedData>>>({});
+  const [cache, setCache] = useState<Partial<Record<Platform, FeedData>>>({});
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedError, setFeedError]     = useState<string | null>(null);
+  const [onlyUpcoming, setOnlyUpcoming] = useState(false);
 
   // Historial state
-  const [allPosts,            setAllPosts]            = useState<Post[]>([]);
-  const [histLoading,         setHistLoading]         = useState(false);
-  const [histPlatform,        setHistPlatform]        = useState('all');
-  const [range,               setRange]               = useState<FilterRange>('all');
-  const [search,              setSearch]              = useState('');
-  const [view,                setView]                = useState<ViewMode>('grid');
-  const [subscribedPlatforms, setSubscribedPlatforms] = useState<string[]>([]);
+  const [allPosts,     setAllPosts]     = useState<Post[]>([]);
+  const [topPosts,     setTopPosts]     = useState<Post[]>([]);
+  const [histStats,    setHistStats]    = useState<{ totalReach: number; totalLikes: number; avgEngagementRate: number; published: number } | null>(null);
+  const [histLoading,  setHistLoading]  = useState(false);
+  const [histPlatform, setHistPlatform] = useState<'all' | Platform>('all');
+  const [search,       setSearch]       = useState('');
+  const [view,         setView]         = useState<ViewMode>('grid');
 
-  // ── Feed logic ────────────────────────────────────────────────────────────────
-  async function loadTab(p: Platform, force = false) {
+  // Load KPIs on mount (auto-refresh on session start)
+  useEffect(() => {
+    fetch('/api/dashboard/metrics')
+      .then(r => r.ok ? r.json() : null)
+      .then((d: DashboardMetrics | null) => { if (d) setMetrics(d); })
+      .catch(() => { /* silent */ });
+  }, []);
+
+  // Pipeline loading
+  const loadTab = useCallback(async (p: Platform, force = false) => {
     if (!force && cache[p]) return;
     setFeedLoading(true);
     setFeedError(null);
@@ -384,43 +508,40 @@ export default function FeedPage() {
     } finally {
       setFeedLoading(false);
     }
-  }
+  }, [cache]);
 
   useEffect(() => {
     if (mode === 'pipeline') loadTab(tab);
-  }, [tab, mode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [tab, mode, loadTab]);
 
-  // ── Historial logic ────────────────────────────────────────────────────────────
-  const loadHistorial = useCallback((p: string, r: FilterRange) => {
+  // Historial loading
+  const loadHistorial = useCallback((p: 'all' | Platform) => {
     setHistLoading(true);
-    const params = new URLSearchParams({ status: 'published', range: r });
+    const params = new URLSearchParams({ status: 'published', range: 'all' });
     if (p !== 'all') params.set('platform', p);
     fetch(`/api/historial?${params}`)
-      .then((res) => res.json())
-      .then((d) => {
-        setAllPosts(d.posts ?? []);
-        if (d.subscribedPlatforms) setSubscribedPlatforms(d.subscribedPlatforms);
-        setHistLoading(false);
+      .then(r => r.json())
+      .then(d => {
+        setAllPosts((d.posts ?? []) as Post[]);
+        setTopPosts((d.topPerformers ?? []) as Post[]);
+        setHistStats(d.stats ?? null);
       })
-      .catch(() => setHistLoading(false));
+      .catch(() => { /* silent */ })
+      .finally(() => setHistLoading(false));
   }, []);
 
   useEffect(() => {
-    if (mode === 'historial') loadHistorial(histPlatform, range);
-  }, [mode, histPlatform, range, loadHistorial]);
+    if (mode === 'historial') loadHistorial(histPlatform);
+  }, [mode, histPlatform, loadHistorial]);
 
-  const filtered = search.trim()
-    ? allPosts.filter((p) =>
-        p.caption?.toLowerCase().includes(search.toLowerCase()) ||
-        (Array.isArray(p.hashtags) && p.hashtags.some((h) => h.toLowerCase().includes(search.toLowerCase())))
-      )
-    : allPosts;
-
-  const byPlatform = (pid: string) =>
-    allPosts.filter((p) => {
-      const arr = Array.isArray(p.platform) ? p.platform : [p.platform ?? ''];
-      return arr.includes(pid);
-    }).length;
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return allPosts;
+    return allPosts.filter(p =>
+      p.caption?.toLowerCase().includes(q) ||
+      (Array.isArray(p.hashtags) && p.hashtags.some(h => h.toLowerCase().includes(q)))
+    );
+  }, [allPosts, search]);
 
   async function exportCSV() {
     const res = await fetch('/api/historial/export');
@@ -434,223 +555,272 @@ export default function FeedPage() {
 
   const feedData = cache[tab];
 
+  // Merge published + scheduled into chronological feed preview items
+  const feedItems: GridItem[] = useMemo(() => {
+    if (!feedData) return [];
+    const pub: GridItem[] = feedData.published.map(p => ({
+      kind: 'published' as const, id: p.id, imageUrl: p.imageUrl, caption: p.caption, permalink: p.permalink, timestamp: p.timestamp ?? new Date(0).toISOString(),
+    }));
+    const sch: GridItem[] = feedData.queued.map(q => ({
+      kind: 'scheduled' as const, id: q.id, postId: q.postId, imageUrl: q.imageUrl, caption: q.caption, scheduledAt: q.scheduledAt, status: q.status,
+    }));
+    // Scheduled first (chronological), then published (reverse-chronological)
+    sch.sort((a, b) => {
+      const ta = a.kind === 'scheduled' && a.scheduledAt ? new Date(a.scheduledAt).getTime() : 0;
+      const tb = b.kind === 'scheduled' && b.scheduledAt ? new Date(b.scheduledAt).getTime() : 0;
+      return ta - tb;
+    });
+    return [...sch, ...pub];
+  }, [feedData]);
+
+  // ── KPIs (En directo) ──
+  const pipelineKpis = useMemo(() => {
+    const scheduled = metrics?.counts.scheduled ?? 0;
+    const pending   = metrics?.counts.pending   ?? 0;
+    const reach     = metrics?.thisWeek.reach   ?? 0;
+    const eng       = metrics?.thisWeek.engagementRate ?? 0;
+    const next      = feedData?.queued.find(q => q.scheduledAt) ?? null;
+    return [
+      { label: 'Programadas', value: String(scheduled + pending), meta: `${pending} pendientes` },
+      { label: 'Alcance · 7 días', value: fmtNum(reach), delta: fmtDelta(metrics?.changes.reach ?? null) },
+      { label: 'Engagement', value: eng ? `${eng.toFixed(1)}%` : '—', delta: fmtDelta(metrics?.changes.engagement ?? null) },
+      { label: 'Próxima publicación', value: next?.scheduledAt ? fmtScheduledDate(next.scheduledAt) : '—', meta: next ? PLATFORMS_META[tab].label : 'Sin programar' },
+    ];
+  }, [metrics, feedData, tab]);
+
+  const histKpis = useMemo(() => [
+    { label: 'Publicados', value: String(histStats?.published ?? 0), meta: 'Total histórico' },
+    { label: 'Alcance total', value: fmtNum(histStats?.totalReach ?? 0) },
+    { label: 'Likes totales', value: fmtNum(histStats?.totalLikes ?? 0) },
+    { label: 'Engagement medio', value: histStats?.avgEngagementRate ? `${histStats.avgEngagementRate.toFixed(1)}%` : '—' },
+  ], [histStats]);
+
   return (
     <div className="page-content dashboard-unified-page" style={{ maxWidth: 1060 }}>
 
-      {/* ── Header ── */}
+      {/* ── Header (gray zone) ── */}
       <div className="dashboard-unified-header" style={{ padding: '48px 0 32px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
         <div>
-          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, marginBottom: 8 }}>
+          <p style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: ACCENT, margin: '0 0 6px' }}>
+            Tus publicaciones
+          </p>
+          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, margin: 0 }}>
             Feed
           </h1>
-          <p style={{ color: '#6b7280', fontSize: 15, fontFamily: f }}>
-            Gestiona tu pipeline de publicaciones y consulta tu historial desde un solo lugar.
-          </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
           {mode === 'historial' && allPosts.length > 0 && (
-            <button onClick={exportCSV} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 16px', border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', fontFamily: f, fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            <button onClick={exportCSV} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '10px 18px', border: '1px solid #e5e7eb', background: '#fff', cursor: 'pointer', fontFamily: fc, fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
               <Download size={12} /> Exportar CSV
             </button>
           )}
-          {mode === 'pipeline' && (
-            <button type="button" onClick={() => loadTab(tab, true)} disabled={feedLoading} style={{ padding: '8px 16px', background: '#ffffff', border: '1px solid #d1d5db', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: feedLoading ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, color: '#374151' }}>
-              <RefreshCw size={12} /> Actualizar
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => { if (mode === 'pipeline') loadTab(tab, true); else loadHistorial(histPlatform); }}
+            disabled={feedLoading || histLoading}
+            title="Sincronizar ahora"
+            style={{ padding: '10px 14px', background: '#fff', border: '1px solid #e5e7eb', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: (feedLoading || histLoading) ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, color: '#6b7280' }}
+          >
+            <RefreshCw size={12} className={(feedLoading || histLoading) ? 'spin' : ''} />
+          </button>
         </div>
       </div>
 
-      {/* ── Mode toggle ── */}
-      <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 24, width: 'fit-content' }}>
-        {([['pipeline', 'Pipeline en vivo'], ['historial', 'Historial']] as [PageMode, string][]).map(([m, label], i) => (
+      {/* ── Main tabs ── */}
+      <div style={{ display: 'flex', borderBottom: '1px solid #e5e7eb', marginTop: 20, marginBottom: 28 }}>
+        {([['pipeline', 'En directo'], ['historial', 'Historial']] as [PageMode, string][]).map(([m, label]) => (
           <button key={m} type="button" onClick={() => setMode(m)} style={{
-            padding: '10px 24px', border: 'none', cursor: 'pointer',
-            borderRight: i === 0 ? '1px solid var(--border)' : 'none',
-            background: mode === m ? '#111827' : 'transparent',
-            color: mode === m ? '#fff' : 'var(--text-secondary)',
-            fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
-            transition: 'all 0.14s',
+            padding: '11px 20px', border: 'none', background: 'transparent', cursor: 'pointer',
+            fontFamily: f, fontSize: 14, fontWeight: mode === m ? 700 : 400,
+            color: mode === m ? '#111827' : '#6b7280',
+            borderBottom: mode === m ? '2px solid #111827' : '2px solid transparent',
+            marginBottom: -1, transition: 'color 0.14s',
           }}>
             {label}
           </button>
         ))}
       </div>
 
-      {/* ══════════ PIPELINE MODE ══════════ */}
+      {/* ══════════ EN DIRECTO ══════════ */}
       {mode === 'pipeline' && (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', marginBottom: 20 }}>
-            {(['instagram', 'facebook', 'tiktok'] as const).map(p => {
-              const meta      = PLATFORMS_META[p];
-              const pData     = cache[p];
-              const active    = tab === p;
-              const connected = pData?.connected ?? null;
-              return (
-                <button key={p} onClick={() => setTab(p)} style={{ padding: '24px 20px', background: active ? 'var(--accent)' : '#ffffff', border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                    <PlatformIcon platform={p} size={18} color={active ? '#ffffff' : 'var(--accent)'} />
+          <KpiStrip items={pipelineKpis} />
+
+          {/* Platform pills */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {(['instagram', 'facebook', 'tiktok'] as const).map(p => {
+                const pData     = cache[p];
+                const active    = tab === p;
+                const connected = pData?.connected ?? null;
+                return (
+                  <button key={p} onClick={() => setTab(p)} style={{
+                    padding: '7px 14px',
+                    background: active ? '#111827' : '#fff',
+                    color: active ? '#fff' : '#6b7280',
+                    border: `1px solid ${active ? '#111827' : '#e5e7eb'}`,
+                    fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                  }}>
+                    <PlatformIcon platform={p} size={12} color={active ? '#fff' : '#6b7280'} />
+                    {PLATFORMS_META[p].label}
                     {connected !== null && (
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: connected ? '#0D9488' : '#9ca3af', flexShrink: 0 }} />
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: connected ? ACCENT_2 : '#d1d5db' }} />
                     )}
-                  </div>
-                  <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 15, textTransform: 'uppercase', color: active ? '#ffffff' : '#111827', marginBottom: 4 }}>
-                    {meta.label}
-                  </p>
-                  <p style={{ fontFamily: f, fontSize: 12, color: active ? 'rgba(255,255,255,0.5)' : '#9ca3af' }}>
-                    {connected === null ? 'Cargando...' : connected ? (pData?.username ? `@${pData.username}` : 'Conectado') : 'No conectado'}
-                  </p>
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Toggle: ver solo próximos */}
+            <div style={{ display: 'flex', gap: 0, border: '1px solid #e5e7eb', background: '#fff' }}>
+              <button type="button" onClick={() => setOnlyUpcoming(false)} style={{
+                padding: '6px 14px', border: 'none', background: !onlyUpcoming ? '#111827' : 'transparent',
+                color: !onlyUpcoming ? '#fff' : '#6b7280', fontFamily: f, fontSize: 11, fontWeight: 600,
+                cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.06em',
+              }}>Feed completo</button>
+              <button type="button" onClick={() => setOnlyUpcoming(true)} style={{
+                padding: '6px 14px', border: 'none', borderLeft: '1px solid #e5e7eb',
+                background: onlyUpcoming ? '#111827' : 'transparent',
+                color: onlyUpcoming ? '#fff' : '#6b7280', fontFamily: f, fontSize: 11, fontWeight: 600,
+                cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.06em',
+              }}>Solo próximos</button>
+            </div>
           </div>
 
-          {feedLoading && !feedData && <p style={{ fontFamily: f, color: 'var(--muted)' }}>Cargando feed…</p>}
-          {feedError && (
-            <div style={{ padding: 16, border: '1px solid #fca5a5', background: '#fef2f2', fontFamily: f, fontSize: 13, color: '#991b1b', marginBottom: 16 }}>
-              {feedError}
+          {/* Connection banner */}
+          {feedData && !feedData.connected && (
+            <div style={{ padding: '14px 18px', border: '1px solid #e5e7eb', background: '#fff', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div>
+                <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#111827', margin: 0 }}>
+                  {PLATFORMS_META[tab].label} no conectado
+                </p>
+                <p style={{ fontFamily: f, fontSize: 12, color: '#6b7280', margin: '4px 0 0' }}>
+                  Conéctalo para ver el feed real junto con las publicaciones programadas.
+                </p>
+              </div>
+              <Link href={PLATFORMS_META[tab].connectHref} style={{ padding: '8px 16px', background: ACCENT, color: '#fff', textDecoration: 'none', fontFamily: fc, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', flexShrink: 0 }}>
+                Conectar
+              </Link>
             </div>
           )}
-          {feedData && <PlatformPanel data={feedData} />}
+
+          {feedError && (
+            <div style={{ padding: 16, border: '1px solid #fca5a5', background: '#fef2f2', fontFamily: f, fontSize: 13, color: '#991b1b', marginBottom: 16 }}>{feedError}</div>
+          )}
+
+          {feedLoading && !feedData ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
+              {Array.from({ length: 9 }).map((_, i) => (
+                <div key={i} style={{ aspectRatio: '1', background: '#f3f4f6', opacity: 1 - i * 0.06 }} className="hist-skeleton" />
+              ))}
+            </div>
+          ) : (
+            <FeedPreviewGrid items={feedItems} onlyUpcoming={onlyUpcoming} />
+          )}
+
+          {feedData && feedData.queued.length > 0 && <WeekTimeline scheduled={feedData.queued} />}
         </>
       )}
 
-      {/* ══════════ HISTORIAL MODE ══════════ */}
+      {/* ══════════ HISTORIAL ══════════ */}
       {mode === 'historial' && (
         <>
-          {!histLoading && allPosts.length > 0 && (
-            <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
-              {[
-                { label: 'Total', value: allPosts.length, icon: null },
-                ...ALL_PLATFORMS
-                  .filter((p) => subscribedPlatforms.includes(p.id))
-                  .map((p) => ({
-                    label: p.label,
-                    value: byPlatform(p.id),
-                    icon: <PlatformIcon platform={p.id} size={11} color={ACCENT_GREEN} />,
-                  })),
-              ].map(({ label, value, icon }, i, arr) => (
-                <div key={label} style={{ flex: 1, padding: '16px 0', borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none', paddingRight: 20, paddingLeft: i === 0 ? 0 : 20 }}>
-                  <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 28, lineHeight: 1, color: 'var(--text-primary)', marginBottom: 4 }}>{value}</p>
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    {icon}
-                    <span style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.11em', color: 'var(--text-tertiary)' }}>{label}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          <KpiStrip items={histKpis} />
 
-          {/* Filter toolbar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-            {subscribedPlatforms.length > 1 && (
-              <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0 }}>
-                {ALL_PLATFORMS.filter((p) => subscribedPlatforms.includes(p.id)).map(({ id, label }, i, arr) => {
-                  const active = histPlatform === id;
-                  return (
-                    <button key={id} type="button" onClick={() => setHistPlatform(histPlatform === id ? 'all' : id)} style={{
-                      padding: '7px 13px', border: 'none',
-                      borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
-                      cursor: 'pointer',
-                      background: active ? ACCENT_GREEN : 'transparent',
-                      color: active ? '#fff' : 'var(--text-secondary)',
-                      fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em',
-                      display: 'inline-flex', alignItems: 'center', gap: 5, transition: 'all 0.14s', whiteSpace: 'nowrap',
-                    }}>
-                      <PlatformIcon platform={id} size={10} color={active ? '#fff' : 'var(--text-secondary)'} />
-                      {label}
-                    </button>
-                  );
-                })}
+          {/* Filter row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {([{ id: 'all' as const, label: 'Todas' }, ...ALL_PLATFORMS]).map(({ id, label }) => {
+                const active = histPlatform === id;
+                return (
+                  <button key={id} type="button" onClick={() => setHistPlatform(id)} style={{
+                    padding: '7px 14px',
+                    background: active ? '#111827' : '#fff',
+                    color: active ? '#fff' : '#6b7280',
+                    border: `1px solid ${active ? '#111827' : '#e5e7eb'}`,
+                    fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                  }}>
+                    {id !== 'all' && <PlatformIcon platform={id} size={12} color={active ? '#fff' : '#6b7280'} />}
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ position: 'relative', minWidth: 180 }}>
+                <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
+                <input type="text" placeholder="Buscar…" value={search} onChange={e => setSearch(e.target.value)}
+                  style={{ width: '100%', padding: '7px 28px 7px 28px', border: '1px solid #e5e7eb', background: '#fff', fontFamily: f, fontSize: 12, color: '#111827', outline: 'none', boxSizing: 'border-box' }} />
+                {search && (
+                  <button type="button" onClick={() => setSearch('')} style={{ position: 'absolute', right: 6, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', padding: 2, display: 'flex' }}>
+                    <X size={12} />
+                  </button>
+                )}
               </div>
-            )}
-            <div style={{ display: 'flex', gap: 0, border: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0 }}>
-              {([['all', 'Todo'], ['3m', '3 meses'], ['1m', '1 mes']] as [FilterRange, string][]).map(([val, lbl], i, arr) => (
-                <button key={val} type="button" onClick={() => setRange(val)} style={{
-                  padding: '7px 12px', border: 'none',
-                  borderRight: i < arr.length - 1 ? '1px solid var(--border)' : 'none',
-                  cursor: 'pointer',
-                  background: range === val ? '#111827' : 'transparent',
-                  color: range === val ? '#fff' : 'var(--text-secondary)',
-                  fontFamily: f, fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em',
-                  transition: 'all 0.14s', whiteSpace: 'nowrap',
-                }}>
-                  {lbl}
-                </button>
-              ))}
-            </div>
-            <div style={{ flex: 1, minWidth: 150, position: 'relative' }}>
-              <Search size={12} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-              <input
-                type="text"
-                placeholder="Buscar caption o hashtag…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{ width: '100%', padding: '7px 30px 7px 28px', border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: f, fontSize: 12, color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box' }}
-              />
-              {search && (
-                <button type="button" onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-tertiary)', padding: 2, display: 'flex' }}>
-                  <X size={12} />
-                </button>
-              )}
-            </div>
-            <div style={{ display: 'flex', border: '1px solid var(--border)', overflow: 'hidden', flexShrink: 0 }}>
-              {([['grid', LayoutGrid], ['list', List]] as [ViewMode, typeof LayoutGrid][]).map(([v, Icon], i) => (
-                <button key={v} type="button" onClick={() => setView(v)} style={{
-                  padding: '7px 10px', border: 'none', cursor: 'pointer',
-                  background: view === v ? '#111827' : 'transparent',
-                  color: view === v ? '#fff' : 'var(--text-tertiary)',
-                  borderRight: i === 0 ? '1px solid var(--border)' : 'none',
-                  transition: 'all 0.14s', display: 'flex', alignItems: 'center',
-                }}>
-                  <Icon size={14} />
-                </button>
-              ))}
+              <div style={{ display: 'flex', border: '1px solid #e5e7eb', background: '#fff' }}>
+                {([['grid', LayoutGrid], ['list', List]] as [ViewMode, typeof LayoutGrid][]).map(([v, Icon], i) => (
+                  <button key={v} type="button" onClick={() => setView(v)} style={{
+                    padding: '7px 10px', border: 'none', borderLeft: i > 0 ? '1px solid #e5e7eb' : 'none', cursor: 'pointer',
+                    background: view === v ? '#111827' : 'transparent',
+                    color: view === v ? '#fff' : '#9ca3af',
+                    display: 'flex', alignItems: 'center',
+                  }}>
+                    <Icon size={14} />
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Content */}
+          {/* Top performers */}
+          {topPosts.length > 0 && (
+            <section style={{ marginBottom: 36 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 14 }}>
+                <TrendingUp size={14} style={{ color: ACCENT }} />
+                <h2 style={{ fontFamily: fc, fontSize: 14, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#111827', margin: 0 }}>Top rendimiento</h2>
+                <p style={{ fontFamily: f, fontSize: 11, color: '#9ca3af', margin: 0 }}>· tus 3 mejores publicaciones</p>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+                {topPosts.map((p, i) => <TopCard key={p.id} post={p} rank={i + 1} />)}
+              </div>
+            </section>
+          )}
+
+          {/* All posts */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 14 }}>
+            <h2 style={{ fontFamily: fc, fontSize: 14, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#111827', margin: 0 }}>Todo lo publicado</h2>
+            <p style={{ fontFamily: f, fontSize: 11, color: '#9ca3af', margin: 0 }}>· {filtered.length} {filtered.length === 1 ? 'publicación' : 'publicaciones'}</p>
+          </div>
+
           {histLoading ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }}>
               {Array.from({ length: 9 }).map((_, i) => (
-                <div key={i} style={{ aspectRatio: '1', background: 'var(--bg-1)', opacity: 1 - i * 0.07 }} className="hist-skeleton" />
+                <div key={i} style={{ aspectRatio: '1', background: '#f3f4f6', opacity: 1 - i * 0.07 }} className="hist-skeleton" />
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div style={{ border: '1px solid var(--border)', background: 'var(--bg)', padding: '80px 20px', textAlign: 'center' }}>
-              <div style={{ width: 48, height: 48, background: 'var(--bg-1)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-                <Search size={20} style={{ color: 'var(--text-tertiary)' }} />
+            <div style={{ border: '1px solid #e5e7eb', background: '#fff', padding: '80px 20px', textAlign: 'center' }}>
+              <div style={{ width: 48, height: 48, background: '#f9fafb', border: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+                <Search size={20} style={{ color: '#9ca3af' }} />
               </div>
-              <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 22, textTransform: 'uppercase', color: 'var(--text-primary)', letterSpacing: '0.02em', marginBottom: 8 }}>
+              <p style={{ fontFamily: fc, fontWeight: 900, fontSize: 20, textTransform: 'uppercase', color: '#111827', letterSpacing: '0.02em', marginBottom: 8 }}>
                 {allPosts.length === 0 ? 'Historial vacío' : 'Sin resultados'}
               </p>
-              <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-tertiary)', maxWidth: 340, margin: '0 auto 28px', lineHeight: 1.7 }}>
+              <p style={{ fontFamily: f, fontSize: 13, color: '#9ca3af', maxWidth: 340, margin: '0 auto 28px' }}>
                 {allPosts.length === 0
                   ? 'Aquí aparecerán todas las publicaciones que realices en tus redes sociales.'
                   : 'No hay publicaciones que coincidan con los filtros actuales.'}
               </p>
-              {allPosts.length === 0 ? (
-                <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <Link href="/posts/new" style={{ background: '#111827', color: '#fff', padding: '10px 24px', textDecoration: 'none', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    + Crear primer post
-                  </Link>
-                  <Link href="/posts" style={{ background: 'var(--bg)', color: 'var(--text-primary)', padding: '10px 24px', textDecoration: 'none', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)' }}>
-                    Ver posts
-                  </Link>
-                </div>
-              ) : (
-                <button type="button" onClick={() => { setHistPlatform('all'); setRange('all'); setSearch(''); }} style={{ background: 'transparent', border: '1px solid var(--border)', color: 'var(--text-secondary)', padding: '9px 22px', fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Limpiar filtros
-                </button>
-              )}
             </div>
           ) : view === 'grid' ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 2 }} className="hist-grid">
-              {filtered.map((post) => <GridCard key={post.id} post={post} />)}
+              {filtered.map(p => <HistorialGridCard key={p.id} post={p} />)}
             </div>
           ) : (
-            <div style={{ border: '1px solid var(--border)', overflow: 'hidden' }}>
-              {filtered.map((post, i) => <ListRow key={post.id} post={post} isLast={i === filtered.length - 1} />)}
+            <div style={{ border: '1px solid #e5e7eb', overflow: 'hidden' }}>
+              {filtered.map((p, i) => <HistorialListRow key={p.id} post={p} isLast={i === filtered.length - 1} />)}
             </div>
           )}
         </>
@@ -658,10 +828,10 @@ export default function FeedPage() {
 
       <style>{`
         .hist-grid-img { image-orientation: from-image; transition: transform 0.4s ease; }
-        .hist-grid-card:hover .hist-grid-img { transform: scale(1.05); }
-        .hist-grid-card:hover .hist-grid-overlay { background: rgba(0,0,0,0.22) !important; }
-        .hist-grid-card:hover .hist-grid-cta { opacity: 1 !important; transform: translateY(0) !important; }
-        .hist-list-row:hover { background: var(--bg-1) !important; }
+        .hist-grid-card:hover .hist-grid-img { transform: scale(1.04); }
+        .hist-list-row:hover { background: #f9fafb !important; }
+        .spin { animation: spin 0.9s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes hist-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
         .hist-skeleton { animation: hist-pulse 1.6s ease-in-out infinite; }
         @media (max-width: 640px) {

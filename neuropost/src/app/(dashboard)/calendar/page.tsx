@@ -174,17 +174,17 @@ export default function CalendarPage() {
       {/* Header */}
       <div className="dashboard-unified-header" style={{ padding: '48px 0 32px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
         <div>
-          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, marginBottom: 8 }}>
+          <p style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--accent)', margin: '0 0 6px' }}>
+            Publicaciones programadas y fechas clave
+          </p>
+          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, margin: 0 }}>
             Calendario
           </h1>
-          <p style={{ color: '#6b7280', fontSize: 15, fontFamily: f }}>
-            Publicaciones programadas y fechas clave de tu zona
-          </p>
         </div>
         <Link href="/posts/new" style={{
-          padding: '8px 20px', background: '#111827', color: '#ffffff', textDecoration: 'none',
+          padding: '10px 18px', background: '#0D9488', color: '#ffffff', textDecoration: 'none',
           fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
-          display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
+          display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
         }}>
           <Plus size={14} /> Nuevo contenido
         </Link>

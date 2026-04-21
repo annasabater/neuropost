@@ -186,6 +186,26 @@ export async function POST(request: Request) {
       post = inserted;
     }
 
+    // Fan-out to post_publications so the Feed "En directo" grid and the
+    // publish-scheduled cron pick this up. Only when we have a concrete
+    // scheduled time — pending posts stay dormant until scheduled.
+    if (post?.id && finalStatus === 'scheduled' && body.scheduled_at) {
+      const platforms = Array.isArray(body.platform) ? body.platform : ['instagram'];
+      const validPlatforms = platforms.filter(p => ['instagram', 'facebook', 'tiktok'].includes(p));
+      if (validPlatforms.length > 0) {
+        const rows = validPlatforms.map((platform) => ({
+          post_id:      post.id,
+          platform,
+          scheduled_at: body.scheduled_at,
+          status:       'scheduled',
+        }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await (db as any)
+          .from('post_publications')
+          .upsert(rows, { onConflict: 'post_id,platform' });
+      }
+    }
+
     // Increment weekly counters for new posts only (not updates).
     if (!body.request_post_id) {
       if (body.is_story) {

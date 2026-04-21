@@ -71,6 +71,11 @@ export function createAgentWorker(
     connection:  getBullMQConnection(),
     concurrency,
     autorun:     false,
+    // BullMQ's default stalledInterval is 30s — every tick triggers several
+    // Redis calls. With a 1-minute cron runner this accounts for the bulk of
+    // our Upstash traffic. Raising it to 2min cuts idle polling ~75% while
+    // still recovering stalled jobs well within acceptable latency.
+    settings: { stalledInterval: 120_000 },
   });
 }
 

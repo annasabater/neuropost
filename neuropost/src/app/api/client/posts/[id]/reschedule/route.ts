@@ -83,6 +83,15 @@ export async function POST(
       throw new Error('No se pudo actualizar el post');
     }
 
+    // Sync per-platform publications with the new scheduled time so the Feed
+    // "En directo" grid and the publish cron read the right date.
+    // We only touch rows that haven't been published/cancelled yet.
+    await db
+      .from('post_publications')
+      .update({ scheduled_at: newDt.toISOString(), status: 'scheduled' })
+      .eq('post_id', id)
+      .in('status', ['pending', 'scheduled', 'failed']);
+
     // INSERT schedule_change audit row
     await db.from('schedule_changes').insert({
       post_id:            id,

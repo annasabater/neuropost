@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Plus, Grid3x3, LayoutList, GripVertical, Pencil, ArrowRight, Calendar, Eye, CheckCircle2, Clock, Zap, ImageIcon } from 'lucide-react';
@@ -17,6 +17,7 @@ import { CSS } from '@dnd-kit/utilities';
 import toast from 'react-hot-toast';
 import type { Post, PostStatus } from '@/types';
 import { useAppStore } from '@/store/useAppStore';
+import { POST_STATUS_CLIENT_LABEL, POST_STATUS_STYLE } from '@/lib/postStatus';
 
 const f  = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
@@ -24,25 +25,11 @@ const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 type QueuedFeedItem  = { id: string; queueId: string | null; postId: string; imageUrl: string | null; caption: string | null; status: string; scheduledAt: string | null; position: number; };
 type PublishedFeedItem = { id: string; imageUrl: string | null; caption: string | null; permalink: string | null; timestamp: string | null; };
 
-// ── Status config ─────────────────────────────────────────────────────────────
-const STATUS_DISPLAY: Record<string, string> = {
-  request: 'En preparación', draft: 'En preparación',
-  generated: 'Para revisar',  pending: 'Para revisar', approved: 'Para revisar',
-  scheduled: 'Programado',    published: 'Publicado',
-  failed: 'Fallido',          cancelled: 'Cancelado',
-};
-
-const STATUS_STYLE: Record<string, { dot: string; text: string; bg: string }> = {
-  request:   { dot: '#0D9488', text: '#0D9488', bg: '#f0fdfa' },
-  draft:     { dot: '#0D9488', text: '#0D9488', bg: '#f0fdfa' },
-  generated: { dot: '#F59E0B', text: '#92400E', bg: '#fffbeb' },
-  pending:   { dot: '#F59E0B', text: '#92400E', bg: '#fffbeb' },
-  approved:  { dot: '#F59E0B', text: '#92400E', bg: '#fffbeb' },
-  scheduled: { dot: '#3B82F6', text: '#1e40af', bg: '#eff6ff' },
-  published: { dot: '#10B981', text: '#065f46', bg: '#ecfdf5' },
-  failed:    { dot: '#EF4444', text: '#991b1b', bg: '#fef2f2' },
-  cancelled: { dot: '#9CA3AF', text: '#6b7280', bg: '#f9fafb' },
-};
+// Status vocabulary lives in @/lib/postStatus — single source of truth shared
+// with the worker side. Alias to preserve the existing local names so the rest
+// of this file doesn't have to change.
+const STATUS_DISPLAY = POST_STATUS_CLIENT_LABEL as Record<string, string>;
+const STATUS_STYLE   = POST_STATUS_STYLE       as Record<string, { dot: string; text: string; bg: string }>;
 
 // ── Feed cell components ───────────────────────────────────────────────────────
 function SortableQueuedFeedCell({ item, index }: { item: QueuedFeedItem; index: number }) {
@@ -69,6 +56,49 @@ function PublishedFeedCell({ item }: { item: PublishedFeedItem }) {
       {item.permalink && <a href={item.permalink} target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', inset: 0 }} aria-label="Ver en Instagram" />}
     </div>
   );
+}
+
+// ── Week grouping helpers ─────────────────────────────────────────────────────
+// These rely on three extra fields attached by GET /api/posts:
+//   • week_key:     monday ISO (YYYY-MM-DD) of the week the post belongs to, or null
+//   • plan_id:      id of the weekly_plan that spawned this post (if any)
+//   • plan_status:  status of that plan (if any)
+type ExtPost = Post & { week_key?: string | null; plan_id?: string | null; plan_status?: string | null };
+
+interface WeekGroup { key: string | null; label: string; planId: string | null; posts: ExtPost[]; }
+
+function weekLabel(mondayIso: string): string {
+  const d = new Date(`${mondayIso}T00:00:00Z`);
+  const day = d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', timeZone: 'UTC' });
+  return `Semana del ${day}`;
+}
+
+function buildWeekGroups(posts: ExtPost[]): WeekGroup[] {
+  const bucket = new Map<string, ExtPost[]>();
+  const NO_WEEK = '__none__';
+  for (const p of posts) {
+    const k = p.week_key || NO_WEEK;
+    const arr = bucket.get(k) ?? [];
+    arr.push(p);
+    bucket.set(k, arr);
+  }
+
+  const groups: WeekGroup[] = [];
+  for (const [k, arr] of bucket.entries()) {
+    if (k === NO_WEEK) continue;
+    // If every post in the week came from the same plan, surface that plan's id
+    // so we can render a "Ver plan semanal →" link in the section header.
+    const planIds = new Set(arr.map(p => p.plan_id).filter(Boolean) as string[]);
+    const planId = planIds.size === 1 ? [...planIds][0] : null;
+    groups.push({ key: k, label: weekLabel(k), planId, posts: arr });
+  }
+  // Sort weeks descending (most recent week first)
+  groups.sort((a, b) => (a.key! < b.key! ? 1 : -1));
+
+  // "Sin fecha" bucket sits at the end (less organised content)
+  const loose = bucket.get(NO_WEEK);
+  if (loose?.length) groups.push({ key: null, label: 'Sin fecha', planId: null, posts: loose });
+  return groups;
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -154,6 +184,9 @@ export default function PostsPage() {
     : posts.filter(p => p.status === filter);
   const visiblePosts = filtered.slice(0, visibleCount);
   const hasMore = filtered.length > visibleCount;
+
+  // Group visible posts by week (computed only for the grid view)
+  const weekGroups = useMemo(() => buildWeekGroups(visiblePosts as ExtPost[]), [visiblePosts]);
   const gridQueued    = queuedItems.slice(0, 9);
   const gridPublished = publishedItems.slice(0, Math.max(0, 9 - gridQueued.length));
 
@@ -180,26 +213,26 @@ export default function PostsPage() {
   return (
     <div className="page-content dashboard-unified-page" style={{ maxWidth: 1060 }}>
 
-      {/* ── Header ──────────────────────────────────────────────────────────── */}
-      <div className="dashboard-unified-header posts-page-header" style={{ padding: '32px 0 20px' }}>
-
-        {/* Title row */}
-        <div className="posts-title-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 20 }}>
-          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2rem, 5vw, 3.2rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: 'var(--text-primary)', lineHeight: 0.95 }}>
+      {/* ── Header (gray zone: title + CTA only) ──────────────────────────── */}
+      <div className="dashboard-unified-header posts-page-header" style={{ padding: '48px 0 32px' }}>
+        <div className="posts-title-row" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: 'var(--text-primary)', lineHeight: 0.95, margin: 0 }}>
             Contenido
           </h1>
           <Link href="/posts/new" className="posts-cta-btn" style={{
             background: 'var(--accent)', color: '#fff', textDecoration: 'none',
-            padding: '10px 20px', fontFamily: fc, fontSize: 12, fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '0.07em',
+            padding: '10px 18px', fontFamily: fc, fontSize: 12, fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '0.06em',
             display: 'inline-flex', alignItems: 'center', gap: 6, flexShrink: 0,
-            boxShadow: '0 2px 8px rgba(13,148,136,0.25)',
           }}>
             <Plus size={14} />
             <span className="posts-cta-text">Solicitar contenido</span>
           </Link>
         </div>
+      </div>
 
+      {/* ── Below-header zone (white bg) ──────────────────────────────────── */}
+      <div style={{ marginTop: 24 }}>
         {/* Stats cards */}
         <div className="posts-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 20 }}>
           {STATS.map(({ count, label, filterVal, icon: Icon, color, bg, urgent }) => {
@@ -352,58 +385,90 @@ export default function PostsPage() {
               )}
             </div>
           ) : (
-            <div className="posts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
-              {visiblePosts.map((post) => {
-                const st = STATUS_STYLE[post.status] ?? STATUS_STYLE.cancelled;
-                const label = STATUS_DISPLAY[post.status] ?? post.status;
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
+              {weekGroups.map((group) => {
+                const scheduledInGroup = group.posts.filter(p => p.status === 'scheduled').length;
+                const reviewInGroup    = group.posts.filter(p => ['pending','generated','approved'].includes(p.status)).length;
+                const publishedInGroup = group.posts.filter(p => p.status === 'published').length;
                 return (
-                  <Link
-                    key={post.id}
-                    href={`/posts/${post.id}`}
-                    className="post-card-v2"
-                    style={{
-                      background: '#fff', textDecoration: 'none', color: 'inherit',
-                      display: 'block',
-                      border: '1px solid #e5e7eb', overflow: 'hidden',
-                      transition: 'transform 0.18s, box-shadow 0.18s',
-                    }}
-                  >
-                    {/* Image */}
-                    <div style={{ aspectRatio: '1', background: '#f3f4f6', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
-                      {post.image_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={post.image_url} alt=""
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.3s', imageOrientation: 'from-image' }}
-                        />
-                      ) : (
-                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
-                          <ImageIcon size={28} style={{ color: '#d1d5db' }} />
-                          <span style={{ fontFamily: f, fontSize: 10, color: '#d1d5db' }}>Sin imagen</span>
-                        </div>
-                      )}
-                      {/* Status dot */}
-                      <div style={{ position: 'absolute', top: 8, left: 8 }}>
-                        <span style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 4,
-                          background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(4px)',
-                          padding: '3px 8px', fontSize: 9, fontFamily: f, fontWeight: 700,
-                          textTransform: 'uppercase', letterSpacing: '0.05em',
-                          color: st.text, border: `1px solid ${st.dot}22`,
-                        }}>
-                          <span style={{ width: 5, height: 5, borderRadius: '50%', background: st.dot, flexShrink: 0 }} />
-                          {label}
+                  <section key={group.key ?? 'none'}>
+                    {/* Week header */}
+                    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+                        <h2 style={{ fontFamily: fc, fontWeight: 900, fontSize: 15, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-primary)', margin: 0 }}>
+                          {group.label}
+                        </h2>
+                        <span style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>
+                          {group.posts.length} {group.posts.length === 1 ? 'post' : 'posts'}
+                          {reviewInGroup    > 0 && ` · ${reviewInGroup} para revisar`}
+                          {scheduledInGroup > 0 && ` · ${scheduledInGroup} programados`}
+                          {publishedInGroup > 0 && ` · ${publishedInGroup} publicados`}
                         </span>
                       </div>
-                      {/* Hover overlay */}
-                      <div className="post-card-actions" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.38)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.18s' }}>
-                        <div style={{ background: '#fff', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, fontFamily: fc, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#111' }}>
-                          <Eye size={13} /> Ver
-                        </div>
-                      </div>
+                      {group.planId && (
+                        <Link href={`/planificacion/${group.planId}`} style={{ fontFamily: fc, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--accent)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+                          Ver plan semanal <ArrowRight size={11} />
+                        </Link>
+                      )}
                     </div>
 
-                  </Link>
+                    {/* Grid of posts in this week */}
+                    <div className="posts-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+                      {group.posts.map((post) => {
+                        const st = STATUS_STYLE[post.status] ?? STATUS_STYLE.cancelled;
+                        const label = STATUS_DISPLAY[post.status] ?? post.status;
+                        return (
+                          <Link
+                            key={post.id}
+                            href={`/posts/${post.id}`}
+                            className="post-card-v2"
+                            style={{
+                              background: '#fff', textDecoration: 'none', color: 'inherit',
+                              display: 'block',
+                              border: '1px solid #e5e7eb', overflow: 'hidden',
+                              transition: 'transform 0.18s, box-shadow 0.18s',
+                            }}
+                          >
+                            {/* Image */}
+                            <div style={{ aspectRatio: '1', background: '#f3f4f6', overflow: 'hidden', position: 'relative', flexShrink: 0 }}>
+                              {post.image_url ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img
+                                  src={post.image_url} alt=""
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.3s', imageOrientation: 'from-image' }}
+                                />
+                              ) : (
+                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8 }}>
+                                  <ImageIcon size={28} style={{ color: '#d1d5db' }} />
+                                  <span style={{ fontFamily: f, fontSize: 10, color: '#d1d5db' }}>Sin imagen</span>
+                                </div>
+                              )}
+                              {/* Status dot */}
+                              <div style={{ position: 'absolute', top: 8, left: 8 }}>
+                                <span style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 4,
+                                  background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(4px)',
+                                  padding: '3px 8px', fontSize: 9, fontFamily: f, fontWeight: 700,
+                                  textTransform: 'uppercase', letterSpacing: '0.05em',
+                                  color: st.text, border: `1px solid ${st.dot}22`,
+                                }}>
+                                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: st.dot, flexShrink: 0 }} />
+                                  {label}
+                                </span>
+                              </div>
+                              {/* Hover overlay */}
+                              <div className="post-card-actions" style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.38)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: 'opacity 0.18s' }}>
+                                <div style={{ background: '#fff', padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 6, fontFamily: fc, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#111' }}>
+                                  <Eye size={13} /> Ver
+                                </div>
+                              </div>
+                            </div>
+
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </section>
                 );
               })}
             </div>

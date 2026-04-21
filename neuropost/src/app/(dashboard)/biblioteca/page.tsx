@@ -177,28 +177,30 @@ export default function BibliotecaPage() {
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
     >
-      {/* Header */}
+      {/* Header (gray zone) */}
       <div className="dashboard-unified-header" style={{ padding: '48px 0 32px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
         <div>
-          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, marginBottom: 8 }}>
+          <p style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--accent)', margin: '0 0 6px' }}>
+            Con este material creamos tus publicaciones
+          </p>
+          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, margin: 0 }}>
             Biblioteca
           </h1>
-          <p style={{ color: '#6b7280', fontSize: 15, fontFamily: f }}>Tu contenido visual en un solo lugar</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
           {selected.size > 0 && (
             <button onClick={deleteSelected} style={{
-              padding: '8px 16px', background: '#ffffff', color: '#c62828',
-              border: '1px solid #e5e7eb', fontFamily: f, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '10px 16px', background: '#ffffff', color: '#c62828',
+              border: '1px solid #e5e7eb', fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
+              cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6,
             }}>
               <Trash2 size={13} /> Eliminar ({selected.size})
             </button>
           )}
           <button onClick={() => fileRef.current?.click()} style={{
-            padding: '8px 20px', background: '#111827', color: '#ffffff', border: 'none',
+            padding: '10px 18px', background: '#0D9488', color: '#ffffff', border: 'none',
             fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+            cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6,
           }}>
             <Upload size={14} /> Subir contenido
           </button>
@@ -220,25 +222,27 @@ export default function BibliotecaPage() {
         </div>
       )}
 
-      {/* Filters — 3 cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', marginBottom: 20 }}>
+      {/* Filter tabs (underline style) */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginTop: 20, marginBottom: 28 }}>
         {[
-          { v: 'all'   as const, l: 'Todo',     desc: `${items.length} archivos` },
-          { v: 'image' as const, l: 'Imágenes', desc: `${items.filter(i => i.type === 'image').length} imágenes` },
-          { v: 'video' as const, l: 'Vídeos',   desc: `${items.filter(i => i.type === 'video').length} vídeos` },
-        ].map(({ v, l, desc }) => {
+          { v: 'all'   as const, l: 'Todo',     n: items.length },
+          { v: 'image' as const, l: 'Imágenes', n: items.filter(i => i.type === 'image').length },
+          { v: 'video' as const, l: 'Vídeos',   n: items.filter(i => i.type === 'video').length },
+        ].map(({ v, l, n }) => {
           const active = filter === v;
           return (
             <button key={v} type="button" onClick={() => handleFilterChange(v)} style={{
-              padding: '24px 20px', background: active ? 'var(--accent)' : '#ffffff',
-              border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+              padding: '11px 20px', border: 'none', background: 'transparent', cursor: 'pointer',
+              fontFamily: f, fontSize: 14, fontWeight: active ? 700 : 400,
+              color: active ? '#111827' : '#6b7280',
+              borderBottom: active ? '2px solid #111827' : '2px solid transparent',
+              marginBottom: -1, transition: 'color 0.14s',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
             }}>
-              <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 15, textTransform: 'uppercase', color: active ? '#ffffff' : '#111827', marginBottom: 4 }}>
-                {l}
-              </p>
-              <p style={{ fontFamily: f, fontSize: 12, color: active ? 'rgba(255,255,255,0.5)' : '#9ca3af' }}>
-                {desc}
-              </p>
+              {l}
+              <span style={{ fontFamily: f, fontSize: 11, fontWeight: 600, color: active ? '#6b7280' : '#9ca3af' }}>
+                {n}
+              </span>
             </button>
           );
         })}

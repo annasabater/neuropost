@@ -77,6 +77,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     // `posts.delete()` succeeds at the end. Some tables may not exist (42P01),
     // some may not have a `brand_id` column in older envs (42703), some may
     // have RLS quirks — none of those should block the user from deleting.
+    // Errors that mean "this table/column isn't in this environment" — swallow silently.
+    const MISSING_SCHEMA_CODES = new Set(['42P01', 'PGRST205', 'PGRST202']);
+
     const cleanupByPost = async (table: string) => {
       try {
         // Try with brand_id first (extra safety on shared envs).
@@ -85,7 +88,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
           // Fall back: brand_id column doesn't exist on this table → delete by post_id only.
           res = await adminDb.from(table).delete().eq('post_id', id);
         }
-        if (res.error && res.error.code !== '42P01' /* undefined table */) {
+        if (res.error && !MISSING_SCHEMA_CODES.has(res.error.code ?? '')) {
           console.warn(`[DELETE /api/posts/${id}] cleanup ${table} failed`, res.error);
         }
       } catch (e) {
@@ -93,11 +96,29 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
       }
     };
 
+    // content_ideas has FK → posts(id) WITHOUT cascade. We keep the idea
+    // (it's part of a weekly_plan the client may still need) but null the
+    // post link so Postgres lets us delete the post.
+    try {
+      const res = await adminDb
+        .from('content_ideas')
+        .update({ post_id: null, status: 'pending' })
+        .eq('post_id', id);
+      if (res.error && !MISSING_SCHEMA_CODES.has(res.error.code ?? '')) {
+        console.warn(`[DELETE /api/posts/${id}] detach content_ideas failed`, res.error);
+      }
+    } catch (e) {
+      console.warn(`[DELETE /api/posts/${id}] detach content_ideas threw`, e);
+    }
+
     // Tables with FK → posts(id) that DON'T have ON DELETE CASCADE.
-    // (recreation_requests, brand_trends, feed_queue all need explicit cleanup.)
     await cleanupByPost('recreation_requests');
     await cleanupByPost('brand_trends');
     await cleanupByPost('feed_queue');
+    // post_publications has ON DELETE CASCADE in the migration, but keeping this
+    // explicit cleanup is safe (no-op if cascade fired) and defensive against envs
+    // where the cascade wasn't applied — prevents ghost "scheduled" rows in the Feed.
+    await cleanupByPost('post_publications');
     // Tables that DO cascade — cleaned up just for completeness, harmless if missing.
     await cleanupByPost('content_queue');
     await cleanupByPost('generated_assets');

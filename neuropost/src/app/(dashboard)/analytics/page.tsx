@@ -162,13 +162,12 @@ export default function AnalyticsPage() {
       {/* ── Header ── */}
       <div className="dashboard-feature-header dashboard-unified-header" style={{ padding: '48px 0 32px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
         <div>
-          <div style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#9ca3af', marginBottom: 8 }}>
-            Informe mensual
-          </div>
-          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, marginBottom: 8 }}>
+          <p style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--accent)', margin: '0 0 6px' }}>
+            {t('subtitle')}
+          </p>
+          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, margin: 0 }}>
             {t('title')}
           </h1>
-          <p style={{ color: '#6b7280', fontSize: 15, fontFamily: f }}>{t('subtitle')}</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
           <select style={selectStyle} value={month} onChange={(e) => setMonth(Number(e.target.value))}>
@@ -178,10 +177,10 @@ export default function AnalyticsPage() {
             {[now.getFullYear() - 1, now.getFullYear()].map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
           <button onClick={runReport} disabled={loading} style={{
-            background: '#111827', color: '#ffffff', border: 'none',
-            padding: '8px 20px', fontFamily: fc, fontSize: 12, fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '0.08em', cursor: loading ? 'wait' : 'pointer',
-            display: 'flex', alignItems: 'center', gap: 6, borderRadius: 6, opacity: loading ? 0.6 : 1,
+            background: '#0D9488', color: '#ffffff', border: 'none',
+            padding: '10px 18px', fontFamily: fc, fontSize: 12, fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '0.06em', cursor: loading ? 'wait' : 'pointer',
+            display: 'inline-flex', alignItems: 'center', gap: 6, opacity: loading ? 0.6 : 1,
           }}>
             {loading ? <span className="loading-spinner" /> : <Zap size={14} />}
             {loading ? t('generating') : t('generate')}

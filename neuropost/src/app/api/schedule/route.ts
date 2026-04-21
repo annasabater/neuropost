@@ -52,6 +52,28 @@ export async function POST(request: Request) {
       .single();
 
     if (error) throw error;
+
+    // Fan-out: ensure post_publications rows exist per target platform so
+    // the post shows up in the Feed "En directo" grid for each red.
+    const postPlatforms = Array.isArray((data as Post).platform)
+      ? (data as Post).platform as unknown as string[]
+      : ((data as Post).platform ? [(data as Post).platform as unknown as string] : []);
+    if (postPlatforms.length > 0) {
+      const rows = postPlatforms
+        .filter(p => ['instagram', 'facebook', 'tiktok'].includes(p))
+        .map(platform => ({
+          post_id:      postId,
+          platform,
+          scheduled_at: scheduledAt,
+          status:       'scheduled',
+        }));
+      if (rows.length > 0) {
+        await supabase
+          .from('post_publications')
+          .upsert(rows, { onConflict: 'post_id,platform' });
+      }
+    }
+
     await syncPostIntoFeedQueue(createAdminClient(), data as Post);
     return NextResponse.json({ ok: true, post: data });
   } catch (err) {

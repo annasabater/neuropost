@@ -116,7 +116,7 @@ export default function PlanificacionPage() {
 
       {/* ── Header ── */}
       <div className="dashboard-unified-header" style={{ padding: '48px 0 0' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', paddingBottom: 32, borderBottom: '1px solid var(--border)' }}>
           <div>
             <p style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--accent)', margin: '0 0 6px' }}>
               Tu contenido semanal
@@ -143,7 +143,7 @@ export default function PlanificacionPage() {
 
       {/* ── Stats strip ── */}
       {plans.length > 0 && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 0, padding: '12px 0', borderBottom: '1px solid var(--border)', marginBottom: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 0, padding: '20px 0', borderBottom: '1px solid var(--border)', marginTop: 16, marginBottom: 0 }}>
           {([
             { label: 'Total',        value: counts.all,       accent: false,                 tab: 'all'       },
             { label: 'Para revisar', value: counts.reviewing, accent: counts.reviewing > 0,  tab: 'reviewing' },
@@ -168,7 +168,7 @@ export default function PlanificacionPage() {
       )}
 
       {/* ── Filter tabs ── */}
-      <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid var(--border)', margin: '0 0 20px' }}>
+      <div style={{ display: 'flex', gap: 0, borderBottom: '2px solid var(--border)', margin: '16px 0 32px' }}>
         {([
           ['all',       'Todos'],
           ['reviewing', 'Para revisar'],

@@ -154,6 +154,7 @@ function InboxInner() {
   const [chatText, setChatText] = useState('');
   const [chatSending, setChatSending] = useState(false);
   const chatBottom = useRef<HTMLDivElement>(null);
+  const chatInitialScrollDone = useRef(false);
 
   // Supabase browser client — created once and reused across realtime subscriptions.
   const supabase = useMemo(() => createBrowserClient(), []);
@@ -273,6 +274,7 @@ function InboxInner() {
         .catch(() => { loadedTabsRef.current[tab] = false; })
         .finally(() => setTicketsLoading(false));
     } else if (tab === 'mensajes') {
+      chatInitialScrollDone.current = false;
       fetch('/api/chat')
         .then((r) => r.json())
         .then((d) => setMessages(d.messages ?? []))
@@ -281,12 +283,20 @@ function InboxInner() {
     } else if (tab === 'notificaciones') {
       fetch('/api/notifications')
         .then((r) => r.json())
-        .then((d) => { if (d.notifications) setNotifications(d.notifications); })
+        .then((d) => {
+          if (d.notifications) setNotifications(d.notifications);
+          // Mark all as read — the bell badge disappears as soon as the user lands here
+          fetch('/api/notifications', {
+            method:  'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ all: true }),
+          }).catch(() => { /* silent */ });
+          markAllNotificationsRead();
+        })
         .catch(() => { loadedTabsRef.current[tab] = false; });
     }
-  }, [tab, setNotifications]);
+  }, [tab, setNotifications, markAllNotificationsRead]);
 
-  const chatInitialScrollDone = useRef(false);
   useEffect(() => {
     if (!chatLoading && messages.length > 0 && !chatInitialScrollDone.current) {
       chatInitialScrollDone.current = true;
@@ -386,31 +396,36 @@ function InboxInner() {
 
   return (
     <div className="page-content dashboard-unified-page" style={{ maxWidth: 1000 }}>
-      {/* Header */}
-      <div className="dashboard-unified-header" style={{ padding: '48px 0 40px' }}>
-        <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, marginBottom: 8 }}>
-          Inbox
+      {/* Header (gray zone) */}
+      <div className="dashboard-unified-header" style={{ padding: '48px 0 32px' }}>
+        <p style={{ fontFamily: f, fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--accent)', margin: '0 0 6px' }}>
+          Tu canal con NeuroPost
+        </p>
+        <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, margin: 0 }}>
+          Contacto
         </h1>
-        <p style={{ color: '#6b7280', fontSize: 15, fontFamily: f }}>Todo lo que necesitas atender</p>
       </div>
 
-      {/* Tab selector — 3 cards */}
-      <div className="inbox-tab-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)', border: '1px solid var(--border)', marginBottom: 20 }}>
+      {/* Tabs (underline style) */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginTop: 20, marginBottom: 28 }}>
         {TABS.map((s) => {
           const active = tab === s.key;
           const Icon = s.icon;
           const badge = s.key === 'notificaciones' ? unreadNotifications : 0;
           return (
-            <button key={s.key} onClick={() => setTab(s.key)} className="inbox-tab-btn" style={{
-              padding: '24px 20px', background: active ? 'var(--accent)' : '#ffffff',
-              border: 'none', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
+            <button key={s.key} onClick={() => setTab(s.key)} style={{
+              padding: '11px 20px', border: 'none', background: 'transparent', cursor: 'pointer',
+              fontFamily: f, fontSize: 14, fontWeight: active ? 700 : 400,
+              color: active ? '#111827' : '#6b7280',
+              borderBottom: active ? '2px solid #111827' : '2px solid transparent',
+              marginBottom: -1, transition: 'color 0.14s',
+              display: 'inline-flex', alignItems: 'center', gap: 8,
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <Icon size={18} style={{ color: active ? '#ffffff' : 'var(--accent)' }} />
-                {badge > 0 && <span style={{ fontSize: 10, background: active ? 'rgba(255,255,255,0.25)' : 'var(--accent)', color: '#fff', padding: '1px 6px', fontFamily: f, fontWeight: 700 }}>{badge}</span>}
-              </div>
-              <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 15, textTransform: 'uppercase', color: active ? '#ffffff' : '#111827', marginBottom: 4 }}>{s.title}</p>
-              <p className="inbox-tab-desc" style={{ fontFamily: f, fontSize: 12, color: active ? 'rgba(255,255,255,0.5)' : '#9ca3af' }}>{s.desc}</p>
+              <Icon size={13} style={{ color: active ? '#111827' : '#9ca3af' }} />
+              {s.title}
+              {badge > 0 && (
+                <span style={{ fontSize: 10, background: 'var(--accent)', color: '#fff', padding: '1px 6px', fontFamily: f, fontWeight: 700 }}>{badge}</span>
+              )}
             </button>
           );
         })}

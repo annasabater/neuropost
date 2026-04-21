@@ -59,10 +59,13 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
   const [library, setLibrary] = useState<LibItem[]>([]);
   const [loadingLib, setLoadingLib] = useState(true);
 
-  // ── Inspirations ──
+  // ── Inspirations (user's "Guardadas" — legacy + bank) ──
   const [showInspo, setShowInspo] = useState(false);
   const [inspirations, setInspirations] = useState<InspirationRef[]>([]);
   const [loadingInspo, setLoadingInspo] = useState(false);
+  type Collection = { id: string; name: string; count: number };
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [activeCollection, setActiveCollection] = useState<string>('all'); // 'all' | 'unfiled' | collection_id
 
   // ── Common settings ──
   const [caption, setCaption] = useState('');
@@ -122,24 +125,53 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Load inspirations ──
+  // ── Load inspirations (unified Guardadas: legacy refs + bank items) ──
+  // Reloads whenever the user changes the active collection filter so the
+  // grid shows just what belongs to that folder.
   useEffect(() => {
-    if (!showInspo || inspirations.length > 0) return;
+    if (!showInspo) return;
     async function load() {
       setLoadingInspo(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoadingInspo(false); return; }
-      const { data: brand } = await supabase.from('brands').select('id').eq('user_id', user.id).single();
-      if (!brand) { setLoadingInspo(false); return; }
-      const { data } = await supabase
-        .from('inspiration_references')
-        .select('id, title, thumbnail_url, source_url, notes, style_tags, format')
-        .eq('brand_id', brand.id).eq('is_saved', true)
-        .order('created_at', { ascending: false }).limit(30);
-      setInspirations((data ?? []) as InspirationRef[]);
+      try {
+        const p = new URLSearchParams({ scope: 'guardadas', per_page: '100' });
+        if (activeCollection !== 'all') p.set('collection', activeCollection);
+        const res = await fetch(`/api/inspiracion/list?${p}`);
+        if (res.ok) {
+          const d = await res.json();
+          type UnifiedItem = {
+            id: string; source: 'legacy' | 'bank';
+            title: string | null; notes: string | null;
+            thumbnail_url: string | null; media_urls: string[] | null;
+            media_type: string | null; source_url: string | null;
+            category: string | null; tags: string[] | null;
+          };
+          const refs: InspirationRef[] = ((d.items ?? []) as UnifiedItem[]).map((r) => ({
+            id:            r.id,
+            title:         r.title ?? r.category ?? 'Referencia',
+            thumbnail_url: r.thumbnail_url ?? (Array.isArray(r.media_urls) ? r.media_urls[0] : null) ?? null,
+            source_url:    r.source_url ?? null,
+            notes:         r.notes ?? null,
+            style_tags:    r.tags ?? null,
+            format:        r.media_type ?? null,
+          }));
+          setInspirations(refs);
+        }
+      } catch { /* picker stays empty on error */ }
       setLoadingInspo(false);
     }
     load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showInspo, activeCollection]);
+
+  // ── Load collections once when picker opens ──
+  useEffect(() => {
+    if (!showInspo || collections.length > 0) return;
+    fetch('/api/inspiracion/collections')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.collections) setCollections(d.collections as Collection[]);
+      })
+      .catch(() => { /* silent */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showInspo]);
 
@@ -574,14 +606,47 @@ export function PostEditor({ brandName, allowStories = false, onSave }: Props) {
 
                 {/* Inspo picker grid */}
                 {showInspo && (
-                  <div style={{ border: '1px solid var(--border)', borderTop: 'none', maxHeight: 220, overflowY: 'auto' }}>
+                  <div style={{ border: '1px solid var(--border)', borderTop: 'none', maxHeight: 280, overflowY: 'auto' }}>
+                    {/* Collection filter pills — shows "Todas" + "Sin carpeta" + user collections */}
+                    {collections.length > 0 && (
+                      <div style={{ display: 'flex', gap: 4, padding: 8, background: 'var(--bg-1)', borderBottom: '1px solid var(--border)', overflowX: 'auto', flexShrink: 0 }}>
+                        {[
+                          { id: 'all',     name: 'Todas',       count: 0 },
+                          { id: 'unfiled', name: 'Sin carpeta', count: 0 },
+                          ...collections,
+                        ].map(c => {
+                          const active = activeCollection === c.id;
+                          return (
+                            <button key={c.id} type="button" onClick={() => setActiveCollection(c.id)} style={{
+                              padding: '4px 10px',
+                              background: active ? '#111827' : '#fff',
+                              color:      active ? '#fff'    : '#6b7280',
+                              border: `1px solid ${active ? '#111827' : 'var(--border)'}`,
+                              fontFamily: f, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                              whiteSpace: 'nowrap', flexShrink: 0,
+                              display: 'inline-flex', alignItems: 'center', gap: 4,
+                            }}>
+                              {c.name}
+                              {c.count > 0 && (
+                                <span style={{ fontWeight: 500, opacity: 0.6 }}>{c.count}</span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
                     {loadingInspo ? (
                       <div style={{ padding: 20, textAlign: 'center' }}>
                         <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>Cargando...</p>
                       </div>
                     ) : inspirations.length === 0 ? (
                       <div style={{ padding: 20, textAlign: 'center' }}>
-                        <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>No tienes inspiraciones guardadas</p>
+                        <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)' }}>
+                          {activeCollection === 'all'
+                            ? 'No tienes inspiraciones guardadas'
+                            : 'Esta carpeta está vacía'}
+                        </p>
                       </div>
                     ) : (
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1px', background: 'var(--border)' }}>

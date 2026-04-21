@@ -13,12 +13,14 @@ export interface GenerateImageParams {
   height?:          number;
   quality?:         ImageQuality;
   output_format?:   'jpg' | 'png' | 'webp';
+  guidance?:        number;
 }
 
 export interface EditImageParams {
   imageUrl:  string;
   prompt:    string;
   strength?: number;   // 0.0–1.0
+  guidance?: number;
   quality?:  ImageQuality;
 }
 
@@ -68,7 +70,7 @@ export async function generateImage(params: GenerateImageParams): Promise<ImageR
         output_format:   params.output_format ?? 'jpg',
         // Flux Pro params (no num_inference_steps — model handles quality internally)
         // guidance: higher = more prompt-adherent, lower = more creative
-        guidance:        3,
+        guidance:        params.guidance ?? 3,
         // prompt_upsampling: false prevents the model from "hallucinating" extra details
         prompt_upsampling: false,
       },
@@ -109,7 +111,7 @@ export async function editImage(params: EditImageParams): Promise<ImageResponse>
         output_format: 'jpg',
         // guidance: lower = preserves original photo more faithfully
         // default is 2.5; we lower it to 2 so edits are more conservative
-        guidance:      2,
+        guidance:      params.guidance ?? 2,
       },
     }),
   });
