@@ -66,7 +66,7 @@ export default function CurrentPlanCard({ subscription, usage }: { subscription:
           Plan {subscription.planLabel}
         </div>
         <div style={{ color: 'var(--muted)', fontSize: 14, fontFamily: f, marginBottom: 20 }}>
-          <b style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{subscription.priceMonthly} €</b> / mes · Facturación mensual
+          <b style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{subscription.priceMonthly} €</b> / mes · Facturación mensual · IVA incluido
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 24px', paddingTop: 20, borderTop: '1px solid var(--border)' }}>

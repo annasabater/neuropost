@@ -194,9 +194,9 @@ export default function LandingPage() {
   const homePlans = [
     {
       name:          'Starter',
-      monthlyPrice:   21,
-      annualPrice:    21,
-      annualSavings:  0,  // 252€/año ÷ 12 = 21€ → sin ahorro
+      monthlyPrice:   62,
+      annualPrice:    62,
+      annualSavings:  0,
       desc:          'Para presencia activa',
       content:       ['✔ 2 fotos/semana', '✔ Carruseles hasta 3', '✔ Sin vídeo/reel'],
       highlight:     'Ideal para empezar con redes',
@@ -212,9 +212,9 @@ export default function LandingPage() {
     },
     {
       name:          'Pro',
-      monthlyPrice:   63,
-      annualPrice:    60,
-      annualSavings:  38,
+      monthlyPrice:   109,
+      annualPrice:    104,
+      annualSavings:  65,
       desc:          'Máximo alcance',
       featured:      true,
       badge:         '⚡ Más popular',
@@ -232,9 +232,9 @@ export default function LandingPage() {
     },
     {
       name:          'Total',
-      monthlyPrice:   133,
-      annualPrice:    113,
-      annualSavings:  239,
+      monthlyPrice:   189,
+      annualPrice:    161,
+      annualSavings:  340,
       desc:          'Control completo',
       badge:         '🚀 Completo',
       content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels ≤90s/sem', '✔ Carruseles hasta 20'],
@@ -602,9 +602,10 @@ export default function LandingPage() {
                   {badge ?? (featured ? 'Más popular' : '\u00A0')}
                 </span>
                 <p style={{ fontFamily: fc, fontWeight: 800, fontSize: 22, textTransform: 'uppercase', color: featured ? '#ffffff' : '#111111', marginBottom: 4 }}>{name}</p>
-                <p style={{ fontFamily: fc, fontWeight: 900, fontSize: '3rem', color: featured ? '#ffffff' : '#111111', lineHeight: 1, marginBottom: 4 }}>
+                <p style={{ fontFamily: fc, fontWeight: 900, fontSize: '3rem', color: featured ? '#ffffff' : '#111111', lineHeight: 1, marginBottom: 2 }}>
                   <span style={{ fontSize: 18, verticalAlign: 'top' }}>€</span>{homeDisplayPrice(plan)}<span style={{ fontSize: 14, fontWeight: 400, color: '#9ca3af' }}>/mes</span>
                 </p>
+                <p style={{ fontFamily: f, fontSize: 11, color: featured ? '#9ca3af' : '#9ca3af', marginBottom: 4 }}>IVA incluido</p>
                 <p style={{
                   fontFamily: f, fontSize: 12, fontWeight: 700,
                   color: featured ? '#d1d5db' : '#0F766E', marginBottom: 10,

@@ -19,7 +19,7 @@ const C = {
   green: '#14B8A6',
 };
 
-const PLAN_PRICES = { starter: 21, pro: 63, total: 133 };
+const PLAN_PRICES = { starter: 62, pro: 109, total: 189 };
 
 export default function BusinessPage() {
   const [stats, setStats] = useState({
