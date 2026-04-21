@@ -300,9 +300,14 @@ function InboxInner() {
   useEffect(() => {
     if (!chatLoading && messages.length > 0 && !chatInitialScrollDone.current) {
       chatInitialScrollDone.current = true;
-      chatBottom.current?.scrollIntoView({ behavior: 'instant' });
+      // Double-rAF ensures layout is fully painted before scrolling
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        chatBottom.current?.scrollIntoView({ behavior: 'instant' });
+      }));
     } else if (chatInitialScrollDone.current) {
-      chatBottom.current?.scrollIntoView({ behavior: 'smooth' });
+      requestAnimationFrame(() => {
+        chatBottom.current?.scrollIntoView({ behavior: 'smooth' });
+      });
     }
   }, [messages, chatLoading]);
 
