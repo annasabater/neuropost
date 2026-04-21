@@ -190,13 +190,26 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
         brand_material:            (material ?? []) as BrandMaterial[],
         stories_per_week:          planQuota?.stories_per_week ?? 3,
         stories_templates_enabled: templatesEnabled,
+        startPosition:             parsedIdeas.length,
       });
 
       if (storyRows.length > 0) {
-        const { error: storiesErr } = await db.from('content_ideas').insert(storyRows);
+        const { data: insertedStories, error: storiesErr } = await db
+          .from('content_ideas')
+          .insert(storyRows)
+          .select('id');
         if (storiesErr) {
-          // Non-fatal: log but don't fail the whole plan
           console.error('[plan-week] Failed to insert story ideas:', storiesErr.message);
+        } else if (insertedStories?.length) {
+          // Fire-and-forget render for each story — non-blocking
+          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+          const renderFetches = (insertedStories as { id: string }[]).map(s =>
+            fetch(`${baseUrl}/api/render/story/${s.id}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+            }).catch(e => console.warn(`[plan-week] render trigger failed for ${s.id}:`, e)),
+          );
+          Promise.allSettled(renderFetches).catch(() => {});
         }
       }
       // ────────────────────────────────────────────────────────────────────

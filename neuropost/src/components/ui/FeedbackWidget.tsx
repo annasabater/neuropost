@@ -10,6 +10,13 @@ export function FeedbackWidget() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading]     = useState(false);
   const [pulsing, setPulsing]     = useState(true);
+  const [visible, setVisible]     = useState(false);
+
+  // Show widget only after 45s — avoids cluttering mobile on first load
+  useEffect(() => {
+    const t = setTimeout(() => setVisible(true), 45_000);
+    return () => clearTimeout(t);
+  }, []);
 
   // Stop pulsing once opened for the first time
   useEffect(() => {
@@ -44,8 +51,10 @@ export function FeedbackWidget() {
     }, 300);
   }
 
+  if (!visible) return null;
+
   return (
-    <div style={{
+    <div className="feedback-widget" style={{
       position: 'fixed',
       bottom: '80px',
       right: '24px',

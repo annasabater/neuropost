@@ -3646,56 +3646,99 @@ h2 {
     min-height: 80px !important;
   }
 
-  /* ── Inspiración — mobile filter bar ── */
-  .inspi-filter-bar {
-    flex-direction: column !important;
-    align-items: stretch !important;
-    gap: 8px !important;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 8px !important;
+  /* ── Inspiración — header: title + CTA on same row ── */
+  .inspi-header {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    padding-top: 20px !important;
+    padding-bottom: 14px !important;
   }
+  .inspi-header h1 {
+    font-size: clamp(1.8rem, 8vw, 2.4rem) !important;
+    margin-bottom: 0 !important;
+  }
+  /* Hide subtitle + G badge on mobile */
+  .inspi-header-subtitle { display: none !important; }
+  .inspi-cta-g { display: none !important; }
+  .inspi-header-cta {
+    flex-shrink: 0 !important;
+    width: auto !important;
+    padding: 8px 14px !important;
+    font-size: 11px !important;
+  }
+
+  /* ── Inspiración — filter bar: single scrollable row ── */
+  .inspi-filter-bar {
+    flex-direction: row !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    gap: 0 !important;
+    -ms-overflow-style: none;
+    padding-bottom: 0 !important;
+    border-bottom: 1px solid var(--border);
+  }
+  .inspi-filter-bar::-webkit-scrollbar { display: none; }
   .inspi-scope-tabs {
     display: flex !important;
-    overflow-x: auto !important;
+    flex-shrink: 0 !important;
     border-bottom: none !important;
     gap: 0 !important;
     flex: none !important;
-    /* Hide scrollbar — all browsers */
     -ms-overflow-style: none;
   }
   .inspi-scope-tabs::-webkit-scrollbar { display: none; }
   .inspi-scope-tabs button {
     flex-shrink: 0;
-    padding: 8px 14px !important;
+    padding: 10px 11px !important;
+    font-size: 11px !important;
+  }
+  /* Divider between tabs and search */
+  .inspi-scope-tabs::after {
+    content: '';
+    display: block;
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+    flex-shrink: 0;
+    margin: auto 4px;
   }
   .inspi-search-format {
     display: flex !important;
     align-items: center !important;
-    gap: 8px !important;
-    flex-wrap: wrap !important;
-    padding-bottom: 0 !important;
+    gap: 6px !important;
+    flex-wrap: nowrap !important;
+    flex-shrink: 0 !important;
+    padding: 4px 6px !important;
   }
+  /* Search: icon-only; expands on focus */
   .inspi-search-input {
-    width: 100% !important;
-    max-width: none !important;
-    flex: 1 1 120px !important;
-    min-width: 80px !important;
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+    padding-right: 4px !important;
+    color: transparent !important;
+    transition: width 0.22s ease, max-width 0.22s ease, color 0.15s !important;
+    cursor: pointer !important;
   }
-  .inspi-format-pills {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    gap: 4px !important;
+  .inspi-search-input::placeholder { color: transparent !important; }
+  .inspi-search-input:focus {
+    width: 130px !important;
+    max-width: 130px !important;
+    color: var(--text-primary) !important;
+    cursor: text !important;
   }
-  /* Header: stack title + button */
-  .inspi-header {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 12px !important;
-  }
-  .inspi-header-cta {
-    width: 100% !important;
-    justify-content: center !important;
-  }
+  .inspi-search-input:focus::placeholder { color: var(--text-tertiary) !important; }
+  /* Hide format pills on mobile — use search keywords instead */
+  .inspi-format-pills { display: none !important; }
+
+  /* Card overlay actions: smaller icons */
+  .insp-actions svg { width: 16px !important; height: 16px !important; }
+
+  /* FeedbackWidget: hide on mobile — too intrusive on small screens */
+  .feedback-widget { display: none !important; }
 }
 
 /* Extra small (<480px) — tighten dashboard even more */
@@ -3723,6 +3766,9 @@ h2 {
     padding: 10px 10px !important;
     min-height: 64px !important;
   }
+  /* Inspiración CTA: icon only at very small sizes */
+  .inspi-cta-label { display: none !important; }
+  .inspi-header-cta { padding: 8px 10px !important; }
 }
 
 /* ─── TOPBAR NEW BTN ─────────────────────────────────────────────────────────── */

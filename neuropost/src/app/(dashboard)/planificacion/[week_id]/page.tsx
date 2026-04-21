@@ -20,6 +20,15 @@ const IDEA_STATUS_META: Record<string, { label: string; color: string; bg: strin
   client_rejected:            { label: 'Rechazada',        color: '#991b1b', bg: '#fee2e2', dot: '#ef4444' },
 };
 
+const STORY_TYPE_META: Record<string, { label: string; color: string; bg: string }> = {
+  quote:    { label: 'Frase',     color: '#1e40af', bg: '#eff6ff' },
+  promo:    { label: 'Promo',     color: '#92400e', bg: '#fef3c7' },
+  schedule: { label: 'Horario',   color: '#065f46', bg: '#d1fae5' },
+  data:     { label: 'Dato',      color: '#5b21b6', bg: '#ede9fe' },
+  photo:    { label: 'Foto',      color: '#374151', bg: '#f3f4f6' },
+  custom:   { label: 'Libre',     color: '#0f766e', bg: '#ccfbf1' },
+};
+
 export default function PlanReviewPage() {
   const { week_id } = useParams<{ week_id: string }>();
   const router = useRouter();
@@ -51,8 +60,10 @@ export default function PlanReviewPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const reviewed    = ideas.filter((i) => i.status !== 'pending').length;
-  const allReviewed = ideas.length > 0 && reviewed === ideas.length;
+  const postIdeas   = ideas.filter((i) => i.content_kind !== 'story');
+  const storyIdeas  = ideas.filter((i) => i.content_kind === 'story');
+  const reviewed    = postIdeas.filter((i) => i.status !== 'pending').length;
+  const allReviewed = postIdeas.length > 0 && reviewed === postIdeas.length;
 
   async function doIdeaAction(ideaId: string, action: IdeaAction, extra?: {
     client_edited_copy?: string;
@@ -175,9 +186,30 @@ export default function PlanReviewPage() {
             </span>
           </div>
         </div>
-      {/* Ideas */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 100 }}>
-        {ideas.map((idea, ideaIdx) => {
+
+        {/* Big progress badge */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '10px 20px',
+          background: allReviewed ? '#d1fae5' : 'var(--bg-1)',
+          border: `1px solid ${allReviewed ? '#6ee7b7' : 'var(--border)'}`,
+          flexShrink: 0,
+        }}>
+          <span style={{
+            fontFamily: fc, fontWeight: 900, fontSize: 32, lineHeight: 1,
+            color: allReviewed ? '#065f46' : 'var(--text-primary)',
+          }}>
+            {reviewed}<span style={{ fontSize: 18, color: 'var(--text-secondary)', fontWeight: 700 }}>/{postIdeas.length}</span>
+          </span>
+          <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.3, maxWidth: 80 }}>
+            {allReviewed ? '✓ Todo revisado' : 'posts revisados'}
+          </span>
+        </div>
+      </div>
+
+      {/* Post ideas */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginBottom: storyIdeas.length > 0 ? 32 : 100 }}>
+        {postIdeas.map((idea, ideaIdx) => {
           const meta     = IDEA_STATUS_META[idea.status] ?? IDEA_STATUS_META['pending'];
           const isActing = actingOn === idea.id;
           const isDone   = idea.status !== 'pending';
@@ -309,7 +341,104 @@ export default function PlanReviewPage() {
         })}
       </div>
 
-      </div>{/* end padding '24px 28px' */}
+      {/* Stories section */}
+      {storyIdeas.length > 0 && (
+        <div style={{ marginBottom: 100 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <h2 style={{
+              fontFamily: fc, fontWeight: 900, fontSize: 20,
+              textTransform: 'uppercase', letterSpacing: '0.04em',
+              color: 'var(--text-primary)', margin: 0, lineHeight: 1,
+            }}>
+              Historias Programadas
+            </h2>
+            <span style={{
+              fontFamily: fc, fontWeight: 700, fontSize: 12,
+              padding: '3px 10px', background: 'var(--bg-1)',
+              color: 'var(--text-secondary)', textTransform: 'uppercase',
+              letterSpacing: 0.5,
+            }}>
+              {storyIdeas.length} historias
+            </span>
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+            gap: 8,
+          }}>
+            {storyIdeas.map((story) => {
+              const stype = story.story_type ?? 'custom';
+              const stMeta = STORY_TYPE_META[stype] ?? STORY_TYPE_META['custom'];
+              const hasImage  = !!story.rendered_image_url;
+              const hasError  = !!story.render_error;
+
+              return (
+                <div key={story.id} style={{
+                  border: '1px solid var(--border)',
+                  background: 'var(--bg)',
+                  display: 'flex', flexDirection: 'column',
+                  overflow: 'hidden',
+                }}>
+                  {/* 9:16 preview area */}
+                  <div style={{
+                    aspectRatio: '9/16',
+                    background: hasImage ? 'transparent' : 'var(--bg-1)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    overflow: 'hidden', position: 'relative',
+                  }}>
+                    {hasImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={story.rendered_image_url!}
+                        alt=""
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      />
+                    ) : hasError ? (
+                      <div style={{
+                        padding: 8, textAlign: 'center',
+                        fontSize: 11, color: '#ef4444', fontFamily: f, lineHeight: 1.3,
+                      }}>
+                        Error al renderizar
+                      </div>
+                    ) : (
+                      <div style={{
+                        fontSize: 10, color: 'var(--text-secondary)',
+                        fontFamily: f, textAlign: 'center', lineHeight: 1.4, padding: 8,
+                      }}>
+                        Renderizando…
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Meta */}
+                  <div style={{ padding: '8px 10px' }}>
+                    <span style={{
+                      display: 'inline-block',
+                      fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+                      padding: '2px 7px', textTransform: 'uppercase',
+                      background: stMeta.bg, color: stMeta.color,
+                      marginBottom: 4,
+                    }}>
+                      {stMeta.label}
+                    </span>
+                    {story.copy_draft && (
+                      <p style={{
+                        fontSize: 11, color: 'var(--text-secondary)',
+                        margin: 0, lineHeight: 1.4,
+                        display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}>
+                        {story.copy_draft}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Sticky footer */}
       <div style={{

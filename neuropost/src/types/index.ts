@@ -1078,6 +1078,8 @@ export interface ContentIdea {
   story_type:             StoryType | null;
   template_id:            string | null;
   rendered_image_url:     string | null;
+  // Sprint 12
+  render_error?:          string | null;
   created_at:             string;
   updated_at:             string;
 }

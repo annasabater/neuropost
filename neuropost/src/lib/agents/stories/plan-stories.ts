@@ -92,6 +92,7 @@ export interface PlanStoriesParams {
   brand_material:            BrandMaterial[];
   stories_per_week:          number;
   stories_templates_enabled: string[];
+  startPosition:             number;
 }
 
 export interface StoryIdeaRow {
@@ -177,7 +178,7 @@ function buildSlots(
 // ─── Main export ───────────────────────────────────────────────────────────────
 
 export async function planStoriesHandler(params: PlanStoriesParams): Promise<StoryIdeaRow[]> {
-  const { brand_id, week_id, brand, brand_material, stories_per_week, stories_templates_enabled } = params;
+  const { brand_id, week_id, brand, brand_material, stories_per_week, stories_templates_enabled, startPosition } = params;
 
   if (stories_per_week <= 0) return [];
 
@@ -209,7 +210,7 @@ export async function planStoriesHandler(params: PlanStoriesParams): Promise<Sto
     return {
       week_id,
       brand_id,
-      position:            idx,
+      position:            startPosition + idx,
       format:              'story',
       angle:               slot.type,             // NOT NULL — story_type is descriptive enough
       hook:                null,

@@ -8,6 +8,7 @@
   "dependencies": {
     "@sentry/nextjs": "^10.47.0",
     "@supabase/ssr": "^0.10.0",
+    "next": "^16.2.4",
     "nprogress": "^0.2.0",
     "tailwindcss": "^4.2.2"
   },

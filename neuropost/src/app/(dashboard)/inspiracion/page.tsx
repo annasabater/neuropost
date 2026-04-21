@@ -9,6 +9,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, X, Search, ChevronLeft, ChevronRight, Sparkles, FolderPlus, Pencil, Trash2, FolderOpen, MoreHorizontal, Check, Heart, Bookmark, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MediaPicker, type SelectedMedia } from '@/components/posts/MediaPicker';
@@ -76,7 +77,7 @@ const SCOPE_PILLS: { key: Scope; label: string }[] = [
 
 // ─── Request types ────────────────────────────────────────────────────────────
 
-type TimingPref = 'asap' | 'next_two_weeks' | 'specific_date';
+type TimingPref = 'next_week' | 'specific_date';
 
 interface ReferenceRequest {
   id:               string;
@@ -103,10 +104,22 @@ const BADGES_BY_STATUS: Record<string, { label: string; bg: string; color: strin
 };
 
 const TIMING_LABELS: Record<string, string> = {
+  next_week:     'Semana que viene',
+  specific_date: 'Fecha concreta',
+  // legacy keys kept for existing rows
   asap:           'Sin prisa',
   next_two_weeks: 'Próximas 2 semanas',
-  specific_date:  'Fecha concreta',
 };
+
+function isThisWeek(dateStr: string): boolean {
+  const d = new Date(dateStr + 'T12:00:00'); // noon to avoid TZ edge cases
+  const today = new Date();
+  const dow = today.getDay(); // 0=Sun
+  const diffToMon = (dow === 0 ? -6 : 1 - dow);
+  const mon = new Date(today); mon.setDate(today.getDate() + diffToMon); mon.setHours(0,0,0,0);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6); sun.setHours(23,59,59,999);
+  return d >= mon && d <= sun;
+}
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
@@ -115,6 +128,7 @@ function fmtDate(iso: string) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function InspiracionPage() {
+  const router     = useRouter();
   const brand      = useAppStore(s => s.brand);
   const planLimits = PLAN_LIMITS[brand?.plan ?? 'starter'];
   const allowsVideo = planLimits.videosPerWeek > 0;
@@ -129,19 +143,29 @@ export default function InspiracionPage() {
   const [statusFilter,    setStatusFilter]    = useState<string>('all');
   const [requestModal,    setRequestModal]    = useState<InspirationItem | null>(null);
   const [reqComment,      setReqComment]      = useState('');
-  const [reqTiming,       setReqTiming]       = useState<TimingPref>('next_two_weeks');
+  const [reqTiming,       setReqTiming]       = useState<TimingPref>('next_week');
   const [reqDate,         setReqDate]         = useState('');
   const [reqSubmitting,   setReqSubmitting]   = useState(false);
 
   function openRequestModal(item: InspirationItem) {
     setRequestModal(item);
     setReqComment('');
-    setReqTiming('next_two_weeks');
+    setReqTiming('next_week');
     setReqDate('');
   }
 
+  const reqDateIsThisWeek = reqTiming === 'specific_date' && reqDate ? isThisWeek(reqDate) : false;
+
   async function handleSubmitRequest() {
     if (!requestModal) return;
+
+    // Date this week → go to /posts/new directly
+    if (reqDateIsThisWeek) {
+      setRequestModal(null);
+      router.push('/posts/new');
+      return;
+    }
+
     setReqSubmitting(true);
     try {
       const res = await fetch('/api/inspiracion/request-recreate', {
@@ -159,7 +183,6 @@ export default function InspiracionPage() {
       if (!res.ok) { toast.error(json.error ?? 'Error al enviar'); return; }
       toast.success('Solicitud enviada — el equipo la verá en breve');
       setRequestModal(null);
-      // Mark item as having active request
       setItems(prev => prev.map(i => i.id === requestModal.id ? { ...i, has_active_request: true } : i));
       loadRequests();
     } catch { toast.error('Error al enviar la solicitud'); }
@@ -1616,15 +1639,10 @@ export default function InspiracionPage() {
 
             {/* Preview */}
             {requestModal.thumbnail_url && (
-              <div style={{ marginBottom: 20 }}>
+              <div style={{ marginBottom: 20, display: 'flex', justifyContent: 'center', background: '#000' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={requestModal.thumbnail_url} alt="Referencia"
-                  style={{ width: '100%', maxHeight: 180, objectFit: 'cover', display: 'block', border: '1px solid var(--border)' }} />
-                {(requestModal.title || requestModal.category) && (
-                  <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-tertiary)', marginTop: 6 }}>
-                    {requestModal.title ?? requestModal.category}
-                  </p>
-                )}
+                  style={{ maxWidth: '100%', maxHeight: 140, objectFit: 'contain', display: 'block' }} />
               </div>
             )}
 
@@ -1645,9 +1663,8 @@ export default function InspiracionPage() {
               <label style={labelSm}>¿Cuándo lo necesitas?</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {([
-                  ['asap',           'Sin prisa — cuando podáis'],
-                  ['next_two_weeks', 'Próximas 2 semanas'],
-                  ['specific_date',  'Fecha concreta'],
+                  ['next_week',     'Semana que viene'],
+                  ['specific_date', 'Seleccionar fecha concreta'],
                 ] as const).map(([val, lbl]) => (
                   <label key={val} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', border: `1px solid ${reqTiming === val ? 'var(--accent)' : 'var(--border)'}`, background: reqTiming === val ? 'var(--accent-soft)' : 'transparent', cursor: 'pointer' }}>
                     <input
@@ -1660,10 +1677,17 @@ export default function InspiracionPage() {
                 ))}
               </div>
               {reqTiming === 'specific_date' && (
-                <input
-                  type="date" value={reqDate} onChange={e => setReqDate(e.target.value)}
-                  style={{ marginTop: 8, ...inputSt }}
-                />
+                <div style={{ marginTop: 8 }}>
+                  <input
+                    type="date" value={reqDate} onChange={e => setReqDate(e.target.value)}
+                    style={{ ...inputSt }}
+                  />
+                  {reqDateIsThisWeek && (
+                    <p style={{ fontFamily: f, fontSize: 12, color: '#0F766E', marginTop: 6, fontWeight: 600 }}>
+                      Esta fecha es esta semana — te llevaremos a crear el contenido directamente.
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 
@@ -1674,7 +1698,7 @@ export default function InspiracionPage() {
               </button>
               <button type="button" onClick={handleSubmitRequest} disabled={reqSubmitting}
                 style={{ flex: 2, padding: 12, border: 'none', background: '#0D9488', color: '#fff', fontFamily: fc, fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', cursor: reqSubmitting ? 'not-allowed' : 'pointer', opacity: reqSubmitting ? 0.5 : 1 }}>
-                {reqSubmitting ? 'Enviando…' : 'Enviar solicitud →'}
+                {reqSubmitting ? 'Enviando…' : reqDateIsThisWeek ? 'Crear contenido →' : 'Enviar solicitud →'}
               </button>
             </div>
           </div>

@@ -12,6 +12,7 @@ const PUBLIC_API = [
   '/auth/callback',
   '/api/telegram/webhook',      // Telegram POST → validated via x-telegram-bot-api-secret-token
   '/api/inspiration/ingest',    // Cron → validated via Authorization: Bearer ${CRON_SECRET}
+  '/api/render/',               // Internal fire-and-forget from plan-week.ts
 ];
 
 const PROTECTED = [

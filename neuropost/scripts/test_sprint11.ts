@@ -177,6 +177,7 @@ async function main() {
     brand_material:            material ?? [],
     stories_per_week:          5,
     stories_templates_enabled: allTemplateIds,
+    startPosition:             0,
   });
 
   console.log(`planStoriesHandler generó ${rows1.length} filas`);
@@ -237,6 +238,7 @@ async function main() {
     brand_material:            [],           // empty — forces all AI quotes
     stories_per_week:          5,
     stories_templates_enabled: allTemplateIds,
+    startPosition:             0,
   });
 
   console.log(`planStoriesHandler generó ${rows2.length} filas`);
@@ -283,6 +285,7 @@ async function main() {
     brand_material:            material ?? [],
     stories_per_week:          5,
     stories_templates_enabled: limited2,
+    startPosition:             0,
   });
 
   if (rows3.length > 0) {
