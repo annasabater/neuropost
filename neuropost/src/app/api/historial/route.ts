@@ -56,7 +56,8 @@ export async function GET(request: Request) {
 
     const { data: posts, error } = await query;
     if (error) throw error;
-    const all = (posts ?? []) as Array<Record<string, unknown>>;
+    type PostRow = { id: string; status: string; platform: unknown; [key: string]: unknown };
+    const all = (posts ?? []) as PostRow[];
 
     // Join analytics (one row per published post)
     const publishedIds = all
