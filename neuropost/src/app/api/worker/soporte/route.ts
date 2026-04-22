@@ -71,13 +71,15 @@ export async function PATCH(request: Request) {
         }
       })();
       if (notif) {
-        await db.from('notifications').insert({
-          brand_id: brandId,
-          type: notif.type,
-          message: notif.message,
-          read: false,
-          metadata: { ticket_id: id },
-        }).catch(() => null);
+        try {
+          await db.from('notifications').insert({
+            brand_id: brandId,
+            type: notif.type,
+            message: notif.message,
+            read: false,
+            metadata: { ticket_id: id },
+          });
+        } catch { /* non-critical */ }
       }
     }
 

@@ -44,13 +44,15 @@ export async function PATCH(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const brandId = (recreation as any).brand_id;
       if (brandId) {
-        await db.from('notifications').insert({
-          brand_id: brandId,
-          type:     'approval_needed',
-          message:  '✅ Tu solicitud de recreación ha sido completada. Entra a revisarla.',
-          read:     false,
-          metadata: { recreation_id: id },
-        }).catch(() => null);
+        try {
+          await db.from('notifications').insert({
+            brand_id: brandId,
+            type:     'approval_needed',
+            message:  '✅ Tu solicitud de recreación ha sido completada. Entra a revisarla.',
+            read:     false,
+            metadata: { recreation_id: id },
+          });
+        } catch { /* non-critical */ }
       }
     }
 

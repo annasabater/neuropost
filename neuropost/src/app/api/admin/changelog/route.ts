@@ -68,6 +68,8 @@ async function notifyChangelog(entry: any, db: any) {
       read: false,
       metadata: { entry_id: entry.id },
     }));
-    await db.from('notifications').insert(notifications).catch(() => null);
+    try {
+      await db.from('notifications').insert(notifications);
+    } catch { /* non-critical */ }
   }
 }

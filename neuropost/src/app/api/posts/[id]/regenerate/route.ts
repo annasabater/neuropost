@@ -107,19 +107,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     await registerRegeneration(id, brand.id);
 
     // ── Activity log ───────────────────────────────────────────────────────────
-    await supabase.from('activity_log').insert({
-      brand_id:    brand.id,
-      user_id:     user.id,
-      action:      'regenerate_post',
-      entity_type: 'post',
-      entity_id:   id,
-      details:     {
-        mode:            'copy',
-        versionsCount:   prevVersions.length,
-        regenCount:      check.regenerationCount + 1,
-        costQuota:       check.willCostQuota,
-      },
-    }).catch(() => { /* non-critical */ });
+    try {
+      await supabase.from('activity_log').insert({
+        brand_id:    brand.id,
+        user_id:     user.id,
+        action:      'regenerate_post',
+        entity_type: 'post',
+        entity_id:   id,
+        details:     {
+          mode:            'copy',
+          versionsCount:   prevVersions.length,
+          regenCount:      check.regenerationCount + 1,
+          costQuota:       check.willCostQuota,
+        },
+      });
+    } catch { /* non-critical */ }
 
     return NextResponse.json({
       post:          updated as Post,
