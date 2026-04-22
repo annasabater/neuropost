@@ -364,7 +364,7 @@ export async function regenerateIdeaHandler(job: AgentJob): Promise<HandlerResul
         rendered_image_url:  null,
       },
       hrEffective,
-      { is_weekly_plan_event: false },
+      { is_weekly_plan_event: false, is_regeneration: true },
     );
 
     if (decision.route === 'worker_review') {

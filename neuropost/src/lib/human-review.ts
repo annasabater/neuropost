@@ -6,14 +6,22 @@ type DB = any;
 export const HRC_KEY = 'human_review_defaults';
 
 export const HARD_DEFAULT: HumanReviewDefaults = {
-  messages: true,
-  images:   true,
-  videos:   true,
-  requests: true,
+  messages_create: true,
+  images_create:   true,
+  videos_create:   true,
+  messages_regen:  true,
+  images_regen:    true,
+  videos_regen:    true,
+  requests:        true,
 };
 
-export const HRC_UI_KEYS = ['messages', 'images', 'videos'] as const;
-export type HrcUiKey = typeof HRC_UI_KEYS[number];
+export const HRC_UI_KEYS_CREATE = ['messages_create', 'images_create', 'videos_create'] as const;
+export const HRC_UI_KEYS_REGEN  = ['messages_regen',  'images_regen',  'videos_regen']  as const;
+export const HRC_UI_KEYS        = [...HRC_UI_KEYS_CREATE, ...HRC_UI_KEYS_REGEN] as const;
+
+export type HrcUiKey       = typeof HRC_UI_KEYS[number];
+export type HrcUiKeyCreate = typeof HRC_UI_KEYS_CREATE[number];
+export type HrcUiKeyRegen  = typeof HRC_UI_KEYS_REGEN[number];
 
 /** Read the global defaults from app_settings. Falls back to HARD_DEFAULT
  *  if the row is missing (fresh install / seed not applied yet). */
@@ -25,10 +33,13 @@ export async function getHumanReviewDefaults(db: DB): Promise<HumanReviewDefault
     .single();
   const v = (data?.value ?? {}) as Partial<HumanReviewDefaults>;
   return {
-    messages: v.messages ?? HARD_DEFAULT.messages,
-    images:   v.images   ?? HARD_DEFAULT.images,
-    videos:   v.videos   ?? HARD_DEFAULT.videos,
-    requests: v.requests ?? HARD_DEFAULT.requests,
+    messages_create: v.messages_create ?? HARD_DEFAULT.messages_create,
+    images_create:   v.images_create   ?? HARD_DEFAULT.images_create,
+    videos_create:   v.videos_create   ?? HARD_DEFAULT.videos_create,
+    messages_regen:  v.messages_regen  ?? HARD_DEFAULT.messages_regen,
+    images_regen:    v.images_regen    ?? HARD_DEFAULT.images_regen,
+    videos_regen:    v.videos_regen    ?? HARD_DEFAULT.videos_regen,
+    requests:        v.requests        ?? HARD_DEFAULT.requests,
   };
 }
 

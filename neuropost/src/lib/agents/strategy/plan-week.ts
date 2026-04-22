@@ -232,7 +232,7 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
           rendered_image_url:  null,
         },
         hrEffective,
-        { is_weekly_plan_event: true },
+        { is_weekly_plan_event: true, is_regeneration: false },
       );
 
       if (decision.route === 'worker_review') {

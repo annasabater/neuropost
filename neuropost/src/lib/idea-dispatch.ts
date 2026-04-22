@@ -14,6 +14,9 @@ export interface RouteContext {
   /** true = decision about a full weekly_plan event; false = individual
    *  idea emitted mid-week (e.g. regeneration). */
   is_weekly_plan_event: boolean;
+  /** true = this idea is a regeneration (client asked for a variation);
+   *  false = initial generation (e.g. weekly plan). */
+  is_regeneration:      boolean;
 }
 
 export interface RouteDecision {
@@ -37,10 +40,14 @@ function decide(flag: HrcUiKey, effective: HumanReviewConfig, reason: string): R
  * Decide whether a generated idea needs worker review first, or can be
  * sent to the client directly. Precedence:
  *
- *   1. weekly plan event  →  messages flag
- *   2. reel / video       →  videos flag
- *   3. visual asset       →  images flag
- *   4. text-only fallback →  messages flag
+ *   1. weekly plan event  →  messages_create
+ *   2. reel / video       →  videos_create  | videos_regen
+ *   3. visual asset       →  images_create  | images_regen
+ *   4. text-only fallback →  messages_create | messages_regen
+ *
+ * Which of each pair is consulted depends on ctx.is_regeneration:
+ * an initial generation reads the _create flag; a regeneration reads
+ * the _regen flag.
  *
  * Pure function — no I/O, no DB, no async. The caller is responsible
  * for resolving `effective` via resolveHumanReviewConfig() beforehand.
@@ -50,14 +57,20 @@ export function routeIdea(
   effective: HumanReviewConfig,
   ctx:       RouteContext,
 ): RouteDecision {
+  // 1. Weekly plan event — always initial generation, never a regen.
   if (ctx.is_weekly_plan_event) {
-    return decide('messages', effective, 'weekly plan event');
+    return decide('messages_create', effective, 'weekly plan event');
   }
 
+  const regen = ctx.is_regeneration;
+
+  // 2. Reel / video asset.
   if (idea.format === 'reel') {
-    return decide('videos', effective, 'reel / video asset');
+    const flag = regen ? 'videos_regen' : 'videos_create';
+    return decide(flag, effective, `reel / video asset (${regen ? 'regen' : 'create'})`);
   }
 
+  // 3. Visual asset.
   const hasVisualAsset =
     idea.format === 'image' ||
     idea.format === 'carousel' ||
@@ -65,8 +78,11 @@ export function routeIdea(
     idea.suggested_asset_url !== null;
 
   if (hasVisualAsset) {
-    return decide('images', effective, 'visual asset');
+    const flag = regen ? 'images_regen' : 'images_create';
+    return decide(flag, effective, `visual asset (${regen ? 'regen' : 'create'})`);
   }
 
-  return decide('messages', effective, 'text-only fallback');
+  // 4. Text-only fallback.
+  const flag = regen ? 'messages_regen' : 'messages_create';
+  return decide(flag, effective, `text-only fallback (${regen ? 'regen' : 'create'})`);
 }

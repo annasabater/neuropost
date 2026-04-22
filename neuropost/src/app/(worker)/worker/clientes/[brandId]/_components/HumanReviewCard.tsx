@@ -30,15 +30,24 @@ const f  = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 const LABEL: Record<HrcUiKey, string> = {
-  messages: 'mensajes',
-  images:   'imágenes',
-  videos:   'vídeos',
+  messages_create: 'mensajes (crear)',
+  images_create:   'imágenes (crear)',
+  videos_create:   'vídeos (crear)',
+  messages_regen:  'mensajes (regenerar)',
+  images_regen:    'imágenes (regenerar)',
+  videos_regen:    'vídeos (regenerar)',
 };
 
-const TOGGLES: Array<{ key: HrcUiKey; title: string; description: string }> = [
-  { key: 'messages', title: 'Mensajes semanales',  description: 'El plan de ideas pasa por el worker antes de enviarlo al cliente' },
-  { key: 'images',   title: 'Imágenes generadas',  description: 'Cada imagen pasa por el worker antes del cliente' },
-  { key: 'videos',   title: 'Vídeos generados',    description: 'Cada vídeo pasa por el worker antes del cliente' },
+const TOGGLES_CREATE: Array<{ key: HrcUiKey; title: string; description: string }> = [
+  { key: 'messages_create', title: 'Mensajes semanales',  description: 'El plan de ideas pasa por el worker antes de enviarlo al cliente' },
+  { key: 'images_create',   title: 'Imágenes generadas',  description: 'Cada imagen generada pasa por el worker antes del cliente' },
+  { key: 'videos_create',   title: 'Vídeos generados',    description: 'Cada vídeo generado pasa por el worker antes del cliente' },
+];
+
+const TOGGLES_REGEN: Array<{ key: HrcUiKey; title: string; description: string }> = [
+  { key: 'messages_regen', title: 'Mensajes regenerados', description: 'La idea regenerada pasa por el worker antes del cliente' },
+  { key: 'images_regen',   title: 'Imágenes regeneradas', description: 'Cada imagen regenerada pasa por el worker antes del cliente' },
+  { key: 'videos_regen',   title: 'Vídeos regenerados',   description: 'Cada vídeo regenerado pasa por el worker antes del cliente' },
 ];
 
 export function HumanReviewCard({ brandId, initialConfig, defaults }: HumanReviewCardProps) {
@@ -110,6 +119,49 @@ export function HumanReviewCard({ brandId, initialConfig, defaults }: HumanRevie
     }
   }
 
+  function renderToggles(list: typeof TOGGLES_CREATE) {
+    return list.map(({ key, title, description }) => {
+      const isOverride = override !== null && Object.prototype.hasOwnProperty.call(override, key);
+      return (
+        <Toggle
+          key={key}
+          checked={effective[key]}
+          onChange={(next) => { void setFlag(key, next); }}
+          label={title}
+          description={description}
+          disabled={saving[key] === true || resetting}
+          rightSlot={
+            <span style={{
+              fontSize:       9,
+              fontWeight:     700,
+              padding:        '2px 6px',
+              letterSpacing:  '0.06em',
+              textTransform:  'uppercase',
+              fontFamily:     fc,
+              background:     isOverride ? C.accent : C.bg1,
+              color:          isOverride ? '#fff'   : C.muted,
+            }}>
+              {isOverride ? 'Override' : 'Heredado'}
+            </span>
+          }
+        />
+      );
+    });
+  }
+
+  const sectionHeader = (title: string, marginTop = 0): React.CSSProperties => ({
+    fontSize:       10,
+    fontWeight:     800,
+    color:          C.accent,
+    textTransform:  'uppercase',
+    letterSpacing:  '0.08em',
+    fontFamily:     fc,
+    marginTop,
+    marginBottom:   6,
+    paddingBottom:  4,
+    borderBottom:   `1px solid ${C.border}`,
+  });
+
   return (
     <div style={{ border: `1px solid ${C.border}`, background: C.card, padding: 20 }}>
       <h4 style={{
@@ -124,33 +176,11 @@ export function HumanReviewCard({ brandId, initialConfig, defaults }: HumanRevie
         Revisión humana
       </h4>
 
-      {TOGGLES.map(({ key, title, description }) => {
-        const isOverride = override !== null && Object.prototype.hasOwnProperty.call(override, key);
-        return (
-          <Toggle
-            key={key}
-            checked={effective[key]}
-            onChange={(next) => { void setFlag(key, next); }}
-            label={title}
-            description={description}
-            disabled={saving[key] === true || resetting}
-            rightSlot={
-              <span style={{
-                fontSize:       9,
-                fontWeight:     700,
-                padding:        '2px 6px',
-                letterSpacing:  '0.06em',
-                textTransform:  'uppercase',
-                fontFamily:     fc,
-                background:     isOverride ? C.accent : C.bg1,
-                color:          isOverride ? '#fff'   : C.muted,
-              }}>
-                {isOverride ? 'Override' : 'Heredado'}
-              </span>
-            }
-          />
-        );
-      })}
+      <div style={sectionHeader('')}>Al generar ideas (lunes)</div>
+      {renderToggles(TOGGLES_CREATE)}
+
+      <div style={sectionHeader('', 16)}>Al regenerar variaciones</div>
+      {renderToggles(TOGGLES_REGEN)}
 
       {hasOverride && (
         <button

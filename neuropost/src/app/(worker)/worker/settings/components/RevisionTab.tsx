@@ -32,10 +32,25 @@ interface BrandEntry {
 }
 
 const LABEL_ES: Record<HrcUiKey, string> = {
-  messages: 'mensajes',
-  images:   'imágenes',
-  videos:   'vídeos',
+  messages_create: 'mensajes (crear)',
+  images_create:   'imágenes (crear)',
+  videos_create:   'vídeos (crear)',
+  messages_regen:  'mensajes (regenerar)',
+  images_regen:    'imágenes (regenerar)',
+  videos_regen:    'vídeos (regenerar)',
 };
+
+const TOGGLES_CREATE: Array<{ key: HrcUiKey; title: string; description: string }> = [
+  { key: 'messages_create', title: 'Mensajes semanales',  description: 'El plan de ideas pasa por el worker antes de enviarlo al cliente' },
+  { key: 'images_create',   title: 'Imágenes generadas',  description: 'Cada imagen generada pasa por el worker antes del cliente' },
+  { key: 'videos_create',   title: 'Vídeos generados',    description: 'Cada vídeo generado pasa por el worker antes del cliente' },
+];
+
+const TOGGLES_REGEN: Array<{ key: HrcUiKey; title: string; description: string }> = [
+  { key: 'messages_regen', title: 'Mensajes regenerados', description: 'La idea regenerada pasa por el worker antes del cliente' },
+  { key: 'images_regen',   title: 'Imágenes regeneradas', description: 'Cada imagen regenerada pasa por el worker antes del cliente' },
+  { key: 'videos_regen',   title: 'Vídeos regenerados',   description: 'Cada vídeo regenerado pasa por el worker antes del cliente' },
+];
 
 export default function RevisionTab() {
   const [defaults, setDefaults]   = useState<HumanReviewConfig>(HARD_DEFAULT);
@@ -86,7 +101,6 @@ export default function RevisionTab() {
       if (!res.ok) throw new Error(data.error ?? 'Error al guardar');
       if (data.human_review_defaults) setDefaults(data.human_review_defaults);
       toast.success(`Default global de ${LABEL_ES[key]} ${next ? 'activado' : 'desactivado'}`);
-      // Refetch brands so effective/diff_keys reflect the new defaults.
       void loadAll();
     } catch (err) {
       setDefaults((d) => ({ ...d, [key]: prev }));
@@ -116,6 +130,32 @@ export default function RevisionTab() {
     return <div style={{ padding: 40, color: C.muted, fontFamily: f }}>Cargando configuración de revisión…</div>;
   }
 
+  function renderGlobalToggles(list: typeof TOGGLES_CREATE) {
+    return list.map(({ key, title, description }) => (
+      <Toggle
+        key={key}
+        checked={defaults[key]}
+        onChange={(n) => { void setGlobalFlag(key, n); }}
+        label={title}
+        description={description}
+        disabled={!canEdit || saving[key] === true}
+        title={canEdit ? undefined : 'Solo admin/senior'}
+      />
+    ));
+  }
+
+  const sectionHeader: React.CSSProperties = {
+    fontSize:       10,
+    fontWeight:     800,
+    color:          C.accent,
+    textTransform:  'uppercase',
+    letterSpacing:  '0.08em',
+    fontFamily:     fc,
+    marginBottom:   6,
+    paddingBottom:  4,
+    borderBottom:   `1px solid ${C.border}`,
+  };
+
   return (
     <div style={{ padding: 28, color: C.text, flex: 1, overflow: 'auto' }}>
       <div style={{ marginBottom: 24 }}>
@@ -136,30 +176,11 @@ export default function RevisionTab() {
           Defaults globales
         </h4>
 
-        <Toggle
-          checked={defaults.messages}
-          onChange={(n) => { void setGlobalFlag('messages', n); }}
-          label="Mensajes semanales"
-          description="El plan de ideas pasa por el worker antes de enviarlo al cliente"
-          disabled={!canEdit || saving.messages === true}
-          title={canEdit ? undefined : 'Solo admin/senior'}
-        />
-        <Toggle
-          checked={defaults.images}
-          onChange={(n) => { void setGlobalFlag('images', n); }}
-          label="Imágenes generadas"
-          description="Cada imagen pasa por el worker antes del cliente"
-          disabled={!canEdit || saving.images === true}
-          title={canEdit ? undefined : 'Solo admin/senior'}
-        />
-        <Toggle
-          checked={defaults.videos}
-          onChange={(n) => { void setGlobalFlag('videos', n); }}
-          label="Vídeos generados"
-          description="Cada vídeo pasa por el worker antes del cliente"
-          disabled={!canEdit || saving.videos === true}
-          title={canEdit ? undefined : 'Solo admin/senior'}
-        />
+        <div style={sectionHeader}>Al generar ideas (lunes)</div>
+        {renderGlobalToggles(TOGGLES_CREATE)}
+
+        <div style={{ ...sectionHeader, marginTop: 16 }}>Al regenerar variaciones</div>
+        {renderGlobalToggles(TOGGLES_REGEN)}
 
         <div style={{ fontSize: 11, color: C.muted, marginTop: 12, fontStyle: 'italic', fontFamily: f }}>
           {canEdit

@@ -56,10 +56,13 @@ export type EditingLevel    = 0 | 1 | 2;
 // ─── Human Review Config ──────────────────────────────────────────────────────
 
 export interface HumanReviewConfig {
-  messages: boolean;
-  images:   boolean;
-  videos:   boolean;
-  requests: boolean;
+  messages_create: boolean;
+  images_create:   boolean;
+  videos_create:   boolean;
+  messages_regen:  boolean;
+  images_regen:    boolean;
+  videos_regen:    boolean;
+  requests:        boolean;
 }
 
 /** Global defaults for human review. Alias of HumanReviewConfig — kept

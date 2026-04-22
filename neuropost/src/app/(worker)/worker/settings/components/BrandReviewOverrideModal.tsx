@@ -39,15 +39,24 @@ const f  = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 const LABEL: Record<HrcUiKey, string> = {
-  messages: 'mensajes',
-  images:   'imágenes',
-  videos:   'vídeos',
+  messages_create: 'mensajes (crear)',
+  images_create:   'imágenes (crear)',
+  videos_create:   'vídeos (crear)',
+  messages_regen:  'mensajes (regenerar)',
+  images_regen:    'imágenes (regenerar)',
+  videos_regen:    'vídeos (regenerar)',
 };
 
-const TOGGLES: Array<{ key: HrcUiKey; title: string; description: string }> = [
-  { key: 'messages', title: 'Mensajes semanales',  description: 'El plan de ideas pasa por el worker antes de enviarlo al cliente' },
-  { key: 'images',   title: 'Imágenes generadas',  description: 'Cada imagen pasa por el worker antes del cliente' },
-  { key: 'videos',   title: 'Vídeos generados',    description: 'Cada vídeo pasa por el worker antes del cliente' },
+const TOGGLES_CREATE: Array<{ key: HrcUiKey; title: string; description: string }> = [
+  { key: 'messages_create', title: 'Mensajes semanales',  description: 'El plan de ideas pasa por el worker antes de enviarlo al cliente' },
+  { key: 'images_create',   title: 'Imágenes generadas',  description: 'Cada imagen generada pasa por el worker antes del cliente' },
+  { key: 'videos_create',   title: 'Vídeos generados',    description: 'Cada vídeo generado pasa por el worker antes del cliente' },
+];
+
+const TOGGLES_REGEN: Array<{ key: HrcUiKey; title: string; description: string }> = [
+  { key: 'messages_regen', title: 'Mensajes regenerados', description: 'La idea regenerada pasa por el worker antes del cliente' },
+  { key: 'images_regen',   title: 'Imágenes regeneradas', description: 'Cada imagen regenerada pasa por el worker antes del cliente' },
+  { key: 'videos_regen',   title: 'Vídeos regenerados',   description: 'Cada vídeo regenerado pasa por el worker antes del cliente' },
 ];
 
 export function BrandReviewOverrideModal({ brand, defaults, onClose, onSaved }: Props) {
@@ -118,6 +127,49 @@ export function BrandReviewOverrideModal({ brand, defaults, onClose, onSaved }: 
 
   const hasOverride = override !== null && Object.keys(override).length > 0;
 
+  function renderToggles(list: typeof TOGGLES_CREATE) {
+    return list.map(({ key, title, description }) => {
+      const isOverride = override !== null && Object.prototype.hasOwnProperty.call(override, key);
+      const globalValue = defaults[key] ? 'ON' : 'OFF';
+      return (
+        <Toggle
+          key={key}
+          checked={effective[key]}
+          onChange={(next) => { void setFlag(key, next); }}
+          label={title}
+          description={`${description} · Valor global: ${globalValue}`}
+          disabled={saving[key] === true || resetting}
+          rightSlot={
+            <span style={{
+              fontSize:      9,
+              fontWeight:    700,
+              padding:       '2px 6px',
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              fontFamily:    fc,
+              background:    isOverride ? C.accent : C.bg1,
+              color:         isOverride ? '#fff'   : C.muted,
+            }}>
+              {isOverride ? 'Override' : 'Heredado'}
+            </span>
+          }
+        />
+      );
+    });
+  }
+
+  const sectionHeader: React.CSSProperties = {
+    fontSize:       10,
+    fontWeight:     800,
+    color:          C.accent,
+    textTransform:  'uppercase',
+    letterSpacing:  '0.08em',
+    fontFamily:     fc,
+    marginBottom:   6,
+    paddingBottom:  4,
+    borderBottom:   `1px solid ${C.border}`,
+  };
+
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
@@ -125,7 +177,7 @@ export function BrandReviewOverrideModal({ brand, defaults, onClose, onSaved }: 
     }}>
       <div style={{
         background: C.card, border: `1px solid ${C.border}`, borderRadius: 0,
-        padding: 28, maxWidth: 520, width: '90%', maxHeight: '90vh', overflowY: 'auto',
+        padding: 28, maxWidth: 560, width: '90%', maxHeight: '90vh', overflowY: 'auto',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
           <div>
@@ -150,34 +202,11 @@ export function BrandReviewOverrideModal({ brand, defaults, onClose, onSaved }: 
           Override sobre los defaults globales. Cada cambio se guarda al instante.
         </p>
 
-        {TOGGLES.map(({ key, title, description }) => {
-          const isOverride = override !== null && Object.prototype.hasOwnProperty.call(override, key);
-          const globalValue = defaults[key] ? 'ON' : 'OFF';
-          return (
-            <Toggle
-              key={key}
-              checked={effective[key]}
-              onChange={(next) => { void setFlag(key, next); }}
-              label={title}
-              description={`${description} · Valor global: ${globalValue}`}
-              disabled={saving[key] === true || resetting}
-              rightSlot={
-                <span style={{
-                  fontSize:      9,
-                  fontWeight:    700,
-                  padding:       '2px 6px',
-                  letterSpacing: '0.06em',
-                  textTransform: 'uppercase',
-                  fontFamily:    fc,
-                  background:    isOverride ? C.accent : C.bg1,
-                  color:         isOverride ? '#fff'   : C.muted,
-                }}>
-                  {isOverride ? 'Override' : 'Heredado'}
-                </span>
-              }
-            />
-          );
-        })}
+        <div style={sectionHeader}>Al generar ideas (lunes)</div>
+        {renderToggles(TOGGLES_CREATE)}
+
+        <div style={{ ...sectionHeader, marginTop: 16 }}>Al regenerar variaciones</div>
+        {renderToggles(TOGGLES_REGEN)}
 
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
