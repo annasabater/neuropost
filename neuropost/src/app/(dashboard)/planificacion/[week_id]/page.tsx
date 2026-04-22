@@ -62,18 +62,25 @@ export default function PlanReviewPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // While at least one idea is still regenerating, poll the plan every
-  // 10s so the new variation appears automatically when the agent finishes.
+  // Poll every 10s while at least one idea is regenerating OR awaiting
+  // worker review — both states change via server-side mutation, so the
+  // client needs to re-fetch to notice when they resolve.
   useEffect(() => {
-    const hasRegenerating = ideas.some((i) => i.status === 'regenerating');
-    if (!hasRegenerating) return;
+    const needsPolling = ideas.some(
+      (i) => i.status === 'regenerating' || i.awaiting_worker_review === true,
+    );
+    if (!needsPolling) return;
     const interval = setInterval(() => { void load(); }, 10_000);
     return () => clearInterval(interval);
   }, [ideas, load]);
 
   // Ideas replaced by a variation are hidden from the client — the new one
   // (linked via original_idea_id) already occupies their position.
-  const visibleIdeas = ideas.filter((i) => i.status !== 'replaced_by_variation');
+  // Ideas awaiting worker review are also hidden until the worker clears
+  // the gate from /worker/weekly-plans/[id].
+  const visibleIdeas = ideas.filter(
+    (i) => i.status !== 'replaced_by_variation' && i.awaiting_worker_review !== true,
+  );
   const postIdeas    = visibleIdeas.filter((i) => i.content_kind !== 'story');
   const storyIdeas   = visibleIdeas.filter((i) => i.content_kind === 'story');
   const reviewed     = postIdeas.filter((i) => i.status !== 'pending' && i.status !== 'regenerating').length;

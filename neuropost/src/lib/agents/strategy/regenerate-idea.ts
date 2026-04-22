@@ -305,28 +305,51 @@ export async function regenerateIdeaHandler(job: AgentJob): Promise<HandlerResul
 
     const newFormat = mapFormatToDb(llmIdea.format);
 
-    // 4. INSERT the new idea linked back to the original.
+    // 4. Resolve the effective human-review config and route the idea
+    //    *before* inserting, so awaiting_worker_review lands correctly
+    //    in a single INSERT (instead of an extra UPDATE round-trip).
+    const { data: brandRow } = await db
+      .from('brands')
+      .select('human_review_config, name')
+      .eq('id', job.brand_id)
+      .single();
+    const hrDefaults  = await getHumanReviewDefaults(db);
+    const hrEffective = resolveHumanReviewConfig(brandRow?.human_review_config ?? null, hrDefaults);
+    const decision    = routeIdea(
+      {
+        content_kind:        (original.content_kind ?? 'post') as 'post' | 'story',
+        format:              newFormat as 'image' | 'reel' | 'carousel' | 'story',
+        suggested_asset_url: null,
+        rendered_image_url:  null,
+      },
+      hrEffective,
+      { is_weekly_plan_event: false, is_regeneration: true },
+    );
+
+    // 5. INSERT the new idea linked back to the original, with the
+    //    awaiting_worker_review gate already set based on the decision.
     const insertPayload = {
-      week_id:             input.week_id,
-      brand_id:            job.brand_id,
-      agent_output_id:     null,
-      category_id:         original.category_id ?? null,
-      position:            original.position ?? 0,
-      day_of_week:         original.day_of_week ?? null,
-      format:              newFormat,
-      angle:               llmIdea.title,
-      hook:                llmIdea.caption_angle || null,
-      copy_draft:          null,
-      hashtags:            null,
-      suggested_asset_url: null,
-      suggested_asset_id:  null,
-      status:              'pending' as const,
-      content_kind:        original.content_kind ?? 'post',
-      story_type:          original.story_type ?? null,
-      template_id:         original.template_id ?? null,
-      rendered_image_url:  null,
-      original_idea_id:    original.id,
-      regeneration_reason: input.comment ?? null,
+      week_id:                input.week_id,
+      brand_id:               job.brand_id,
+      agent_output_id:        null,
+      category_id:            original.category_id ?? null,
+      position:               original.position ?? 0,
+      day_of_week:            original.day_of_week ?? null,
+      format:                 newFormat,
+      angle:                  llmIdea.title,
+      hook:                   llmIdea.caption_angle || null,
+      copy_draft:             null,
+      hashtags:               null,
+      suggested_asset_url:    null,
+      suggested_asset_id:     null,
+      status:                 'pending' as const,
+      content_kind:           original.content_kind ?? 'post',
+      story_type:             original.story_type ?? null,
+      template_id:            original.template_id ?? null,
+      rendered_image_url:     null,
+      original_idea_id:       original.id,
+      regeneration_reason:    input.comment ?? null,
+      awaiting_worker_review: decision.route === 'worker_review',
     };
 
     const { data: newIdea, error: insertErr } = await db
@@ -339,7 +362,7 @@ export async function regenerateIdeaHandler(job: AgentJob): Promise<HandlerResul
       throw new Error(`INSERT new idea failed: ${insertErr?.message ?? 'unknown'}`);
     }
 
-    // 5. Flip the original.
+    // 6. Flip the original.
     const { error: updateErr } = await db
       .from('content_ideas')
       .update({ status: 'replaced_by_variation' })
@@ -348,25 +371,9 @@ export async function regenerateIdeaHandler(job: AgentJob): Promise<HandlerResul
       console.error(`[regenerate-idea][job=${job.id}] flip original failed:`, updateErr);
     }
 
-    // 6. Route the new idea via the central dispatcher.
-    const { data: brandRow } = await db
-      .from('brands')
-      .select('human_review_config, name')
-      .eq('id', job.brand_id)
-      .single();
-    const hrDefaults  = await getHumanReviewDefaults(db);
-    const hrEffective = resolveHumanReviewConfig(brandRow?.human_review_config ?? null, hrDefaults);
-    const decision    = routeIdea(
-      {
-        content_kind:        newIdea.content_kind as 'post' | 'story',
-        format:              newIdea.format as 'image' | 'reel' | 'carousel' | 'story',
-        suggested_asset_url: null,
-        rendered_image_url:  null,
-      },
-      hrEffective,
-      { is_weekly_plan_event: false, is_regeneration: true },
-    );
-
+    // 7. Side-channel worker alert (notification). Coexists with the
+    //    awaiting_worker_review gate: the gate governs UI visibility,
+    //    the notification powers inbox/push.
     if (decision.route === 'worker_review') {
       await db.from('worker_notifications').insert({
         type:       'idea_variation_ready',

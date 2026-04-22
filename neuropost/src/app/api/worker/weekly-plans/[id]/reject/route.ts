@@ -20,6 +20,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const db = createAdminClient() as DB;
     await db.from('weekly_plans').update({ skip_reason: body.skip_reason }).eq('id', id);
 
+    // Clear the worker-review gate on every idea of this plan — rejecting
+    // the plan means nothing reaches the client; the gate is moot.
+    await db.from('content_ideas')
+      .update({ awaiting_worker_review: false })
+      .eq('week_id', id)
+      .eq('awaiting_worker_review', true);
+
     const plan = await transitionWeeklyPlanStatus({ plan_id: id, to: 'expired', reason: 'worker rejected' });
 
     return NextResponse.json({ ok: true, plan });

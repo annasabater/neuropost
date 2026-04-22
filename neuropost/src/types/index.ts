@@ -1102,6 +1102,8 @@ export interface ContentIdea {
   // Commit 3A — variation chain
   original_idea_id?:      string | null;
   regeneration_reason?:   string | null;
+  // Commit 5B — worker gate for regenerated variations
+  awaiting_worker_review?: boolean;
   created_at:             string;
   updated_at:             string;
 }

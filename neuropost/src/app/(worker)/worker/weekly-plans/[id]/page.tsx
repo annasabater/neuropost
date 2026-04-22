@@ -107,6 +107,26 @@ export default function WorkerWeeklyPlanPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
         {ideas.map((idea, i) => (
           <div key={idea.id} style={{ background: C.card, border: `1px solid ${C.border}`, padding: 20 }}>
+            {idea.original_idea_id && idea.awaiting_worker_review && (
+              <div style={{
+                display:      'flex',
+                alignItems:   'flex-start',
+                gap:          8,
+                padding:      '10px 12px',
+                background:   '#fef3c7',
+                color:        '#92400e',
+                border:       '1px solid #f59e0b',
+                marginBottom: 12,
+                fontSize:     12,
+                lineHeight:   1.5,
+              }}>
+                <span style={{ fontSize: 14, flexShrink: 0 }}>⚠️</span>
+                <span>
+                  <strong>Variación regenerada pendiente de tu revisión.</strong>{' '}
+                  Se enviará al cliente cuando actúes sobre esta idea (edítala, o aprueba/rechaza el plan entero).
+                </span>
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', marginBottom: 12 }}>
               <span style={numBadge}>{i + 1}</span>
               <div style={{ flex: 1 }}>

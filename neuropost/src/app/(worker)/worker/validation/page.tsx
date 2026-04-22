@@ -4,10 +4,11 @@ import { useEffect, useState, useCallback } from 'react';
 import { Check, X, Edit2, RefreshCw, SkipForward, ChevronLeft, ChevronRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { createBrowserClient } from '@/lib/supabase';
-import { WeeklyPlansQueue } from './_components/WeeklyPlansQueue';
-import { RetouchQueue }     from './_components/RetouchQueue';
-import { ColaQueue }        from './_components/ColaQueue';
-import { ReclamadasQueue }  from './_components/ReclamadasQueue';
+import { WeeklyPlansQueue }       from './_components/WeeklyPlansQueue';
+import { RetouchQueue }           from './_components/RetouchQueue';
+import { ColaQueue }              from './_components/ColaQueue';
+import { ReclamadasQueue }        from './_components/ReclamadasQueue';
+import { ChangesRequestedQueue }  from './_components/ChangesRequestedQueue';
 
 const C = {
   bg: '#ffffff',
@@ -44,10 +45,26 @@ interface Proposal {
   brands?: { name: string };
 }
 
-type Tab = 'proposals' | 'weekly-plans' | 'retouches' | 'cola' | 'mis-tareas';
+type Tab = 'proposals' | 'weekly-plans' | 'retouches' | 'changes-requested' | 'cola' | 'mis-tareas';
 
 export default function ValidationPage() {
   const [tab, setTab] = useState<Tab>('proposals');
+  const [changesCount, setChangesCount] = useState(0);
+
+  // Poll the pending counts so the "Cambios pedidos" tab shows a badge.
+  useEffect(() => {
+    let cancelled = false;
+    async function loadCounts() {
+      try {
+        const res  = await fetch('/api/worker/validation-pending-counts');
+        const data = await res.json() as { changes_requested?: number };
+        if (!cancelled) setChangesCount(data.changes_requested ?? 0);
+      } catch { /* silent */ }
+    }
+    void loadCounts();
+    const iv = setInterval(() => { void loadCounts(); }, 30_000);
+    return () => { cancelled = true; clearInterval(iv); };
+  }, []);
 
   // ── Proposals state ────────────────────────────────────────────────────────
   const [items, setItems] = useState<Proposal[]>([]);
@@ -168,11 +185,12 @@ export default function ValidationPage() {
         <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 16px' }}>Validación de contenido</h1>
         <div style={{ display: 'flex', borderBottom: `2px solid ${C.border}`, gap: 0 }}>
           {([
-            ['proposals',    'Propuestas (pieza individual)'],
-            ['weekly-plans', 'Planes semanales'],
-            ['retouches',    'Retoques pendientes'],
-            ['cola',         'Cola (pipeline clásico)'],
-            ['mis-tareas',   'Mis tareas reclamadas'],
+            ['proposals',         'Propuestas (pieza individual)'],
+            ['weekly-plans',      'Planes semanales'],
+            ['retouches',         'Retoques pendientes'],
+            ['changes-requested', 'Cambios pedidos'],
+            ['cola',              'Cola (pipeline clásico)'],
+            ['mis-tareas',        'Mis tareas reclamadas'],
           ] as [Tab, string][]).map(([t, label]) => (
             <button
               key={t}
@@ -188,9 +206,27 @@ export default function ValidationPage() {
                 fontSize: 14,
                 cursor: 'pointer',
                 fontFamily: 'inherit',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
               }}
             >
               {label}
+              {t === 'changes-requested' && changesCount > 0 && (
+                <span style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  padding: '2px 6px',
+                  background: '#ef4444',
+                  color: '#fff',
+                  borderRadius: 0,
+                  lineHeight: 1,
+                  minWidth: 16,
+                  textAlign: 'center',
+                }}>
+                  {changesCount}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -325,6 +361,9 @@ export default function ValidationPage() {
 
       {/* ── Tab: Retoques pendientes ── */}
       {tab === 'retouches' && <RetouchQueue />}
+
+      {/* ── Tab: Cambios pedidos (regenerated variations awaiting worker) ── */}
+      {tab === 'changes-requested' && <ChangesRequestedQueue />}
 
       {/* ── Tab: Cola (pipeline clásico) ── */}
       {tab === 'cola' && <ColaQueue />}

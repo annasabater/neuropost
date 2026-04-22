@@ -22,15 +22,21 @@ export async function PATCH(
       suggested_asset_url?: string;
     };
 
-    const allowed = ['copy_draft', 'hashtags', 'angle', 'suggested_asset_url'] as const;
+    const allowed = ['copy_draft', 'hashtags', 'angle', 'suggested_asset_url', 'awaiting_worker_review'] as const;
     const patch: Record<string, unknown> = {};
     for (const k of allowed) {
-      if (body[k] !== undefined) patch[k] = body[k];
+      if ((body as Record<string, unknown>)[k] !== undefined) {
+        patch[k] = (body as Record<string, unknown>)[k];
+      }
     }
 
     if (Object.keys(patch).length === 0) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }
+
+    // Any worker action on this idea implicitly clears the worker-review
+    // gate — the variation (if any) is now considered handled.
+    patch.awaiting_worker_review = false;
 
     const { data, error } = await db
       .from('content_ideas')

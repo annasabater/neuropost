@@ -7,10 +7,23 @@ type DB = any;
 
 export async function GET() {
   try {
-    await requireWorker();
-    const db = createAdminClient() as DB;
+    const worker = await requireWorker();
+    const db     = createAdminClient() as DB;
 
-    const [proposalsRes, plansRes, retouchesRes] = await Promise.all([
+    // NOTE: the first 3 queries count globally (ignoring brands_assigned).
+    // That is a pre-existing behaviour out of scope for commit 5B. Only
+    // changes_requested is scoped by brands_assigned so it reflects the
+    // worker's own queue.
+    let changesQ = db
+      .from('content_ideas')
+      .select('id', { count: 'exact', head: true })
+      .eq('awaiting_worker_review', true)
+      .eq('status', 'pending');
+    if (worker.role === 'worker' && worker.brands_assigned?.length) {
+      changesQ = changesQ.in('brand_id', worker.brands_assigned);
+    }
+
+    const [proposalsRes, plansRes, retouchesRes, changesRes] = await Promise.all([
       db
         .from('proposals')
         .select('id', { count: 'exact', head: true })
@@ -23,17 +36,20 @@ export async function GET() {
         .from('retouch_requests')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'pending'),
+      changesQ,
     ]);
 
-    const proposals    = proposalsRes.count  ?? 0;
-    const weekly_plans = plansRes.count      ?? 0;
-    const retouches    = retouchesRes.count  ?? 0;
+    const proposals         = proposalsRes.count ?? 0;
+    const weekly_plans      = plansRes.count     ?? 0;
+    const retouches         = retouchesRes.count ?? 0;
+    const changes_requested = changesRes.count   ?? 0;
 
     return NextResponse.json({
       proposals,
       weekly_plans,
       retouches,
-      total: proposals + weekly_plans + retouches,
+      changes_requested,
+      total: proposals + weekly_plans + retouches + changes_requested,
     });
   } catch (err) {
     const { error, status } = workerErrorResponse(err);
