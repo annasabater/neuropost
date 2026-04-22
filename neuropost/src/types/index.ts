@@ -852,7 +852,7 @@ export const PLAN_META: Record<SubscriptionPlan, {
 }> = {
   starter: { label: 'Esencial',      price: 62,  annualPrice: 62,  extraPlatformPrice: 15, tagline: '2 posts de foto por semana · Generación con IA',            socialAccountsIncluded: 1 },
   pro:     { label: 'Crecimiento',   price: 109, annualPrice: 104, extraPlatformPrice: 15, tagline: '4 fotos + 2 vídeos por semana · Soporte prioritario',        socialAccountsIncluded: 1 },
-  total:   { label: 'Profesional',   price: 189, annualPrice: 161, extraPlatformPrice: 15, tagline: 'Hasta 20 fotos + 10 vídeos por semana · 24h',                socialAccountsIncluded: 1 },
+  total:   { label: 'Profesional',   price: 189, annualPrice: 161, extraPlatformPrice: 15, tagline: 'Hasta 7 fotos + 10 vídeos por semana · 24h',                socialAccountsIncluded: 1 },
 };
 
 /** Add-on pricing. One extra connected social account = €15/mo each. */

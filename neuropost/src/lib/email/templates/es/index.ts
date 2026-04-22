@@ -57,7 +57,7 @@ export const templates: EmailTemplates = {
     const perks: Record<string, string[]> = {
       starter: ['12 posts al mes', 'Instagram y Facebook', 'Generación con IA'],
       pro:     ['Posts ilimitados', 'Publicación automática', '2 plataformas sociales', 'Análisis avanzado'],
-      total:   ['Todo lo de Pro', 'Hasta 20 posts/semana', '10 vídeos/semana', 'Soporte prioritario'],
+      total:   ['Todo lo de Pro', 'Hasta 7 posts/semana', '10 vídeos/semana', 'Soporte prioritario'],
     };
     const list = (perks[plan] ?? perks.starter).map(p => `<li>${p}</li>`).join('');
     return {

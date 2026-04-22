@@ -670,7 +670,7 @@ const ONBOARDING_PLANS: {
     desc:  'Control completo',
     badge: 'Completo',
     features: [
-      '📷  Hasta 20 fotos/semana · 🎬  10 vídeo/reel ≤90s · ⭐  Carruseles hasta 20',
+      '📷  Hasta 7 fotos/semana · 🎬  10 vídeo/reel ≤90s · ⭐  Carruseles hasta 20',
       'Publicación programada',
       'Ideas basadas en tendencias y tu contenido',
       'Mejores horas para publicar',

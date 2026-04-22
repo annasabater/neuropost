@@ -61,9 +61,9 @@ const GLOBAL_CSS = `
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const FORMATS = [
-  { title: 'Fotos',      plans: { starter: '2/semana',       pro: '4/semana',            total: 'Hasta 20/semana'      } },
-  { title: 'Vídeos',     plans: { starter: '—',              pro: '2 reels ≤20s/semana', total: '10 reels ≤20s/semana' } },
-  { title: 'Carruseles', plans: { starter: 'Hasta 3 fotos',  pro: 'Hasta 8 fotos',       total: 'Hasta 20 fotos'       } },
+  { title: 'Posts',     plans: { starter: '2',  pro: '4', total: '7'  } },
+  { title: 'Vídeos',    plans: { starter: '0',  pro: '2', total: '7'  } },
+  { title: 'Historias', plans: { starter: '3',  pro: '5', total: '12' } },
 ];
 
 const SERVICES = [

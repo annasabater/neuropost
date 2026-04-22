@@ -41,12 +41,11 @@ const PLANS: Plan[] = [
     annualPrice:    62,
     annualSavings:  0,
     desc:          'Para presencia activa',
-    content:       ['✔ 2 fotos/semana', '✔ Carruseles hasta 3', '✔ Sin vídeo/reel', '✔ Instagram + Facebook'],
-    highlight:     'Ideal para empezar con redes. Precio por 1 red social.',
+    content:       ['✔ 2 posts/semana', '✔ 3 historias/semana', '✔ Instagram + Facebook'],
+    highlight:     '',
     featured: false,
     features: [
       '1 red social incluida',
-      '+15 EUR/mes por red adicional',
       'Publicación programada',
       'Calendario avanzado',
       'Edición de contenido',
@@ -62,13 +61,12 @@ const PLANS: Plan[] = [
     annualPrice:    104,
     annualSavings:  65,
     desc:          'Máximo alcance',
-    content:       ['✔ 4 fotos/semana', '✔ 2 vídeos/reels/sem', '✔ Carruseles hasta 8', '✔ Instagram + Facebook + TikTok'],
-    highlight:     'Vídeo/reel + TikTok para máximo alcance. Precio por 1 red social.',
+    content:       ['✔ 4 posts/semana', '✔ videos/reels incluidos', '✔ 5 historias/semana', '✔ Instagram + Facebook + TikTok'],
+    highlight:     '',
     featured: true,
     badge: 'Más popular',
     features: [
       '1 red social incluida',
-      '+15 EUR/mes por red adicional',
       'TikTok disponible',
       'Publicación programada',
       'Ideas basadas en tendencias y tu contenido',
@@ -85,13 +83,12 @@ const PLANS: Plan[] = [
     annualPrice:    161,
     annualSavings:  340,
     desc:          'Control completo',
-    content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels/sem', '✔ Carruseles hasta 20', '✔ Instagram + Facebook + TikTok'],
-    highlight:     'Conversión máxima. Precio por 1 red social.',
+    content:       ['✔ Hasta 7 posts/semana', '✔ videos/reels incluidos', '✔ 12 historias/semana', '✔ Instagram + Facebook + TikTok'],
+    highlight:     '',
     featured: false,
     badge: 'Completo',
     features: [
       '1 red social incluida',
-      '+15 EUR/mes por red adicional',
       'TikTok disponible',
       'Publicación programada',
       'Ideas basadas en tendencias y tu contenido',
@@ -106,11 +103,10 @@ const PLANS: Plan[] = [
 
 const COMPARISON_ROWS: ComparisonRow[] = [
   { feature: 'Precio base (1 red)',           starter: '62 EUR/mes', pro: '109 EUR/mes',      total: '189 EUR/mes' },
-  { feature: 'Red social extra',              starter: '+15 EUR/mes', pro: '+15 EUR/mes',      total: '+15 EUR/mes' },
   { feature: 'Redes disponibles',             starter: 'IG, FB',     pro: 'IG, FB, TikTok',   total: 'IG, FB, TikTok' },
-  { feature: 'Fotos por semana',              starter: '2',          pro: '4',                total: 'Hasta 20' },
+  { feature: 'Posts por semana',              starter: '2',          pro: '4',                total: 'Hasta 7' },
   { feature: 'Vídeo/reel por semana',         starter: '—',          pro: '2',                total: '10' },
-  { feature: 'Carruseles (máx. fotos)',        starter: 'Hasta 3',   pro: 'Hasta 8',          total: 'Hasta 20' },
+  { feature: 'Historias por semana',          starter: '3',          pro: '5',                total: '12' },
   { feature: 'Publicación programada',         starter: '✓',         pro: '✓',               total: '✓' },
   { feature: 'Calendario avanzado',            starter: '✓',         pro: '✓',               total: '✓' },
   { feature: 'Edición de contenido',           starter: '✓',         pro: '✓',               total: '✓' },
@@ -219,7 +215,7 @@ function RoiCalculator() {
             <input
               type="range"
               min={1}
-              max={20}
+              max={7}
               value={postsPerWeek}
               onChange={(e) => setPostsPerWeek(Number(e.target.value))}
               style={{ width: '100%', accentColor: 'var(--orange)', cursor: 'pointer', height: '6px' }}
@@ -508,32 +504,36 @@ function RoiCalculator() {
 function PlanRecommender({ billing }: { billing: BillingCycle }) {
   const [photosPerWeek, setPhotosPerWeek] = useState(3);
   const [videosPerWeek, setVideosPerWeek] = useState(1);
-  const [engagementGoal, setEngagementGoal] = useState(5);
+  const [historiasPerWeek, setHistoriasPerWeek] = useState(3);
 
-  // Limits that each plan actually includes (must match PLANS data above)
   const planLimits = [
-    { plan: PLANS[0], photos: 2,  videos: 0  },   // Starter
-    { plan: PLANS[1], photos: 4,  videos: 2  },   // Pro
-    { plan: PLANS[2], photos: 20, videos: 10 },   // Total
+    { plan: PLANS[0], photos: 2,  videos: 0, historias: 3  },
+    { plan: PLANS[1], photos: 4,  videos: 2, historias: 5  },
+    { plan: PLANS[2], photos: 7,  videos: 7, historias: 12 },
   ] as const;
 
-  // High engagement (≥8/10) nudges toward at least Pro
-  const minTierByEngagement = engagementGoal >= 8 ? 1 : 0;
+  // Can't have more videos than total posts
+  const cappedVideos = Math.min(videosPerWeek, photosPerWeek);
 
-  let recommendedIdx = planLimits.length - 1; // default to Total
+  let recommendedIdx = planLimits.length - 1;
   for (let i = 0; i < planLimits.length; i++) {
-    if (photosPerWeek <= planLimits[i].photos && videosPerWeek <= planLimits[i].videos && i >= minTierByEngagement) {
+    if (
+      photosPerWeek    <= planLimits[i].photos &&
+      cappedVideos     <= planLimits[i].videos &&
+      historiasPerWeek <= planLimits[i].historias
+    ) {
       recommendedIdx = i;
       break;
     }
   }
-  const recommended = planLimits[recommendedIdx].plan;
-  const includedPhotos = planLimits[recommendedIdx].photos;
-  const includedVideos = planLimits[recommendedIdx].videos;
+  const recommended       = planLimits[recommendedIdx].plan;
+  const includedPhotos    = planLimits[recommendedIdx].photos;
+  const includedVideos    = planLimits[recommendedIdx].videos;
+  const includedHistorias = planLimits[recommendedIdx].historias;
 
-  // Extras only exist if user requests more than any plan covers (beyond Total)
-  const extraPhotos = Math.max(0, photosPerWeek - includedPhotos);
-  const extraVideos = Math.max(0, videosPerWeek - includedVideos);
+  const extraPhotos    = Math.max(0, photosPerWeek   - includedPhotos);
+  const extraVideos    = Math.max(0, cappedVideos    - includedVideos);
+  const extraHistorias = Math.max(0, historiasPerWeek - includedHistorias);
 
   const basePrice = billing === 'annual' ? annualPriceForPlan(recommended) : recommended.monthlyPrice;
   const savings = annualSavingsForPlan(recommended);
@@ -568,14 +568,14 @@ function PlanRecommender({ billing }: { billing: BillingCycle }) {
             <div style={{ marginBottom: 24 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                 <label style={{ fontFamily: f, fontSize: '0.9rem', fontWeight: 700, color: 'var(--ink)' }}>
-                  Fotos por semana
+                  Posts por semana
                 </label>
                 <span style={{ fontFamily: fc, fontSize: '1.2rem', fontWeight: 900, color: 'var(--orange)' }}>{photosPerWeek}</span>
               </div>
               <input
                 type="range"
                 min={0}
-                max={30}
+                max={7}
                 step={1}
                 value={photosPerWeek}
                 onChange={(e) => setPhotosPerWeek(Number(e.target.value))}
@@ -588,33 +588,36 @@ function PlanRecommender({ billing }: { billing: BillingCycle }) {
                 <label style={{ fontFamily: f, fontSize: '0.9rem', fontWeight: 700, color: 'var(--ink)' }}>
                   Vídeos por semana
                 </label>
-                <span style={{ fontFamily: fc, fontSize: '1.2rem', fontWeight: 900, color: 'var(--orange)' }}>{videosPerWeek}</span>
+                <span style={{ fontFamily: fc, fontSize: '1.2rem', fontWeight: 900, color: 'var(--orange)' }}>{cappedVideos}</span>
               </div>
               <input
                 type="range"
                 min={0}
-                max={14}
+                max={Math.max(photosPerWeek, 1)}
                 step={1}
-                value={videosPerWeek}
+                value={cappedVideos}
                 onChange={(e) => setVideosPerWeek(Number(e.target.value))}
                 style={{ width: '100%', accentColor: 'var(--orange)', cursor: 'pointer' }}
               />
+              <p style={{ fontFamily: f, fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
+                Cada vídeo cuenta como un post — no puedes superar el número de posts.
+              </p>
             </div>
 
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                 <label style={{ fontFamily: f, fontSize: '0.9rem', fontWeight: 700, color: 'var(--ink)' }}>
-                  Objetivo de engagement
+                  Historias por semana
                 </label>
-                <span style={{ fontFamily: fc, fontSize: '1.2rem', fontWeight: 900, color: 'var(--orange)' }}>{engagementGoal}/10</span>
+                <span style={{ fontFamily: fc, fontSize: '1.2rem', fontWeight: 900, color: 'var(--orange)' }}>{historiasPerWeek}</span>
               </div>
               <input
                 type="range"
-                min={1}
-                max={10}
+                min={0}
+                max={12}
                 step={1}
-                value={engagementGoal}
-                onChange={(e) => setEngagementGoal(Number(e.target.value))}
+                value={historiasPerWeek}
+                onChange={(e) => setHistoriasPerWeek(Number(e.target.value))}
                 style={{ width: '100%', accentColor: 'var(--orange)', cursor: 'pointer' }}
               />
             </div>
@@ -651,16 +654,16 @@ function PlanRecommender({ billing }: { billing: BillingCycle }) {
                   : <span style={{ color: '#6ee7b7', marginLeft: 4 }}>✓ incluido</span>}
               </li>
               <li style={{ fontFamily: f, fontSize: 12, color: '#d1d5db' }}>
-                🎬 {videosPerWeek} vídeo{videosPerWeek !== 1 ? 's' : ''}/sem
+                🎬 {cappedVideos} vídeo{cappedVideos !== 1 ? 's' : ''}/sem
                 {extraVideos > 0
                   ? <span style={{ color: '#fca5a5', marginLeft: 4 }}>({includedVideos} incl. + {extraVideos} extra)</span>
                   : <span style={{ color: '#6ee7b7', marginLeft: 4 }}>✓ incluido</span>}
               </li>
               <li style={{ fontFamily: f, fontSize: 12, color: '#d1d5db' }}>
-                📈 Engagement {engagementGoal}/10
-                {engagementGoal >= 8
-                  ? <span style={{ color: '#fde68a', marginLeft: 4 }}>(alta intensidad)</span>
-                  : <span style={{ color: '#6ee7b7', marginLeft: 4 }}>✓ ok</span>}
+                ✨ {historiasPerWeek} historia{historiasPerWeek !== 1 ? 's' : ''}/sem
+                {extraHistorias > 0
+                  ? <span style={{ color: '#fca5a5', marginLeft: 4 }}>({includedHistorias} incl. + {extraHistorias} extra)</span>
+                  : <span style={{ color: '#6ee7b7', marginLeft: 4 }}>✓ incluido</span>}
               </li>
             </ul>
 

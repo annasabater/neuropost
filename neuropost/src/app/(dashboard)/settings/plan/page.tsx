@@ -163,7 +163,7 @@ const PLANS: {
     annualPrice:    161,
     annualSavings:  340,
     desc:          'Control completo',
-    content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels/sem', '✔ Carruseles hasta 20', '✔ IG + FB + TikTok'],
+    content:       ['✔ Hasta 7 fotos/semana', '✔ 10 vídeos/reels/sem', '✔ Carruseles hasta 20', '✔ IG + FB + TikTok'],
     highlight:     'Conversión máxima. Precio por 1 red social.',
     perks: [
       '1 red social incluida',

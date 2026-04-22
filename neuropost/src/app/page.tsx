@@ -14,39 +14,40 @@ const UNS = (id: string, w = 600) =>
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
+const HERO_BASE = 'https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/hero-images';
 const HERO_POSTS = [
-  { img: UNS('1565299624946-b28f40a0ae38'), caption: 'El mejor risotto de la ciudad 🍝 Reserva tu mesa para esta noche', likes: 234, sector: 'Restaurante' },
-  { img: UNS('1566073771219-73d80a00a7cf'), caption: 'Despertarse con vistas así no tiene precio 🌅 Descubre nuestras habitaciones', likes: 312, sector: 'Hotel' },
-  { img: UNS('1558618666-fcd25c85cd64'), caption: 'Historia que cobra vida cada semana 🏛️ Exposición temporal hasta fin de mes', likes: 278, sector: 'Museo' },
-  { img: UNS('1534438327276-14e5300c3a48'), caption: 'Sin excusas, solo resultados 💪 Clase de las 7am lista', likes: 156, sector: 'Gimnasio' },
-  { img: UNS('1522202176988-66273c2fd55f'), caption: 'Nuevas plazas disponibles 📚 Matrícula abierta hasta el 30', likes: 189, sector: 'Academia' },
-  { img: UNS('1464822759023-fed622ff2c3b'), caption: 'Naturaleza + adrenalina 🧗 Ruta de senderismo este fin de semana', likes: 341, sector: 'Aventura' },
+  { img: `${HERO_BASE}/restaurante-risotto.jpg`,   caption: 'El mejor risotto de la ciudad 🍝 Reserva tu mesa para esta noche',              likes: 234, sector: 'Restaurante' },
+  { img: `${HERO_BASE}/hotel-vistas.jpg`,          caption: 'Despertarse con vistas así no tiene precio 🌅 Descubre nuestras habitaciones',  likes: 312, sector: 'Hotel' },
+  { img: `${HERO_BASE}/museo-exposicion.jpg`,      caption: 'Historia que cobra vida cada semana 🏛️ Exposición temporal hasta fin de mes',    likes: 278, sector: 'Museo' },
+  { img: `${HERO_BASE}/gimnasio-clase.jpg`,        caption: 'Sin excusas, solo resultados 💪 Clase de las 7am lista',                         likes: 156, sector: 'Gimnasio' },
+  { img: `${HERO_BASE}/academia-estudiantes.jpg`,  caption: 'Nuevas plazas disponibles 📚 Matrícula abierta hasta el 30',                     likes: 189, sector: 'Academia' },
+  { img: `${HERO_BASE}/aventura-senderismo.jpg`,   caption: 'Naturaleza + adrenalina 🧗 Ruta de senderismo este fin de semana',               likes: 341, sector: 'Aventura' },
 ];
 
 const PORTFOLIO = [
-  { img: UNS('1482049016688-2d3e1b311543'), caption: 'Mesa lista para esta noche ✨', hashtags: '#restaurante #gastronomia', sector: 'Restaurante' },
-  { img: UNS('1566073771219-73d80a00a7cf'), caption: 'Check-in perfecto 🛎️ Tu escapada te espera', hashtags: '#hotel #viajes', sector: 'Hotel' },
-  { img: UNS('1558618666-fcd25c85cd64'), caption: 'Arte que emociona 🖼️ Ven a descubrirlo', hashtags: '#museo #cultura', sector: 'Museo' },
-  { img: UNS('1571019614242-c5c5dee9f50b'), caption: 'Tu mejor versión empieza hoy 🔥', hashtags: '#gym #fitness', sector: 'Gimnasio' },
-  { img: UNS('1522202176988-66273c2fd55f'), caption: 'Aprender nunca fue tan divertido 📚', hashtags: '#academia #formacion', sector: 'Academia' },
-  { img: UNS('1464822759023-fed622ff2c3b'), caption: 'La aventura empieza aquí 🏕️', hashtags: '#aventura #naturaleza', sector: 'Aventura' },
-  { img: UNS('1570129477492-45c003edd2be'), caption: 'Reforma integral con estilo ✨', hashtags: '#inmobiliaria #hogar', sector: 'Inmobiliaria' },
-  { img: UNS('1516321318423-f06f85e504b3'), caption: '¿Listo para el evento del año? 🎊', hashtags: '#eventos #celebracion', sector: 'Eventos' },
+  { img: `${HERO_BASE}/portfolio-restaurante.jpg`,  caption: 'Mesa lista para esta noche ✨',             hashtags: '#restaurante #gastronomia', sector: 'Restaurante' },
+  { img: `${HERO_BASE}/portfolio-hotel.jpg`,        caption: 'Check-in perfecto 🛎️ Tu escapada te espera', hashtags: '#hotel #viajes',            sector: 'Hotel' },
+  { img: `${HERO_BASE}/portfolio-unas.jpg`,         caption: 'Manos perfectas para tu cita 💅',           hashtags: '#nails #belleza',           sector: 'Uñas' },
+  { img: `${HERO_BASE}/portfolio-dental.jpg`,       caption: 'Tu sonrisa, nuestra prioridad 🦷',          hashtags: '#dental #salud',            sector: 'Clínica Dental' },
+  { img: `${HERO_BASE}/portfolio-floristeria.jpg`,  caption: 'Flores que hablan por ti 🌸',               hashtags: '#flores #regalo',           sector: 'Floristería' },
+  { img: `${HERO_BASE}/portfolio-aventura.jpg`,     caption: 'La aventura empieza aquí 🚵',               hashtags: '#aventura #naturaleza',     sector: 'Aventura' },
+  { img: `${HERO_BASE}/portfolio-cocteleria.jpg`,   caption: 'Cóctel de la casa, noche perfecta 🍸',      hashtags: '#cocteles #nightlife',      sector: 'Coctelería' },
+  { img: `${HERO_BASE}/portfolio-eventos.jpg`,      caption: '¿Listo para el evento del año? 🎊',         hashtags: '#eventos #celebracion',     sector: 'Eventos' },
 ];
 
 const SECTORS = [
-  { label: 'Restaurantes', img: UNS('1517248135467-4c7edcad34c4', 400) },
-  { label: 'Hoteles', img: UNS('1566073771219-73d80a00a7cf', 400) },
-  { label: 'Museos y Cultura', img: UNS('1558618666-fcd25c85cd64', 400) },
-  { label: 'Academias', img: UNS('1522202176988-66273c2fd55f', 400) },
-  { label: 'Deporte y Aventura', img: UNS('1464822759023-fed622ff2c3b', 400) },
-  { label: 'Tiendas y Moda', img: UNS('1441984904996-e0b6ba687e04', 400) },
-  { label: 'Salud y Bienestar', img: UNS('1540555700478-4be289fbecef', 400) },
-  { label: 'Inmobiliarias', img: UNS('1560518883-ce09059eeffa', 400) },
-  { label: 'Cafeterías', img: UNS('1501339847302-ac426a4a7cbb', 400) },
-  { label: 'Ocio Familiar', img: UNS('1472162072942-cd5147eb3902', 400) },
-  { label: 'Eventos', img: UNS('1516321318423-f06f85e504b3', 400) },
-  { label: 'Y mucho más…', img: UNS('1497366216548-37526070297c', 400) },
+  { label: 'Restaurantes',        img: `${HERO_BASE}/sector-restaurantes.jpg` },
+  { label: 'Hoteles',             img: `${HERO_BASE}/sector-hoteles.jpg` },
+  { label: 'Museos y Cultura',    img: `${HERO_BASE}/sector-museos.jpg` },
+  { label: 'Academias',           img: `${HERO_BASE}/sector-academias.jpg` },
+  { label: 'Deporte y Aventura',  img: `${HERO_BASE}/sector-deporte.jpg` },
+  { label: 'Tiendas y Moda',      img: `${HERO_BASE}/sector-tiendas.jpg` },
+  { label: 'Salud y Bienestar',   img: `${HERO_BASE}/sector-salud.jpg` },
+  { label: 'Inmobiliarias',       img: `${HERO_BASE}/sector-inmobiliarias.jpg` },
+  { label: 'Cafeterías',          img: `${HERO_BASE}/sector-cafeterias.jpg` },
+  { label: 'Ocio Familiar',       img: `${HERO_BASE}/sector-ocio-familiar.jpg` },
+  { label: 'Eventos',             img: `${HERO_BASE}/sector-eventos.jpg` },
+  { label: 'Y mucho más…',        img: `${HERO_BASE}/sector-mas.jpg` },
 ];
 
 const RESULTS = [
@@ -212,8 +213,8 @@ export default function LandingPage() {
       annualPrice:    62,
       annualSavings:  0,
       desc:          'Para presencia activa',
-      content:       ['✔ 2 fotos/semana', '✔ Carruseles hasta 3', '✔ Sin vídeo/reel'],
-      highlight:     'Ideal para empezar con redes',
+      content:       ['✔ 2 posts/semana', '✔ 3 historias/semana', '✔ Instagram + Facebook'],
+      highlight:     '',
       features: [
         'Publicación programada',
         'Calendario avanzado',
@@ -232,8 +233,8 @@ export default function LandingPage() {
       desc:          'Máximo alcance',
       featured:      true,
       badge:         '⚡ Más popular',
-      content:       ['✔ 4 fotos/semana', '✔ 2 vídeos/reels ≤90s/sem', '✔ Carruseles hasta 8'],
-      highlight:     'Vídeo/reel optimizados a ≤90s para máximo alcance en Instagram',
+      content:       ['✔ 4 posts/semana', '✔ videos/reels incluidos', '✔ 5 historias/semana', '✔ Instagram + Facebook + TikTok'],
+      highlight:     '',
       features: [
         'Publicación programada',
         'Ideas basadas en tendencias y tu contenido',
@@ -251,8 +252,8 @@ export default function LandingPage() {
       annualSavings:  340,
       desc:          'Control completo',
       badge:         '🚀 Completo',
-      content:       ['✔ Hasta 20 fotos/semana', '✔ 10 vídeos/reels ≤90s/sem', '✔ Carruseles hasta 20'],
-      highlight:     'Conversión máxima de leads a ventas',
+      content:       ['✔ Hasta 7 posts/semana', '✔ videos/reels incluidos', '✔ 12 historias/semana', '✔ Instagram + Facebook + TikTok'],
+      highlight:     '',
       features: [
         'Publicación programada',
         'Ideas basadas en tendencias y tu contenido',
@@ -497,7 +498,7 @@ export default function LandingPage() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={img} alt={label} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(transparent 50%, rgba(0,0,0,0.75))' }} />
-              <p style={{ position: 'absolute', bottom: 16, left: 16, fontFamily: fc, fontSize: 16, fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+              <p style={{ position: 'absolute', bottom: 10, left: 10, right: 10, fontFamily: fc, fontSize: 'clamp(9px, 1.6vw, 16px)', fontWeight: 700, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.02em', lineHeight: 1.15 }}>
                 {label}
               </p>
             </div>
