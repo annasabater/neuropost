@@ -28,6 +28,13 @@ export async function requireAdminWorker(): Promise<Worker> {
   return worker;
 }
 
+/** Require admin or senior worker. */
+export async function requireAdminOrSenior(): Promise<Worker> {
+  const worker = await requireWorker();
+  if (worker.role !== 'admin' && worker.role !== 'senior') throw new Error('FORBIDDEN');
+  return worker;
+}
+
 /**
  * Require the current worker to be assigned to the given brand. Admins bypass
  * the assignment check. Throws FORBIDDEN otherwise.

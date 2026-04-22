@@ -34,6 +34,7 @@ import { createWeeklyPlanFromOutput, transitionWeeklyPlanStatus } from '@/lib/pl
 import { enqueueClientReviewEmail }                     from '@/lib/planning/trigger-client-email';
 import { createAdminClient }                            from '@/lib/supabase';
 import { PLAN_CONTENT_QUOTAS }                          from '@/lib/plan-limits';
+import { getHumanReviewDefaults, resolveHumanReviewConfig } from '@/lib/human-review';
 import { planStoriesHandler }                           from '../stories/plan-stories';
 import type { AgentJob, HandlerResult, HandlerSubJob }  from '../types';
 import type { ContentIdea, PostFormat }                 from './types';
@@ -214,8 +215,12 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
       }
       // ────────────────────────────────────────────────────────────────────
 
-      // Require worker review unless brand explicitly opts out via human_review_config.messages=false
-      const requireWorkerReview = brand.human_review_config?.messages !== false;
+      // Resolve effective human-review config: global defaults merged with
+      // the brand's diff override. Worker review is required unless the
+      // effective value of `messages` is explicitly false.
+      const hrDefaults  = await getHumanReviewDefaults(db);
+      const hrEffective = resolveHumanReviewConfig(brand.human_review_config ?? null, hrDefaults);
+      const requireWorkerReview = hrEffective.messages !== false;
 
       if (requireWorkerReview) {
         await db.from('worker_notifications').insert({

@@ -62,6 +62,18 @@ export interface HumanReviewConfig {
   requests: boolean;
 }
 
+/** Global defaults for human review. Alias of HumanReviewConfig — kept
+ *  as a separate type name so intent is obvious at call sites. */
+export type HumanReviewDefaults = HumanReviewConfig;
+
+/** Row shape for the app_settings singleton key-value table. */
+export interface AppSettingRow<V = unknown> {
+  key:        string;
+  value:      V;
+  updated_at: string;
+  updated_by: string | null;
+}
+
 // ─── Database: Brand ──────────────────────────────────────────────────────────
 
 export interface BrandColors {
