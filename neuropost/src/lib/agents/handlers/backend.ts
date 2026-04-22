@@ -10,17 +10,6 @@
 // don't duplicate that here — any shape error bubbles up as a 'fail' result
 // via toHandlerResult.
 
-import {
-  runEditorAgent,
-  runCopywriterAgent,
-  runIdeasAgent,
-  runPlannerAgent,
-  runCommunityAgent,
-  runAnalystAgent,
-  runPublisherAgent,
-  runSupportAgent,
-  runCreativeExtractorAgent,
-} from '@neuropost/agents';
 import type {
   EditorInput,
   CopywriterInput,
@@ -69,6 +58,7 @@ const editHandler: AgentHandler = async (job) => {
   if (typeof guard !== 'string') return guard;
   try {
     const { ctx } = await loadBrandContext(guard);
+    const { runEditorAgent } = await import('@neuropost/agents');
     const result = await runEditorAgent(job.input as unknown as EditorInput, ctx);
     return toHandlerResult('image', result, { model: 'editor-agent' });
   } catch (err) {
@@ -85,6 +75,7 @@ const copywriterHandler: AgentHandler = async (job) => {
   try {
     const { ctx } = await loadBrandContext(guard);
     const input = job.input as unknown as CopywriterInput & { _post_id?: string; _auto_pipeline?: boolean };
+    const { runCopywriterAgent } = await import('@neuropost/agents');
     const result = await runCopywriterAgent(input, ctx);
     const handlerResult = toHandlerResult('caption', result, { model: 'copywriter-agent' });
 
@@ -140,6 +131,7 @@ const ideasHandler: AgentHandler = async (job) => {
   if (typeof guard !== 'string') return guard;
   try {
     const { ctx } = await loadBrandContext(guard);
+    const { runIdeasAgent } = await import('@neuropost/agents');
     const result = await runIdeasAgent(job.input as unknown as IdeasInput, ctx);
     return toHandlerResult('strategy', result, { model: 'ideas-agent' });
   } catch (err) {
@@ -155,6 +147,7 @@ const plannerHandler: AgentHandler = async (job) => {
   if (typeof guard !== 'string') return guard;
   try {
     const { ctx } = await loadBrandContext(guard);
+    const { runPlannerAgent } = await import('@neuropost/agents');
     const result = await runPlannerAgent(job.input as unknown as PlannerInput, ctx);
     return toHandlerResult('schedule', result, { model: 'planner-agent' });
   } catch (err) {
@@ -170,6 +163,7 @@ const communityHandler: AgentHandler = async (job) => {
   if (typeof guard !== 'string') return guard;
   try {
     const { ctx } = await loadBrandContext(guard);
+    const { runCommunityAgent } = await import('@neuropost/agents');
     const result = await runCommunityAgent(job.input as unknown as CommunityInput, ctx);
     return toHandlerResult('reply', result, { model: 'community-agent' });
   } catch (err) {
@@ -187,6 +181,7 @@ const supportHandler: AgentHandler = async (job) => {
   if (typeof guard !== 'string') return guard;
   try {
     const { ctx } = await loadBrandContext(guard);
+    const { runSupportAgent } = await import('@neuropost/agents');
     const result = await runSupportAgent(job.input as unknown as SupportInput, ctx);
     return toHandlerResult('reply', result, { model: 'support-agent' });
   } catch (err) {
@@ -213,6 +208,7 @@ const creativeExtractorHandler: AgentHandler = async (job) => {
       ? (await loadBrandContext(job.brand_id)).ctx
       : syntheticCtx();
 
+    const { runCreativeExtractorAgent } = await import('@neuropost/agents');
     const result = await runCreativeExtractorAgent(input, ctx);
     if (!result.success || !result.data) {
       return { type: 'fail', error: result.error?.message ?? 'Extractor failed' };
@@ -275,6 +271,7 @@ const analystHandler: AgentHandler = async (job) => {
   if (typeof guard !== 'string') return guard;
   try {
     const { ctx } = await loadBrandContext(guard);
+    const { runAnalystAgent } = await import('@neuropost/agents');
     const result = await runAnalystAgent(job.input as unknown as AnalystInput, ctx);
     return toHandlerResult('analysis', result, { model: 'analyst-agent' });
   } catch (err) {
@@ -290,6 +287,7 @@ const publisherHandler: AgentHandler = async (job) => {
   if (typeof guard !== 'string') return guard;
   try {
     const { ctx } = await loadBrandContext(guard);
+    const { runPublisherAgent } = await import('@neuropost/agents');
     const result = await runPublisherAgent(job.input as unknown as PublisherInput, ctx);
 
     // Publisher is the only one where "success" can still mean "don't publish".

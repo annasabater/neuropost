@@ -8,7 +8,7 @@
 // content:safe_publish  — moderation check → publish if safe, else needs_review
 // scheduling:auto_schedule_week — picks slots for a list of posts
 
-import { runPublisherAgent, type PublisherInput } from '@neuropost/agents';
+import type { PublisherInput } from '@neuropost/agents';
 import { publishPostById } from '@/lib/publishPost';
 import { createAdminClient } from '@/lib/supabase';
 import { loadBrandContext } from '../helpers';
@@ -64,6 +64,7 @@ const safePublishHandler: AgentHandler = async (job: AgentJob): Promise<HandlerR
         format:    post.format ?? 'image',
       } as unknown as PublisherInput;
 
+      const { runPublisherAgent } = await import('@neuropost/agents');
       const safetyResult = await runPublisherAgent(pubInput, ctx);
       if (!safetyResult.success) {
         return { type: 'fail', error: safetyResult.error?.message ?? 'Moderation failed' };
