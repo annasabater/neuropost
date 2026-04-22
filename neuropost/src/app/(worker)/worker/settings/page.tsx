@@ -4,10 +4,11 @@ import { useSearchParams } from 'next/navigation';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Settings as SettingsIcon, Plus, Save, X, Trash2, Bot, Play, Pause, RefreshCw, Edit2, Users, CreditCard } from 'lucide-react';
+import { Settings as SettingsIcon, Plus, Save, X, Trash2, Bot, Play, Pause, RefreshCw, Edit2, Users, CreditCard, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 import EquipoTab from './components/EquipoTab';
 import CuponesTab from './components/CuponesTab';
+import RevisionTab from './components/RevisionTab';
 import { createBrowserClient } from '@/lib/supabase';
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
@@ -445,13 +446,14 @@ function timeAgo(date: string): string {
 // MAIN PAGE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-type SettingsTab = 'equipo' | 'agentes' | 'facturacion' | 'general';
+type SettingsTab = 'equipo' | 'agentes' | 'facturacion' | 'revision' | 'general';
 type IconProps = { size?: number; style?: React.CSSProperties };
 
 const SETTINGS_TABS: { key: SettingsTab; title: string; desc: string; icon: React.ComponentType<IconProps> }[] = [
   { key: 'equipo', title: 'Equipo', desc: 'Gestión', icon: Users },
   { key: 'agentes', title: 'Agentes', desc: 'Automatización', icon: Bot },
   { key: 'facturacion', title: 'Facturación', desc: 'Facturación', icon: CreditCard },
+  { key: 'revision', title: 'Revisión', desc: 'Revisión humana', icon: ShieldCheck },
   { key: 'general', title: 'General', desc: 'Config', icon: SettingsIcon },
 ];
 
@@ -475,7 +477,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Tab selector — Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: C.border, border: `1px solid ${C.border}`, margin: '40px', marginBottom: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1px', background: C.border, border: `1px solid ${C.border}`, margin: '40px', marginBottom: 0 }}>
         {SETTINGS_TABS.map((s) => {
           const active = tab === s.key;
           const Icon = s.icon;
@@ -515,6 +517,7 @@ export default function SettingsPage() {
         {tab === 'equipo' && <EquipoTab />}
         {tab === 'agentes' && <AgentesTab />}
         {tab === 'facturacion' && <FacturacionTab />}
+        {tab === 'revision' && <RevisionTab />}
         {tab === 'general' && <GeneralTab />}
       </div>
     </div>

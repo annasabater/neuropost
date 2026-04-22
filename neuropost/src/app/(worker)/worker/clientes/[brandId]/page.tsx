@@ -403,6 +403,7 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
   const router = useRouter();
 
   const [brand, setBrand] = useState<Brand | null>(null);
+  const [hrDefaults, setHrDefaults] = useState<HumanReviewConfig | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [activity, setActivity] = useState<Activity[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -438,12 +439,13 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
   useEffect(() => {
     async function load() {
       try {
-        const [brandRes, agentsRes, chatRes, ticketsRes, requestsRes] = await Promise.all([
+        const [brandRes, agentsRes, chatRes, ticketsRes, requestsRes, hrDefaultsRes] = await Promise.all([
           fetch(`/api/worker/clientes/${brandId}`),
           fetch('/api/worker/agents'),
           fetch(`/api/chat/worker?brandId=${brandId}`),
           fetch(`/api/worker/soporte?brandId=${brandId}`),
           fetch(`/api/worker/clientes/${brandId}/solicitudes`),
+          fetch('/api/worker/settings/human-review-defaults'),
         ]);
 
         const brandData = await brandRes.json();
@@ -462,6 +464,9 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
 
         const ticketsData = await ticketsRes.json().catch(() => ({ tickets: [] }));
         setTickets(ticketsData.tickets ?? []);
+
+        const hrDefaultsData = await hrDefaultsRes.json().catch(() => ({ human_review_defaults: null }));
+        setHrDefaults(hrDefaultsData.human_review_defaults ?? null);
 
         const requestsData = await requestsRes.json().catch(() => ({ requests: [] }));
         setRequests(requestsData.requests ?? []);
@@ -1322,6 +1327,13 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
                 ))}
               </div>
             </div>
+
+            {/* Human review config */}
+            <HumanReviewCard
+              brandId={brandId}
+              initialConfig={brand.human_review_config ?? null}
+              defaults={hrDefaults}
+            />
           </div>
 
           {/* Internal notes */}

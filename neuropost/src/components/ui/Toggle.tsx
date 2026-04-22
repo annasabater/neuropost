@@ -1,6 +1,6 @@
 'use client';
 
-import { useId } from 'react';
+import { useId, type ReactNode } from 'react';
 
 interface ToggleProps {
   checked:      boolean;
@@ -8,6 +8,10 @@ interface ToggleProps {
   label:        string;
   description?: string;
   disabled?:    boolean;
+  /** Optional slot rendered to the right of the label (e.g. a badge). */
+  rightSlot?:   ReactNode;
+  /** Tooltip shown on hover over the switch (e.g. "Solo admin/senior"). */
+  title?:       string;
 }
 
 const C = {
@@ -22,7 +26,7 @@ const C = {
 const f  = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
-export function Toggle({ checked, onChange, label, description, disabled }: ToggleProps) {
+export function Toggle({ checked, onChange, label, description, disabled, rightSlot, title }: ToggleProps) {
   const descId = useId();
 
   return (
@@ -38,8 +42,11 @@ export function Toggle({ checked, onChange, label, description, disabled }: Togg
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: f }}>
-          {label}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: C.text, fontFamily: f }}>
+            {label}
+          </span>
+          {rightSlot}
         </div>
         {description && (
           <div
@@ -58,6 +65,7 @@ export function Toggle({ checked, onChange, label, description, disabled }: Togg
         aria-label={label}
         aria-describedby={description ? descId : undefined}
         disabled={disabled}
+        title={title}
         onClick={() => { if (!disabled) onChange(!checked); }}
         style={{
           position:   'relative',
