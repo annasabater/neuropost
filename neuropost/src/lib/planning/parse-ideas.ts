@@ -50,18 +50,27 @@ export function parseIdeasFromStrategyPayload(payload: unknown): ParsedIdea[] {
 
   const raw = p['ideas'] as Array<Record<string, unknown>>;
 
-  return raw.map((idea, i) => ({
-    position:             i,
-    day_of_week:          null,
-    format:               mapFormat(idea['format']),
-    angle:                String(idea['title'] ?? idea['caption_angle'] ?? `Idea ${i + 1}`),
-    hook:                 typeof idea['caption_angle'] === 'string' ? idea['caption_angle'] : null,
-    copy_draft:           null,
-    hashtags:             null,
-    suggested_asset_url:  null,
-    suggested_asset_id:   null,
-    category_id:          null,
-  }));
+  return raw.map((idea, i) => {
+    const rawCopy = typeof idea['copy_draft'] === 'string' ? idea['copy_draft'].trim() : '';
+    const rawTags = Array.isArray(idea['hashtags'])
+      ? (idea['hashtags'] as unknown[]).filter((h): h is string => typeof h === 'string')
+      : [];
+    return {
+      position:             i,
+      day_of_week:          null,
+      format:               mapFormat(idea['format']),
+      angle:                String(idea['title'] ?? idea['caption_angle'] ?? `Idea ${i + 1}`),
+      hook:                 typeof idea['caption_angle'] === 'string' ? idea['caption_angle'] : null,
+      // Defensive fallback: validateIdeas should have caught missing/malformed
+      // copy_draft + hashtags, but we still accept null here so a single bad
+      // idea doesn't bring down the whole plan if validation is ever relaxed.
+      copy_draft:           rawCopy.length > 0 ? rawCopy : null,
+      hashtags:             rawTags.length > 0 ? rawTags : null,
+      suggested_asset_url:  null,
+      suggested_asset_id:   null,
+      category_id:          null,
+    };
+  });
 }
 
 /**

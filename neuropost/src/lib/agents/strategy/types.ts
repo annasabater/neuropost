@@ -33,6 +33,8 @@ export interface ContentIdea {
   rationale:     string;            // "Full body has 2.3x engagement…"
   caption_angle: string;            // short hook for the copywriter
   asset_hint:    string;            // "grabar rutina en zona funcional"
+  copy_draft:    string;            // full caption ready to publish (120-250 chars target)
+  hashtags:      string[];          // 5-8 hashtags without the leading '#'
 }
 
 export interface GenerateIdeasOutput {

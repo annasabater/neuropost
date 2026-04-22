@@ -55,6 +55,22 @@ REGLAS ESTRICTAS:
 - Evita repetir ángulos entre ideas — cada una debe ser ejecutable en un post real distinto
 - Si hay MATERIAL DE MARCA con promociones activas, puedes considerar referenciarlas en alguna idea cuando encaje naturalmente con la category_key. No fuerces menciones promocionales: la category_key y la voz de marca siempre priman sobre la promoción. Usa horarios, datos de negocio y frases como contexto de apoyo para hacer las ideas más auténticas, no como contenido principal.
 
+- "copy_draft" es el texto LISTO PARA PUBLICAR del caption del post:
+  * Longitud 120-250 caracteres en la misma lengua que el brand
+  * Empieza con un gancho (pregunta, dato, reto, cifra concreta)
+  * Incluye UNA llamada a la acción implícita (comenta, guarda, visítanos, reserva)
+  * NO repitas el "title" literalmente; úsalo como inspiración
+  * NO uses hashtags dentro de copy_draft (van aparte en "hashtags")
+  * Si se te proporciona un brand_voice_doc en el contexto, imita ese tono exacto: personalidad, ritmo, vocabulario, grado de formalidad
+  * Si NO se proporciona brand_voice_doc, usa un tono cercano y directo, sin formalidades innecesarias, enfocado en el lector
+
+- "hashtags" es un array de 5-8 hashtags sin el carácter "#":
+  * 1-2 hashtags branded/locales (ciudad, marca, sector local)
+  * 2-3 hashtags de nicho (específicos del tema)
+  * 1-2 hashtags broad (términos amplios con volumen)
+  * En minúsculas, sin espacios, sin acentos ni símbolos raros
+  * Intenta que sean distintos entre ideas del mismo plan
+
 Devuelve SOLO JSON válido con ESTA estructura:
 {
   "ideas": [
@@ -65,7 +81,9 @@ Devuelve SOLO JSON válido con ESTA estructura:
       "priority": "alta",
       "rationale": "Full body es tu categoría top (peso 0.38) y no has publicado en 9 días.",
       "caption_angle": "20 min, sin excusas, full body",
-      "asset_hint": "grabar rutina en zona funcional con plano cenital"
+      "asset_hint": "grabar rutina en zona funcional con plano cenital",
+      "copy_draft": "¿20 minutos? Es todo lo que necesitas. Esta rutina full body trabaja piernas, core y espalda sin equipamiento. Guárdala y pruébala esta semana 💪",
+      "hashtags": ["gymzone", "fullbodyworkout", "rutinacasa", "entrenoencasa", "fitness", "fuerza"]
     }
   ]
 }`;
@@ -127,6 +145,26 @@ function validateIdeas(out: GenerateIdeasOutput, knownKeys: Set<string>): void {
     if (!VALID_PRIORITIES.has(idea.priority)) {
       throw new Error(`Idea has invalid priority: ${idea.priority}`);
     }
+
+    // copy_draft — RETRY: prefix signals the handler to request a retry,
+    // since the LLM is likely to succeed on a second attempt.
+    if (typeof idea.copy_draft !== 'string') {
+      throw new Error(`RETRY: missing copy_draft on idea "${idea.title}"`);
+    }
+    const copyLen = idea.copy_draft.trim().length;
+    if (copyLen < 60 || copyLen > 600) {
+      throw new Error(`RETRY: copy_draft length ${copyLen} out of range [60,600] on "${idea.title}"`);
+    }
+
+    // hashtags
+    if (!Array.isArray(idea.hashtags) || idea.hashtags.length < 3 || idea.hashtags.length > 10) {
+      throw new Error(`RETRY: hashtags must be array of 3-10 items, got ${JSON.stringify(idea.hashtags)} on "${idea.title}"`);
+    }
+    for (const h of idea.hashtags) {
+      if (typeof h !== 'string' || h.length < 2 || h.length > 30) {
+        throw new Error(`RETRY: invalid hashtag ${JSON.stringify(h)} on "${idea.title}" (must be string 2-30 chars)`);
+      }
+    }
   }
 }
 
@@ -142,7 +180,7 @@ async function callLLM(
 ): Promise<ContentIdea[]> {
   const message = await client.messages.create({
     model:      'claude-haiku-4-5-20251001',
-    max_tokens: 2500,
+    max_tokens: 4000,
     system:     SYSTEM_PROMPT,
     messages:   [{
       role:    'user',
@@ -248,7 +286,9 @@ export async function generateIdeasHandler(job: AgentJob): Promise<HandlerResult
         reason: 'Antes de generar ideas, ejecuta strategy:build_taxonomy para este brand.',
       };
     }
-    const transient = /timeout|rate.?limit|overloaded|503|504|ECONN/i.test(msg);
+    // validateIdeas prefixes recoverable errors with "RETRY:" so we treat
+    // content-shape issues as transient and let the runner try again.
+    const transient = /timeout|rate.?limit|overloaded|503|504|ECONN/i.test(msg) || msg.startsWith('RETRY:');
     return transient ? { type: 'retry', error: msg } : { type: 'fail', error: msg };
   }
 }
