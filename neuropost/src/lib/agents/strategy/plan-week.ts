@@ -35,6 +35,7 @@ import { enqueueClientReviewEmail }                     from '@/lib/planning/tri
 import { createAdminClient }                            from '@/lib/supabase';
 import { PLAN_CONTENT_QUOTAS }                          from '@/lib/plan-limits';
 import { getHumanReviewDefaults, resolveHumanReviewConfig } from '@/lib/human-review';
+import { routeIdea }                                       from '@/lib/idea-dispatch';
 import { planStoriesHandler }                           from '../stories/plan-stories';
 import type { AgentJob, HandlerResult, HandlerSubJob }  from '../types';
 import type { ContentIdea, PostFormat }                 from './types';
@@ -215,20 +216,41 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
       }
       // ────────────────────────────────────────────────────────────────────
 
-      // Resolve effective human-review config: global defaults merged with
-      // the brand's diff override. Worker review is required unless the
-      // effective value of `messages` is explicitly false.
+      // Resolve effective human-review config (defaults + brand diff
+      // override) and delegate the routing decision to the central
+      // dispatcher. For a weekly plan event the other RoutableIdea
+      // fields are irrelevant (routeIdea short-circuits), so a neutral
+      // placeholder keeps the signature uniform with future
+      // individual-idea call-sites.
       const hrDefaults  = await getHumanReviewDefaults(db);
       const hrEffective = resolveHumanReviewConfig(brand.human_review_config ?? null, hrDefaults);
-      const requireWorkerReview = hrEffective.messages !== false;
+      const decision    = routeIdea(
+        {
+          content_kind:        'post',
+          format:              'image',
+          suggested_asset_url: null,
+          rendered_image_url:  null,
+        },
+        hrEffective,
+        { is_weekly_plan_event: true },
+      );
 
-      if (requireWorkerReview) {
+      if (decision.route === 'worker_review') {
         await db.from('worker_notifications').insert({
           type:     'needs_review',
           message:  `Plan semanal listo para revisar — semana del ${weekStart}`,
           brand_id: job.brand_id,
           read:     false,
-          metadata: { plan_id: planId, week_start: weekStart, event: 'weekly_plan.ideas_ready' },
+          metadata: {
+            plan_id:        planId,
+            week_start:     weekStart,
+            event:          'weekly_plan.ideas_ready',
+            routing_reason: {
+              flag_checked:    decision.flag_checked,
+              effective_value: decision.effective_value,
+              reason:          decision.reason,
+            },
+          },
         });
       } else {
         await transitionWeeklyPlanStatus({ plan_id: planId, to: 'client_reviewing' });
