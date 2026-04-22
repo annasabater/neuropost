@@ -11,8 +11,29 @@
 // Requires NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY +
 // ANTHROPIC_API_KEY in the environment (.env.local).
 
-import 'dotenv/config';
-import { generateIdeasForBrand } from '../src/lib/agents/strategy/generate-ideas';
+import { readFileSync, existsSync } from 'node:fs';
+import { resolve }                  from 'node:path';
+
+// ─── Load .env.local manually (mirrors other scripts in this folder) ─────────
+function loadEnvLocal() {
+  const envPath = resolve(process.cwd(), '.env.local');
+  if (!existsSync(envPath)) return;
+  const raw = readFileSync(envPath, 'utf-8');
+  for (const line of raw.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eq = trimmed.indexOf('=');
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    let val   = trimmed.slice(eq + 1).trim();
+    if ((val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))) {
+      val = val.slice(1, -1);
+    }
+    if (!(key in process.env)) process.env[key] = val;
+  }
+}
+loadEnvLocal();
 
 const brandId = process.argv[2];
 const count   = Number(process.argv[3] ?? '3');
@@ -23,6 +44,9 @@ if (!brandId) {
 }
 
 async function main(): Promise<void> {
+  // Dynamic import so env vars (ANTHROPIC_API_KEY, SUPABASE_*) are loaded
+  // before the module instantiates its top-level `new Anthropic()` client.
+  const { generateIdeasForBrand } = await import('../src/lib/agents/strategy/generate-ideas');
   console.log(`\n── brand: ${brandId}  count: ${count}\n`);
   const ideas = await generateIdeasForBrand(brandId, count);
 
