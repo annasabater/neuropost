@@ -16,3 +16,15 @@ ALTER TABLE public.content_ideas
 
 CREATE INDEX IF NOT EXISTS idx_content_ideas_original
   ON public.content_ideas(original_idea_id);
+
+-- 3. Recreate idx_content_ideas_week_position as a partial unique index.
+--    Regeneration temporarily has TWO rows with the same (week_id,position):
+--    the old idea (status='regenerating' or 'replaced_by_variation') and
+--    the new one (status='pending'). The partial index excludes the
+--    transitional/superseded rows so the INSERT doesn't collide.
+
+DROP INDEX IF EXISTS public.idx_content_ideas_week_position;
+
+CREATE UNIQUE INDEX idx_content_ideas_week_position
+  ON public.content_ideas USING btree (week_id, "position")
+  WHERE status NOT IN ('replaced_by_variation', 'regenerating');
