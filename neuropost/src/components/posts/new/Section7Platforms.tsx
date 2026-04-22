@@ -40,7 +40,7 @@ export function Section7Platforms({ available, value, format, onChange }: Props)
           textTransform: 'uppercase', letterSpacing: '0.02em',
           color: 'var(--text-primary)', marginBottom: 4,
         }}>
-          7 — Plataformas
+          6 — Plataformas
         </h2>
         <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-secondary)' }}>
           ¿Dónde quieres publicar?{isVideo ? ' (TikTok solo disponible para vídeos en el plan Pro o superior)' : ''}

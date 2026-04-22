@@ -19,7 +19,7 @@ export function Section8Extras({ extraNotes, proposedCaption, onNotes, onCaption
           textTransform: 'uppercase', letterSpacing: '0.02em',
           color: 'var(--text-primary)', marginBottom: 4,
         }}>
-          8 — Detalles adicionales
+          7 — Detalles adicionales <span style={{ fontFamily: "var(--font-barlow), 'Barlow', sans-serif", fontWeight: 400, fontSize: 14, textTransform: 'none', letterSpacing: 0, color: 'var(--text-secondary)' }}>(opcional)</span>
         </h2>
         <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-secondary)' }}>
           Todo opcional. Cuánto más detalle, mejor resultado.

@@ -35,10 +35,10 @@ function buildOptions(sourceType: SourceType, mediaCount: number, allowVideos: b
   ];
 
   return [
-    { value: 'image',   label: 'Foto',          desc: 'La IA genera la foto',              icon: ImageIcon, disabled: false },
-    { value: 'carousel',label: 'Carrusel',       desc: 'La IA genera varias fotos',         icon: Images,    disabled: false },
-    { value: 'video',   label: 'Vídeo / Reel',  desc: 'La IA genera el vídeo',             icon: Film,      disabled: !allowVideos },
-    { value: 'story',   label: 'Story',          desc: 'La IA genera una story',            icon: ImageIcon, disabled: !allowStories },
+    { value: 'image',   label: 'Foto',          desc: 'Publicación de foto individual',    icon: ImageIcon, disabled: false },
+    { value: 'carousel',label: 'Carrusel',       desc: 'Varias fotos en un mismo post',     icon: Images,    disabled: false },
+    { value: 'video',   label: 'Vídeo / Reel',  desc: 'Formato de vídeo corto',            icon: Film,      disabled: !allowVideos },
+    { value: 'story',   label: 'Story',          desc: 'Historia de Instagram',             icon: ImageIcon, disabled: !allowStories },
   ];
 }
 
@@ -72,7 +72,7 @@ export function Section5Format({
           textTransform: 'uppercase', letterSpacing: '0.02em',
           color: 'var(--text-primary)', marginBottom: 4,
         }}>
-          5 — Formato de salida
+          4 — Formato de salida
         </h2>
         <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-secondary)' }}>
           ¿Cómo quieres que quede la publicación final?
@@ -80,7 +80,7 @@ export function Section5Format({
       </div>
 
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
         gap: '1px', background: 'var(--border)', border: '1px solid var(--border)',
         marginBottom: 16,
       }}>

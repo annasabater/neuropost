@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
+import { Menu, X } from 'lucide-react';
 
 import { LanguageSelector } from '@/components/ui/LanguageSelector';
 import { SiteFooter } from '@/components/layout/SiteFooter';
@@ -143,6 +144,8 @@ const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 export default function LandingPage() {
   const [navShadow, setNavShadow] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [demoMode, setDemoMode] = useState<'videos' | 'fotos'>('videos');
   const [homeBilling, setHomeBilling] = useState<'monthly' | 'annual'>('annual');
   const [activeFaqCategory, setActiveFaqCategory] = useState(0);
@@ -153,6 +156,17 @@ export default function LandingPage() {
     const onScroll = () => setNavShadow(window.scrollY > 20);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  useEffect(() => {
+    const check = () => {
+      const mobile = window.innerWidth <= 768;
+      setIsMobile(mobile);
+      if (!mobile) setMobileMenuOpen(false);
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
   }, []);
 
   useEffect(() => {
@@ -317,7 +331,62 @@ export default function LandingPage() {
           <li><Link href="/login" className="nav-login">Entrar</Link></li>
           <li><Link href="/register" className="nav-cta">Empezar</Link></li>
         </ul>
+
+        {/* Hamburger — only rendered in DOM on mobile */}
+        {isMobile && (
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(o => !o)}
+            aria-label={mobileMenuOpen ? 'Cerrar menú' : 'Abrir menú'}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#111', padding: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+          >
+            {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        )}
       </nav>
+
+      {/* Mobile menu panel — full-screen overlay, only on mobile */}
+      {isMobile && mobileMenuOpen && (
+        <div style={{ position: 'fixed', top: 64, left: 0, right: 0, bottom: 0, background: '#ffffff', zIndex: 9998, overflowY: 'auto', borderTop: '2px solid #111111' }}>
+
+          {/* Producto */}
+          <div style={{ borderBottom: '1px solid #e5e7eb', padding: '20px 28px' }}>
+            <p style={{ fontFamily: fc, fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.16em', color: '#0F766E', margin: '0 0 10px' }}>Producto</p>
+            {[['#funciones','Portfolio'],['#sectores','Sectores'],['#como-funciona','Cómo funciona'],['#demo','Demo app']].map(([href, label]) => (
+              <a key={label} href={href} onClick={() => setMobileMenuOpen(false)} style={{ display: 'block', fontFamily: f, fontSize: 17, fontWeight: 500, color: '#111', textDecoration: 'none', padding: '9px 0', borderBottom: 'none' }}>{label}</a>
+            ))}
+            <Link href="/que-incluye" onClick={() => setMobileMenuOpen(false)} style={{ display: 'block', fontFamily: f, fontSize: 17, fontWeight: 500, color: '#111', textDecoration: 'none', padding: '9px 0' }}>Qué incluye</Link>
+          </div>
+
+          {/* Impacto */}
+          <div style={{ borderBottom: '1px solid #e5e7eb', padding: '20px 28px' }}>
+            <p style={{ fontFamily: fc, fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.16em', color: '#0F766E', margin: '0 0 10px' }}>Impacto</p>
+            {[['#resultados','Resultados'],['#testimonios','Clientes'],['#faq','FAQ']].map(([href, label]) => (
+              <a key={label} href={href} onClick={() => setMobileMenuOpen(false)} style={{ display: 'block', fontFamily: f, fontSize: 17, fontWeight: 500, color: '#111', textDecoration: 'none', padding: '9px 0', borderBottom: 'none' }}>{label}</a>
+            ))}
+          </div>
+
+          {/* Precios */}
+          <div style={{ borderBottom: '1px solid #e5e7eb', padding: '20px 28px' }}>
+            <Link href="/pricing" onClick={() => setMobileMenuOpen(false)} style={{ display: 'block', fontFamily: f, fontSize: 17, fontWeight: 600, color: '#111', textDecoration: 'none', padding: '4px 0' }}>Precios</Link>
+          </div>
+
+          {/* Empresa */}
+          <div style={{ borderBottom: '1px solid #e5e7eb', padding: '20px 28px' }}>
+            <p style={{ fontFamily: fc, fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.16em', color: '#0F766E', margin: '0 0 10px' }}>Empresa</p>
+            {([['about','Sobre nosotros'],['about#valores','Valores'],['about#equipo','Equipo'],['about#contacto','Contacto'],['novedades','Novedades']] as [string,string][]).map(([href, label]) => (
+              <Link key={label} href={`/${href}`} onClick={() => setMobileMenuOpen(false)} style={{ display: 'block', fontFamily: f, fontSize: 17, fontWeight: 500, color: '#111', textDecoration: 'none', padding: '9px 0' }}>{label}</Link>
+            ))}
+          </div>
+
+          {/* CTAs */}
+          <div style={{ padding: '28px 28px 40px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <Link href="/login" onClick={() => setMobileMenuOpen(false)} style={{ display: 'block', fontFamily: f, fontSize: 15, fontWeight: 600, color: '#111', textDecoration: 'none', textAlign: 'center', padding: '13px', border: '1px solid #e5e7eb' }}>Entrar</Link>
+            <Link href="/register" onClick={() => setMobileMenuOpen(false)} style={{ display: 'block', fontFamily: fc, fontSize: 15, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#ffffff', background: '#0F766E', textDecoration: 'none', textAlign: 'center', padding: '15px' }}>Empezar →</Link>
+          </div>
+
+        </div>
+      )}
 
       {/* ─── HERO ─── */}
       <section style={{ padding: '140px 0 80px', background: '#ffffff' }}>

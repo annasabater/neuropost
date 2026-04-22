@@ -35,14 +35,13 @@ export function useSubscribedPlatforms() {
       has: (p: Platform) => active.includes(p),
       /** Filter a list of platforms to only subscribed ones. */
       filter: (list: Platform[]) => list.filter((p) => active.includes(p)),
-      /** Platforms available for a given output format. */
+      /** Platforms available for a given output format (based on plan, not subscribed list). */
       platformsForFormat: (format: PostFormat): Platform[] => {
+        const planPlatforms = limits.allowedPlatforms as Platform[];
         if (format === 'video' || format === 'reel') {
-          // Video/reel can go to all three platforms
-          return active;
+          return planPlatforms;
         }
-        // Photo/carousel only go to Instagram and Facebook
-        return active.filter((p) => p !== 'tiktok');
+        return planPlatforms.filter((p) => p !== 'tiktok');
       },
     };
   }, [brand?.plan, brand?.subscribed_platforms]);

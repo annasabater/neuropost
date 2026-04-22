@@ -18,7 +18,7 @@ export function Section4Description({ value, placeholder, onChange }: Props) {
           textTransform: 'uppercase', letterSpacing: '0.02em',
           color: 'var(--text-primary)', marginBottom: 4,
         }}>
-          4 — Descripción
+          3 — Descripción
         </h2>
         <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-secondary)' }}>
           Cuéntanos qué quieres publicar con el máximo detalle posible.

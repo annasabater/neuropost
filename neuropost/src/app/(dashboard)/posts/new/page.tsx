@@ -9,7 +9,6 @@ import toast from 'react-hot-toast';
 
 import { Section1Media }        from '@/components/posts/new/Section1Media';
 import { Section2Objective }    from '@/components/posts/new/Section2Objective';
-import { Section3SubType }      from '@/components/posts/new/Section3SubType';
 import { Section4Description }  from '@/components/posts/new/Section4Description';
 import { Section5Format }       from '@/components/posts/new/Section5Format';
 import { Section6Timing }       from '@/components/posts/new/Section6Timing';
@@ -74,12 +73,11 @@ export default function NewPostPage() {
   const completedSections = [
     true,                         // S1 media: always ok (optional)
     form.objective !== null,      // S2 objective
-    form.subtype !== null,        // S3 subtype
-    form.description.trim().length >= 10, // S4 description
-    true,                         // S5 format: always has a default
-    true,                         // S6 timing: optional
-    form.platforms.length > 0,    // S7 platforms
-    true,                         // S8 extras: optional
+    form.description.trim().length >= 10, // S3 description
+    true,                         // S4 format: always has a default
+    true,                         // S5 timing: optional
+    form.platforms.length > 0,    // S6 platforms
+    true,                         // S7 extras: optional
   ].filter(Boolean).length;
 
   const canSubmit = form.objective !== null && form.description.trim().length >= 10;
@@ -97,7 +95,7 @@ export default function NewPostPage() {
     patch({ subtype: v, activePlaceholder: placeholder });
   }
 
-  function pickTiming(preset: 'today' | 'tomorrow' | 'week' | 'custom', date: string) {
+  function pickTiming(preset: 'today' | 'tomorrow' | 'week' | 'custom' | null, date: string) {
     patch({ timingPreset: preset, preferredDate: date });
   }
 
@@ -252,12 +250,8 @@ export default function NewPostPage() {
       <Section2Objective
         value={form.objective}
         onChange={pickObjective}
-      />
-
-      <Section3SubType
-        objective={form.objective}
-        value={form.subtype}
-        onChange={pickSubtype}
+        subtype={form.subtype}
+        onSubtype={pickSubtype}
       />
 
       <Section4Description
@@ -311,7 +305,7 @@ export default function NewPostPage() {
         submitting={submitting}
         canSubmit={canSubmit}
         completedSections={completedSections}
-        totalSections={8}
+        totalSections={7}
         onSubmit={submit}
       />
     </div>
