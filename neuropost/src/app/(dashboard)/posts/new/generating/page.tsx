@@ -1,178 +1,121 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
-const f  = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
+const f  = "var(--font-barlow), 'Barlow', sans-serif";
 
-type PollStatus = 'polling' | 'ready' | 'failed' | 'timeout';
+const REDIRECT_DELAY = 3200; // ms before redirect
 
-const POLL_INTERVAL_MS = 4000;
-const MAX_POLLS        = 45; // ~3 min
-
-export default function GeneratingPage() {
+function GeneratingInner() {
   const router       = useRouter();
   const searchParams = useSearchParams();
   const postId       = searchParams.get('id');
-  const count        = Number(searchParams.get('count') ?? 1);
 
-  const [status, setStatus]     = useState<PollStatus>('polling');
-  const [polls, setPolls]       = useState(0);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [visible, setVisible]   = useState(false);
+  const [progress, setProgress] = useState(0);
 
-  const poll = useCallback(async () => {
-    if (!postId) { setStatus('failed'); return; }
-    try {
-      const res = await fetch(`/api/posts/${postId}`);
-      if (!res.ok) { setStatus('failed'); return; }
-      const { post } = await res.json() as { post: { status: string; image_url?: string; edited_image_url?: string } };
-
-      if (post.status === 'client_review' || post.status === 'approved') {
-        setImageUrl(post.edited_image_url ?? post.image_url ?? null);
-        setStatus('ready');
-      } else if (post.status === 'error' || post.status === 'rejected') {
-        setStatus('failed');
-      }
-    } catch {
-      /* keep polling */
-    }
-  }, [postId]);
-
+  // Fade in immediately, then start the progress bar
   useEffect(() => {
-    if (!postId) { setStatus('failed'); return; }
-    if (status !== 'polling') return;
+    const t1 = setTimeout(() => setVisible(true), 50);
+    return () => clearTimeout(t1);
+  }, []);
 
-    const id = setInterval(() => {
-      setPolls((n) => {
-        if (n >= MAX_POLLS) { setStatus('timeout'); return n; }
-        poll();
-        return n + 1;
-      });
-    }, POLL_INTERVAL_MS);
+  // Animate progress bar over REDIRECT_DELAY
+  useEffect(() => {
+    if (!visible) return;
+    const start  = performance.now();
+    let raf: number;
+    function tick(now: number) {
+      const pct = Math.min(((now - start) / REDIRECT_DELAY) * 100, 100);
+      setProgress(pct);
+      if (pct < 100) raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [visible]);
 
-    poll(); // immediate first check
-    return () => clearInterval(id);
-  }, [postId, status, poll]);
-
-  const pct = Math.min(Math.round((polls / MAX_POLLS) * 100), 95);
+  // Redirect after delay
+  useEffect(() => {
+    const t = setTimeout(() => {
+      router.replace(postId ? `/posts/${postId}` : '/posts');
+    }, REDIRECT_DELAY);
+    return () => clearTimeout(t);
+  }, [router, postId]);
 
   return (
     <div style={{
-      minHeight: '60vh', display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      padding: '48px 24px', maxWidth: 560, margin: '0 auto', textAlign: 'center',
+      position: 'fixed', inset: 0, zIndex: 9999,
+      background: 'rgba(0,0,0,0.82)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      opacity: visible ? 1 : 0,
+      transition: 'opacity 0.35s ease',
     }}>
-      {status === 'polling' && (
-        <>
-          <Loader2
-            size={48}
-            color="#0F766E"
-            style={{ animation: 'spin 1s linear infinite', marginBottom: 24 }}
-          />
-          <h1 style={{
-            fontFamily: fc, fontWeight: 900, fontSize: 28,
-            textTransform: 'uppercase', letterSpacing: '0.02em',
-            color: 'var(--text-primary)', marginBottom: 12,
-          }}>
-            Generando tu contenido
-          </h1>
-          <p style={{ fontFamily: f, fontSize: 14, color: 'var(--text-secondary)', marginBottom: 32, lineHeight: 1.6 }}>
-            La IA está creando {count > 1 ? `${count} publicaciones` : 'tu publicación'}.
-            Esto puede tardar entre 30 segundos y 2 minutos.
-          </p>
-          <div style={{ width: '100%', height: 4, background: 'var(--border)', position: 'relative', marginBottom: 12 }}>
-            <div style={{
-              position: 'absolute', left: 0, top: 0, bottom: 0,
-              width: `${pct}%`, background: '#0F766E',
-              transition: 'width 4s linear',
-            }} />
-          </div>
-          <p style={{ fontFamily: f, fontSize: 11, color: 'var(--text-secondary)' }}>
-            Puedes cerrar esta pestaña — te notificaremos cuando esté listo.
-          </p>
-        </>
-      )}
+      <div style={{
+        background: '#fff',
+        padding: '52px 56px',
+        maxWidth: 480, width: 'calc(100vw - 48px)',
+        textAlign: 'center',
+        transform: visible ? 'translateY(0)' : 'translateY(16px)',
+        transition: 'transform 0.35s ease',
+      }}>
 
-      {status === 'ready' && (
-        <>
-          <CheckCircle size={48} color="#0F766E" style={{ marginBottom: 24 }} />
-          <h1 style={{
-            fontFamily: fc, fontWeight: 900, fontSize: 28,
-            textTransform: 'uppercase', letterSpacing: '0.02em',
-            color: 'var(--text-primary)', marginBottom: 12,
-          }}>
-            ¡Listo!
-          </h1>
-          {imageUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={imageUrl} alt="Resultado"
-              style={{ width: '100%', maxWidth: 360, aspectRatio: '1', objectFit: 'cover', marginBottom: 24 }}
+        {/* Animated dots */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 36 }}>
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              style={{
+                width: 10, height: 10,
+                background: '#0F766E',
+                borderRadius: '50%',
+                animation: `npPulse 1.2s ease-in-out ${i * 0.2}s infinite`,
+              }}
             />
-          )}
-          <p style={{ fontFamily: f, fontSize: 14, color: 'var(--text-secondary)', marginBottom: 32 }}>
-            Tu contenido está listo para revisar.
-          </p>
-          <button
-            type="button"
-            onClick={() => router.push(`/posts/${postId}`)}
-            style={{
-              padding: '14px 32px', background: '#111827', color: '#fff',
-              border: 'none', cursor: 'pointer',
-              fontFamily: fc, fontWeight: 900, fontSize: 15,
-              textTransform: 'uppercase', letterSpacing: '0.06em',
-            }}
-          >
-            Ver resultado
-          </button>
-        </>
-      )}
+          ))}
+        </div>
 
-      {(status === 'failed' || status === 'timeout') && (
-        <>
-          <XCircle size={48} color="#ef4444" style={{ marginBottom: 24 }} />
-          <h1 style={{
-            fontFamily: fc, fontWeight: 900, fontSize: 28,
-            textTransform: 'uppercase', letterSpacing: '0.02em',
-            color: 'var(--text-primary)', marginBottom: 12,
-          }}>
-            {status === 'timeout' ? 'Sigue procesando…' : 'Algo fue mal'}
-          </h1>
-          <p style={{ fontFamily: f, fontSize: 14, color: 'var(--text-secondary)', marginBottom: 32, lineHeight: 1.6 }}>
-            {status === 'timeout'
-              ? 'La generación está tardando más de lo esperado. Revisa tus posts en unos minutos.'
-              : 'No pudimos generar el contenido. Nuestro equipo lo revisará.'}
-          </p>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-            <button
-              type="button"
-              onClick={() => router.push('/posts')}
-              style={{
-                padding: '12px 24px', background: '#111827', color: '#fff',
-                border: 'none', cursor: 'pointer',
-                fontFamily: fc, fontWeight: 900, fontSize: 14,
-                textTransform: 'uppercase', letterSpacing: '0.06em',
-              }}
-            >
-              Ver mis posts
-            </button>
-            <button
-              type="button"
-              onClick={() => router.push('/posts/new')}
-              style={{
-                padding: '12px 24px', background: 'var(--bg)', color: 'var(--text-primary)',
-                border: '1px solid var(--border)', cursor: 'pointer',
-                fontFamily: fc, fontWeight: 900, fontSize: 14,
-                textTransform: 'uppercase', letterSpacing: '0.06em',
-              }}
-            >
-              Nuevo pedido
-            </button>
-          </div>
-        </>
-      )}
+        <p style={{
+          fontFamily: fc, fontWeight: 900,
+          fontSize: 'clamp(1.6rem, 4vw, 2.2rem)',
+          textTransform: 'uppercase', letterSpacing: '0.02em',
+          color: '#111827', lineHeight: 1, marginBottom: 16,
+        }}>
+          En manos del equipo
+        </p>
+
+        <p style={{
+          fontFamily: f, fontSize: 15, color: '#6b7280',
+          lineHeight: 1.65, marginBottom: 40,
+        }}>
+          Hemos recibido tu solicitud. Nuestro equipo
+          ya está trabajando en ella y recibirás una
+          notificación cuando esté lista para revisar.
+        </p>
+
+        {/* Progress bar */}
+        <div style={{ height: 2, background: '#f3f4f6', position: 'relative' }}>
+          <div style={{
+            position: 'absolute', left: 0, top: 0, bottom: 0,
+            width: `${progress}%`,
+            background: '#0F766E',
+          }} />
+        </div>
+
+      </div>
+
+      {/* Keyframes injected inline */}
+      <style>{`
+        @keyframes npPulse {
+          0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+          40%            { transform: scale(1);   opacity: 1;   }
+        }
+      `}</style>
     </div>
   );
+}
+
+export default function GeneratingPage() {
+  return <Suspense><GeneratingInner /></Suspense>;
 }

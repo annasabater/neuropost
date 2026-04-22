@@ -302,9 +302,7 @@ export default function PostDetailPage() {
   const STATUS_ACTIONS: { status: string; label: string; bg: string; color: string; border: string }[] = (() => {
     switch (post.status) {
       case 'request':
-        return [
-          { status: 'pending', label: 'Pasar a Pendiente (validar)', bg: 'var(--bg)', color: '#111827', border: 'var(--border-dark)' },
-        ];
+        return [];
       case 'draft':
         return [
           { status: 'request', label: 'Devolver a En preparación', bg: 'var(--bg)', color: 'var(--text-secondary)', border: 'var(--border)' },
