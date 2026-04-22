@@ -50,14 +50,19 @@ export async function GET(request: Request) {
 
   // ── 1. Orphan recovery: reset jobs stuck in 'running' > 10 min ─────────────
   const orphanThreshold = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-  const { data: recovered } = await db
-    .from('agent_jobs')
-    .update({ status: 'pending', error: 'drain-cron: orphan recovery' })
-    .eq('status', 'running')
-    .lt('started_at', orphanThreshold)
-    .lt('attempts', 3)
-    .select('id')
-    .catch(() => ({ data: null }));
+  let recovered: Array<{ id: string }> | null = null;
+  try {
+    const { data } = await db
+      .from('agent_jobs')
+      .update({ status: 'pending', error: 'drain-cron: orphan recovery' })
+      .eq('status', 'running')
+      .lt('started_at', orphanThreshold)
+      .lt('attempts', 3)
+      .select('id');
+    recovered = data ?? null;
+  } catch (e) {
+    console.error('[drain-agent-jobs] orphan recovery failed:', e);
+  }
 
   if (recovered?.length) {
     console.log(`[drain-agent-jobs] Recovered ${recovered.length} orphan job(s)`);
@@ -132,7 +137,11 @@ export async function GET(request: Request) {
             tokens_used: o.tokens_used ?? null,
             model:       o.model       ?? null,
           }));
-          await db.from('agent_outputs').insert(rows).catch((e: unknown) => console.error('[drain-agent-jobs] saveOutputs error:', e));
+          try {
+            await db.from('agent_outputs').insert(rows);
+          } catch (e) {
+            console.error('[drain-agent-jobs] saveOutputs error:', e);
+          }
         }
         await db.from('agent_jobs').update({ status: 'done', completed_at: new Date().toISOString() }).eq('id', job.id);
         drained++;
