@@ -332,6 +332,9 @@ export async function runOnce(batchSize = DEFAULT_BATCH_SIZE): Promise<RunnerRes
   // ── Stuck post recovery: re-queue posts in 'request' with no agent job ──
   // If autoStartPipeline failed (Supabase + Redis both down at that moment),
   // the post is stuck in 'request' with no associated job. Detect and re-queue.
+  // Kill switch: set DISABLE_STUCK_POST_RECOVERY=1 in Vercel env to halt this
+  // block without a code deploy (used if a provider outage causes a loop).
+  if (process.env.DISABLE_STUCK_POST_RECOVERY !== '1') {
   try {
     const db: DB = createAdminClient();
     const stuckThreshold = new Date(Date.now() - 15 * 60 * 1000).toISOString(); // 15 min
@@ -344,16 +347,20 @@ export async function runOnce(batchSize = DEFAULT_BATCH_SIZE): Promise<RunnerRes
 
     if (stuckPosts?.length) {
       for (const post of stuckPosts as Array<{ id: string; brand_id: string }>) {
-        // Check if there's already a job for this post
-        const { data: existingJob } = await db
+        // Check if ANY job exists for this post — active OR terminal-failure.
+        // Including 'error' and 'cancelled' prevents zombie loops: a post whose
+        // previous pipeline failed must be triaged by a human (via /worker/central),
+        // not silently re-enqueued every minute (which billed 2741 failed
+        // Replicate calls in 48h when a brand's credit ran out).
+        const { data: anyJob } = await db
           .from('agent_jobs')
           .select('id')
           .contains('input', { _post_id: post.id })
-          .in('status', ['pending', 'running', 'claimed'])
+          .in('status', ['pending', 'running', 'claimed', 'error', 'cancelled'])
           .maybeSingle();
 
-        if (!existingJob) {
-          // No active job — re-queue a basic image generation
+        if (!anyJob) {
+          // No prior job at all — first-time recovery is safe.
           await db.from('agent_jobs').insert({
             brand_id:     post.brand_id,
             agent_type:   'content',
@@ -368,6 +375,7 @@ export async function runOnce(batchSize = DEFAULT_BATCH_SIZE): Promise<RunnerRes
       }
     }
   } catch { /* non-critical */ }
+  }
 
   return {
     claimed:     _claimed,
