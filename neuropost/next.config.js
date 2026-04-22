@@ -22,11 +22,10 @@ const nextConfig = {
 
   transpilePackages: ['@neuropost/agents'],
 
-  // ffmpeg/sharp/bullmq use native bindings or dynamic requires at runtime
+  // ffmpeg/sharp/ioredis use native bindings or dynamic requires at runtime
   // that Turbopack can't bundle. Keep them out of the bundle.
   serverExternalPackages: [
     'ioredis',
-    'bullmq',
     '@ffmpeg-installer/ffmpeg',
     'fluent-ffmpeg',
   ],

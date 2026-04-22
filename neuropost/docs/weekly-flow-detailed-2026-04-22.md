@@ -595,6 +595,18 @@ Cross-ref §C.2 + §C.4:
 
 ---
 
+## Decisiones técnicas
+
+### 2026-04-22: BullMQ eliminado del camino de jobs
+
+El sistema usa exclusivamente polling Supabase (cron [`agent-queue-runner`](../src/app/api/cron/agent-queue-runner/route.ts) cada 1 min + [`drain-agent-jobs`](../src/app/api/cron/drain-agent-jobs/route.ts) cada 5 min). Redis conservado solo para rate limiting ([`ratelimit.ts`](../src/lib/ratelimit.ts), con fallback memory) y probe de [`health-check`](../src/app/api/cron/health-check/route.ts). Razón: Upstash free tier reventado por secuela del bucle zombi ([scheduler-zombie-diagnosis-2026-04-22.md](scheduler-zombie-diagnosis-2026-04-22.md)); fallback Supabase ya era el camino caliente de facto (verificado en job `d82b2e66-5a7b-4c12-8429-fc67080ee261` procesado sin BullMQ). Decisión reversible con `git revert` del commit correspondiente.
+
+**Impacto operativo:** latencia máxima de ejecución de un job pasa de ~segundos (BullMQ instantáneo) a ~1 min (próximo tick del cron). Aceptable para el volumen actual.
+
+**Archivos afectados:** [`src/lib/agents/queue.ts`](../src/lib/agents/queue.ts) (remueve dual-write a BullMQ), [`src/lib/agents/runner.ts`](../src/lib/agents/runner.ts) (elimina BullMQ Worker y `source: 'bullmq' | 'supabase_fallback'`), `src/lib/bullmq.ts` eliminado, `next.config.js` quita `'bullmq'` de `serverExternalPackages`. `bullmq` sigue en `package.json` como dep huérfana (limpieza futura).
+
+---
+
 ## Pendiente Tanda 3 (Fases D-E)
 
 - Quién dispara `scheduling:auto_schedule_week` tras `/confirm` y cómo transita `producing → calendar_ready`.

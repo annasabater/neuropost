@@ -1,23 +1,16 @@
 // =============================================================================
-// Agent runner — BullMQ Worker + Supabase persistence
+// Agent runner — Supabase polling only
 // =============================================================================
-// Processes agent jobs dispatched via BullMQ. Each Vercel cron tick:
-//   1. Creates a short-lived BullMQ Worker (autorun: false)
-//   2. Runs it for up to DRAIN_DURATION_MS (≤ Vercel maxDuration)
-//   3. Closes the worker gracefully and returns stats
+// Invoked by the /api/cron/agent-queue-runner cron every minute.
+//   1. claimJobs() — atomic FOR UPDATE SKIP LOCKED batch of pending rows
+//   2. Processes each with the registered handler
+//   3. Recovers orphans stuck in 'running' and posts stuck in 'request'
 //
-// The processor function:
-//   - Receives a BullMQ job with { agent_job_id }
-//   - Loads the full Supabase job row
-//   - Dispatches to the registered handler
-//   - Writes result back to Supabase
-//
-// BullMQ owns retry/backoff. Supabase owns status/outputs/audit trail.
-// If Redis is unavailable, the cron falls back to claimJobs() (Supabase poll).
+// Supabase is the single source of truth for status/outputs/audit trail.
+// See docs/weekly-flow-detailed-2026-04-22.md § "Decisiones técnicas" for the
+// rationale of removing BullMQ.
 
-import type { Job as BullJob } from 'bullmq';
 import * as Sentry from '@sentry/nextjs';
-import { createAgentWorker, type AgentBullJob } from '@/lib/bullmq';
 import { createAdminClient } from '@/lib/supabase';
 import {
   saveOutputs,
@@ -41,11 +34,9 @@ export interface RunnerResult {
   needsReview: number;
   unhandled:   number;
   elapsedMs:   number;
-  source:      'bullmq' | 'supabase_fallback';
 }
 
 const DEFAULT_BATCH_SIZE   = 3;
-const DRAIN_DURATION_MS    = 55_000;  // drain for 55s (safe margin within 300s maxDuration)
 const HANDLER_TIMEOUT_MS   = 45_000;
 const ORPHAN_THRESHOLD_MS  = 10 * 60 * 1000; // 10 min: jobs 'running' longer than this are orphans
 
@@ -188,126 +179,27 @@ async function processJob(job: AgentJob): Promise<void> {
   }
 }
 
-// ─── BullMQ processor (receives BullMQ job, loads Supabase row, dispatches) ──
-
-async function bullProcessor(bullJob: BullJob<AgentBullJob>): Promise<void> {
-  _claimed++;
-  const { agent_job_id } = bullJob.data;
-
-  const db = createAdminClient() as DB;
-  const { data: row } = await db
-    .from('agent_jobs')
-    .select('*')
-    .eq('id', agent_job_id)
-    .maybeSingle();
-
-  if (!row) {
-    // Job deleted or never existed — discard silently
-    return;
-  }
-  const job = row as AgentJob;
-
-  // Skip jobs already processed by another runner instance or claimed manually
-  if (job.status === 'done' || job.status === 'error' || job.status === 'cancelled' || job.status === 'claimed') {
-    return;
-  }
-
-  // Atomically claim: only proceed if status is still 'pending' (prevents dual execution)
-  const { data: claimed } = await db
-    .from('agent_jobs')
-    .update({ status: 'running', started_at: new Date().toISOString(), attempts: (job.attempts ?? 0) + 1 })
-    .eq('id', agent_job_id)
-    .eq('status', 'pending')
-    .select('id')
-    .maybeSingle();
-
-  // If claim failed (already claimed by Supabase fallback or another BullMQ worker), skip
-  if (!claimed) return;
-
-  const updatedJob: AgentJob = {
-    ...job,
-    status:     'running',
-    attempts:   (job.attempts ?? 0) + 1,
-    started_at: new Date().toISOString(),
-  };
-
-  await processJob(updatedJob);
-}
-
-// ─── Supabase fallback (used when Redis is unavailable) ──────────────────────
-
-async function runSupabaseFallback(batchSize: number): Promise<void> {
-  const claimed = await claimJobs(batchSize);
-  _claimed = claimed.length;
-  // Process sequentially to avoid hammering external APIs (Replicate rate limits)
-  for (const job of claimed) {
-    await processJob(job).catch(() => null);
-  }
-}
-
 // ─── Public entry point ───────────────────────────────────────────────────────
 
 /**
- * Run a single cron tick.
- *   1. Try BullMQ (drain queue for DRAIN_DURATION_MS).
- *   2. If Redis is unavailable, fall back to Supabase polling (original behaviour).
+ * Run a single cron tick. Claims a batch of pending jobs from Supabase
+ * (atomic FOR UPDATE SKIP LOCKED) and processes them sequentially.
  */
 export async function runOnce(batchSize = DEFAULT_BATCH_SIZE): Promise<RunnerResult> {
   const t0 = Date.now();
   resetStats();
 
-  let source: RunnerResult['source'] = 'bullmq';
-
   try {
-    const worker = createAgentWorker(bullProcessor, batchSize);
-
-    // Run the worker for DRAIN_DURATION_MS then close gracefully
-    await new Promise<void>((resolve) => {
-      worker.run();
-
-      const stopTimer = setTimeout(async () => {
-        // Close the worker: waits for in-flight jobs to finish, then exits
-        await worker.close().catch(() => null);
-        resolve();
-      }, DRAIN_DURATION_MS);
-
-      worker.on('error', (err) => {
-        console.error('[runner] BullMQ worker error:', err.message);
-        Sentry.captureException(err, { tags: { component: 'agent-runner' } });
-      });
-
-      worker.on('closed', () => {
-        clearTimeout(stopTimer);
-        resolve();
-      });
-    });
+    const claimed = await claimJobs(batchSize);
+    _claimed = claimed.length;
+    // Process sequentially to avoid hammering external APIs (Replicate rate limits)
+    for (const job of claimed) {
+      await processJob(job).catch(() => null);
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    // Redis down or BullMQ init failed → fall back to Supabase polling
-    if (/REDIS_URL|ECONNREFUSED|ENOTFOUND|connect/i.test(msg)) {
-      console.warn('[runner] BullMQ unavailable, falling back to Supabase polling:', msg);
-      source = 'supabase_fallback';
-      await runSupabaseFallback(batchSize);
-    } else {
-      console.error('[runner] Unexpected runner error:', msg);
-      Sentry.captureException(err, { tags: { component: 'agent-runner', phase: 'unexpected' } });
-    }
-  }
-
-  // Even on BullMQ path, check for any jobs in Supabase that weren't dispatched
-  // to Redis (e.g., created before Redis was available, or enqueue failures).
-  if (source === 'bullmq') {
-    try {
-      const orphans = await claimJobs(batchSize);
-      if (orphans.length > 0) {
-        console.log(`[runner] Processing ${orphans.length} Supabase-only jobs`);
-        _claimed += orphans.length;
-        // Process sequentially to avoid hammering external APIs (Replicate rate limits)
-        for (const job of orphans) {
-          await processJob(job).catch(() => null);
-        }
-      }
-    } catch { /* non-critical */ }
+    console.error('[runner] Unexpected runner error:', msg);
+    Sentry.captureException(err, { tags: { component: 'agent-runner' } });
   }
 
   // ── Orphan recovery: reset jobs stuck in 'running' past threshold ─────
@@ -385,6 +277,5 @@ export async function runOnce(batchSize = DEFAULT_BATCH_SIZE): Promise<RunnerRes
     needsReview: _stats.needsReview,
     unhandled:   _stats.unhandled,
     elapsedMs:   Date.now() - t0,
-    source,
   };
 }
