@@ -410,6 +410,7 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
   const [agents, setAgents] = useState<Agent[]>([]);
   const [tab, setTab] = useState(0);
   const [contentTab, setContentTab] = useState(0);
+  const [pendingCounts, setPendingCounts] = useState<{ changes_requested: number; weekly_plans_pending: number; unread_messages: number; total: number } | null>(null);
   const [newNote, setNewNote] = useState('');
   const [loading, setLoading] = useState(true);
   const [promoModalOpen, setPromoModalOpen] = useState(false);
@@ -439,13 +440,14 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
   useEffect(() => {
     async function load() {
       try {
-        const [brandRes, agentsRes, chatRes, ticketsRes, requestsRes, hrDefaultsRes] = await Promise.all([
+        const [brandRes, agentsRes, chatRes, ticketsRes, requestsRes, hrDefaultsRes, countsRes] = await Promise.all([
           fetch(`/api/worker/clientes/${brandId}`),
           fetch('/api/worker/agents'),
           fetch(`/api/chat/worker?brandId=${brandId}`),
           fetch(`/api/worker/soporte?brandId=${brandId}`),
           fetch(`/api/worker/clientes/${brandId}/solicitudes`),
           fetch('/api/worker/settings/human-review-defaults'),
+          fetch(`/api/worker/brands/${brandId}/pending-counts`).catch(() => null),
         ]);
 
         const brandData = await brandRes.json();
@@ -470,6 +472,11 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
 
         const requestsData = await requestsRes.json().catch(() => ({ requests: [] }));
         setRequests(requestsData.requests ?? []);
+
+        if (countsRes?.ok) {
+          const countsData = await countsRes.json().catch(() => null);
+          if (countsData) setPendingCounts(countsData);
+        }
 
         setLoading(false);
       } catch (err) {
@@ -763,6 +770,39 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
           </div>
         </div>
       </div>
+
+      {/* BANNER DE PENDIENTES */}
+      {pendingCounts && pendingCounts.total > 0 && (
+        <div style={{
+          background: 'rgba(15,118,110,0.07)', border: `1px solid rgba(15,118,110,0.25)`,
+          padding: '12px 20px', marginBottom: 20,
+          display: 'flex', alignItems: 'flex-start', gap: 12,
+        }}>
+          <span style={{ fontSize: 16, flexShrink: 0 }}>⚠</span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 6, fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {pendingCounts.total} cosa{pendingCounts.total > 1 ? 's' : ''} pendiente{pendingCounts.total > 1 ? 's' : ''} de atender
+            </div>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+              {pendingCounts.changes_requested > 0 && (
+                <span style={{ fontSize: 12, color: C.text, fontFamily: f }}>
+                  · <strong>{pendingCounts.changes_requested}</strong> cambio{pendingCounts.changes_requested > 1 ? 's' : ''} pedido{pendingCounts.changes_requested > 1 ? 's' : ''}
+                </span>
+              )}
+              {pendingCounts.weekly_plans_pending > 0 && (
+                <span style={{ fontSize: 12, color: C.text, fontFamily: f }}>
+                  · <strong>{pendingCounts.weekly_plans_pending}</strong> plan{pendingCounts.weekly_plans_pending > 1 ? 'es' : ''} pendiente{pendingCounts.weekly_plans_pending > 1 ? 's' : ''}
+                </span>
+              )}
+              {pendingCounts.unread_messages > 0 && (
+                <span style={{ fontSize: 12, color: C.text, fontFamily: f }}>
+                  · <strong>{pendingCounts.unread_messages}</strong> mensaje{pendingCounts.unread_messages > 1 ? 's' : ''} sin leer
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TABS */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 28, borderBottom: `1px solid ${C.border}` }}>

@@ -57,10 +57,19 @@ function ListaTab() {
   const [search, setSearch] = useState('');
   const [planFilter, setPlan] = useState('');
   const [loading, setLoading] = useState(true);
+  const [pendingCounts, setPendingCounts] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    fetch('/api/worker/clientes').then((r) => r.json()).then((d) => {
-      setClients(d.clients ?? []);
+    Promise.all([
+      fetch('/api/worker/clientes').then((r) => r.json()),
+      fetch('/api/worker/brands/pending-counts').then((r) => r.json()).catch(() => ({ counts: {} })),
+    ]).then(([clientsData, countsData]) => {
+      setClients(clientsData.clients ?? []);
+      const totals: Record<string, number> = {};
+      for (const [id, c] of Object.entries(countsData.counts ?? {})) {
+        totals[id] = (c as { total: number }).total;
+      }
+      setPendingCounts(totals);
       setLoading(false);
     });
   }, []);
@@ -151,6 +160,11 @@ function ListaTab() {
                 {client.pending_in_queue > 0 && (
                   <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(239,68,68,0.1)', color: C.red, fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 0 }}>
                     ⏳ {client.pending_in_queue} pendiente{client.pending_in_queue > 1 ? 's' : ''}
+                  </div>
+                )}
+                {(pendingCounts[client.id] ?? 0) > 0 && (
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(15,118,110,0.1)', color: C.accent, fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 0, marginTop: 4 }}>
+                    ⚠ {pendingCounts[client.id]} por atender
                   </div>
                 )}
               </div>
