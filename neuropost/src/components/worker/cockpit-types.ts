@@ -24,7 +24,7 @@ export type BriefDraft = {
   negative_prompt: string;
   edit_strength: number;
   guidance: number;
-  model: 'flux-pro' | 'flux-kontext-pro' | 'higgsfield' | 'nanobanana';
+  model: 'flux-pro' | 'flux-kontext-pro' | 'nanobanana';
   num_outputs: number;
   primary_image_url: string;
 };

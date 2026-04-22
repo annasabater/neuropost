@@ -81,26 +81,6 @@ const INTENTS: Record<string, IntentDefinition> = {
     ],
   },
 
-  // ── Higgsfield — contenido con personas ───────────────────────────────
-
-  create_human_post: {
-    label: 'Crear post con personas (Higgsfield)',
-    grouped: true,
-    steps: [
-      { agent_type: 'content', action: 'generate_caption',    priority: 70 },
-      { agent_type: 'content', action: 'generate_human_photo', priority: 70 },
-    ],
-  },
-
-  create_human_reel: {
-    label: 'Crear reel con personas (Higgsfield)',
-    grouped: true,
-    steps: [
-      { agent_type: 'content', action: 'generate_caption',    priority: 70 },
-      { agent_type: 'content', action: 'generate_human_video', priority: 70 },
-    ],
-  },
-
   edit_image: {
     label: 'Editar imagen existente',
     grouped: true,

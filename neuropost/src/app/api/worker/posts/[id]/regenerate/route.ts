@@ -22,7 +22,7 @@ export async function POST(
       edit_strength:     number;
       guidance:          number;
       num_outputs:       number;
-      model:             'flux-pro' | 'flux-kontext-pro' | 'higgsfield' | 'nanobanana';
+      model:             'flux-pro' | 'flux-kontext-pro' | 'nanobanana';
       primary_image_url: string | null;
     };
 

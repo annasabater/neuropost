@@ -15,7 +15,6 @@ type Props = {
 const MODELS: { value: BriefDraft['model']; label: string }[] = [
   { value: 'flux-kontext-pro', label: 'Flux Kontext Pro' },
   { value: 'flux-pro',         label: 'Flux Pro'         },
-  { value: 'higgsfield',       label: 'Higgsfield'       },
   { value: 'nanobanana',       label: 'NanoBanana'       },
 ];
 

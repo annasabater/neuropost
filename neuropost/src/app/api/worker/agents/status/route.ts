@@ -9,8 +9,6 @@ type DB = any;
 const AGENT_REGISTRY: Record<string, { label: string; provider: string; category: string }> = {
   'content:generate_image':          { label: 'ImageGenerateAgent',       provider: 'Replicate (Flux Dev)', category: 'Contenido' },
   'content:generate_video':          { label: 'VideoGenerateAgent',       provider: 'RunwayML Gen-4',       category: 'Contenido' },
-  'content:generate_human_photo':    { label: 'HiggsFieldAgent (foto)',   provider: 'Higgsfield AI',        category: 'Contenido' },
-  'content:generate_human_video':    { label: 'HiggsFieldAgent (vídeo)',  provider: 'Higgsfield AI',        category: 'Contenido' },
   'content:apply_edit':              { label: 'ImageEditAgent',           provider: 'NanoBanana',           category: 'Contenido' },
   'content:generate_caption':        { label: 'CopywriterAgent',         provider: 'Claude',               category: 'Contenido' },
   'content:generate_ideas':          { label: 'IdeasAgent',              provider: 'Claude',               category: 'Contenido' },
