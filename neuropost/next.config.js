@@ -52,6 +52,11 @@ const nextConfig = {
         destination: '/worker/clientes/:brandId?tab=inspiracion',
         permanent: true,
       },
+      {
+        source: '/worker/clientes/:brandId/plataformas',
+        destination: '/worker/clientes/:brandId?tab=plataformas',
+        permanent: true,
+      },
     ];
   },
 

@@ -3,13 +3,14 @@
 import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { X, Edit2, Save, Send, MessageCircle, LifeBuoy, Sparkles, Plus, Flag, Upload, Share2, Settings, BarChart3 } from 'lucide-react';
+import { X, Edit2, Save, Send, MessageCircle, LifeBuoy, Sparkles, Plus, Flag, Upload, Settings, BarChart3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { StatusProgressBar } from '@/components/posts/StatusProgressBar';
 import { WorkerCockpit }     from '@/components/worker/WorkerCockpit';
 import { HumanReviewCard }   from './_components/HumanReviewCard';
 import { BibliotecaTab }     from './_components/BibliotecaTab';
 import { InspiracionTab }    from './_components/InspiracionTab';
+import { PlataformasTab }    from './_components/PlataformasTab';
 import { PLAN_META } from '@/types';
 import type { SubscriptionPlan, HumanReviewConfig } from '@/types';
 
@@ -120,7 +121,7 @@ const REQUEST_STATUS: Record<string, { label: string; color: string }> = {
   rejected:    { label: 'Rechazada',   color: '#6b7280' },
 };
 
-type TabKey = 'resumen' | 'contenido' | 'solicitudes' | 'comunicacion' | 'biblioteca' | 'inspiracion' | 'config' | 'analytics';
+type TabKey = 'resumen' | 'contenido' | 'solicitudes' | 'comunicacion' | 'biblioteca' | 'inspiracion' | 'plataformas' | 'config' | 'analytics';
 const PRIMARY_TABS: { key: TabKey; label: string }[] = [
   { key: 'resumen',      label: 'Resumen'      },
   { key: 'contenido',    label: 'Contenido'    },
@@ -130,6 +131,7 @@ const PRIMARY_TABS: { key: TabKey; label: string }[] = [
 const SECONDARY_TABS: { key: TabKey; label: string }[] = [
   { key: 'biblioteca',   label: 'Biblioteca'   },
   { key: 'inspiracion',  label: 'Inspiración'  },
+  { key: 'plataformas',  label: 'Plataformas'  },
   { key: 'config',       label: 'Config'       },
   { key: 'analytics',    label: 'Analytics'    },
 ];
@@ -748,20 +750,6 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
             </div>
           </div>
 
-          {/* Accesos rápidos */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <Link
-              href={`/worker/clientes/${brandId}/plataformas`}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '8px 14px', background: C.bg1, border: `1px solid ${C.border}`,
-                color: C.text, textDecoration: 'none', fontSize: 12, fontWeight: 700,
-                fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em',
-              }}
-            >
-              <Share2 size={14} color={C.accent} /> Plataformas
-            </Link>
-          </div>
         </div>
       </div>
 
@@ -1364,24 +1352,6 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
               ))}
             </div>
 
-            {/* Quick links */}
-            <div style={{ border: `1px solid ${C.border}`, background: C.card, padding: 20 }}>
-              <h4 style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, fontFamily: fc }}>Recursos</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {[
-                  { href: `/worker/clientes/${brandId}/plataformas`, label: 'Plataformas conectadas', icon: Share2 },
-                ].map(({ href, label, icon: Icon }) => (
-                  <Link key={href} href={href} style={{
-                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-                    border: `1px solid ${C.border}`, background: C.bg1, textDecoration: 'none',
-                    color: C.text, fontSize: 13, fontWeight: 600, fontFamily: f,
-                  }}>
-                    <Icon size={15} style={{ color: C.accent }} /> {label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-
             {/* Human review config */}
             <HumanReviewCard
               brandId={brandId}
@@ -1470,6 +1440,11 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
       {/* TAB: INSPIRACIÓN */}
       {tab === 'inspiracion' && (
         <InspiracionTab brandId={brandId} />
+      )}
+
+      {/* TAB: PLATAFORMAS */}
+      {tab === 'plataformas' && (
+        <PlataformasTab brandId={brandId} />
       )}
 
       {/* MODALES */}
