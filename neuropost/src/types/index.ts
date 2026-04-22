@@ -1031,6 +1031,8 @@ export type ContentIdeaStatus =
   | 'client_edited'
   | 'client_rejected'
   | 'client_requested_variation'
+  | 'regenerating'
+  | 'replaced_by_variation'
   | 'auto_approved'
   | 'auto_skipped'
   | 'in_production'
@@ -1094,6 +1096,9 @@ export interface ContentIdea {
   rendered_image_url:     string | null;
   // Sprint 12
   render_error?:          string | null;
+  // Commit 3A — variation chain
+  original_idea_id?:      string | null;
+  regeneration_reason?:   string | null;
   created_at:             string;
   updated_at:             string;
 }

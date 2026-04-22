@@ -10,12 +10,14 @@
 // module. All other agents in content/support/analytics stay pure executors.
 
 import { registerHandler } from '../registry';
-import { buildTaxonomyHandler } from '../strategy/build-taxonomy';
-import { generateIdeasHandler } from '../strategy/generate-ideas';
+import { buildTaxonomyHandler  } from '../strategy/build-taxonomy';
+import { generateIdeasHandler  } from '../strategy/generate-ideas';
 import { planWeekHandler       } from '../strategy/plan-week';
+import { regenerateIdeaHandler } from '../strategy/regenerate-idea';
 
 export function registerStrategyHandlers(): void {
-  registerHandler({ agent_type: 'strategy', action: 'build_taxonomy' }, buildTaxonomyHandler);
-  registerHandler({ agent_type: 'strategy', action: 'generate_ideas' }, generateIdeasHandler);
-  registerHandler({ agent_type: 'strategy', action: 'plan_week'      }, planWeekHandler);
+  registerHandler({ agent_type: 'strategy', action: 'build_taxonomy'  }, buildTaxonomyHandler);
+  registerHandler({ agent_type: 'strategy', action: 'generate_ideas'  }, generateIdeasHandler);
+  registerHandler({ agent_type: 'strategy', action: 'plan_week'       }, planWeekHandler);
+  registerHandler({ agent_type: 'strategy', action: 'regenerate_idea' }, regenerateIdeaHandler);
 }
