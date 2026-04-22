@@ -89,6 +89,11 @@ export default function WorkerWeeklyPlanPage() {
   const brandName = (plan as PlanWithBrand).brands?.name ?? plan.brand_id;
   const weekLabel = formatWeek(plan.week_start);
 
+  // Hide superseded ideas (their replacement occupies the slot). The client
+  // view already filters these — the worker view should match so the counts
+  // and numbering stay consistent.
+  const visibleIdeas = ideas.filter((i) => i.status !== 'replaced_by_variation');
+
   return (
     <div style={{ padding: 28, maxWidth: 900, color: C.text }}>
       {/* Header */}
@@ -99,13 +104,13 @@ export default function WorkerWeeklyPlanPage() {
       <div style={{ marginTop: 16, marginBottom: 24 }}>
         <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px' }}>{brandName}</h1>
         <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>
-          Semana del {weekLabel} · {ideas.length} ideas
+          Semana del {weekLabel} · {visibleIdeas.length} ideas
         </p>
       </div>
 
       {/* Ideas */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 32 }}>
-        {ideas.map((idea, i) => (
+        {visibleIdeas.map((idea, i) => (
           <div key={idea.id} style={{ background: C.card, border: `1px solid ${C.border}`, padding: 20 }}>
             {idea.original_idea_id && idea.awaiting_worker_review && (
               <div style={{
