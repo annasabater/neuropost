@@ -27,29 +27,22 @@ export async function GET() {
     const brandIds: string[] = (brandsData ?? []).map((b: { id: string }) => b.id);
     if (brandIds.length === 0) return NextResponse.json({ counts: {} });
 
+    // unread_messages is zeroed until the worker→client mark-read endpoint exists.
+    // Badge currently reflects only pending ideas + pending plans.
+    // TODO: reactivate when POST /api/worker/brands/[brandId]/chat/mark-read is implemented.
     const [changesRes, plansRes] = await Promise.all([
       db
         .from('content_ideas')
         .select('brand_id')
         .in('brand_id', brandIds)
-        .eq('awaiting_worker_review', true),
+        .eq('awaiting_worker_review', true)
+        .eq('status', 'pending'),
       db
         .from('weekly_plans')
         .select('brand_id')
         .in('brand_id', brandIds)
         .in('status', ['ideas_ready', 'client_approved']),
     ]);
-
-    let unreadData: { brand_id: string }[] = [];
-    try {
-      const { data } = await db
-        .from('chat_messages')
-        .select('brand_id')
-        .in('brand_id', brandIds)
-        .eq('sender_type', 'client')
-        .is('read_at', null);
-      unreadData = data ?? [];
-    } catch { /* non-blocking: if chat_messages is unavailable, unread = 0 */ }
 
     const counts: Record<string, PendingCount> = {};
     for (const id of brandIds) {
@@ -61,12 +54,9 @@ export async function GET() {
     for (const row of plansRes.data ?? []) {
       if (counts[row.brand_id]) counts[row.brand_id].weekly_plans_pending++;
     }
-    for (const row of unreadData) {
-      if (counts[row.brand_id]) counts[row.brand_id].unread_messages++;
-    }
     for (const id of brandIds) {
       const c = counts[id];
-      c.total = c.changes_requested + c.weekly_plans_pending + c.unread_messages;
+      c.total = c.changes_requested + c.weekly_plans_pending; // unread_messages excluded (always 0)
     }
 
     return NextResponse.json({ counts });

@@ -15,12 +15,16 @@ export async function GET(
     const { brandId } = await params;
     const db = createAdminClient() as DB;
 
+    // unread_messages is zeroed until the worker→client mark-read endpoint exists.
+    // Badge currently reflects only pending ideas + pending plans.
+    // TODO: reactivate when POST /api/worker/brands/[brandId]/chat/mark-read is implemented.
     const [changesRes, plansRes] = await Promise.all([
       db
         .from('content_ideas')
         .select('id', { count: 'exact', head: true })
         .eq('brand_id', brandId)
-        .eq('awaiting_worker_review', true),
+        .eq('awaiting_worker_review', true)
+        .eq('status', 'pending'),
       db
         .from('weekly_plans')
         .select('id', { count: 'exact', head: true })
@@ -28,25 +32,14 @@ export async function GET(
         .in('status', ['ideas_ready', 'client_approved']),
     ]);
 
-    let unread_messages = 0;
-    try {
-      const { count } = await db
-        .from('chat_messages')
-        .select('id', { count: 'exact', head: true })
-        .eq('brand_id', brandId)
-        .eq('sender_type', 'client')
-        .is('read_at', null);
-      unread_messages = count ?? 0;
-    } catch { /* non-blocking */ }
-
-    const changes_requested   = changesRes.count   ?? 0;
-    const weekly_plans_pending = plansRes.count ?? 0;
+    const changes_requested    = changesRes.count ?? 0;
+    const weekly_plans_pending = plansRes.count   ?? 0;
 
     const result: PendingCount = {
       changes_requested,
       weekly_plans_pending,
-      unread_messages,
-      total: changes_requested + weekly_plans_pending + unread_messages,
+      unread_messages: 0,
+      total: changes_requested + weekly_plans_pending,
     };
 
     return NextResponse.json(result);
