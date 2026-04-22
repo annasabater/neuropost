@@ -15,6 +15,7 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
   const [worker, setWorker]   = useState<Worker | null>(null);
   const [checking, setChecking] = useState(true);
   const [queueBadge, setQueueBadge] = useState(0);
+  const [validationBadge, setValidationBadge] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -34,12 +35,24 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
       }
     };
 
+    const refreshValidationBadge = async () => {
+      try {
+        const res  = await fetch('/api/worker/validation-pending-counts');
+        const data = await res.json();
+        if (!cancelled) setValidationBadge(data.total ?? 0);
+      } catch {
+        if (!cancelled) setValidationBadge(0);
+      }
+    };
+
     const channel = supabase
       .channel('worker-queue')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'content_queue', filter: 'status=eq.pending_worker' }, () => {
         void refreshQueueBadge();
       })
       .subscribe();
+
+    const validationInterval = setInterval(() => { void refreshValidationBadge(); }, 60_000);
 
     void (async () => {
       try {
@@ -60,7 +73,7 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
 
         setWorker(json.worker);
         setChecking(false);
-        await refreshQueueBadge();
+        await Promise.all([refreshQueueBadge(), refreshValidationBadge()]);
       } catch {
         router.replace('/dashboard');
       }
@@ -68,6 +81,7 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
 
     return () => {
       cancelled = true;
+      clearInterval(validationInterval);
       void supabase.removeChannel(channel);
     };
   }, [router]);
@@ -95,6 +109,7 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
         worker={worker}
         queueBadge={queueBadge}
         msgBadge={0}
+        validationBadge={validationBadge}
         onClose={() => setSidebarOpen(false)}
         onLogout={handleLogout}
       />

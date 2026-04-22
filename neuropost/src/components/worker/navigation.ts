@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import type { WorkerRole } from '@/types';
 
-export type WorkerNavBadge = 'queue' | 'msg';
+export type WorkerNavBadge = 'queue' | 'msg' | 'validation';
 
 export interface WorkerNavItem {
   href: string;
@@ -37,9 +37,10 @@ const BASE_GROUPS: WorkerNavGroup[] = [
     ],
   },
   {
-    label: 'Operaciones',
+    label: 'Operación diaria',
     items: [
-      { href: '/worker', icon: Home, label: 'Operaciones', badge: 'queue' },
+      { href: '/worker',            icon: Home,        label: 'Operaciones', badge: 'queue' },
+      { href: '/worker/validation', icon: CheckSquare, label: 'Validación',  badge: 'validation' },
     ],
   },
   {

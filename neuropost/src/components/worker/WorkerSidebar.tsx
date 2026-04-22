@@ -18,6 +18,7 @@ interface WorkerSidebarProps {
   worker: Worker | null;
   queueBadge: number;
   msgBadge: number;
+  validationBadge: number;
   onClose: () => void;
   onLogout: () => Promise<void>;
 }
@@ -27,6 +28,7 @@ export function WorkerSidebar({
   worker,
   queueBadge,
   msgBadge,
+  validationBadge,
   onClose,
   onLogout,
 }: WorkerSidebarProps) {
@@ -70,7 +72,10 @@ export function WorkerSidebar({
             {/* Contenido */}
             <div className="dash-nav-group-label">{group.label}</div>
             {group.items.map(({ href, icon: Icon, label, badge }) => {
-              const badgeCount = badge === 'queue' ? queueBadge : badge === 'msg' ? msgBadge : 0;
+              const badgeCount =
+                badge === 'queue'      ? queueBadge :
+                badge === 'msg'        ? msgBadge :
+                badge === 'validation' ? validationBadge : 0;
               return (
                 <NavItem key={href} href={href} label={label} icon={Icon} badge={badgeCount > 0 ? badgeCount : undefined} />
               );
