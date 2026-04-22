@@ -52,6 +52,7 @@ REGLAS ESTRICTAS:
 - "caption_angle" es un gancho breve (≤ 12 palabras) que usará el copywriter
 - "asset_hint" describe QUÉ foto/vídeo hay que hacer o usar
 - Evita repetir ángulos entre ideas — cada una debe ser ejecutable en un post real distinto
+- Si hay MATERIAL DE MARCA con promociones activas, puedes considerar referenciarlas en alguna idea cuando encaje naturalmente con la category_key. No fuerces menciones promocionales: la category_key y la voz de marca siempre priman sobre la promoción. Usa horarios, datos de negocio y frases como contexto de apoyo para hacer las ideas más auténticas, no como contenido principal.
 
 Devuelve SOLO JSON válido con ESTA estructura:
 {
@@ -185,6 +186,113 @@ interface InspirationRow {
   category:   string | null;
 }
 
+// -----------------------------------------------------------------------------
+// Load brand_material — horarios, promociones, datos, frases, texto libre
+// -----------------------------------------------------------------------------
+
+const DAY_ES: Record<string, string> = {
+  monday:    'Lunes',
+  tuesday:   'Martes',
+  wednesday: 'Miércoles',
+  thursday:  'Jueves',
+  friday:    'Viernes',
+  saturday:  'Sábado',
+  sunday:    'Domingo',
+};
+
+interface BrandMaterialRow {
+  category:    'schedule' | 'promo' | 'data' | 'quote' | 'free';
+  content:     Record<string, unknown>;
+  valid_until: string | null;
+  updated_at:  string;
+}
+
+function formatMaterialItem(row: BrandMaterialRow): string | null {
+  const c = row.content as Record<string, unknown>;
+  switch (row.category) {
+    case 'schedule': {
+      const days = (c.days as Array<{ day: string; hours: string }> | undefined) ?? [];
+      if (days.length === 0) return null;
+      const rendered = days.map(d => `${DAY_ES[d.day.toLowerCase()] ?? d.day}: ${d.hours}`).join(', ');
+      return rendered.slice(0, 200);
+    }
+    case 'promo': {
+      const title = (c.title as string | undefined)?.trim();
+      if (!title) return null;
+      const desc  = (c.description as string | undefined)?.trim();
+      const parts: string[] = [title];
+      if (desc)            parts.push(`— ${desc.slice(0, 150)}`);
+      if (row.valid_until) parts.push(`(válido hasta ${row.valid_until.slice(0, 10)})`);
+      return parts.join(' ');
+    }
+    case 'data': {
+      const label = (c.label as string | undefined)?.trim();
+      const desc  = (c.description as string | undefined)?.trim();
+      if (!label && !desc) return null;
+      return [label, desc].filter(Boolean).join(' — ').slice(0, 150);
+    }
+    case 'quote': {
+      const text = (c.text as string | undefined)?.trim();
+      if (!text) return null;
+      const author = (c.author as string | undefined)?.trim();
+      const quoted = `«${text.slice(0, 200)}»`;
+      return author ? `${quoted} — ${author}` : quoted;
+    }
+    case 'free': {
+      const text = (c.text as string | undefined)?.trim();
+      if (!text) return null;
+      return text.slice(0, 250);
+    }
+    default:
+      return null;
+  }
+}
+
+async function loadBrandMaterialBlock(db: DB, brandId: string): Promise<string> {
+  const { data } = await db
+    .from('brand_material')
+    .select('category, content, valid_until, updated_at')
+    .eq('brand_id', brandId)
+    .eq('active', true)
+    .order('updated_at', { ascending: false });
+
+  const now  = Date.now();
+  const rows = ((data ?? []) as BrandMaterialRow[]).filter(r => {
+    if (r.valid_until === null) return true;
+    return new Date(r.valid_until).getTime() > now;
+  });
+
+  if (rows.length === 0) return '';
+
+  const byCategory = new Map<BrandMaterialRow['category'], string[]>();
+  for (const r of rows) {
+    const line = formatMaterialItem(r);
+    if (!line) continue;
+    const arr = byCategory.get(r.category) ?? [];
+    arr.push(`• ${line}`);
+    byCategory.set(r.category, arr);
+  }
+
+  const sections: Array<[BrandMaterialRow['category'], string]> = [
+    ['schedule', 'Horarios'],
+    ['promo',    'Promociones activas (considera referenciarlas en ideas de esta semana)'],
+    ['data',     'Datos de negocio'],
+    ['quote',    'Frases de marca'],
+    ['free',     'Texto libre'],
+  ];
+
+  const parts: string[] = [];
+  for (const [cat, heading] of sections) {
+    const lines = byCategory.get(cat);
+    if (!lines || lines.length === 0) continue;
+    parts.push(`${heading}:\n${lines.join('\n')}`);
+  }
+
+  if (parts.length === 0) return '';
+
+  return `\n\nMATERIAL DE MARCA DISPONIBLE (úsalo cuando sea pertinente en las ideas):\n\n${parts.join('\n\n')}`;
+}
+
 async function loadFavoritesBlock(db: DB, brandId: string): Promise<string> {
   const { data } = await db
     .from('inspiration_references')
@@ -239,7 +347,14 @@ export async function generateIdeasForBrand(
   // Load saved inspirations/favorites — enriches asset_hint and caption_angle
   const favoritesBlock = await loadFavoritesBlock(db, brandId).catch(() => '');
 
-  return callLLM(brandBlock + favoritesBlock, categoriesBlock, count, knownKeys);
+  // Load brand_material — horarios, promos, datos, frases, texto libre
+  const materialBlock = await loadBrandMaterialBlock(db, brandId).catch(() => '');
+
+  const contextBlock = brandBlock + favoritesBlock + materialBlock;
+  const totalChars   = contextBlock.length + categoriesBlock.length;
+  console.log(`[generate-ideas] brand=${brandId} prompt_chars=${totalChars} (brand=${brandBlock.length}, favorites=${favoritesBlock.length}, material=${materialBlock.length}, categories=${categoriesBlock.length})`);
+
+  return callLLM(contextBlock, categoriesBlock, count, knownKeys);
 }
 
 // -----------------------------------------------------------------------------
