@@ -7,8 +7,9 @@ import { X, Edit2, Save, Send, MessageCircle, LifeBuoy, BookOpen, Sparkles, Plus
 import toast from 'react-hot-toast';
 import { StatusProgressBar } from '@/components/posts/StatusProgressBar';
 import { WorkerCockpit }     from '@/components/worker/WorkerCockpit';
+import { HumanReviewCard }   from './_components/HumanReviewCard';
 import { PLAN_META } from '@/types';
-import type { SubscriptionPlan } from '@/types';
+import type { SubscriptionPlan, HumanReviewConfig } from '@/types';
 
 const C = {
   bg: '#ffffff',
@@ -37,6 +38,7 @@ type Brand = Record<string, unknown> & {
   phone?: string;
   created_at?: string;
   meta_token_expires_at?: string;
+  human_review_config?: HumanReviewConfig | null;
 };
 
 type AgentBrief = {
@@ -1284,7 +1286,7 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
           <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 16, fontFamily: fc, textTransform: 'uppercase', color: C.text }}>
             Configuración del cliente
           </h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 24 }}>
             {/* Brand info */}
             <div style={{ border: `1px solid ${C.border}`, background: C.card, padding: 20 }}>
               <h4 style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, fontFamily: fc }}>Datos del negocio</h4>
