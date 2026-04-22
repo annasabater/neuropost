@@ -2,12 +2,14 @@
 
 import { use, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { X, Edit2, Save, Send, MessageCircle, LifeBuoy, BookOpen, Sparkles, Plus, Flag, Upload, Share2, Settings, BarChart3 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { X, Edit2, Save, Send, MessageCircle, LifeBuoy, Sparkles, Plus, Flag, Upload, Share2, Settings, BarChart3 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { StatusProgressBar } from '@/components/posts/StatusProgressBar';
 import { WorkerCockpit }     from '@/components/worker/WorkerCockpit';
 import { HumanReviewCard }   from './_components/HumanReviewCard';
+import { BibliotecaTab }     from './_components/BibliotecaTab';
+import { InspiracionTab }    from './_components/InspiracionTab';
 import { PLAN_META } from '@/types';
 import type { SubscriptionPlan, HumanReviewConfig } from '@/types';
 
@@ -118,7 +120,19 @@ const REQUEST_STATUS: Record<string, { label: string; color: string }> = {
   rejected:    { label: 'Rechazada',   color: '#6b7280' },
 };
 
-const TABS = ['Resumen', 'Contenido', 'Solicitudes', 'Comunicación', 'Config', 'Analytics'];
+type TabKey = 'resumen' | 'contenido' | 'solicitudes' | 'comunicacion' | 'biblioteca' | 'inspiracion' | 'config' | 'analytics';
+const PRIMARY_TABS: { key: TabKey; label: string }[] = [
+  { key: 'resumen',      label: 'Resumen'      },
+  { key: 'contenido',    label: 'Contenido'    },
+  { key: 'solicitudes',  label: 'Solicitudes'  },
+  { key: 'comunicacion', label: 'Comunicación' },
+];
+const SECONDARY_TABS: { key: TabKey; label: string }[] = [
+  { key: 'biblioteca',   label: 'Biblioteca'   },
+  { key: 'inspiracion',  label: 'Inspiración'  },
+  { key: 'config',       label: 'Config'       },
+  { key: 'analytics',    label: 'Analytics'    },
+];
 const CONTENT_STATES = [
   { id: 'preparing', label: 'En preparación', icon: '📋' },
   { id: 'pending', label: 'En pendiente', icon: '⏳' },
@@ -408,8 +422,10 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
   const [activity, setActivity] = useState<Activity[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [tab, setTab] = useState(0);
   const [contentTab, setContentTab] = useState(0);
+  const searchParams = useSearchParams();
+  const tab = (searchParams.get('tab') as TabKey) ?? 'resumen';
+  function setTab(key: TabKey) { void router.replace(`/worker/clientes/${brandId}?tab=${key}`); setContentTab(0); }
   const [pendingCounts, setPendingCounts] = useState<{ changes_requested: number; weekly_plans_pending: number; unread_messages: number; total: number } | null>(null);
   const [newNote, setNewNote] = useState('');
   const [loading, setLoading] = useState(true);
@@ -490,7 +506,7 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
 
   // Scroll al último mensaje cuando cambia el chat o se abre la tab
   useEffect(() => {
-    if (tab === 2 && chatEndRef.current) {
+    if (tab === 'comunicacion' && chatEndRef.current) {
       chatEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
   }, [chat, tab]);
@@ -735,28 +751,6 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
           {/* Accesos rápidos */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <Link
-              href={`/worker/clientes/${brandId}/biblioteca`}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '8px 14px', background: C.bg1, border: `1px solid ${C.border}`,
-                color: C.text, textDecoration: 'none', fontSize: 12, fontWeight: 700,
-                fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em',
-              }}
-            >
-              <BookOpen size={14} color={C.accent} /> Biblioteca
-            </Link>
-            <Link
-              href={`/worker/clientes/${brandId}/inspiracion`}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '8px 14px', background: C.bg1, border: `1px solid ${C.border}`,
-                color: C.text, textDecoration: 'none', fontSize: 12, fontWeight: 700,
-                fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.05em',
-              }}
-            >
-              <Sparkles size={14} color={C.accent} /> Inspiración
-            </Link>
-            <Link
               href={`/worker/clientes/${brandId}/plataformas`}
               style={{
                 display: 'flex', alignItems: 'center', gap: 8,
@@ -805,30 +799,52 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
       )}
 
       {/* TABS */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 28, borderBottom: `1px solid ${C.border}` }}>
-        {TABS.map((t, i) => (
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 0, marginBottom: 28, borderBottom: `1px solid ${C.border}` }}>
+        {PRIMARY_TABS.map(({ key, label }) => (
           <button
-            key={t}
-            onClick={() => { setTab(i); setContentTab(0); }}
+            key={key}
+            onClick={() => setTab(key)}
             style={{
               padding: '12px 20px',
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              fontSize: 13,
-              fontWeight: tab === i ? 700 : 500,
-              color: tab === i ? C.accent : C.muted,
-              borderBottom: tab === i ? `2px solid ${C.accent}` : '2px solid transparent',
+              fontSize: 14,
+              fontWeight: tab === key ? 700 : 500,
+              color: tab === key ? C.accent : C.muted,
+              borderBottom: tab === key ? `2px solid ${C.accent}` : '2px solid transparent',
               fontFamily: f,
             }}
           >
-            {t}
+            {label}
+          </button>
+        ))}
+        <div style={{ width: 1, background: C.border, margin: '8px 12px', alignSelf: 'stretch' }} />
+        {SECONDARY_TABS.map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            style={{
+              padding: '10px 14px',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: tab === key ? 600 : 400,
+              color: tab === key ? C.accent : '#9ca3af',
+              borderBottom: tab === key ? `2px solid ${C.accent}` : '2px solid transparent',
+              fontFamily: fc,
+              textTransform: 'uppercase',
+              letterSpacing: '0.04em',
+            }}
+          >
+            {label}
           </button>
         ))}
       </div>
 
       {/* TAB 0: RESUMEN */}
-      {tab === 0 && (
+      {tab === 'resumen' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
           {/* INFORMACIÓN DE PAGO */}
           <div style={{ background: C.card, border: `1px solid ${C.border}`, padding: 24, borderRadius: 0 }}>
@@ -919,7 +935,7 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
       )}
 
       {/* TAB 1: CONTENIDO */}
-      {tab === 1 && (
+      {tab === 'contenido' && (
         <div>
           {/* ── POSTS EN SOLICITUD (status=request) ──────────────────── */}
           {posts.filter(p => p.status === 'request').length > 0 && (
@@ -1145,7 +1161,7 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
       )}
 
       {/* TAB 2: SOLICITUDES */}
-      {tab === 2 && (
+      {tab === 'solicitudes' && (
         <div>
           <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 16, fontFamily: fc, textTransform: 'uppercase', color: C.text }}>
             Solicitudes del cliente
@@ -1183,7 +1199,7 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
       )}
 
       {/* TAB 3: COMUNICACIÓN (chat + notas) */}
-      {tab === 3 && (
+      {tab === 'comunicacion' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 24 }}>
           {/* Chat con cliente */}
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 0, display: 'flex', flexDirection: 'column', height: 560 }}>
@@ -1326,7 +1342,7 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
       )}
 
       {/* TAB 4: CONFIG */}
-      {tab === 4 && (
+      {tab === 'config' && (
         <div>
           <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 16, fontFamily: fc, textTransform: 'uppercase', color: C.text }}>
             Configuración del cliente
@@ -1353,8 +1369,6 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
               <h4 style={{ fontSize: 11, fontWeight: 700, color: C.muted, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12, fontFamily: fc }}>Recursos</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {[
-                  { href: `/worker/clientes/${brandId}/biblioteca`, label: 'Biblioteca de fotos', icon: BookOpen },
-                  { href: `/worker/clientes/${brandId}/inspiracion`, label: 'Referencias de inspiración', icon: Sparkles },
                   { href: `/worker/clientes/${brandId}/plataformas`, label: 'Plataformas conectadas', icon: Share2 },
                 ].map(({ href, label, icon: Icon }) => (
                   <Link key={href} href={href} style={{
@@ -1405,7 +1419,7 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
       )}
 
       {/* TAB 5: ANALYTICS */}
-      {tab === 5 && (
+      {tab === 'analytics' && (
         <div>
           <h3 style={{ fontSize: 14, fontWeight: 800, marginBottom: 16, fontFamily: fc, textTransform: 'uppercase', color: C.text }}>
             Analytics del cliente
@@ -1446,6 +1460,16 @@ export default function ClientProfilePage({ params }: { params: Promise<{ brandI
             ))}
           </div>
         </div>
+      )}
+
+      {/* TAB: BIBLIOTECA */}
+      {tab === 'biblioteca' && (
+        <BibliotecaTab brandId={brandId} />
+      )}
+
+      {/* TAB: INSPIRACIÓN */}
+      {tab === 'inspiracion' && (
+        <InspiracionTab brandId={brandId} />
       )}
 
       {/* MODALES */}

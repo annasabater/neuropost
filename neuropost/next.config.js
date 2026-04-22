@@ -40,6 +40,21 @@ const nextConfig = {
     minimumCacheTTL: 86400,
   },
 
+  async redirects() {
+    return [
+      {
+        source: '/worker/clientes/:brandId/biblioteca',
+        destination: '/worker/clientes/:brandId?tab=biblioteca',
+        permanent: true,
+      },
+      {
+        source: '/worker/clientes/:brandId/inspiracion',
+        destination: '/worker/clientes/:brandId?tab=inspiracion',
+        permanent: true,
+      },
+    ];
+  },
+
   async headers() {
     return [
       {
