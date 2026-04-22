@@ -124,7 +124,7 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
 
   let ideas: ContentIdea[];
   try {
-    ideas = await generateIdeasForBrand(job.brand_id, count);
+    ({ ideas } = await generateIdeasForBrand(job.brand_id, count));
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (msg === 'NO_TAXONOMY') {

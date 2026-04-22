@@ -11,7 +11,7 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string; ideaId: string }> },
 ) {
   try {
-    await requireWorker();
+    const worker = await requireWorker();
     const { id, ideaId } = await params;
     const db = createAdminClient() as DB;
 
@@ -37,6 +37,8 @@ export async function PATCH(
     // Any worker action on this idea implicitly clears the worker-review
     // gate — the variation (if any) is now considered handled.
     patch.awaiting_worker_review = false;
+    patch.reviewed_at = new Date().toISOString();
+    patch.reviewed_by = worker.id;
 
     const { data, error } = await db
       .from('content_ideas')

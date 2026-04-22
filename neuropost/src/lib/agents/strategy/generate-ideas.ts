@@ -172,12 +172,16 @@ function validateIdeas(out: GenerateIdeasOutput, knownKeys: Set<string>): void {
 // LLM call
 // -----------------------------------------------------------------------------
 
+// Haiku 4-5 pricing: $0.80/M input, $4.00/M output
+const HAIKU_INPUT_PRICE  = 0.0000008;
+const HAIKU_OUTPUT_PRICE = 0.000004;
+
 async function callLLM(
   brandBlock: string,
   categoriesBlock: string,
   count: number,
   knownKeys: Set<string>,
-): Promise<ContentIdea[]> {
+): Promise<{ ideas: ContentIdea[]; tokensIn: number; tokensOut: number }> {
   const message = await client.messages.create({
     model:      'claude-haiku-4-5-20251001',
     max_tokens: 4000,
@@ -206,7 +210,11 @@ async function callLLM(
   }
 
   validateIdeas(parsed, knownKeys);
-  return parsed.ideas;
+  return {
+    ideas:     parsed.ideas,
+    tokensIn:  message.usage.input_tokens,
+    tokensOut: message.usage.output_tokens,
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -219,7 +227,7 @@ async function callLLM(
 export async function generateIdeasForBrand(
   brandId: string,
   count: number,
-): Promise<ContentIdea[]> {
+): Promise<{ ideas: ContentIdea[]; tokensIn: number; tokensOut: number }> {
   const brand = await loadBrand(brandId);
   if (!brand) throw new Error(`Brand not found: ${brandId}`);
 
@@ -253,7 +261,8 @@ export async function generateIdeasForBrand(
   const totalChars   = contextBlock.length + categoriesBlock.length;
   console.log(`[generate-ideas] brand=${brandId} prompt_chars=${totalChars} (brand=${brandBlock.length}, favorites=${favoritesBlock.length}, material=${materialBlock.length}, categories=${categoriesBlock.length})`);
 
-  return callLLM(contextBlock, categoriesBlock, count, knownKeys);
+  const { ideas, tokensIn, tokensOut } = await callLLM(contextBlock, categoriesBlock, count, knownKeys);
+  return { ideas, tokensIn, tokensOut };
 }
 
 // -----------------------------------------------------------------------------
@@ -269,13 +278,15 @@ export async function generateIdeasHandler(job: AgentJob): Promise<HandlerResult
   );
 
   try {
-    const ideas = await generateIdeasForBrand(job.brand_id, count);
+    const { ideas, tokensIn, tokensOut } = await generateIdeasForBrand(job.brand_id, count);
     return {
       type: 'ok',
       outputs: [{
-        kind:    'strategy',
-        payload: { ideas } as unknown as Record<string, unknown>,
-        model:   'claude-haiku-4-5-20251001',
+        kind:       'strategy',
+        payload:    { ideas } as unknown as Record<string, unknown>,
+        model:      'claude-haiku-4-5-20251001',
+        tokens_used: tokensIn + tokensOut,
+        cost_usd:   tokensIn * HAIKU_INPUT_PRICE + tokensOut * HAIKU_OUTPUT_PRICE,
       }],
     };
   } catch (err) {

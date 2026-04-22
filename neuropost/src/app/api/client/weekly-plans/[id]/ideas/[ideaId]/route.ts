@@ -69,9 +69,17 @@ export async function PATCH(
       );
     }
 
+    const now = new Date().toISOString();
     const ideaPatch: Record<string, unknown> = { status: newStatus };
     if (body.client_edited_copy    !== undefined) ideaPatch.client_edited_copy    = body.client_edited_copy;
     if (body.client_edited_hashtags !== undefined) ideaPatch.client_edited_hashtags = body.client_edited_hashtags;
+    if (body.action === 'approve') {
+      ideaPatch.approved_at = now;
+      ideaPatch.approved_by = user.id;
+    } else if (body.action === 'reject' || body.action === 'request_variation') {
+      ideaPatch.rejected_at = now;
+      ideaPatch.rejected_by = user.id;
+    }
 
     const { data: updated, error: updateErr } = await db
       .from('content_ideas')

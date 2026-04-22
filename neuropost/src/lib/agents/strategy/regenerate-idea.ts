@@ -150,7 +150,11 @@ async function loadRecentFeedbacksBlock(db: DB, brandId: string): Promise<string
 // LLM call
 // -----------------------------------------------------------------------------
 
-async function callLLM(userBlock: string): Promise<LlmIdea> {
+// Haiku 4-5 pricing: $0.80/M input, $4.00/M output
+const HAIKU_INPUT_PRICE  = 0.0000008;
+const HAIKU_OUTPUT_PRICE = 0.000004;
+
+async function callLLM(userBlock: string): Promise<{ idea: LlmIdea; tokensIn: number; tokensOut: number }> {
   const message = await client.messages.create({
     model:      'claude-haiku-4-5-20251001',
     max_tokens: 900,
@@ -175,7 +179,11 @@ async function callLLM(userBlock: string): Promise<LlmIdea> {
     throw new Error('LLM returned invalid JSON');
   }
 
-  return validateLlmIdea(parsed);
+  return {
+    idea:      validateLlmIdea(parsed),
+    tokensIn:  message.usage.input_tokens,
+    tokensOut: message.usage.output_tokens,
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -186,7 +194,7 @@ export async function generateIdeaVariationForBrand(params: {
   brandId:  string;
   original: DbContentIdea;
   comment:  string | null;
-}): Promise<LlmIdea> {
+}): Promise<{ idea: LlmIdea; tokensIn: number; tokensOut: number }> {
   const brand = await loadBrand(params.brandId);
   if (!brand) throw new Error(`Brand not found: ${params.brandId}`);
 
@@ -233,6 +241,9 @@ export async function generateIdeaVariationForBrand(params: {
 
   return callLLM(userBlock);
 }
+
+// Re-export type for callers
+export type { LlmIdea };
 
 // -----------------------------------------------------------------------------
 // Error classification
@@ -297,7 +308,7 @@ export async function regenerateIdeaHandler(job: AgentJob): Promise<HandlerResul
 
   try {
     // 3. Call LLM for the variation.
-    const llmIdea = await generateIdeaVariationForBrand({
+    const { idea: llmIdea, tokensIn, tokensOut } = await generateIdeaVariationForBrand({
       brandId:  job.brand_id,
       original: original as DbContentIdea,
       comment:  input.comment ?? null,
@@ -398,14 +409,16 @@ export async function regenerateIdeaHandler(job: AgentJob): Promise<HandlerResul
     return {
       type: 'ok',
       outputs: [{
-        kind:    'strategy',
-        payload: {
+        kind:        'strategy',
+        payload:     {
           new_idea_id:  newIdea.id,
           original_id:  original.id,
           route:        decision.route,
           flag_checked: decision.flag_checked,
         } as unknown as Record<string, unknown>,
-        model:   'claude-haiku-4-5-20251001',
+        model:       'claude-haiku-4-5-20251001',
+        tokens_used: tokensIn + tokensOut,
+        cost_usd:    tokensIn * HAIKU_INPUT_PRICE + tokensOut * HAIKU_OUTPUT_PRICE,
       }],
     };
   } catch (err) {

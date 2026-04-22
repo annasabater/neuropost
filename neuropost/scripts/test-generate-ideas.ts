@@ -48,7 +48,8 @@ async function main(): Promise<void> {
   // before the module instantiates its top-level `new Anthropic()` client.
   const { generateIdeasForBrand } = await import('../src/lib/agents/strategy/generate-ideas');
   console.log(`\n── brand: ${brandId}  count: ${count}\n`);
-  const ideas = await generateIdeasForBrand(brandId, count);
+  const { ideas, tokensIn, tokensOut } = await generateIdeasForBrand(brandId, count);
+  console.log(`  tokens: ${tokensIn} in / ${tokensOut} out  cost: $${((tokensIn * 0.0000008) + (tokensOut * 0.000004)).toFixed(6)}\n`);
 
   let passed = 0, failed = 0;
   for (const [i, idea] of ideas.entries()) {

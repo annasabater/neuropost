@@ -80,7 +80,11 @@ Devuelve SOLO JSON válido con ESTA estructura exacta:
 // LLM call
 // -----------------------------------------------------------------------------
 
-async function callLLM(brandBlock: string): Promise<BuildTaxonomyOutput> {
+// Haiku 4-5 pricing: $0.80/M input, $4.00/M output
+const HAIKU_INPUT_PRICE  = 0.0000008;
+const HAIKU_OUTPUT_PRICE = 0.000004;
+
+async function callLLM(brandBlock: string): Promise<{ result: BuildTaxonomyOutput; tokensIn: number; tokensOut: number }> {
   const message = await client.messages.create({
     model:      'claude-haiku-4-5-20251001',
     max_tokens: 3000,
@@ -111,7 +115,11 @@ async function callLLM(brandBlock: string): Promise<BuildTaxonomyOutput> {
   }
 
   validateTaxonomy(parsed);
-  return parsed;
+  return {
+    result:    parsed,
+    tokensIn:  message.usage.input_tokens,
+    tokensOut: message.usage.output_tokens,
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -250,15 +258,17 @@ export async function buildTaxonomyHandler(job: AgentJob): Promise<HandlerResult
       voice && `Voz de marca: ${voice.slice(0, 600)}`,
     ].filter(Boolean).join('\n');
 
-    const taxonomy = await callLLM(brandBlock);
+    const { result: taxonomy, tokensIn, tokensOut } = await callLLM(brandBlock);
     await replaceTaxonomy(job.brand_id, taxonomy);
 
     return {
       type: 'ok',
       outputs: [{
-        kind:    'strategy',
-        payload: taxonomy as unknown as Record<string, unknown>,
-        model:   'claude-haiku-4-5-20251001',
+        kind:        'strategy',
+        payload:     taxonomy as unknown as Record<string, unknown>,
+        model:       'claude-haiku-4-5-20251001',
+        tokens_used: tokensIn + tokensOut,
+        cost_usd:    tokensIn * HAIKU_INPUT_PRICE + tokensOut * HAIKU_OUTPUT_PRICE,
       }],
     };
   } catch (err) {
