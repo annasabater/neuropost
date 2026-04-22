@@ -18,6 +18,8 @@ const IDEA_STATUS_META: Record<string, { label: string; color: string; bg: strin
   client_edited:              { label: 'Editada',          color: '#1e40af', bg: '#eff6ff', dot: '#3b82f6' },
   client_requested_variation: { label: 'Variación pedida', color: '#92400e', bg: '#fef3c7', dot: '#f59e0b' },
   client_rejected:            { label: 'Rechazada',        color: '#991b1b', bg: '#fee2e2', dot: '#ef4444' },
+  regenerating:               { label: 'Regenerando…',     color: '#92400e', bg: '#fef3c7', dot: '#f59e0b' },
+  replaced_by_variation:      { label: 'Reemplazada',      color: '#6b7280', bg: '#f3f4f6', dot: '#9ca3af' },
 };
 
 const STORY_TYPE_META: Record<string, { label: string; color: string; bg: string }> = {
@@ -60,10 +62,22 @@ export default function PlanReviewPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  const postIdeas   = ideas.filter((i) => i.content_kind !== 'story');
-  const storyIdeas  = ideas.filter((i) => i.content_kind === 'story');
-  const reviewed    = postIdeas.filter((i) => i.status !== 'pending').length;
-  const allReviewed = postIdeas.length > 0 && reviewed === postIdeas.length;
+  // While at least one idea is still regenerating, poll the plan every
+  // 10s so the new variation appears automatically when the agent finishes.
+  useEffect(() => {
+    const hasRegenerating = ideas.some((i) => i.status === 'regenerating');
+    if (!hasRegenerating) return;
+    const interval = setInterval(() => { void load(); }, 10_000);
+    return () => clearInterval(interval);
+  }, [ideas, load]);
+
+  // Ideas replaced by a variation are hidden from the client — the new one
+  // (linked via original_idea_id) already occupies their position.
+  const visibleIdeas = ideas.filter((i) => i.status !== 'replaced_by_variation');
+  const postIdeas    = visibleIdeas.filter((i) => i.content_kind !== 'story');
+  const storyIdeas   = visibleIdeas.filter((i) => i.content_kind === 'story');
+  const reviewed     = postIdeas.filter((i) => i.status !== 'pending' && i.status !== 'regenerating').length;
+  const allReviewed  = postIdeas.length > 0 && reviewed === postIdeas.length;
 
   async function doIdeaAction(ideaId: string, action: IdeaAction, extra?: {
     client_edited_copy?: string;
@@ -162,6 +176,7 @@ export default function PlanReviewPage() {
   // ── Client reviewing ──────────────────────────────────────────────────────
   return (
     <div style={{ color: 'var(--text-primary)', fontFamily: f }}>
+      <style>{`@keyframes plan-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
       <div style={{ padding: '24px 28px' }}>
         <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
@@ -297,44 +312,64 @@ export default function PlanReviewPage() {
                   placeholder="Sin copy aún"
                 />
 
-                {/* Action bar */}
-                <div style={{
-                  display: 'flex', gap: 1, marginTop: 12,
-                  background: 'var(--border)',
-                  border: '1px solid var(--border)',
-                }}>
-                  {([
-                    { act: 'approve'           as IdeaAction, label: '✓ Aprobar',           color: '#10b981', active: idea.status === 'client_approved' },
-                    { act: 'edit'              as IdeaAction, label: '✎ Guardar edición',    color: '#3b82f6', active: idea.status === 'client_edited' },
-                    { act: 'request_variation' as IdeaAction, label: '↺ Otra versión',       color: '#f59e0b', active: idea.status === 'client_requested_variation' },
-                    { act: 'reject'            as IdeaAction, label: '✕ Rechazar',           color: '#ef4444', active: idea.status === 'client_rejected' },
-                  ]).map(({ act, label, color, active }) => (
-                    <button
-                      key={act}
-                      type="button"
-                      onClick={() => {
-                        if (act === 'edit') {
-                          void doIdeaAction(idea.id, 'edit', { client_edited_copy: idea.client_edited_copy ?? undefined });
-                        } else {
-                          void doIdeaAction(idea.id, act);
-                        }
-                      }}
-                      disabled={isActing || active}
-                      style={{
-                        flex: 1, padding: '10px 6px',
-                        background: active ? color : 'var(--bg)',
-                        color: active ? '#fff' : color,
-                        border: 'none', cursor: active ? 'default' : 'pointer',
-                        fontSize: 11, fontWeight: 700,
-                        fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.03em',
-                        opacity: isActing && !active ? 0.5 : 1,
-                        transition: 'background 0.1s',
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                {/* Action bar — or regenerating placeholder */}
+                {idea.status === 'regenerating' ? (
+                  <div style={{
+                    marginTop:   12,
+                    padding:     '20px 16px',
+                    background:  '#fef3c7',
+                    border:      '1px dashed #f59e0b',
+                    color:       '#92400e',
+                    fontSize:    13,
+                    fontFamily:  f,
+                    textAlign:   'center',
+                    display:     'flex',
+                    alignItems:  'center',
+                    justifyContent: 'center',
+                    gap:         10,
+                  }}>
+                    <RefreshCw size={14} style={{ animation: 'plan-spin 1s linear infinite' }} />
+                    <span>Estamos generando una nueva versión, te avisaremos cuando esté lista.</span>
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'flex', gap: 1, marginTop: 12,
+                    background: 'var(--border)',
+                    border: '1px solid var(--border)',
+                  }}>
+                    {([
+                      { act: 'approve'           as IdeaAction, label: '✓ Aprobar',           color: '#10b981', active: idea.status === 'client_approved' },
+                      { act: 'edit'              as IdeaAction, label: '✎ Guardar edición',    color: '#3b82f6', active: idea.status === 'client_edited' },
+                      { act: 'request_variation' as IdeaAction, label: '↺ Otra versión',       color: '#f59e0b', active: idea.status === 'client_requested_variation' },
+                      { act: 'reject'            as IdeaAction, label: '✕ Rechazar',           color: '#ef4444', active: idea.status === 'client_rejected' },
+                    ]).map(({ act, label, color, active }) => (
+                      <button
+                        key={act}
+                        type="button"
+                        onClick={() => {
+                          if (act === 'edit') {
+                            void doIdeaAction(idea.id, 'edit', { client_edited_copy: idea.client_edited_copy ?? undefined });
+                          } else {
+                            void doIdeaAction(idea.id, act);
+                          }
+                        }}
+                        disabled={isActing || active}
+                        style={{
+                          flex: 1, padding: '10px 6px',
+                          background: active ? color : 'var(--bg)',
+                          color: active ? '#fff' : color,
+                          border: 'none', cursor: active ? 'default' : 'pointer',
+                          fontSize: 11, fontWeight: 700,
+                          fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.03em',
+                          opacity: isActing && !active ? 0.5 : 1,
+                          transition: 'background 0.1s',
+                        }}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           );
