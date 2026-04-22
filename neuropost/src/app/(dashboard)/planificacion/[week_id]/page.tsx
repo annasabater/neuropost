@@ -44,7 +44,37 @@ export default function PlanReviewPage() {
   const [skipping, setSkipping] = useState(false);
   const [actingOn, setActingOn] = useState<string | null>(null);
 
+  // Modals for request_variation and reject actions.
+  const [variationModal, setVariationModal] = useState<{ ideaId: string; angle: string } | null>(null);
+  const [rejectModal, setRejectModal]       = useState<{ ideaId: string; angle: string } | null>(null);
+  const [commentDraft, setCommentDraft]     = useState('');
+  const [confirmEmpty, setConfirmEmpty]     = useState(false);
+  const commentTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+
   const debounceRefs = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+
+  const closeVariationModal = useCallback(() => {
+    setVariationModal(null);
+    setCommentDraft('');
+    setConfirmEmpty(false);
+  }, []);
+
+  useEffect(() => {
+    if (!variationModal && !rejectModal) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (variationModal) closeVariationModal();
+      if (rejectModal)    setRejectModal(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [variationModal, rejectModal, closeVariationModal]);
+
+  useEffect(() => {
+    if (variationModal && !confirmEmpty) {
+      commentTextareaRef.current?.focus();
+    }
+  }, [variationModal, confirmEmpty]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -87,8 +117,9 @@ export default function PlanReviewPage() {
   const allReviewed  = postIdeas.length > 0 && reviewed === postIdeas.length;
 
   async function doIdeaAction(ideaId: string, action: IdeaAction, extra?: {
-    client_edited_copy?: string;
+    client_edited_copy?:     string;
     client_edited_hashtags?: string[];
+    comment?:                string;
   }) {
     setActingOn(ideaId);
     const res = await fetch(`/api/client/weekly-plans/${week_id}/ideas/${ideaId}`, {
@@ -356,6 +387,12 @@ export default function PlanReviewPage() {
                         onClick={() => {
                           if (act === 'edit') {
                             void doIdeaAction(idea.id, 'edit', { client_edited_copy: idea.client_edited_copy ?? undefined });
+                          } else if (act === 'request_variation') {
+                            setCommentDraft('');
+                            setConfirmEmpty(false);
+                            setVariationModal({ ideaId: idea.id, angle: idea.angle });
+                          } else if (act === 'reject') {
+                            setRejectModal({ ideaId: idea.id, angle: idea.angle });
                           } else {
                             void doIdeaAction(idea.id, act);
                           }
@@ -537,6 +574,150 @@ export default function PlanReviewPage() {
           </div>
         </div>
       )}
+
+      {/* RequestVariation modal */}
+      {variationModal && (
+        <div style={modalOverlay} onClick={() => closeVariationModal()}>
+          <div style={modalBox} onClick={(e) => e.stopPropagation()}>
+            {!confirmEmpty ? (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
+                  <div>
+                    <h3 style={{ fontFamily: fc, fontWeight: 900, fontSize: 20, textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 4px' }}>
+                      ¿Qué te gustaría cambiar?
+                    </h3>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: 12, margin: 0 }}>
+                      {variationModal.angle}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={closeVariationModal}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 0 }}
+                    aria-label="Cerrar"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                <textarea
+                  ref={commentTextareaRef}
+                  value={commentDraft}
+                  onChange={(e) => setCommentDraft(e.target.value.slice(0, 500))}
+                  maxLength={500}
+                  rows={4}
+                  placeholder="Dinos qué te gustaría cambiar para la nueva versión"
+                  style={textareaStyle}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+                  <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: f }}>
+                    {commentDraft.length}/500
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
+                  <button type="button" onClick={closeVariationModal} style={cancelBtn}>
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const trimmed = commentDraft.trim();
+                      if (!trimmed) { setConfirmEmpty(true); return; }
+                      const ideaId = variationModal.ideaId;
+                      closeVariationModal();
+                      void doIdeaAction(ideaId, 'request_variation', { comment: trimmed });
+                    }}
+                    style={primaryBtn}
+                  >
+                    Pedir otra versión
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 style={{ fontFamily: fc, fontWeight: 900, fontSize: 18, textTransform: 'uppercase', letterSpacing: '0.03em', margin: '0 0 10px' }}>
+                  ¿Seguro?
+                </h3>
+                <p style={{ color: 'var(--text-primary)', fontSize: 13, margin: '0 0 14px', lineHeight: 1.5, fontFamily: f }}>
+                  Sin comentario, la IA decidirá por su cuenta qué cambiar.
+                </p>
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConfirmEmpty(false);
+                      setTimeout(() => commentTextareaRef.current?.focus(), 0);
+                    }}
+                    style={cancelBtn}
+                  >
+                    Escribir algo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const ideaId = variationModal.ideaId;
+                      closeVariationModal();
+                      void doIdeaAction(ideaId, 'request_variation');
+                    }}
+                    style={primaryBtn}
+                  >
+                    Enviar sin comentario
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Reject confirm modal */}
+      {rejectModal && (
+        <div style={modalOverlay} onClick={() => setRejectModal(null)}>
+          <div style={modalBox} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 10 }}>
+              <h3 style={{ fontFamily: fc, fontWeight: 900, fontSize: 20, textTransform: 'uppercase', letterSpacing: '0.03em', margin: 0 }}>
+                ¿Seguro que quieres eliminar esta idea?
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRejectModal(null)}
+                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 0 }}
+                aria-label="Cerrar"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <p style={{ color: 'var(--text-primary)', fontSize: 13, margin: '0 0 16px', lineHeight: 1.5, fontFamily: f }}>
+              Al rechazar esta idea, se eliminará del plan y te quedarás con menos contenido esta semana. ¿Prefieres pedir otra versión?
+            </p>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  const ideaId = rejectModal.ideaId;
+                  setRejectModal(null);
+                  void doIdeaAction(ideaId, 'reject');
+                }}
+                style={dangerOutlineBtn}
+              >
+                Sí, eliminar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = { ideaId: rejectModal.ideaId, angle: rejectModal.angle };
+                  setRejectModal(null);
+                  setCommentDraft('');
+                  setConfirmEmpty(false);
+                  setVariationModal(next);
+                }}
+                style={primaryBtn}
+              >
+                Mejor pedir otra versión
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -603,4 +784,14 @@ const dangerBtn: React.CSSProperties = {
 const cancelBtn: React.CSSProperties = {
   padding: '10px 18px', background: 'transparent', color: 'var(--text-secondary)',
   border: '1px solid var(--border)', cursor: 'pointer', fontSize: 13, fontFamily: f,
+};
+const primaryBtn: React.CSSProperties = {
+  padding: '10px 18px', background: '#0F766E', color: '#fff',
+  border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700,
+  fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.04em',
+};
+const dangerOutlineBtn: React.CSSProperties = {
+  padding: '10px 18px', background: 'transparent', color: '#ef4444',
+  border: '1px solid #ef4444', cursor: 'pointer', fontSize: 13,
+  fontWeight: 700, fontFamily: f,
 };
