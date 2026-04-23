@@ -187,6 +187,24 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
         templatesEnabled = (sysTpls ?? []).map((t: { id: string }) => t.id);
       }
 
+      // P10: fail loudly when no templates are available. All plans in
+      // PLAN_CONTENT_QUOTAS have stories_per_week ≥ 3, so an empty
+      // templatesEnabled list is always a configuration error, not a
+      // feature flag. Stories inserted with template_id=null would silently
+      // 422 at render time; this surfaces the issue at generation time.
+      if (templatesEnabled.length === 0) {
+        log({
+          level:    'error',
+          scope:    'plan-week',
+          event:    'no_story_templates_available',
+          brand_id: job.brand_id,
+        });
+        return {
+          type:  'fail',
+          error: 'NO_STORY_TEMPLATES: no hay templates disponibles para stories. Contacta con soporte para configurar templates del sistema o del brand.',
+        };
+      }
+
       const [{ data: inspirationRefs }, { data: mediaRefs }] = await Promise.all([
         db
           .from('inspiration_references')

@@ -74,10 +74,15 @@ function assert(cond: unknown, msg: string): asserts cond {
 
 const TEST_MARKER = '__test_fase3';
 const createdPlanIds: string[] = [];
+const createdIdeaIds: string[] = [];
 
 function registerForCleanup(planId: string) { createdPlanIds.push(planId); }
+function registerIdeaForCleanup(ideaId: string) { createdIdeaIds.push(ideaId); }
 
 async function cleanupRegistered() {
+  for (const id of createdIdeaIds) {
+    try { await db.from('content_ideas').delete().eq('id', id); } catch { /* best-effort */ }
+  }
   for (const id of createdPlanIds) {
     try { await db.from('weekly_plans').delete().eq('id', id); } catch { /* best-effort */ }
   }
@@ -389,6 +394,126 @@ async function verifyPlanNotFound() {
 }
 
 // =============================================================================
+// Sub-phase 3.3 — P9: template_id FK constraint
+// =============================================================================
+
+async function verifyTemplateFK(brandId: string) {
+  // Get a real system template to use
+  const { data: tpl, error: tplErr } = await db
+    .from('story_templates')
+    .select('id')
+    .eq('kind', 'system')
+    .limit(1)
+    .single();
+  assert(!tplErr && tpl, `Need at least one system template: ${tplErr?.message}`);
+  const templateId = (tpl as { id: string }).id;
+
+  const planId = await createTestPlan(brandId);
+
+  // Case 1: valid template_id → insert must succeed
+  const { data: idea1, error: err1 } = await db
+    .from('content_ideas')
+    .insert({
+      week_id:      planId,
+      brand_id:     brandId,
+      position:     99,
+      format:       'image',
+      angle:        '__test_fase3_fk_valid',
+      status:       'pending',
+      template_id:  templateId,
+    })
+    .select('id')
+    .single();
+  assert(!err1 && idea1, `insert with existing template_id failed: ${err1?.message}`);
+  registerIdeaForCleanup((idea1 as { id: string }).id);
+
+  // Case 2: bogus template_id → FK violation (23503)
+  const { error: err2 } = await db
+    .from('content_ideas')
+    .insert({
+      week_id:      planId,
+      brand_id:     brandId,
+      position:     98,
+      format:       'image',
+      angle:        '__test_fase3_fk_bogus',
+      status:       'pending',
+      template_id:  '00000000-0000-0000-0000-000000000000',
+    });
+  assert(err2 !== null, 'insert with bogus template_id should have been rejected by FK');
+  const isFK = err2!.code === '23503' ||
+    (err2!.message ?? '').toLowerCase().includes('foreign key');
+  assert(isFK, `expected FK violation (23503), got: ${err2?.code} — ${err2?.message}`);
+}
+
+async function verifyTemplateFKOnDelete(brandId: string) {
+  // Create a temporary custom template
+  const { data: tmpTpl, error: tmplErr } = await db
+    .from('story_templates')
+    .insert({
+      kind:          'custom',
+      brand_id:      brandId,
+      name:          '__test_fase3_tmp_template',
+      layout_config: { type: 'photo' },
+    })
+    .select('id')
+    .single();
+  assert(!tmplErr && tmpTpl, `create tmp template failed: ${tmplErr?.message}`);
+  const tmpId = (tmpTpl as { id: string }).id;
+
+  const planId = await createTestPlan(brandId);
+
+  // Insert an idea referencing the temporary template
+  const { data: idea, error: ideaErr } = await db
+    .from('content_ideas')
+    .insert({
+      week_id:      planId,
+      brand_id:     brandId,
+      position:     97,
+      format:       'image',
+      angle:        '__test_fase3_on_delete',
+      status:       'pending',
+      template_id:  tmpId,
+    })
+    .select('id')
+    .single();
+  assert(!ideaErr && idea, `insert idea referencing tmp template failed: ${ideaErr?.message}`);
+  const ideaId = (idea as { id: string }).id;
+  registerIdeaForCleanup(ideaId);
+
+  // Delete the template — ON DELETE SET NULL should fire
+  await db.from('story_templates').delete().eq('id', tmpId);
+
+  // Verify template_id was nulled out
+  const { data: after } = await db
+    .from('content_ideas')
+    .select('template_id')
+    .eq('id', ideaId)
+    .single();
+  assert(
+    (after as { template_id: string | null } | null)?.template_id === null,
+    `ON DELETE SET NULL did not clear template_id; got: ${(after as Record<string, unknown>)?.template_id}`,
+  );
+}
+
+// =============================================================================
+// Sub-phase 3.3 — P10: no-templates guard in plan-week.ts
+// =============================================================================
+
+async function verifyNoTemplatesGuard() {
+  const { readFileSync } = await import('node:fs');
+  const { resolve }      = await import('node:path');
+  const content = readFileSync(
+    resolve(process.cwd(), 'src/lib/agents/strategy/plan-week.ts'),
+    'utf-8',
+  );
+  assert(
+    content.includes('NO_STORY_TEMPLATES') &&
+    content.includes('no_story_templates_available'),
+    'plan-week.ts does not contain the NO_STORY_TEMPLATES guard',
+  );
+}
+
+// =============================================================================
 // Main
 // =============================================================================
 
@@ -424,6 +549,16 @@ async function main() {
       verifyP6RollbackAtomicity(brandId));
     await check('concurrent creation: both calls resolve to same plan.id, exactly one created=true', () =>
       verifyP6ConcurrentCreation(brandId));
+
+    console.log('\n── 3.3 P9 — template_id FK constraint ───────────────');
+    await check('insert with existing template_id succeeds; bogus UUID rejected (23503)', () =>
+      verifyTemplateFK(brandId));
+    await check('ON DELETE SET NULL: deleting template nulls template_id in ideas', () =>
+      verifyTemplateFKOnDelete(brandId));
+
+    console.log('\n── 3.3 P10 — no-templates guard ─────────────────────');
+    await check('NO_STORY_TEMPLATES guard present in plan-week.ts', () =>
+      verifyNoTemplatesGuard());
   } finally {
     console.log('\n── Cleanup ────────────────────────────────────────────');
     await cleanupRegistered();
