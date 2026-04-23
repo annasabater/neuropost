@@ -45,9 +45,16 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       }, { status: 400 });
     }
 
-    // Transition to client_approved first
-    await transitionWeeklyPlanStatus({ plan_id: id, to: 'client_approved', reason: 'client confirmed' });
-    await db.from('weekly_plans').update({ client_approved_at: new Date().toISOString() }).eq('id', id);
+    // P18: atomic transition client_reviewing → client_approved + client_approved_at in one statement.
+    // Returns { ok, plan_id, brand_id } on success or { ok: false, error, actual_status } on conflict.
+    const { data: atomicResult, error: rpcErr } = await db.rpc('confirm_weekly_plan_atomic', { p_plan_id: id });
+    if (rpcErr) throw rpcErr;
+    if (!atomicResult?.ok) {
+      const msg = atomicResult?.error ?? 'El plan ya fue confirmado o modificado por otro proceso';
+      log({ level: 'warn', scope: 'client/confirm', event: 'atomic_confirm_conflict',
+            plan_id: id, actual_status: atomicResult?.actual_status });
+      return NextResponse.json({ error: msg }, { status: 409 });
+    }
 
     // Fan-out production sub-jobs for approved/edited ideas
     const producibles = allIdeas.filter(

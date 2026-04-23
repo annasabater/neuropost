@@ -539,15 +539,26 @@ export default function PlanReviewPage() {
 
                   {/* Meta */}
                   <div style={{ padding: '8px 10px' }}>
-                    <span style={{
-                      display: 'inline-block',
-                      fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
-                      padding: '2px 7px', textTransform: 'uppercase',
-                      background: stMeta.bg, color: stMeta.color,
-                      marginBottom: 4,
-                    }}>
-                      {stMeta.label}
-                    </span>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
+                      <span style={{
+                        display: 'inline-block',
+                        fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+                        padding: '2px 7px', textTransform: 'uppercase',
+                        background: stMeta.bg, color: stMeta.color,
+                      }}>
+                        {stMeta.label}
+                      </span>
+                      {story.generation_fallback && (
+                        <span style={{
+                          display: 'inline-block',
+                          fontSize: 9, fontWeight: 700, letterSpacing: 0.5,
+                          padding: '2px 7px', textTransform: 'uppercase',
+                          background: '#fefce8', color: '#854d0e',
+                        }} title="Texto generado con copia de respaldo (la IA no pudo generar contenido original)">
+                          Fallback
+                        </span>
+                      )}
+                    </div>
                     {story.copy_draft && (
                       <p style={{
                         fontSize: 11, color: 'var(--text-secondary)',

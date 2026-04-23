@@ -100,6 +100,7 @@ export function buildCopyFromSource(type: StoryType, source: BrandMaterialV2, no
 interface StoryCreativeResult {
   copy:        string;
   imagePrompt: string;
+  isFallback:  boolean;
 }
 
 async function generateStoryCreativeContent(
@@ -136,16 +137,18 @@ async function generateStoryCreativeContent(
       const obj   = item as AnyRecord;
       const input = slotInputs[i]!;
 
-      // Schedule copy is always verbatim from brand_material
-      const copy = input.type === 'schedule' && input.existingCopy
-        ? input.existingCopy
-        : (typeof obj.copy === 'string' && obj.copy.trim()
-            ? obj.copy.trim()
-            : FALLBACK_QUOTES[i % FALLBACK_QUOTES.length]!);
+      const isScheduleVerbatim = input.type === 'schedule' && !!input.existingCopy;
+      const hasValidCopy       = typeof obj.copy === 'string' && obj.copy.trim() !== '';
+      const isFallback         = !isScheduleVerbatim && !hasValidCopy;
+
+      const copy = isScheduleVerbatim
+        ? input.existingCopy!
+        : (hasValidCopy ? obj.copy.trim() : FALLBACK_QUOTES[i % FALLBACK_QUOTES.length]!);
 
       return {
         copy,
         imagePrompt: typeof obj.imagePrompt === 'string' ? obj.imagePrompt.trim() : '',
+        isFallback,
       };
     });
   } catch (err) {
@@ -156,6 +159,7 @@ async function generateStoryCreativeContent(
         ? (buildCopyFromSource(slot.type, slot.source) || FALLBACK_QUOTES[i % FALLBACK_QUOTES.length]!)
         : FALLBACK_QUOTES[i % FALLBACK_QUOTES.length]!,
       imagePrompt: '',
+      isFallback:  true,
     }));
   }
 }
@@ -184,23 +188,25 @@ export interface PlanStoriesParams {
 }
 
 export interface StoryIdeaRow {
-  week_id:             string;
-  brand_id:            string;
-  position:            number;
-  format:              'story';
-  angle:               string;
-  hook:                string | null;
-  copy_draft:          string | null;
-  hashtags:            null;
-  suggested_asset_url: string | null;
-  suggested_asset_id:  null;
-  category_id:         null;
-  agent_output_id:     null;
-  status:              'pending';
-  content_kind:        'story';
-  story_type:          StoryType;
-  template_id:         string | null;
-  rendered_image_url:  null;
+  week_id:                 string;
+  brand_id:                string;
+  position:                number;
+  format:                  'story';
+  angle:                   string;
+  hook:                    null;
+  image_generation_prompt: string | null;
+  copy_draft:              string | null;
+  hashtags:                null;
+  suggested_asset_url:     string | null;
+  suggested_asset_id:      null;
+  category_id:             null;
+  agent_output_id:         null;
+  status:                  'pending';
+  content_kind:            'story';
+  story_type:              StoryType;
+  template_id:             string | null;
+  rendered_image_url:      null;
+  generation_fallback:     boolean;
 }
 
 // ─── Slot planning ─────────────────────────────────────────────────────────────
@@ -297,29 +303,29 @@ export async function planStoriesHandler(params: PlanStoriesParams): Promise<Sto
     const creative  = creativeResults[idx]!;
     // Assign images cycling through pool so each story gets a different background
     const imageUrl  = allImages.length > 0 ? (allImages[idx % allImages.length] ?? null) : null;
-    // If no image available, store the Replicate prompt in hook for async generation at render time
-    const hookValue = !imageUrl && creative.imagePrompt
-      ? `REPLICATE:${creative.imagePrompt}`
-      : null;
+    // P17: store image prompt in dedicated column; hook is no longer used for REPLICATE: encoding
+    const imageGenPrompt = !imageUrl && creative.imagePrompt ? creative.imagePrompt : null;
 
     return {
       week_id,
       brand_id,
-      position:            startPosition + idx,
-      format:              'story',
-      angle:               slot.type,
-      hook:                hookValue,
-      copy_draft:          creative.copy || null,
-      hashtags:            null,
-      suggested_asset_url: imageUrl,
-      suggested_asset_id:  null,
-      category_id:         null,
-      agent_output_id:     null,
-      status:              'pending',
-      content_kind:        'story',
-      story_type:          slot.type,
-      template_id:         K > 0 ? stories_templates_enabled[idx % K] ?? null : null,
-      rendered_image_url:  null,
+      position:                startPosition + idx,
+      format:                  'story',
+      angle:                   slot.type,
+      hook:                    null,
+      image_generation_prompt: imageGenPrompt,
+      copy_draft:              creative.copy || null,
+      hashtags:                null,
+      suggested_asset_url:     imageUrl,
+      suggested_asset_id:      null,
+      category_id:             null,
+      agent_output_id:         null,
+      status:                  'pending',
+      content_kind:            'story',
+      story_type:              slot.type,
+      template_id:             K > 0 ? stories_templates_enabled[idx % K] ?? null : null,
+      rendered_image_url:      null,
+      generation_fallback:     creative.isFallback,
     };
   });
 }

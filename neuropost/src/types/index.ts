@@ -1101,8 +1101,11 @@ export interface ContentIdea {
   template_id:            string | null;
   rendered_image_url:     string | null;
   // Sprint 12
-  render_error?:          string | null;
-  render_status?:         'pending_render' | 'rendering' | 'rendered' | 'render_failed' | null;
+  render_error?:           string | null;
+  render_status?:          'pending_render' | 'rendering' | 'rendered' | 'render_failed' | null;
+  // Fase 4.C — P11 + P17
+  generation_fallback?:    boolean | null;
+  image_generation_prompt?: string | null;
   // Commit 3A — variation chain
   original_idea_id?:      string | null;
   regeneration_reason?:   string | null;

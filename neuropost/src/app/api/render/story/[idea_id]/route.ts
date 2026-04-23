@@ -160,12 +160,18 @@ export async function POST(
   const layoutName: string = template.layout_config?.layout ?? 'flexible';
 
   try {
-    // 2a. If hook contains a Replicate prompt, generate the background image first
+    // 2a. If an image prompt is available, generate the background image via Replicate first.
+    // P17: read image_generation_prompt (new column); fall back to hook REPLICATE: prefix for
+    // rows created before the P17 migration. Remove the hook fallback after one release cycle.
     let bgImageUrl: string | null = idea.suggested_asset_url ?? null;
 
+    const imageGenPrompt: string | null = idea.image_generation_prompt ?? null;
+    // DEPRECATED: hook REPLICATE: encoding — kept for pre-P17 rows; remove after migration verified
     const hook = typeof idea.hook === 'string' ? idea.hook : null;
-    if (hook?.startsWith('REPLICATE:')) {
-      const imagePrompt = hook.slice('REPLICATE:'.length).trim();
+    const replicatePrompt = imageGenPrompt ?? (hook?.startsWith('REPLICATE:') ? hook.slice('REPLICATE:'.length).trim() : null);
+
+    if (replicatePrompt) {
+      const imagePrompt = replicatePrompt;
       console.log(`[render/story/${idea_id}] Generating Replicate bg image…`);
 
       const replicateUrl = await generateImageSync(imagePrompt);

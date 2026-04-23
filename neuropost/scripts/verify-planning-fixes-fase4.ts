@@ -212,6 +212,112 @@ check(
   'Expected: backoff doubles each poll, capped at 60_000ms',
 );
 
+// ─── P11: generation_fallback column + flag in plan-stories.ts ───────────────
+
+const planStoriesP11 = readFile('src/lib/agents/stories/plan-stories.ts');
+
+check(
+  'P11 — plan-stories.ts StoryIdeaRow has generation_fallback field',
+  planStoriesP11.includes('generation_fallback:     boolean'),
+  'Expected: generation_fallback: boolean in StoryIdeaRow interface',
+);
+
+check(
+  'P11 — plan-stories.ts StoryCreativeResult has isFallback field',
+  planStoriesP11.includes('isFallback:  boolean'),
+  'Expected: isFallback: boolean in StoryCreativeResult interface',
+);
+
+check(
+  'P11 — plan-stories.ts sets isFallback: true in catch fallback path',
+  planStoriesP11.includes('isFallback:  true'),
+  'Expected: isFallback: true in the catch-all graceful fallback return',
+);
+
+check(
+  'P11 — plan-stories.ts propagates generation_fallback: creative.isFallback',
+  planStoriesP11.includes('generation_fallback:     creative.isFallback'),
+  'Expected: generation_fallback set from creative.isFallback in slots.map',
+);
+
+check(
+  'P11 — types/index.ts has generation_fallback on ContentIdea',
+  readFile('src/types/index.ts').includes('generation_fallback?:'),
+  'Expected: generation_fallback?: boolean | null in ContentIdea interface',
+);
+
+check(
+  'P11 — plan page shows generation_fallback badge',
+  readFile('src/app/(dashboard)/planificacion/[week_id]/page.tsx').includes('story.generation_fallback'),
+  'Expected: generation_fallback badge rendered in story card',
+);
+
+// ─── P17: image_generation_prompt column ─────────────────────────────────────
+
+check(
+  'P17 — plan-stories.ts StoryIdeaRow has image_generation_prompt field',
+  planStoriesP11.includes('image_generation_prompt:'),
+  'Expected: image_generation_prompt: string | null in StoryIdeaRow interface',
+);
+
+check(
+  'P17 — plan-stories.ts no longer encodes REPLICATE: in hook',
+  !planStoriesP11.includes('`REPLICATE:${creative.imagePrompt}`'),
+  'Expected: REPLICATE: prefix encoding removed from hook field',
+);
+
+check(
+  'P17 — plan-stories.ts writes image_generation_prompt to rows',
+  planStoriesP11.includes('image_generation_prompt: imageGenPrompt'),
+  'Expected: image_generation_prompt: imageGenPrompt in StoryIdeaRow return',
+);
+
+check(
+  'P17 — render/story route reads idea.image_generation_prompt',
+  readFile('src/app/api/render/story/[idea_id]/route.ts').includes('idea.image_generation_prompt'),
+  'Expected: idea.image_generation_prompt read in render route (P17 new column)',
+);
+
+check(
+  'P17 — render/story route keeps REPLICATE: deprecated fallback',
+  readFile('src/app/api/render/story/[idea_id]/route.ts').includes("hook?.startsWith('REPLICATE:')"),
+  'Expected: deprecated REPLICATE: hook fallback kept for pre-P17 rows',
+);
+
+check(
+  'P17 — types/index.ts has image_generation_prompt on ContentIdea',
+  readFile('src/types/index.ts').includes('image_generation_prompt?:'),
+  'Expected: image_generation_prompt?: string | null in ContentIdea interface',
+);
+
+// ─── P18: confirm_weekly_plan_atomic RPC ─────────────────────────────────────
+
+const confirmRoute = readFile('src/app/api/client/weekly-plans/[id]/confirm/route.ts');
+
+check(
+  'P18 — confirm route calls confirm_weekly_plan_atomic RPC',
+  confirmRoute.includes("'confirm_weekly_plan_atomic'"),
+  'Expected: db.rpc(\'confirm_weekly_plan_atomic\', { p_plan_id: id }) in confirm route',
+);
+
+check(
+  'P18 — confirm route handles ok: false as 409',
+  confirmRoute.includes('atomicResult?.ok') && confirmRoute.includes('status: 409'),
+  'Expected: if (!atomicResult?.ok) → 409 response in confirm route',
+);
+
+check(
+  'P18 — migration file exists',
+  fs.existsSync(path.join(ROOT, 'supabase/migrations/20260423_planning_fixes_fase4_p18.sql')),
+  'Expected: supabase/migrations/20260423_planning_fixes_fase4_p18.sql',
+);
+
+check(
+  'P18 — migration defines confirm_weekly_plan_atomic function',
+  readFile('supabase/migrations/20260423_planning_fixes_fase4_p18.sql').includes('confirm_weekly_plan_atomic'),
+  'Expected: CREATE OR REPLACE FUNCTION confirm_weekly_plan_atomic in migration',
+);
+
 // ─── Results ─────────────────────────────────────────────────────────────────
 
 const passed = results.filter(r => r.passed).length;
