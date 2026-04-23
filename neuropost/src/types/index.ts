@@ -1160,3 +1160,23 @@ export interface ScheduleChange {
   change_reason:       string | null;
   created_at:          string;
 }
+
+// ─── Sprint 12: brand_material v2 — schemas Zod + tipos ──────────────────────
+// Re-exporta todo lo nuevo. Las declaraciones legacy `BrandMaterial` y
+// `BrandMaterialCategory` siguen viviendo en este archivo (arriba) para no
+// romper ningún caller existente.
+export {
+  CONTENT_SCHEMAS,
+  ScheduleContentV1, PromoContentV1, DataContentV1, QuoteContentV1, FreeContentV1,
+  ScheduleContentV2, PromoContentV2, DataContentV2, QuoteContentV2, FreeContentV2,
+  detectSchemaVersion,
+} from './brand-material';
+
+export type {
+  SchemaVersion,
+  ContentByCategory,
+  AnyContentV2,
+  BrandMaterialV2,
+  ScheduleContentV1T, PromoContentV1T, DataContentV1T, QuoteContentV1T, FreeContentV1T,
+  ScheduleContentV2T, PromoContentV2T, DataContentV2T, QuoteContentV2T, FreeContentV2T,
+} from './brand-material';

@@ -1,20 +1,29 @@
 // =============================================================================
 // stories:plan_stories
 // =============================================================================
-// Generates N story content_ideas for a weekly plan using brand_material.
+// Generates N story content_ideas for a weekly plan.
 //
-// Slot distribution algorithm:
-//   1. One 'schedule' slot if brand has an active schedule entry.
-//   2. Up to 3 'promo' slots for active non-expired promos.
-//   3. Remaining slots filled via round-robin across data/quote/custom pools.
-//   4. Slots with no matching material get AI-generated quotes (batched).
+// Creative agent approach:
+//   1. Reads the full brand kit (sector, tone, voice, services, description).
+//   2. Calls Claude Haiku in batch to generate creative copy AND an image
+//      prompt for each slot simultaneously.
+//   3. Image sourcing priority:
+//        a) inspiration_references (thumbnail_url)
+//        b) media_library images
+//        c) If none → stores Replicate image prompt in `hook` field
+//           (prefixed "REPLICATE:") for the render endpoint to generate.
+//   4. Schedule slots always keep verbatim copy from brand_material.
 //
 // Does NOT insert into DB — returns rows ready for caller to insert.
-// Does NOT render images — that is Sprint 12.
+// Does NOT render images — that is the render/story/[idea_id] endpoint.
 
-import Anthropic                     from '@anthropic-ai/sdk';
+import Anthropic                       from '@anthropic-ai/sdk';
 import type { Brand, BrandMaterial, StoryType } from '@/types';
-import { buildQuotesPrompt, FALLBACK_QUOTES } from './prompts';
+import {
+  buildStoryCreativeBatchPrompt,
+  FALLBACK_QUOTES,
+  type StorySlotInput,
+} from './prompts';
 
 const aiClient = new Anthropic();
 
@@ -55,12 +64,28 @@ function buildCopyFromSource(type: StoryType, source: BrandMaterial): string {
   }
 }
 
-async function generateAIQuotes(brand: Brand, count: number): Promise<string[]> {
+// ─── Creative content generation ─────────────────────────────────────────────
+
+interface StoryCreativeResult {
+  copy:        string;
+  imagePrompt: string;
+}
+
+async function generateStoryCreativeContent(
+  brand: Brand,
+  slots: StorySlot[],
+): Promise<StoryCreativeResult[]> {
+  const slotInputs: StorySlotInput[] = slots.map((slot, i) => ({
+    index:        i,
+    type:         slot.type,
+    existingCopy: slot.source !== null ? buildCopyFromSource(slot.type, slot.source) : null,
+  }));
+
   try {
-    const prompt  = buildQuotesPrompt(brand, count);
+    const prompt  = buildStoryCreativeBatchPrompt(brand, slotInputs);
     const message = await aiClient.messages.create({
       model:      'claude-haiku-4-5-20251001',
-      max_tokens: 1000,
+      max_tokens: 2000,
       messages:   [{ role: 'user', content: prompt }],
     });
 
@@ -73,17 +98,47 @@ async function generateAIQuotes(brand: Brand, count: number): Promise<string[]> 
       .replace(/\s*```$/i, '')
       .trim();
 
-    const parsed = JSON.parse(cleaned);
-    if (!Array.isArray(parsed)) throw new Error('Response is not an array');
+    const parsed = JSON.parse(cleaned) as unknown[];
+    if (!Array.isArray(parsed) || parsed.length < slots.length) throw new Error('Bad response length');
 
-    return parsed.slice(0, count).map(String);
+    return parsed.slice(0, slots.length).map((item, i) => {
+      const obj   = item as AnyRecord;
+      const input = slotInputs[i]!;
+
+      // Schedule copy is always verbatim from brand_material
+      const copy = input.type === 'schedule' && input.existingCopy
+        ? input.existingCopy
+        : (typeof obj.copy === 'string' && obj.copy.trim()
+            ? obj.copy.trim()
+            : FALLBACK_QUOTES[i % FALLBACK_QUOTES.length]!);
+
+      return {
+        copy,
+        imagePrompt: typeof obj.imagePrompt === 'string' ? obj.imagePrompt.trim() : '',
+      };
+    });
   } catch (err) {
-    console.warn('[plan-stories] AI quote generation failed, using fallback:', err instanceof Error ? err.message : err);
-    return Array.from({ length: count }, (_, i) => FALLBACK_QUOTES[i % FALLBACK_QUOTES.length]);
+    console.warn('[plan-stories] Creative content generation failed, using fallback:', err instanceof Error ? err.message : err);
+    // Graceful fallback: verbatim material copy or generic quotes, no image prompts
+    return slots.map((slot, i) => ({
+      copy: slot.source !== null
+        ? (buildCopyFromSource(slot.type, slot.source) || FALLBACK_QUOTES[i % FALLBACK_QUOTES.length]!)
+        : FALLBACK_QUOTES[i % FALLBACK_QUOTES.length]!,
+      imagePrompt: '',
+    }));
   }
 }
 
 // ─── Public types ──────────────────────────────────────────────────────────────
+
+export interface InspirationRef {
+  id:            string;
+  thumbnail_url: string | null;
+}
+
+export interface MediaRef {
+  url: string;
+}
 
 export interface PlanStoriesParams {
   brand_id:                  string;
@@ -93,6 +148,8 @@ export interface PlanStoriesParams {
   stories_per_week:          number;
   stories_templates_enabled: string[];
   startPosition:             number;
+  inspiration_refs?:         InspirationRef[];
+  media_refs?:               MediaRef[];
 }
 
 export interface StoryIdeaRow {
@@ -101,10 +158,10 @@ export interface StoryIdeaRow {
   position:            number;
   format:              'story';
   angle:               string;
-  hook:                null;
+  hook:                string | null;
   copy_draft:          string | null;
   hashtags:            null;
-  suggested_asset_url: null;
+  suggested_asset_url: string | null;
   suggested_asset_id:  null;
   category_id:         null;
   agent_output_id:     null;
@@ -122,10 +179,7 @@ interface StorySlot {
   source: BrandMaterial | null;
 }
 
-function buildSlots(
-  brand_material: BrandMaterial[],
-  stories_per_week: number,
-): StorySlot[] {
+function buildSlots(brand_material: BrandMaterial[], stories_per_week: number): StorySlot[] {
   const slots: StorySlot[] = [];
   const now = new Date();
 
@@ -158,10 +212,9 @@ function buildSlots(
   let qi = 0;
   while (slots.length < stories_per_week) {
     if (typeQueue.length === 0) {
-      // No material left — AI quote placeholder
       slots.push({ type: 'quote', source: null });
     } else {
-      const tq = typeQueue[qi % typeQueue.length];
+      const tq   = typeQueue[qi % typeQueue.length]!;
       const item = tq.pool.shift()!;
       slots.push({ type: tq.type, source: item });
       if (tq.pool.length === 0) {
@@ -175,55 +228,66 @@ function buildSlots(
   return slots;
 }
 
+function shuffled<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j]!, a[i]!];
+  }
+  return a;
+}
+
 // ─── Main export ───────────────────────────────────────────────────────────────
 
 export async function planStoriesHandler(params: PlanStoriesParams): Promise<StoryIdeaRow[]> {
-  const { brand_id, week_id, brand, brand_material, stories_per_week, stories_templates_enabled, startPosition } = params;
+  const {
+    brand_id, week_id, brand, brand_material,
+    stories_per_week, stories_templates_enabled, startPosition,
+  } = params;
 
   if (stories_per_week <= 0) return [];
 
   const slots = buildSlots(brand_material, stories_per_week);
 
-  // Batch AI quotes for all null-source quote slots
-  const aiSlotIndices = slots
-    .map((s, i) => (s.type === 'quote' && s.source === null ? i : -1))
-    .filter(i => i !== -1);
+  // Generate creative copy + image prompts for all slots in one batch call
+  const creativeResults = await generateStoryCreativeContent(brand, slots);
 
-  let aiQuotes: string[] = [];
-  if (aiSlotIndices.length > 0) {
-    aiQuotes = await generateAIQuotes(brand, aiSlotIndices.length);
-  }
+  // Build image pool: inspiration first (more curated), then media library
+  const allImages = shuffled([
+    ...(params.inspiration_refs ?? [])
+      .filter((r): r is InspirationRef & { thumbnail_url: string } => !!r.thumbnail_url)
+      .map(r => r.thumbnail_url),
+    ...(params.media_refs ?? []).map(r => r.url),
+  ]);
 
   const K = stories_templates_enabled.length;
-  let aiQuoteIdx = 0;
 
   return slots.map((slot, idx): StoryIdeaRow => {
-    let copyDraft: string | null;
-
-    if (slot.source !== null) {
-      copyDraft = buildCopyFromSource(slot.type, slot.source) || null;
-    } else {
-      // AI-generated quote (type must be 'quote' here per buildSlots logic)
-      copyDraft = aiQuotes[aiQuoteIdx++] ?? FALLBACK_QUOTES[idx % FALLBACK_QUOTES.length];
-    }
+    const creative  = creativeResults[idx]!;
+    // Assign images cycling through pool so each story gets a different background
+    const imageUrl  = allImages.length > 0 ? (allImages[idx % allImages.length] ?? null) : null;
+    // If no image available, store the Replicate prompt in hook for async generation at render time
+    const hookValue = !imageUrl && creative.imagePrompt
+      ? `REPLICATE:${creative.imagePrompt}`
+      : null;
 
     return {
       week_id,
       brand_id,
       position:            startPosition + idx,
       format:              'story',
-      angle:               slot.type,             // NOT NULL — story_type is descriptive enough
-      hook:                null,
-      copy_draft:          copyDraft,
+      angle:               slot.type,
+      hook:                hookValue,
+      copy_draft:          creative.copy || null,
       hashtags:            null,
-      suggested_asset_url: null,
+      suggested_asset_url: imageUrl,
       suggested_asset_id:  null,
       category_id:         null,
       agent_output_id:     null,
       status:              'pending',
       content_kind:        'story',
       story_type:          slot.type,
-      template_id:         K > 0 ? stories_templates_enabled[idx % K] : null,
+      template_id:         K > 0 ? stories_templates_enabled[idx % K] ?? null : null,
       rendered_image_url:  null,
     };
   });

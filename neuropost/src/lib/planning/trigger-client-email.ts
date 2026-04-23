@@ -1,19 +1,32 @@
 // =============================================================================
 // Planning — trigger-client-email
 // =============================================================================
-// Sends the "weekly plan ready for review" email to the brand's owner and
-// records the result in the notifications table.
+// Sends "weekly plan ready for review" / "plan rejected" emails to the brand
+// owner and records the result in the notifications table.
+//
+// Both functions now return { ok, error? } so callers can:
+//   - Know definitively whether the email was sent
+//   - Persist the result in weekly_plans.client_email_status
+//   - Let the reconcile-client-emails cron retry failures
 
 import { sendEmail }              from '@/lib/email/service';
 import { resolveBrandRecipient }  from '@/lib/email/resolve-recipient';
 import WeeklyPlanReadyEmail       from '@/emails/WeeklyPlanReadyEmail';
 import { createAdminClient }      from '@/lib/supabase';
+import { log }                    from '@/lib/logger';
 import React                      from 'react';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
 
-export async function enqueueClientReviewEmail(planId: string): Promise<void> {
+export interface EmailResult {
+  ok:     boolean;
+  error?: string;
+}
+
+// ─── Review email (worker approved → client) ──────────────────────────────────
+
+export async function enqueueClientReviewEmail(planId: string): Promise<EmailResult> {
   const db = createAdminClient() as DB;
 
   const { data: plan, error: planErr } = await db
@@ -23,14 +36,20 @@ export async function enqueueClientReviewEmail(planId: string): Promise<void> {
     .single();
 
   if (planErr || !plan) {
-    console.error('[email/trigger] Plan no encontrado:', planId, planErr);
-    return;
+    const msg = planErr?.message ?? 'plan not found';
+    log({ level: 'error', scope: 'trigger-client-email', event: 'plan_not_found',
+          plan_id: planId, error: msg });
+    await _markEmailFailed(db, planId, msg);
+    return { ok: false, error: msg };
   }
 
   const recipient = await resolveBrandRecipient(plan.brand_id);
   if (!recipient) {
-    console.error('[email/trigger] No se resolvió destinatario para brand:', plan.brand_id);
-    return;
+    const msg = 'recipient not resolved';
+    log({ level: 'error', scope: 'trigger-client-email', event: 'recipient_not_found',
+          plan_id: planId, brand_id: plan.brand_id });
+    await _markEmailFailed(db, planId, msg);
+    return { ok: false, error: msg };
   }
 
   const { data: ideas } = await db
@@ -43,6 +62,11 @@ export async function enqueueClientReviewEmail(planId: string): Promise<void> {
   const reviewUrl     = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://neuropost.app'}/planificacion/${plan.id}`;
   const pillarSummary = buildPillarSummary(ideas ?? []);
   const subject       = `Tu contenido de la semana del ${weekLabel} está listo para revisar`;
+
+  // Increment attempt counter before sending (best-effort)
+  await db.rpc('increment_client_email_attempts', { p_plan_id: planId }).catch(() => {
+    // RPC not yet deployed — skip; reconcile cron will still have attempt count from retries
+  });
 
   const result = await sendEmail({
     to:      recipient.email,
@@ -60,13 +84,11 @@ export async function enqueueClientReviewEmail(planId: string): Promise<void> {
     },
   });
 
-  // Insert adaptado al schema real de notifications:
-  //   columnas: id, brand_id, type, message (NOT NULL), read, metadata (jsonb),
-  //             created_at, email_sent_at, email_resend_id, email_error
+  // Insert notification record (best-effort — don't fail the overall result)
   const { error: notifErr } = await db.from('notifications').insert({
-    brand_id: plan.brand_id,
-    type:     'weekly_plan.ready_for_client_review',
-    message:  subject,
+    brand_id:        plan.brand_id,
+    type:            'weekly_plan.ready_for_client_review',
+    message:         subject,
     metadata: {
       weekly_plan_id: plan.id,
       week_start:     plan.week_start,
@@ -79,18 +101,111 @@ export async function enqueueClientReviewEmail(planId: string): Promise<void> {
   });
 
   if (notifErr) {
-    console.error('[email/trigger] Error insertando notification:', notifErr);
+    log({ level: 'warn', scope: 'trigger-client-email', event: 'notification_insert_failed',
+          plan_id: planId, error: notifErr.message });
   }
 
   if (result.ok) {
     await db
       .from('weekly_plans')
-      .update({ sent_to_client_at: new Date().toISOString() })
-      .eq('id', plan.id);
-    console.log('[email/trigger] Email enviado, plan:', planId, 'resend_id:', result.id);
+      .update({ sent_to_client_at: new Date().toISOString(), client_email_status: 'sent' })
+      .eq('id', planId);
+    log({ level: 'info', scope: 'trigger-client-email', event: 'review_email_sent',
+          plan_id: planId, resend_id: result.id });
+    return { ok: true };
   } else {
-    console.error('[email/trigger] Error al enviar email:', result.error);
+    const msg = result.error ?? 'sendEmail failed';
+    log({ level: 'error', scope: 'trigger-client-email', event: 'review_email_failed',
+          plan_id: planId, error: msg });
+    await _markEmailFailed(db, planId, msg);
+    return { ok: false, error: msg };
   }
+}
+
+// ─── Rejection email (worker rejected → client) ──────────────────────────────
+
+export async function enqueueClientPlanRejectedEmail(
+  planId:     string,
+  skipReason: string,
+): Promise<EmailResult> {
+  const db = createAdminClient() as DB;
+
+  const { data: plan, error: planErr } = await db
+    .from('weekly_plans')
+    .select('id, brand_id, week_start')
+    .eq('id', planId)
+    .single();
+
+  if (planErr || !plan) {
+    const msg = planErr?.message ?? 'plan not found';
+    log({ level: 'error', scope: 'trigger-client-email', event: 'plan_not_found_rejection',
+          plan_id: planId, error: msg });
+    return { ok: false, error: msg };
+  }
+
+  const recipient = await resolveBrandRecipient(plan.brand_id);
+  if (!recipient) {
+    log({ level: 'error', scope: 'trigger-client-email', event: 'recipient_not_found_rejection',
+          plan_id: planId, brand_id: plan.brand_id });
+    return { ok: false, error: 'recipient not resolved' };
+  }
+
+  const weekLabel = formatWeekLabel(plan.week_start);
+  const subject   = `No se ha generado plan para la semana del ${weekLabel}`;
+
+  // We reuse the generic sendEmail with a plain text body until a dedicated
+  // template is created. The React template can be replaced later.
+  const result = await sendEmail({
+    to:      recipient.email,
+    subject,
+    template: React.createElement(WeeklyPlanReadyEmail, {
+      brand_name:       recipient.brand_name,
+      week_start_label: weekLabel,
+      review_url:       `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://neuropost.app'}/planificacion`,
+      pillar_summary:   `Esta semana el equipo no ha podido generar contenido. Motivo: ${skipReason}. Te avisaremos la próxima semana.`,
+    }),
+    metadata: {
+      brand_id:          plan.brand_id,
+      weekly_plan_id:    plan.id,
+      notification_type: 'weekly_plan.rejected_by_worker',
+    },
+  });
+
+  // Insert notification record
+  await db.from('notifications').insert({
+    brand_id: plan.brand_id,
+    type:     'weekly_plan.rejected_by_worker',
+    message:  subject,
+    metadata: { weekly_plan_id: plan.id, week_start: plan.week_start, skip_reason: skipReason },
+    email_sent_at:   result.ok ? new Date().toISOString() : null,
+    email_resend_id: result.ok ? result.id : null,
+    email_error:     result.ok ? null : result.error,
+  }).then(({ error: e }: { error: unknown }) => {
+    if (e) log({ level: 'warn', scope: 'trigger-client-email',
+                 event: 'rejection_notification_insert_failed', plan_id: planId });
+  });
+
+  if (result.ok) {
+    log({ level: 'info', scope: 'trigger-client-email', event: 'rejection_email_sent',
+          plan_id: planId, resend_id: result.id });
+    return { ok: true };
+  } else {
+    const msg = result.error ?? 'sendEmail failed';
+    log({ level: 'error', scope: 'trigger-client-email', event: 'rejection_email_failed',
+          plan_id: planId, error: msg });
+    return { ok: false, error: msg };
+  }
+}
+
+// ─── Internal helpers ─────────────────────────────────────────────────────────
+
+async function _markEmailFailed(db: DB, planId: string, reason: string): Promise<void> {
+  await db
+    .from('weekly_plans')
+    .update({ client_email_status: 'failed' })
+    .eq('id', planId);
+  log({ level: 'warn', scope: 'trigger-client-email', event: 'client_email_status_failed',
+        plan_id: planId, reason });
 }
 
 function buildPillarSummary(ideas: { angle: string; format: string }[]): string {

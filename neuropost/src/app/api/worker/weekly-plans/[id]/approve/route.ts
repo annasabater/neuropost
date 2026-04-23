@@ -4,6 +4,7 @@ import { createAdminClient }                               from '@/lib/supabase'
 import { transitionWeeklyPlanStatus }                      from '@/lib/planning/weekly-plan-service';
 import { enqueueClientReviewEmail }                        from '@/lib/planning/trigger-client-email';
 import { apiError }                                        from '@/lib/api-utils';
+import { log }                                             from '@/lib/logger';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -22,7 +23,15 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       .eq('awaiting_worker_review', true);
 
     const plan = await transitionWeeklyPlanStatus({ plan_id: id, to: 'client_reviewing', reason: 'worker approved' });
-    await enqueueClientReviewEmail(id);
+
+    // P3: handle email result explicitly
+    const emailResult = await enqueueClientReviewEmail(id);
+    if (!emailResult.ok) {
+      log({ level: 'error', scope: 'worker/approve', event: 'client_review_email_failed',
+            plan_id: id, error: emailResult.error });
+    } else {
+      log({ level: 'info', scope: 'worker/approve', event: 'client_review_email_sent', plan_id: id });
+    }
 
     return NextResponse.json({ ok: true, plan });
   } catch (err) {

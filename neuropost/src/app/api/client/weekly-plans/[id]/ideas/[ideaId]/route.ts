@@ -91,8 +91,8 @@ export async function PATCH(
 
     if (updateErr) throw updateErr;
 
-    // Audit trail
-    await db.from('client_feedback').insert({
+    // P22: Audit trail — throw on failure so the action is not silently unrecorded
+    const { error: feedbackErr } = await db.from('client_feedback').insert({
       week_id:        id,
       idea_id:        ideaId,
       brand_id:       plan.brand_id,
@@ -103,6 +103,7 @@ export async function PATCH(
       new_value:      { status: newStatus, client_edited_copy: body.client_edited_copy ?? null,
                         client_edited_hashtags: body.client_edited_hashtags ?? null },
     });
+    if (feedbackErr) throw feedbackErr;
 
     // Record first client action on this plan
     if (!plan.client_first_action_at) {

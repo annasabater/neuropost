@@ -7,13 +7,90 @@
 //
 // Called non-blocking (fire-and-forget) from plan-week.ts after story insertion.
 // Also callable manually from the plan review UI for re-renders.
+//
+// If idea.hook starts with "REPLICATE:{prompt}", generates the background image
+// synchronously (polling, max 90s) before rendering.
 
-import { NextResponse }     from 'next/server';
+import { NextResponse }      from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { renderStory }       from '@/lib/stories/render';
+import { log }               from '@/lib/logger';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
+
+// ─── Replicate sync helper ────────────────────────────────────────────────────
+
+const REPLICATE_POLL_INTERVAL_MS = 3_000;
+const REPLICATE_MAX_POLLS        = 30;   // 90 s max
+
+interface ReplicateOutput {
+  status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
+  output?: string | string[] | null;
+  error?:  string | null;
+}
+
+async function generateImageSync(prompt: string): Promise<string> {
+  const token = process.env.REPLICATE_API_TOKEN;
+  if (!token) throw new Error('REPLICATE_API_TOKEN not configured');
+
+  // Create prediction without webhook for synchronous polling
+  const createRes = await fetch(
+    'https://api.replicate.com/v1/models/black-forest-labs/flux-dev/predictions',
+    {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        input: {
+          prompt,
+          width:               1080,
+          height:              1920,
+          output_format:       'jpg',
+          num_outputs:         1,
+          num_inference_steps: 28,
+          guidance_scale:      3.5,
+        },
+      }),
+    },
+  );
+
+  if (!createRes.ok) {
+    const err = await createRes.json().catch(() => ({})) as { detail?: string };
+    throw new Error(`Replicate create failed: ${err.detail ?? createRes.statusText}`);
+  }
+
+  const prediction = await createRes.json() as ReplicateOutput & { id: string; urls: { get: string } };
+  const pollUrl    = prediction.urls.get;
+
+  for (let i = 0; i < REPLICATE_MAX_POLLS; i++) {
+    await new Promise(r => setTimeout(r, REPLICATE_POLL_INTERVAL_MS));
+
+    const pollRes = await fetch(pollUrl, {
+      headers: { 'Authorization': `Bearer ${token}` },
+    });
+
+    if (!pollRes.ok) continue;
+
+    const status = await pollRes.json() as ReplicateOutput;
+
+    if (status.status === 'succeeded') {
+      const out = Array.isArray(status.output) ? status.output[0] : status.output;
+      if (!out) throw new Error('Replicate succeeded but output is empty');
+      return out;
+    }
+
+    if (status.status === 'failed' || status.status === 'canceled') {
+      throw new Error(`Replicate prediction ${status.status}: ${status.error ?? 'unknown'}`);
+    }
+  }
+
+  throw new Error('Replicate prediction timed out after 90s');
+}
+
+// ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(
   _req: Request,
@@ -41,6 +118,25 @@ export async function POST(
     return NextResponse.json({ error: 'Missing template or brand' }, { status: 422 });
   }
 
+  // P1: idempotency — already rendered, nothing to do
+  if (idea.render_status === 'rendered') {
+    return NextResponse.json({ rendered_image_url: idea.rendered_image_url }, { status: 200 });
+  }
+
+  // P1: atomic claim — skip if another worker already claimed this render
+  const { data: claimed } = await db
+    .from('content_ideas')
+    .update({ render_status: 'rendering', render_started_at: new Date().toISOString() })
+    .eq('id', idea_id)
+    .in('render_status', ['pending_render', 'render_failed'])
+    .select('id');
+
+  if (!claimed || claimed.length === 0) {
+    // Already being rendered by a concurrent request
+    return NextResponse.json({ error: 'Render already in progress' }, { status: 409 });
+  }
+  log({ level: 'info', scope: 'render/story', event: 'render_claimed', idea_id });
+
   // 2. Load template + brand separately (template_id has no FK constraint, can't use PostgREST join)
   const [{ data: template }, { data: brand }] = await Promise.all([
     db.from('story_templates').select('*').eq('id', idea.template_id).single(),
@@ -54,10 +150,42 @@ export async function POST(
   const layoutName: string = template.layout_config?.layout ?? 'flexible';
 
   try {
-    // 2. Render PNG
-    const buffer = await renderStory({ layoutName, idea, brand });
+    // 2a. If hook contains a Replicate prompt, generate the background image first
+    let bgImageUrl: string | null = idea.suggested_asset_url ?? null;
 
-    // 3. Upload to Supabase Storage
+    const hook = typeof idea.hook === 'string' ? idea.hook : null;
+    if (hook?.startsWith('REPLICATE:')) {
+      const imagePrompt = hook.slice('REPLICATE:'.length).trim();
+      console.log(`[render/story/${idea_id}] Generating Replicate bg image…`);
+
+      const replicateUrl = await generateImageSync(imagePrompt);
+
+      // Download the generated image and re-upload to persistent storage
+      const imgRes = await fetch(replicateUrl);
+      if (!imgRes.ok) throw new Error(`Failed to download Replicate image: ${imgRes.status}`);
+      const imgBuffer = Buffer.from(await imgRes.arrayBuffer());
+
+      const bgPath = `${brand.id}/${idea_id}-bg.jpg`;
+      const { error: bgUploadErr } = await db.storage
+        .from('stories-rendered')
+        .upload(bgPath, imgBuffer, { contentType: 'image/jpeg', upsert: true });
+
+      if (bgUploadErr) throw new Error(`bg upload: ${bgUploadErr.message}`);
+
+      const { data: bgUrlData } = db.storage.from('stories-rendered').getPublicUrl(bgPath);
+      bgImageUrl = bgUrlData.publicUrl as string;
+
+      // Persist to DB so future re-renders skip Replicate
+      await db
+        .from('content_ideas')
+        .update({ suggested_asset_url: bgImageUrl })
+        .eq('id', idea_id);
+    }
+
+    // 3. Render PNG
+    const buffer = await renderStory({ layoutName, idea, brand, bgImageUrl: bgImageUrl ?? undefined });
+
+    // 4. Upload to Supabase Storage
     const path = `${brand.id}/${idea_id}.png`;
     const { error: uploadErr } = await db.storage
       .from('stories-rendered')
@@ -65,28 +193,33 @@ export async function POST(
 
     if (uploadErr) throw new Error(`storage upload: ${uploadErr.message}`);
 
-    // 4. Get public URL
+    // 5. Get public URL
     const { data: urlData } = db.storage
       .from('stories-rendered')
       .getPublicUrl(path);
 
     const publicUrl: string = urlData.publicUrl;
 
-    // 5. Update idea with rendered URL
+    // 6. Update idea with rendered URL + mark complete
     await db
       .from('content_ideas')
-      .update({ rendered_image_url: publicUrl, render_error: null })
+      .update({
+        rendered_image_url:  publicUrl,
+        render_error:        null,
+        render_status:       'rendered',
+        render_completed_at: new Date().toISOString(),
+      })
       .eq('id', idea_id);
 
+    log({ level: 'info', scope: 'render/story', event: 'render_complete', idea_id });
     return NextResponse.json({ rendered_image_url: publicUrl }, { status: 200 });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error(`[render/story/${idea_id}]`, message);
+    log({ level: 'error', scope: 'render/story', event: 'render_failed', idea_id, error: message });
 
-    // Save error to DB so UI can surface it
     await db
       .from('content_ideas')
-      .update({ render_error: message })
+      .update({ render_error: message, render_status: 'render_failed' })
       .eq('id', idea_id);
 
     return NextResponse.json({ error: message }, { status: 500 });

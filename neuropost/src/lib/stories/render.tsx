@@ -57,11 +57,12 @@ function splitLines(text: string, maxLines = 10): string[] {
 // ─── Render context ───────────────────────────────────────────────────────────
 
 interface RenderCtx {
-  copy:      string;
-  brandName: string;
-  primary:   string;
-  secondary: string;
-  logoUrl:   string | null;
+  copy:       string;
+  brandName:  string;
+  primary:    string;
+  secondary:  string;
+  logoUrl:    string | null;
+  bgImageUrl: string | null;
 }
 
 // ─── Layout: centered (Quote Clásica) ─────────────────────────────────────────
@@ -484,44 +485,161 @@ function LayoutFlexible({ copy, brandName, primary, secondary }: RenderCtx) {
   );
 }
 
+// ─── Layout: photo_overlay (any story type with inspiration photo bg) ─────────
+// Full-bleed background image + dark overlay + big white text.
+// Simulates a "blurred background" via heavy rgba overlay (satori has no blur).
+
+function LayoutPhotoOverlay({ copy, brandName, primary, bgImageUrl }: RenderCtx) {
+  const text = clamp(copy || '', 200);
+  return (
+    <div style={{ display: 'flex', width: W, height: H, position: 'relative', background: '#111111' }}>
+      {bgImageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={bgImageUrl} style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, objectFit: 'cover' }} alt="" />
+      )}
+      {/* Heavy overlay — dims + "blurs" perception */}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, background: 'rgba(0,0,0,0.58)', display: 'flex' }} />
+      {/* Brand accent top strip */}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: W, height: 10, background: primary, display: 'flex' }} />
+      {/* Content */}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '80px' }}>
+        <div style={{ display: 'flex', width: 56, height: 6, background: primary, marginBottom: 44 }} />
+        <div style={{ display: 'flex', fontSize: 82, fontFamily: 'BarlowCondensed', fontWeight: 900, color: '#ffffff', lineHeight: 1.05, textTransform: 'uppercase', maxWidth: 920, flexWrap: 'wrap' }}>
+          {text}
+        </div>
+      </div>
+      {/* Brand name bottom */}
+      <div style={{ position: 'absolute', bottom: 80, left: 80, display: 'flex', fontSize: 22, fontFamily: 'Barlow', fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+        {brandName}
+      </div>
+      {/* Bottom accent strip */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, width: W, height: 6, background: primary, display: 'flex' }} />
+    </div>
+  );
+}
+
+// ─── Layout: photo_schedule (schedule/horario with inspiration photo bg) ──────
+// Full-bleed background image + very dark overlay + white schedule table.
+
+function LayoutPhotoSchedule({ copy, brandName, primary, bgImageUrl }: RenderCtx) {
+  const rows = splitLines(copy, 7);
+  const rowH = rows.length > 0 ? Math.min(120, Math.floor(700 / rows.length)) : 120;
+  return (
+    <div style={{ display: 'flex', width: W, height: H, position: 'relative', background: '#111111' }}>
+      {bgImageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={bgImageUrl} style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, objectFit: 'cover' }} alt="" />
+      )}
+      {/* Very dark overlay — schedule text must be fully readable */}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, background: 'rgba(0,0,0,0.72)', display: 'flex' }} />
+      {/* Brand accent top strip */}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: W, height: 10, background: primary, display: 'flex' }} />
+      {/* Content */}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, display: 'flex', flexDirection: 'column', padding: '80px 80px 80px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 56 }}>
+          <div style={{ display: 'flex', width: 56, height: 6, background: primary, marginBottom: 20 }} />
+          <div style={{ display: 'flex', fontSize: 80, fontFamily: 'BarlowCondensed', fontWeight: 900, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 0.9 }}>
+            NUESTRO
+          </div>
+          <div style={{ display: 'flex', fontSize: 80, fontFamily: 'BarlowCondensed', fontWeight: 900, color: primary, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 0.9 }}>
+            HORARIO
+          </div>
+        </div>
+        {/* Schedule rows */}
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 2 }}>
+          {rows.length === 0 ? (
+            <div style={{ display: 'flex', fontSize: 36, fontFamily: 'Barlow', color: 'rgba(255,255,255,0.5)' }}>Sin horario</div>
+          ) : rows.map((row, i) => {
+            const parts = row.split(': ');
+            const day   = parts[0] ?? row;
+            const hours = parts[1] ?? '';
+            return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: rowH, borderBottom: i < rows.length - 1 ? '1px solid rgba(255,255,255,0.15)' : 'none' }}>
+                <div style={{ display: 'flex', fontSize: Math.min(40, rowH * 0.38), fontFamily: 'BarlowCondensed', fontWeight: 900, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                  {day}
+                </div>
+                <div style={{ display: 'flex', fontSize: Math.min(40, rowH * 0.38), fontFamily: 'Barlow', fontWeight: 700, color: primary }}>
+                  {hours}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {/* Brand name */}
+        <div style={{ display: 'flex', marginTop: 40, fontSize: 22, fontFamily: 'Barlow', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+          {brandName}
+        </div>
+      </div>
+      {/* Bottom accent strip */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, width: W, height: 6, background: primary, display: 'flex' }} />
+    </div>
+  );
+}
+
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
 function buildJSX(layout: string, ctx: RenderCtx): React.ReactElement {
   switch (layout) {
-    case 'centered':  return <LayoutCentered {...ctx} />;
-    case 'minimal':   return <LayoutMinimal  {...ctx} />;
-    case 'table':     return <LayoutTable    {...ctx} />;
-    case 'hero':      return <LayoutHero     {...ctx} />;
-    case 'banner':    return <LayoutBanner   {...ctx} />;
-    case 'urgent':    return <LayoutUrgent   {...ctx} />;
-    case 'stat':      return <LayoutStat     {...ctx} />;
-    case 'tagline':   return <LayoutTagline  {...ctx} />;
-    case 'overlay':   return <LayoutOverlay  {...ctx} />;
-    case 'flexible':  return <LayoutFlexible {...ctx} />;
-    default:          return <LayoutCentered {...ctx} />;
+    case 'centered':       return <LayoutCentered      {...ctx} />;
+    case 'minimal':        return <LayoutMinimal        {...ctx} />;
+    case 'table':          return <LayoutTable          {...ctx} />;
+    case 'hero':           return <LayoutHero           {...ctx} />;
+    case 'banner':         return <LayoutBanner         {...ctx} />;
+    case 'urgent':         return <LayoutUrgent         {...ctx} />;
+    case 'stat':           return <LayoutStat           {...ctx} />;
+    case 'tagline':        return <LayoutTagline        {...ctx} />;
+    case 'overlay':        return <LayoutOverlay        {...ctx} />;
+    case 'flexible':       return <LayoutFlexible       {...ctx} />;
+    case 'photo_overlay':  return <LayoutPhotoOverlay   {...ctx} />;
+    case 'photo_schedule': return <LayoutPhotoSchedule  {...ctx} />;
+    default:               return <LayoutCentered       {...ctx} />;
   }
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
 export async function renderStory(params: {
-  layoutName: string;
-  idea:       ContentIdea;
-  brand:      Brand;
+  layoutName:  string;
+  idea:        ContentIdea;
+  brand:       Brand;
+  bgImageUrl?: string | null;
 }): Promise<ArrayBuffer> {
-  const { layoutName, idea, brand } = params;
+  const { idea, brand } = params;
   const fonts  = await loadFonts();
   const colors = (brand.colors as Record<string, string> | null) ?? {};
 
+  // Pre-fetch background image as base64 data URI (satori requires data URIs for reliable cross-origin images)
+  let bgImageUrl: string | null = params.bgImageUrl ?? null;
+  if (!bgImageUrl && (idea as unknown as Record<string, unknown>).suggested_asset_url) {
+    const rawUrl = (idea as unknown as Record<string, unknown>).suggested_asset_url as string;
+    try {
+      const imgBuf = await fetch(rawUrl).then(r => r.arrayBuffer());
+      const mime   = rawUrl.match(/\.png(\?|$)/i) ? 'image/png' : 'image/jpeg';
+      bgImageUrl   = `data:${mime};base64,${Buffer.from(imgBuf).toString('base64')}`;
+    } catch {
+      bgImageUrl = null;
+    }
+  }
+
+  // Choose photo layout when a background image is available
+  let effectiveLayout = params.layoutName;
+  if (bgImageUrl) {
+    effectiveLayout = (params.layoutName === 'table' || params.layoutName === 'hero')
+      ? 'photo_schedule'
+      : 'photo_overlay';
+  }
+
   const ctx: RenderCtx = {
-    copy:      clamp(idea.copy_draft ?? '', 300),
-    brandName: brand.name,
-    primary:   colors['primary']  ?? '#0F766E',
-    secondary: colors['secondary'] ?? '#374151',
-    logoUrl:   (brand as unknown as Record<string, unknown>).logo_url as string | null ?? null,
+    copy:       clamp(idea.copy_draft ?? '', 300),
+    brandName:  brand.name,
+    primary:    colors['primary']  ?? '#0F766E',
+    secondary:  colors['secondary'] ?? '#374151',
+    logoUrl:    (brand as unknown as Record<string, unknown>).logo_url as string | null ?? null,
+    bgImageUrl,
   };
 
-  const jsx = buildJSX(layoutName, ctx);
+  const jsx = buildJSX(effectiveLayout, ctx);
 
   const response = new ImageResponse(jsx, {
     width:  W,

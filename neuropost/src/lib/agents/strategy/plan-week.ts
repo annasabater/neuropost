@@ -32,6 +32,7 @@ import { loadBrand }                                    from '../helpers';
 import { parseIdeasFromStrategyPayload, extractWeekStart } from '@/lib/planning/parse-ideas';
 import { createWeeklyPlanFromOutput, transitionWeeklyPlanStatus } from '@/lib/planning/weekly-plan-service';
 import { enqueueClientReviewEmail }                     from '@/lib/planning/trigger-client-email';
+import { log }                                          from '@/lib/logger';
 import { createAdminClient }                            from '@/lib/supabase';
 import { PLAN_CONTENT_QUOTAS }                          from '@/lib/plan-limits';
 import { getHumanReviewDefaults, resolveHumanReviewConfig } from '@/lib/human-review';
@@ -185,6 +186,20 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
         templatesEnabled = (sysTpls ?? []).map((t: { id: string }) => t.id);
       }
 
+      const [{ data: inspirationRefs }, { data: mediaRefs }] = await Promise.all([
+        db
+          .from('inspiration_references')
+          .select('id, thumbnail_url')
+          .eq('brand_id', job.brand_id)
+          .eq('is_saved', true)
+          .not('thumbnail_url', 'is', null),
+        db
+          .from('media_library')
+          .select('url')
+          .eq('brand_id', job.brand_id)
+          .eq('type', 'image'),
+      ]);
+
       const storyRows = await planStoriesHandler({
         brand_id:                  job.brand_id,
         week_id:                   planId,
@@ -193,6 +208,8 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
         stories_per_week:          planQuota?.stories_per_week ?? 3,
         stories_templates_enabled: templatesEnabled,
         startPosition:             parsedIdeas.length,
+        inspiration_refs:          inspirationRefs ?? [],
+        media_refs:                (mediaRefs ?? []) as { url: string }[],
       });
 
       if (storyRows.length > 0) {
@@ -201,15 +218,26 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
           .insert(storyRows)
           .select('id');
         if (storiesErr) {
-          console.error('[plan-week] Failed to insert story ideas:', storiesErr.message);
-        } else if (insertedStories?.length) {
-          // Fire-and-forget render for each story — non-blocking
+          // P5: fatal — a plan with missing stories is incomplete
+          log({ level: 'error', scope: 'plan-week', event: 'stories_insert_failed',
+                plan_id: planId, error: storiesErr.message });
+          return { type: 'fail', error: `Failed to insert story ideas: ${storiesErr.message}` };
+        }
+        if (insertedStories?.length) {
+          // P1: mark stories pending_render before dispatching (idempotent if render endpoint re-runs)
+          await db
+            .from('content_ideas')
+            .update({ render_status: 'pending_render' })
+            .in('id', (insertedStories as { id: string }[]).map(s => s.id));
+
+          // Fire-and-forget — render endpoint owns the render_status lifecycle
           const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
           const renderFetches = (insertedStories as { id: string }[]).map(s =>
             fetch(`${baseUrl}/api/render/story/${s.id}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-            }).catch(e => console.warn(`[plan-week] render trigger failed for ${s.id}:`, e)),
+            }).catch(e => log({ level: 'warn', scope: 'plan-week', event: 'render_trigger_failed',
+                                idea_id: s.id, error: String(e) })),
           );
           Promise.allSettled(renderFetches).catch(() => {});
         }
@@ -236,7 +264,8 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
       );
 
       if (decision.route === 'worker_review') {
-        await db.from('worker_notifications').insert({
+        // P2: check insert result and persist worker_notify_status
+        const { error: notifErr } = await db.from('worker_notifications').insert({
           type:     'needs_review',
           message:  `Plan semanal listo para revisar — semana del ${weekStart}`,
           brand_id: job.brand_id,
@@ -252,9 +281,24 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
             },
           },
         });
+        const notifyStatus = notifErr ? 'failed' : 'sent';
+        if (notifErr) {
+          log({ level: 'error', scope: 'plan-week', event: 'worker_notification_failed',
+                plan_id: planId, error: notifErr.message });
+        } else {
+          log({ level: 'info', scope: 'plan-week', event: 'worker_notification_sent', plan_id: planId });
+        }
+        await db.from('weekly_plans')
+          .update({ worker_notify_status: notifyStatus })
+          .eq('id', planId);
       } else {
         await transitionWeeklyPlanStatus({ plan_id: planId, to: 'client_reviewing' });
-        await enqueueClientReviewEmail(planId);
+        // P3: use EmailResult to detect and log failures; DB status updated inside enqueueClientReviewEmail
+        const emailResult = await enqueueClientReviewEmail(planId);
+        if (!emailResult.ok) {
+          log({ level: 'error', scope: 'plan-week', event: 'client_review_email_failed',
+                plan_id: planId, error: emailResult.error });
+        }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
