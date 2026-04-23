@@ -3,10 +3,16 @@
 import Link                    from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { es }                  from 'date-fns/locale';
-import type { AuditLogItem }   from '@/app/(dashboard)/brand-kit/page';
 
 const f  = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
+
+export interface AuditLogItem {
+  id:          string;
+  created_at:  string;
+  actor_name?: string | null;
+  description: string;
+}
 
 interface Props {
   items: AuditLogItem[];
