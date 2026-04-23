@@ -88,37 +88,15 @@ export interface CreateWeeklyPlanResult {
  * returns it without touching content_ideas.
  *
  * If created fresh, writes weekly_plans (status='generating') +
- * content_ideas in a manual transaction (rollback on failure).
+ * content_ideas atomically via the create_weekly_plan_atomic Postgres RPC.
+ * No manual rollback needed — the DB transaction covers both tables.
  */
 export async function createWeeklyPlanFromOutput(
   params: CreateWeeklyPlanParams,
 ): Promise<CreateWeeklyPlanResult> {
   const db = createAdminClient() as DB;
 
-  // ── Idempotency check ────────────────────────────────────────────────────
-  const { data: existing } = await db
-    .from('weekly_plans')
-    .select('*')
-    .eq('brand_id', params.brand_id)
-    .eq('week_start', params.week_start)
-    .maybeSingle();
-
-  if (existing) {
-    // Fetch associated ideas for the caller
-    const { data: existingIdeas } = await db
-      .from('content_ideas')
-      .select('*')
-      .eq('week_id', existing.id)
-      .order('position');
-
-    return {
-      plan:    existing as WeeklyPlan,
-      ideas:   (existingIdeas ?? []) as ContentIdea[],
-      created: false,
-    };
-  }
-
-  // ── Resolve parsed ideas ─────────────────────────────────────────────────
+  // ── Resolve parsed ideas before the RPC call ─────────────────────────────
   let parsedIdeas: ParsedIdea[] = params.ideas ?? [];
 
   if (parsedIdeas.length === 0 && params.agent_output_id) {
@@ -133,63 +111,23 @@ export async function createWeeklyPlanFromOutput(
     }
   }
 
-  // ── INSERT weekly_plan (status='generating') ──────────────────────────────
-  const { data: plan, error: planErr } = await db
-    .from('weekly_plans')
-    .insert({
-      brand_id:        params.brand_id,
-      parent_job_id:   params.parent_job_id,
-      week_start:      params.week_start,
-      status:          'generating' as WeeklyPlanStatus,
-      auto_approved:   false,
-      auto_approved_at: null,
-    })
-    .select()
-    .single();
+  // ── Atomic RPC: INSERT weekly_plan + INSERT content_ideas in one tx ───────
+  const { data: result, error: rpcErr } = await db.rpc('create_weekly_plan_atomic', {
+    p_brand_id:        params.brand_id,
+    p_week_start:      params.week_start,
+    p_parent_job_id:   params.parent_job_id ?? null,
+    p_agent_output_id: params.agent_output_id ?? null,
+    p_ideas:           JSON.stringify(parsedIdeas),
+  });
 
-  if (planErr || !plan) {
-    throw new Error(`[weekly-plan-service] Failed to insert weekly_plan: ${planErr?.message}`);
+  if (rpcErr || !result) {
+    throw new Error(`[weekly-plan-service] create_weekly_plan_atomic failed: ${rpcErr?.message}`);
   }
-
-  // ── INSERT content_ideas (within manual transaction) ──────────────────────
-  if (parsedIdeas.length > 0) {
-    const rows = parsedIdeas.map((idea) => ({
-      week_id:              plan.id,
-      brand_id:             params.brand_id,
-      agent_output_id:      params.agent_output_id,
-      category_id:          idea.category_id,
-      position:             idea.position,
-      day_of_week:          idea.day_of_week,
-      format:               idea.format,
-      angle:                idea.angle,
-      hook:                 idea.hook,
-      copy_draft:           idea.copy_draft,
-      hashtags:             idea.hashtags,
-      suggested_asset_url:  idea.suggested_asset_url,
-      suggested_asset_id:   idea.suggested_asset_id,
-      status:               'pending',
-    }));
-
-    const { error: ideasErr } = await db.from('content_ideas').insert(rows);
-
-    if (ideasErr) {
-      // Manual rollback: delete the plan so the caller can retry
-      await db.from('weekly_plans').delete().eq('id', plan.id);
-      throw new Error(`[weekly-plan-service] Failed to insert content_ideas: ${ideasErr.message}`);
-    }
-  }
-
-  // Fetch back inserted ideas
-  const { data: insertedIdeas } = await db
-    .from('content_ideas')
-    .select('*')
-    .eq('week_id', plan.id)
-    .order('position');
 
   return {
-    plan:    plan as WeeklyPlan,
-    ideas:   (insertedIdeas ?? []) as ContentIdea[],
-    created: true,
+    plan:    result.plan    as WeeklyPlan,
+    ideas:   (result.ideas  ?? []) as ContentIdea[],
+    created: result.created as boolean,
   };
 }
 

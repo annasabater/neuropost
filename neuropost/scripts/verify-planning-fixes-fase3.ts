@@ -50,6 +50,7 @@ const db = createClient(SUPABASE_URL, SERVICE_KEY) as any;
 import {
   transitionWeeklyPlanStatus,
   ConcurrentPlanModificationError,
+  createWeeklyPlanFromOutput,
 } from '../src/lib/planning/weekly-plan-service';
 
 // ─── result counters ─────────────────────────────────────────────────────────
@@ -126,6 +127,141 @@ async function createTestPlan(
 async function fetchPlanStatus(planId: string): Promise<string> {
   const { data } = await db.from('weekly_plans').select('status').eq('id', planId).single();
   return data.status as string;
+}
+
+// ─── minimal ParsedIdea factory ──────────────────────────────────────────────
+
+let _ideaSeq = 0;
+import type { ParsedIdea } from '../src/lib/planning/parse-ideas';
+
+function makeParsedIdea(overrides: Partial<ParsedIdea> & Record<string, unknown> = {}): ParsedIdea {
+  _ideaSeq++;
+  return {
+    position:            _ideaSeq,
+    day_of_week:         1,
+    format:              'post',
+    angle:               `Test angle ${_ideaSeq}`,
+    hook:                `Test hook ${_ideaSeq}`,
+    copy_draft:          `Test copy ${_ideaSeq}`,
+    hashtags:            ['#test'],
+    suggested_asset_url: null,
+    suggested_asset_id:  null,
+    category_id:         null,
+    ...overrides,
+  } as ParsedIdea;
+}
+
+// =============================================================================
+// Sub-phase 3.2 — P6: atomic RPC for weekly plan creation
+// =============================================================================
+
+async function verifyP6HappyPath(brandId: string) {
+  _planSeq++;
+  const year  = 2091 + (_planSeq % 5);
+  const month = String(1 + (_planSeq % 12)).padStart(2, '0');
+  const day   = String(1 + (_planSeq % 28)).padStart(2, '0');
+  const week  = `${year}-${month}-${day}`;
+
+  const ideas = [makeParsedIdea(), makeParsedIdea()];
+
+  const result = await createWeeklyPlanFromOutput({
+    brand_id:        brandId,
+    agent_output_id: null,
+    week_start:      week,
+    parent_job_id:   null,
+    ideas,
+  });
+
+  assert(result.created === true, `expected created=true, got ${result.created}`);
+  assert(!!result.plan?.id,       'plan.id missing');
+  assert(result.ideas.length === 2, `expected 2 ideas, got ${result.ideas.length}`);
+
+  // Register plan for cleanup (ideas are cascade-deleted with plan)
+  registerForCleanup(result.plan.id);
+  return { planId: result.plan.id, week };
+}
+
+async function verifyP6Idempotency(brandId: string) {
+  _planSeq++;
+  const year  = 2092 + (_planSeq % 5);
+  const month = String(1 + (_planSeq % 12)).padStart(2, '0');
+  const day   = String(1 + (_planSeq % 28)).padStart(2, '0');
+  const week  = `${year}-${month}-${day}`;
+
+  const ideas = [makeParsedIdea(), makeParsedIdea(), makeParsedIdea()];
+
+  const r1 = await createWeeklyPlanFromOutput({
+    brand_id: brandId, agent_output_id: null,
+    week_start: week, parent_job_id: null, ideas,
+  });
+  assert(r1.created === true, `first call: expected created=true, got ${r1.created}`);
+  registerForCleanup(r1.plan.id);
+
+  const r2 = await createWeeklyPlanFromOutput({
+    brand_id: brandId, agent_output_id: null,
+    week_start: week, parent_job_id: null, ideas,
+  });
+  assert(r2.created === false,        `second call: expected created=false, got ${r2.created}`);
+  assert(r2.plan.id === r1.plan.id,   `second call returned different plan id`);
+  assert(r2.ideas.length === 3,       `expected 3 ideas on re-fetch, got ${r2.ideas.length}`);
+}
+
+async function verifyP6RollbackAtomicity(brandId: string) {
+  // Pass an idea with position=null — content_ideas.position is NOT NULL.
+  // The RPC must roll back the weekly_plans INSERT too, leaving no orphan row.
+  _planSeq++;
+  const year  = 2093 + (_planSeq % 5);
+  const month = String(1 + (_planSeq % 12)).padStart(2, '0');
+  const day   = String(1 + (_planSeq % 28)).padStart(2, '0');
+  const week  = `${year}-${month}-${day}`;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const badIdeas = [makeParsedIdea({ position: null as any })];
+
+  let threw = false;
+  try {
+    await createWeeklyPlanFromOutput({
+      brand_id: brandId, agent_output_id: null,
+      week_start: week, parent_job_id: null, ideas: badIdeas,
+    });
+  } catch {
+    threw = true;
+  }
+  assert(threw, 'Expected RPC to throw on bad idea, but it succeeded');
+
+  // Verify no orphan weekly_plan was left behind
+  const { data: orphan } = await db
+    .from('weekly_plans')
+    .select('id')
+    .eq('brand_id', brandId)
+    .eq('week_start', week)
+    .maybeSingle();
+  assert(!orphan, `Orphan weekly_plan found after rolled-back RPC: id=${orphan?.id}`);
+}
+
+async function verifyP6ConcurrentCreation(brandId: string) {
+  _planSeq++;
+  const year  = 2094 + (_planSeq % 5);
+  const month = String(1 + (_planSeq % 12)).padStart(2, '0');
+  const day   = String(1 + (_planSeq % 28)).padStart(2, '0');
+  const week  = `${year}-${month}-${day}`;
+
+  const ideas = [makeParsedIdea()];
+  const params = {
+    brand_id: brandId, agent_output_id: null,
+    week_start: week, parent_job_id: null, ideas,
+  };
+
+  const [r1, r2] = await Promise.all([
+    createWeeklyPlanFromOutput(params),
+    createWeeklyPlanFromOutput(params),
+  ]);
+
+  assert(r1.plan.id === r2.plan.id, `concurrent calls returned different plan ids`);
+
+  const createdCount = [r1, r2].filter(r => r.created).length;
+  assert(createdCount === 1, `expected exactly 1 created=true, got ${createdCount}`);
+  registerForCleanup(r1.plan.id);
 }
 
 // =============================================================================
@@ -278,6 +414,16 @@ async function main() {
       verifyTransitionParallelConcurrency(brandId));
     // Intentionally kept for documentation; does no assertions
     await verifyTransitionSequentialConcurrency(brandId);
+
+    console.log('\n── 3.2 P6 — atomic RPC create_weekly_plan_atomic ─────');
+    await check('happy path: RPC creates plan + 2 ideas, created=true', () =>
+      verifyP6HappyPath(brandId).then(() => { /* void */ }));
+    await check('idempotency: second call returns created=false, same plan.id, same ideas', () =>
+      verifyP6Idempotency(brandId));
+    await check('rollback atomicity: bad idea rolls back weekly_plan insert', () =>
+      verifyP6RollbackAtomicity(brandId));
+    await check('concurrent creation: both calls resolve to same plan.id, exactly one created=true', () =>
+      verifyP6ConcurrentCreation(brandId));
   } finally {
     console.log('\n── Cleanup ────────────────────────────────────────────');
     await cleanupRegistered();
