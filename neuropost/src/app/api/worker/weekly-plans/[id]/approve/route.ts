@@ -5,6 +5,7 @@ import { transitionWeeklyPlanStatus, ConcurrentPlanModificationError } from '@/l
 import { enqueueClientReviewEmail }                        from '@/lib/planning/trigger-client-email';
 import { apiError }                                        from '@/lib/api-utils';
 import { log }                                             from '@/lib/logger';
+import { logAudit }                                        from '@/lib/audit';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -23,6 +24,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       .eq('awaiting_worker_review', true);
 
     const plan = await transitionWeeklyPlanStatus({ plan_id: id, to: 'client_reviewing', reason: 'worker approved' });
+    void logAudit({ actor_type: 'worker', action: 'approve', resource_type: 'weekly_plan',
+      resource_id: id, brand_id: plan.brand_id, description: 'Worker approved weekly plan' });
 
     // P3: handle email result explicitly
     const emailResult = await enqueueClientReviewEmail(id);

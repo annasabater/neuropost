@@ -21,6 +21,7 @@ import Anthropic                       from '@anthropic-ai/sdk';
 import type { Brand, StoryType }       from '@/types';
 import type { BrandMaterialV2 }        from '@/types/brand-material';
 import { pickActiveSchedule, isActiveNow } from '@/lib/brand-material/normalize';
+import { log }                         from '@/lib/logger';
 import {
   buildStoryCreativeBatchPrompt,
   FALLBACK_QUOTES,
@@ -55,7 +56,13 @@ export function buildCopyFromSource(type: StoryType, source: BrandMaterialV2, no
       const c = source.content as BrandMaterialV2<'schedule'>['content'];
       const chosen = pickActiveSchedule(c.schedules, now);
       const days = chosen?.days ?? [];
-      return days.map(d => `${translateDay(d.day)}: ${d.hours}`).join('\n');
+      // P19: filter corrupted entries where day or hours is not a string at runtime
+      const validDays = days.filter(d => typeof d.day === 'string' && typeof d.hours === 'string');
+      if (validDays.length < days.length) {
+        log({ level: 'warn', scope: 'plan-stories', event: 'schedule_material_malformed',
+              rejected: days.length - validDays.length });
+      }
+      return validDays.map(d => `${translateDay(d.day)}: ${d.hours}`).join('\n');
     }
     case 'promo': {
       const c = source.content as BrandMaterialV2<'promo'>['content'];

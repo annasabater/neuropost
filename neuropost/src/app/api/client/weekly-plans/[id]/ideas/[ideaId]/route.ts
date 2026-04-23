@@ -2,6 +2,7 @@ import { NextResponse }      from 'next/server';
 import { requireServerUser } from '@/lib/supabase';
 import { createAdminClient } from '@/lib/supabase';
 import { apiError }          from '@/lib/api-utils';
+import { logAudit }          from '@/lib/audit';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -104,6 +105,10 @@ export async function PATCH(
                         client_edited_hashtags: body.client_edited_hashtags ?? null },
     });
     if (feedbackErr) throw feedbackErr;
+
+    void logAudit({ actor_type: 'user', actor_id: user.id, action: body.action,
+      resource_type: 'content_idea', resource_id: ideaId, brand_id: plan.brand_id,
+      description: `Client ${body.action}d content idea` });
 
     // Record first client action on this plan
     if (!plan.client_first_action_at) {

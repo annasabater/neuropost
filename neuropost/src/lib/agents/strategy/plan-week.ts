@@ -43,6 +43,8 @@ import type { ContentIdea, PostFormat }                 from './types';
 import type { PlanKey }                                 from '@/lib/plan-limits';
 import type { BrandMaterial }                           from '@/types';
 import { normalizeMaterial }                            from '@/lib/brand-material/normalize';
+import { logAgentAction }                               from '@/lib/audit';
+import * as Sentry                                      from '@sentry/nextjs';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -166,6 +168,8 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
       planId = weeklyPlan.id;
 
       await transitionWeeklyPlanStatus({ plan_id: planId, to: 'ideas_ready' });
+      void logAgentAction('strategy:plan_week', 'plan_created', 'weekly_plan',
+        `Plan semanal iniciado — semana ${weekStart}`, { resource_id: planId, brand_id: job.brand_id });
 
       // ── Sprint 11: generate and insert story content_ideas ──────────────
       const db = createAdminClient() as DB;
@@ -199,6 +203,9 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
           event:    'no_story_templates_available',
           brand_id: job.brand_id,
         });
+        void logAgentAction('strategy:plan_week', 'plan_failed', 'weekly_plan',
+          'No hay templates disponibles para stories (NO_STORY_TEMPLATES)',
+          { brand_id: job.brand_id, severity: 'warning' });
         return {
           type:  'fail',
           error: 'NO_STORY_TEMPLATES: no hay templates disponibles para stories. Contacta con soporte para configurar templates del sistema o del brand.',
@@ -327,12 +334,22 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
       if (err instanceof ConcurrentPlanModificationError) {
         log({ level: 'warn', scope: 'plan-week', event: 'concurrent_modification',
               plan_id: err.planId, expected: err.expected, actual: err.actual });
+        void logAgentAction('strategy:plan_week', 'plan_failed', 'weekly_plan',
+          'Concurrent modification during plan generation',
+          { brand_id: job.brand_id, severity: 'warning' });
         return { type: 'fail', error: 'concurrent_modification_during_plan_generation' };
       }
       const msg = err instanceof Error ? err.message : String(err);
+      Sentry.captureException(err, { tags: { component: 'plan-week' } });
+      void logAgentAction('strategy:plan_week', 'plan_failed', 'weekly_plan',
+        `Plan generation failed: ${msg}`,
+        { brand_id: job.brand_id, severity: 'critical' });
       return { type: 'fail', error: `[plan-week] weekly_plan persistence failed: ${msg}` };
     }
 
+    void logAgentAction('strategy:plan_week', 'plan_completed', 'weekly_plan',
+      `Plan semanal generado — semana ${weekStart}`,
+      { resource_id: planId!, brand_id: job.brand_id });
     return {
       type: 'ok',
       outputs: [{

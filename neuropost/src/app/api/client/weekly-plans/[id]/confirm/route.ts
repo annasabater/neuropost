@@ -5,6 +5,7 @@ import { transitionWeeklyPlanStatus, ConcurrentPlanModificationError } from '@/l
 import { queueJob }                  from '@/lib/agents/queue';
 import { apiError }                  from '@/lib/api-utils';
 import { log }                       from '@/lib/logger';
+import { logAudit }                  from '@/lib/audit';
 import type { ContentIdea }          from '@/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -84,6 +85,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     }
 
     await transitionWeeklyPlanStatus({ plan_id: id, to: 'producing', reason: 'production queued' });
+    void logAudit({ actor_type: 'user', actor_id: user.id, action: 'confirm', resource_type: 'weekly_plan',
+      resource_id: id, brand_id: plan.brand_id,
+      description: `Client confirmed weekly plan — ${producibles.length} ideas in production` });
 
     return NextResponse.json({
       ok: true,

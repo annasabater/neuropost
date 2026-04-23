@@ -15,6 +15,7 @@ import { NextResponse }      from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
 import { renderStory }       from '@/lib/stories/render';
 import { log }               from '@/lib/logger';
+import * as Sentry           from '@sentry/nextjs';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -225,6 +226,7 @@ export async function POST(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     log({ level: 'error', scope: 'render/story', event: 'render_failed', idea_id, error: message });
+    Sentry.captureException(err, { tags: { component: 'render-story' }, extra: { idea_id } });
 
     await db
       .from('content_ideas')

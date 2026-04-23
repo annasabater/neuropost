@@ -5,6 +5,7 @@ import { transitionWeeklyPlanStatus, ConcurrentPlanModificationError } from '@/l
 import { enqueueClientPlanRejectedEmail }      from '@/lib/planning/trigger-client-email';
 import { apiError }                            from '@/lib/api-utils';
 import { log }                                 from '@/lib/logger';
+import { logAudit }                            from '@/lib/audit';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -30,6 +31,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .eq('awaiting_worker_review', true);
 
     const plan = await transitionWeeklyPlanStatus({ plan_id: id, to: 'expired', reason: 'worker rejected' });
+    void logAudit({ actor_type: 'worker', action: 'reject', resource_type: 'weekly_plan',
+      resource_id: id, brand_id: plan.brand_id,
+      description: `Worker rejected weekly plan: ${body.skip_reason}` });
 
     // P4: notify client that no plan was generated this week
     const emailResult = await enqueueClientPlanRejectedEmail(id, body.skip_reason);
