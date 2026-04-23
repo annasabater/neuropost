@@ -13,6 +13,9 @@
 
 import { NextResponse }      from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
+
+export const runtime    = 'edge';
+export const maxDuration = 90; // Replicate polling: up to 90s
 import { renderStory }       from '@/lib/stories/render';
 import { log }               from '@/lib/logger';
 import * as Sentry           from '@sentry/nextjs';
