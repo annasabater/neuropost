@@ -73,7 +73,7 @@ export async function GET(request: Request) {
       .select('id, render_attempts, render_status')
       .eq('content_kind', 'story')
       .eq('render_status', 'render_failed')
-      .lt('render_attempts', MAX_ATTEMPTS)
+      .lte('render_attempts', MAX_ATTEMPTS)   // include == MAX_ATTEMPTS so cron can mark them permanently failed
       .order('created_at', { ascending: true })
       .limit(PICK_LIMIT),
   ]);

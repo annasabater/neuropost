@@ -81,8 +81,19 @@ export async function GET(request: Request) {
 
     retried++;
 
-    const result = await enqueueClientReviewEmail(plan.id);
-    // enqueueClientReviewEmail updates client_email_status to 'sent' or 'failed' internally
+    let result: { ok: boolean; error?: string };
+    try {
+      result = await enqueueClientReviewEmail(plan.id);
+    } catch (err) {
+      // Unexpected throw (e.g. Resend network error) — treat as failed, don't crash the cron
+      const msg = err instanceof Error ? err.message : String(err);
+      log({ level: 'error', scope: 'cron/reconcile-client-emails', event: 'email_threw',
+            plan_id: plan.id, error: msg });
+      await db.from('weekly_plans')
+        .update({ client_email_status: 'failed' })
+        .eq('id', plan.id);
+      result = { ok: false, error: msg };
+    }
 
     if (result.ok) {
       succeeded++;
