@@ -100,6 +100,110 @@ export default async function DashboardPage() {
 
   return (
     <div className="page-content dashboard-page">
+      <style>{`
+        @media (max-width: 767px) {
+          /* ── Full-bleed sections ── */
+          .dashboard-page > .dashboard-tour-section,
+          .dashboard-page > .dashboard-summary-section,
+          .dashboard-page > .dashboard-inspiration-section,
+          .dashboard-page > .dashboard-upcoming-section {
+            max-width: none !important;
+            width: calc(100% + 24px) !important;
+          }
+
+          /* ── Greeting ── */
+          .dashboard-greeting { padding: 20px 0 16px !important; }
+          .dashboard-greeting h1 { font-size: clamp(1.6rem, 7vw, 2.2rem) !important; margin-bottom: 4px !important; }
+          .dashboard-greeting p { font-size: 12px !important; }
+
+          /* ── Metrics 2×2 ── */
+          .dashboard-metrics-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            margin-bottom: 16px !important;
+          }
+          .dashboard-metrics-grid > div {
+            padding: 14px 10px !important;
+            min-width: 0 !important;
+            overflow: hidden !important;
+          }
+          .dashboard-metrics-grid .dash-metric-value {
+            font-size: clamp(1.2rem, 6vw, 1.8rem) !important;
+            overflow: hidden !important;
+            white-space: nowrap !important;
+            text-overflow: ellipsis !important;
+          }
+          .dashboard-metrics-grid > div > p:last-child {
+            font-size: 9px !important;
+            margin-top: 4px !important;
+          }
+
+          /* ── Plan usage bars ── */
+          .dashboard-plan-usage {
+            grid-template-columns: 1fr !important;
+            margin-bottom: 20px !important;
+          }
+
+          /* ── Content hub: 1 column ── */
+          .dashboard-content-hub-heading { margin-bottom: 10px !important; }
+          .dashboard-content-hub {
+            grid-template-columns: 1fr !important;
+            margin-bottom: 20px !important;
+          }
+          .dashboard-content-hub > * { padding: 16px 14px !important; }
+          .dashboard-mode-footer { flex-wrap: wrap !important; gap: 6px !important; }
+
+          /* ── Weekly proposals ── */
+          .dashboard-weekly-proposals-grid { grid-template-columns: 1fr !important; }
+          .dashboard-proposal-actions button { font-size: 11px !important; padding: 10px 6px !important; }
+
+          /* ── Quick actions: 2 columns ── */
+          .dashboard-quick-actions {
+            grid-template-columns: repeat(2, 1fr) !important;
+            margin-bottom: 20px !important;
+          }
+          .dashboard-quick-actions a {
+            padding: 14px 10px !important;
+            font-size: 12px !important;
+            gap: 6px !important;
+          }
+
+          /* ── Upcoming dates ── */
+          .dashboard-upcoming-dates {
+            grid-template-columns: repeat(2, 1fr) !important;
+            margin-bottom: 20px !important;
+          }
+          .dashboard-upcoming-dates > div {
+            padding: 12px 12px !important;
+            min-height: 80px !important;
+          }
+
+          /* ── TrendsBanner ── */
+          .trends-banner-text p:last-child { display: none !important; }
+
+          /* ── Pending alert ── */
+          .dashboard-pending-alert {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+            margin-bottom: 20px !important;
+          }
+          .dashboard-pending-alert a {
+            align-self: stretch !important;
+            justify-content: center !important;
+          }
+
+          /* ── Recent posts ── */
+          .dashboard-post-row { padding: 10px 12px !important; gap: 8px !important; }
+          .dashboard-post-thumb { width: 34px !important; height: 34px !important; }
+          .dashboard-post-caption { font-size: 12px !important; }
+          .dashboard-post-date { display: none !important; }
+          .dashboard-section-header { flex-wrap: wrap !important; gap: 6px !important; }
+
+          /* ── Section spacing ── */
+          .dashboard-page > .dashboard-inner { padding-top: 16px !important; }
+        }
+      `}</style>
+
       <div className="dashboard-tour-section">
         <div className="dashboard-inner">
           <DashboardTour />
@@ -257,7 +361,7 @@ export default async function DashboardPage() {
           }}>
             {t('modes.auto.description')}
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="dashboard-mode-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{
               fontFamily: f, fontSize: 10, fontWeight: 600,
               textTransform: 'uppercase', letterSpacing: '0.1em',
@@ -303,7 +407,7 @@ export default async function DashboardPage() {
           }}>
             {t('modes.request.description')}
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="dashboard-mode-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{
               fontFamily: f, fontSize: 10, fontWeight: 600,
               textTransform: 'uppercase', letterSpacing: '0.1em',
@@ -348,7 +452,7 @@ export default async function DashboardPage() {
           }}>
             {t('modes.selfService.description')}
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="dashboard-mode-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{
               fontFamily: f, fontSize: 10, fontWeight: 600,
               textTransform: 'uppercase', letterSpacing: '0.1em',
@@ -469,7 +573,7 @@ export default async function DashboardPage() {
 
       {/* ── Pending alert ── */}
       {pending > 0 && (
-        <div style={{
+        <div className="dashboard-pending-alert" style={{
           padding: '16px 20px', border: '1px solid var(--border)',
           marginBottom: 48, display: 'flex', alignItems: 'center',
           justifyContent: 'space-between', gap: 16,
@@ -498,7 +602,7 @@ export default async function DashboardPage() {
       {/* ── Recent posts ── */}
       {recentPublishedPosts.length > 0 && (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
+          <div className="dashboard-section-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
             <h2 style={{
               fontFamily: f, fontSize: 10, fontWeight: 600,
               textTransform: 'uppercase', letterSpacing: '0.14em',
@@ -515,7 +619,7 @@ export default async function DashboardPage() {
           </div>
           <div style={{ border: '1px solid var(--border)', marginBottom: 48 }}>
             {recentPublishedPosts.map((post, i) => (
-              <Link key={post.id} href={`/posts/${post.id}`} style={{
+              <Link key={post.id} href={`/posts/${post.id}`} className="dashboard-post-row" style={{
                 display: 'flex', alignItems: 'center', gap: 16,
                 padding: '14px 20px', textDecoration: 'none', color: 'inherit',
                 borderBottom: i < recentPublishedPosts.length - 1 ? '1px solid var(--border)' : 'none',
@@ -523,14 +627,14 @@ export default async function DashboardPage() {
               }}>
                 {post.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={post.image_url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', flexShrink: 0 }} />
+                  <img src={post.image_url} alt="" className="dashboard-post-thumb" style={{ width: 40, height: 40, objectFit: 'cover', flexShrink: 0 }} />
                 ) : (
-                  <div style={{ width: 40, height: 40, background: 'var(--bg-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
+                  <div className="dashboard-post-thumb" style={{ width: 40, height: 40, background: 'var(--bg-1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>
                     <Sparkles size={16} />
                   </div>
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontFamily: f, fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <p className="dashboard-post-caption" style={{ fontFamily: f, fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {post.caption ? `${post.caption.slice(0, 80)}...` : '—'}
                   </p>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
@@ -545,7 +649,7 @@ export default async function DashboardPage() {
                     )}
                   </div>
                 </div>
-                <span style={{ fontFamily: f, fontSize: 12, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                <span className="dashboard-post-date" style={{ fontFamily: f, fontSize: 12, color: 'var(--text-tertiary)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                   {new Date(post.published_at ?? post.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                 </span>
               </Link>

@@ -151,7 +151,7 @@ export function Sidebar() {
             boxShadow: '0 -4px 20px rgba(0,0,0,0.12)',
           }}>
             {[
-              { href: '/brand', label: 'Brand Kit', icon: Palette },
+              { href: '/brand-kit', label: 'Brand Kit', icon: Palette },
               { href: '/settings', label: 'Ajustes', icon: Settings },
             ].map(({ href, label, icon: Icon }) => (
               <ProgressLink key={href} href={href} onClick={() => nav(href)} style={{

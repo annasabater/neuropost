@@ -1,16 +1,16 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 import type { SocialSector, BrandTone, PublishMode, PostGoal, VisualStyle, Brand } from '@/types';
-import { TONE_OPTIONS, PUBLISH_MODE_OPTIONS } from '@/lib/brand-options';
 import { useTagInput } from '@/hooks/useTagInput';
 import CouponInput from '@/components/billing/CouponInput';
 import { getTemplateForSector } from '@/lib/industry-templates';
-import { parseLocation } from '@/lib/hydrate-brand';
+
+import LogoUpload from '@/components/onboarding/LogoUpload';
 
 interface ContentCategoryDraft {
   category_key: string;
@@ -268,17 +268,51 @@ const VISUAL_STYLES: {
 // picsum.photos returns real photos keyed by a string seed — always resolves,
 // no keyword matching issues. Replace with Replicate-generated images later.
 
+// Seed per style for deterministic loremflickr photos in step 2
+const STYLE_SEED_NUM: Record<VisualStyle, number> = {
+  fresh: 11, elegant: 22, editorial: 33, warm: 44,
+  creative: 55, dynamic: 66, dark: 77, vintage: 88,
+};
+
+// Short aesthetic descriptors shown under each featured style card
+const STYLE_DESCRIPTORS: Record<VisualStyle, string> = {
+  fresh:     'Orgánico · Cálido · Auténtico',
+  elegant:   'Limpio · Delicado · Sofisticado',
+  editorial: 'Revista · Bold · Asimétrico',
+  warm:      'Rústico · Artesanal · Cercano',
+  creative:  'Vibrante · Energía · Impacto',
+  dynamic:   'Dramático · Intenso · Nocturno',
+  dark:      'Premium · Exclusivo · Refinado',
+  vintage:   'Retro · Nostálgico · Cálido',
+};
+
+// 3 recommended styles per macro group
+const STYLE_RECOMMENDATIONS: Record<string, VisualStyle[]> = {
+  hosteleria: ['fresh', 'warm', 'editorial'],
+  deporte:    ['dynamic', 'creative', 'editorial'],
+  salud:      ['fresh', 'elegant', 'editorial'],
+  servicios:  ['editorial', 'dark', 'elegant'],
+  comercio:   ['fresh', 'creative', 'dynamic'],
+  creativos:  ['editorial', 'creative', 'vintage'],
+};
+
+// Sector-themed photos via loremflickr with deterministic seeds.
+// Each style gets a unique seed so every card shows a different shot.
+function getFeaturedPhoto(style: VisualStyle, sector: SocialSector): string {
+  const kw = SECTOR_KEYWORD[sector];
+  return `https://loremflickr.com/600/340/${encodeURIComponent(kw)}?lock=${STYLE_SEED_NUM[style]}`;
+}
+function getThumbnailPhoto(style: VisualStyle, sector: SocialSector): string {
+  const kw = SECTOR_KEYWORD[sector];
+  return `https://loremflickr.com/240/140/${encodeURIComponent(kw)}?lock=${STYLE_SEED_NUM[style] + 100}`;
+}
+
 function getSectorPreviewImages(sector: SocialSector, style: VisualStyle): string[] {
   return [10,11,12,13,14,15,16,17,18].map((i) =>
     `https://picsum.photos/seed/${style}-${sector}-${i}/500/500`,
   );
 }
 
-function getStyleCollage(style: VisualStyle, sector: SocialSector): string[] {
-  return [1,2,3,4].map((i) =>
-    `https://picsum.photos/seed/${style}-${sector}-${i}/400/400`,
-  );
-}
 
 
 function getDynamicQuestions(sector: SocialSector): { label: string; placeholder: string; key: string }[] {
@@ -327,42 +361,6 @@ const SECTOR_SERVICE_OPTIONS: Partial<Record<SocialSector, string[]>> = {
   floristeria: ['Ramos de novia', 'Flores naturales', 'Plantas de interior', 'Arreglos florales', 'Flores secas'],
 };
 
-// Country dropdown grouped by region. Covers Europe, Latin America (incl.
-// Caribbean and Central America), South America and North America.
-const COUNTRY_GROUPS: { region: string; countries: string[] }[] = [
-  {
-    region: 'Europa',
-    countries: [
-      'Alemania', 'Andorra', 'Austria', 'Bélgica', 'Bielorrusia',
-      'Bosnia y Herzegovina', 'Bulgaria', 'Chipre', 'Croacia', 'Dinamarca',
-      'Eslovaquia', 'Eslovenia', 'España', 'Estonia', 'Finlandia', 'Francia',
-      'Grecia', 'Hungría', 'Irlanda', 'Islandia', 'Italia', 'Letonia',
-      'Liechtenstein', 'Lituania', 'Luxemburgo', 'Macedonia del Norte',
-      'Malta', 'Moldavia', 'Mónaco', 'Montenegro', 'Noruega', 'Países Bajos',
-      'Polonia', 'Portugal', 'Reino Unido', 'República Checa', 'Rumanía',
-      'San Marino', 'Serbia', 'Suecia', 'Suiza', 'Ucrania', 'Vaticano',
-    ],
-  },
-  {
-    region: 'América del Norte',
-    countries: ['Canadá', 'Estados Unidos', 'México'],
-  },
-  {
-    region: 'Centroamérica y Caribe',
-    countries: [
-      'Belice', 'Costa Rica', 'Cuba', 'El Salvador', 'Guatemala',
-      'Haití', 'Honduras', 'Jamaica', 'Nicaragua', 'Panamá',
-      'Puerto Rico', 'República Dominicana', 'Trinidad y Tobago',
-    ],
-  },
-  {
-    region: 'América del Sur',
-    countries: [
-      'Argentina', 'Bolivia', 'Brasil', 'Chile', 'Colombia', 'Ecuador',
-      'Guyana', 'Paraguay', 'Perú', 'Surinam', 'Uruguay', 'Venezuela',
-    ],
-  },
-];
 
 // ─── Step 4 keyword suggestions ───────────────────────────────────────────────
 
@@ -404,21 +402,6 @@ const inputStyle: React.CSSProperties = {
   transition: 'border-color 0.15s',
 };
 
-const selectStyle: React.CSSProperties = {
-  width: '100%', padding: '14px 40px 14px 16px',
-  background: '#ffffff',
-  border: `1px solid ${BORDER}`,
-  borderRadius: 0, color: INK,
-  fontFamily: FONT,
-  fontSize: 14, outline: 'none', cursor: 'pointer',
-  appearance: 'none' as React.CSSProperties['appearance'],
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' fill='%236b7280' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E")`,
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'right 12px center',
-  backgroundSize: '14px',
-  transition: 'border-color 0.15s, box-shadow 0.15s',
-  boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
-};
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -488,13 +471,6 @@ function PillOption({ active, onClick, children }: { active: boolean; onClick: (
   );
 }
 
-function PillGroup({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
-      {children}
-    </div>
-  );
-}
 
 function BtnBack({ onClick }: { onClick: () => void }) {
   return (
@@ -617,8 +593,7 @@ export default function OnboardingPage() {
   const [fbInput,          setFbInput]          = useState('');
   const [objective]                             = useState<PostGoal>('engagement');
   const [publishMode,      setPublishMode]      = useState<PublishMode>('semi');
-  const [country, setCountry] = useState('España');
-  const [city, setCity] = useState('');
+  const country = 'España';
   const INITIAL_PRIMARY_COLOR = '#0F766E';
   const INITIAL_SECONDARY_COLOR = '#374151';
   const INITIAL_TERTIARY_COLOR = '#94A3B8';
@@ -632,13 +607,15 @@ export default function OnboardingPage() {
   const [selectedGroup,    setSelectedGroup]    = useState<string | null>(null);
   const [searchQuery,      setSearchQuery]      = useState('');
   const [activePillLabel,  setActivePillLabel]  = useState('');
+  const [realismLevel,     setRealismLevel]     = useState(70);
+  const [logoUrl,          setLogoUrl]          = useState('');
+  const [extractedColors,  setExtractedColors]  = useState<string[]>([]);
+  const [specialties,      setSpecialties]      = useState<string[]>([]);
+  const [language,         setLanguage]         = useState<'castellano' | 'catalan' | 'bilingual'>('castellano');
+  const [emojiUse,         setEmojiUse]         = useState<'none' | 'moderate' | 'free'>('moderate');
 
   // ── Content categories ────────────────────────────────────────────────────────
   const [contentCategories, setContentCategories] = useState<ContentCategoryDraft[]>([]);
-  const [catInput,           setCatInput]          = useState('');
-  const [catSuggestions,     setCatSuggestions]    = useState<string[]>([]);
-  const [catSugLoading,      setCatSugLoading]     = useState(false);
-  const catDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Snapshot of the persisted brand + auth metadata taken at redo-hydration
   // time. Comparisons (noEmojis recompute, firstName/lastName changed) read
@@ -675,12 +652,9 @@ export default function OnboardingPage() {
         if (brand.visual_style) setVisualStyle(brand.visual_style as VisualStyle);
         if (brand.tone)         setTone(brand.tone as BrandTone);
         if (brand.hashtags?.length) setKeywords(brand.hashtags);
-        if (brand.location) {
-          const { region, country } = parseLocation(brand.location);
-          setLocation(region);
-          if (country) setCountry(country);
-        }
-        if (brand.city)         setCity(brand.city);
+        if (brand.location)     setLocation(brand.location);
+        if (brand.logo_url)     setLogoUrl(brand.logo_url);
+        if (brand.rules?.dynamicAnswers?.specialty) setSpecialties(brand.rules.dynamicAnswers.specialty);
         if (brand.publish_mode) setPublishMode(brand.publish_mode as PublishMode);
         if (brand.slogans?.[0]) setSlogan(brand.slogans[0]);
         if (brand.colors?.primary)   setPrimaryColor(brand.colors.primary);
@@ -726,49 +700,6 @@ export default function OnboardingPage() {
     }
   }, [sector, isRedo]);
 
-  const toggleCategory = useCallback((key: string) => {
-    if (isRedo) return;
-    setContentCategories((prev) =>
-      prev.map((c) => c.category_key === key ? { ...c, active: !c.active } : c),
-    );
-  }, [isRedo]);
-
-  const addCustomCategory = useCallback((label: string, source: 'user' | 'ai_suggested' = 'user') => {
-    if (isRedo) return;
-    const key = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-    setContentCategories((prev) => {
-      if (prev.some((c) => c.category_key === key || c.name.toLowerCase() === label.toLowerCase())) return prev;
-      return [...prev, { category_key: key, name: label, source, active: true }];
-    });
-  }, []);
-
-  const fetchCatSuggestions = useCallback(async (value: string) => {
-    if (value.trim().length < 2) { setCatSuggestions([]); return; }
-    setCatSugLoading(true);
-    try {
-      const res = await fetch('/api/ai/suggest-categories', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          sector,
-          current_categories: contentCategories.map((c) => c.name),
-          input:              value,
-        }),
-      });
-      const json = await res.json();
-      setCatSuggestions(Array.isArray(json.suggestions) ? json.suggestions : []);
-    } catch {
-      setCatSuggestions([]);
-    } finally {
-      setCatSugLoading(false);
-    }
-  }, [sector, contentCategories]);
-
-  const handleCatInputChange = useCallback((value: string) => {
-    setCatInput(value);
-    if (catDebounceRef.current) clearTimeout(catDebounceRef.current);
-    catDebounceRef.current = setTimeout(() => { void fetchCatSuggestions(value); }, 500);
-  }, [fetchCatSuggestions]);
 
   const dynamicQuestions = getDynamicQuestions(sector);
 
@@ -815,7 +746,7 @@ export default function OnboardingPage() {
       };
       // Build rules: preserve subfields the onboarding doesn't expose; recompute
       // noEmojis only if visual_style actually changed vs the snapshot.
-      const computedNoEmojis = visualStyle === 'dark' || visualStyle === 'vintage' || visualStyle === 'editorial';
+
       const originalRules = snap?.brand?.rules ?? null;
       const visualStyleChanged = isRedo && snap ? visualStyle !== snap.brand.visual_style : true;
       // Collect dynamic answers from form state, dropping empty entries.
@@ -826,26 +757,32 @@ export default function OnboardingPage() {
         const cleaned = values.filter(v => v && v.trim() !== '');
         if (cleaned.length) filteredDynamicAnswers[key] = cleaned;
       }
+      const specialtyAnswers = specialties.length > 0 ? { ...filteredDynamicAnswers, specialty: specialties } : filteredDynamicAnswers;
+      const computedNoEmojis2 = emojiUse === 'none';
       const rulesPayload = isRedo && originalRules
         ? {
             ...originalRules,
             forbiddenWords: forbidden,
-            noEmojis: visualStyleChanged ? computedNoEmojis : (originalRules.noEmojis ?? computedNoEmojis),
-            dynamicAnswers: filteredDynamicAnswers,
+            noEmojis:       computedNoEmojis2,
+            language,
+            emojiUse,
+            dynamicAnswers: specialtyAnswers,
           }
         : {
             forbiddenWords:      forbidden,
             noPublishDays:       [],
-            noEmojis:            computedNoEmojis,
+            noEmojis:            computedNoEmojis2,
             noAutoReplyNegative: false,
             forbiddenTopics:     [],
-            dynamicAnswers:      filteredDynamicAnswers,
+            language,
+            emojiUse,
+            dynamicAnswers:      specialtyAnswers,
           };
       const baseBody = {
         name, sector, secondary_sectors: secondarySectors,
         visual_style: visualStyle, tone, hashtags: keywords,
-        location: location ? `${location}, ${country}` : country || null,
-        city: city.trim() || null,
+        location: location.trim() || null,
+        logo_url: logoUrl || undefined,
         slogans: slogan ? [slogan] : [],
         publish_mode: publishMode,
         colors: { primary: effectivePrimaryColor, secondary: effectiveSecondaryColor, tertiary: effectiveTertiaryColor, accent: effectivePrimaryColor },
@@ -853,7 +790,9 @@ export default function OnboardingPage() {
         brand_voice_doc: [
           `Negocio: ${name}. Sector: ${MACRO_GROUPS.find((g) => g.id === selectedGroup)?.label ?? sector}${customSectorLabel.trim() ? ` (${customSectorLabel.trim()})` : ''}.`,
           `Estilo visual: ${visualStyle}. ${styleInstructions[visualStyle]}`,
-          `Tono de marca: ${tone}.`,
+          `Realismo visual: ${realismLevel}%.`,
+          specialties.length > 0 ? `Especialidades: ${specialties.join(', ')}.` : '',
+          `Tono de marca: ${tone}. Idioma: ${language}. Emojis: ${emojiUse}.`,
           extraContext,
           keywords.length > 0 ? `Palabras clave: ${keywords.join(', ')}.` : '',
           `Objetivo principal: ${objective}.`,
@@ -1217,23 +1156,46 @@ export default function OnboardingPage() {
     <div className="onboarding-page" style={{ position: 'fixed', inset: 0, display: 'flex', zIndex: 50, overflow: 'hidden' }}>
 
       {/* ── Left column (full-width on steps 1-2) ── */}
-      <div style={{ width: step <= 2 ? '100%' : '58%', background: BG_L, display: 'flex', flexDirection: 'column', padding: step <= 2 ? '36px 56px' : '44px 48px', overflowY: 'auto', flexShrink: 0, transition: 'width 0.2s' }}>
+      <div style={{ width: step <= 4 ? '100%' : '58%', background: BG_L, display: 'flex', flexDirection: 'column', padding: step <= 4 ? '36px 56px' : '44px 48px', overflowY: 'auto', flexShrink: 0, transition: 'width 0.2s' }}>
 
         {/* Logo */}
         <Link href="/" style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '1.2rem', color: INK, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 36, flexShrink: 0, textDecoration: 'none', cursor: 'pointer' }}>
           NeuroPost
         </Link>
 
-        {/* Progress */}
+        {/* Progress tabs */}
         <div style={{ marginBottom: 28, flexShrink: 0 }}>
-          <div style={{ display: 'flex', gap: 2, marginBottom: 8 }}>
-            {([1,2,3,4,5] as Step[]).map((s) => (
-              <div key={s} style={{ flex: 1, height: 2, background: s <= step ? INK : '#e5e7eb', transition: 'background 0.3s' }} />
+          <div style={{ display: 'flex', borderBottom: `1px solid ${BORDER}` }}>
+            {([
+              [1, 'Negocio'],
+              [2, 'Estética'],
+              [3, 'Tu negocio'],
+              [4, 'Voz'],
+              [5, 'Objetivo'],
+            ] as [Step, string][]).map(([s, label]) => (
+              <div
+                key={s}
+                onClick={() => { if ((s as number) < step) setStep(s); }}
+                style={{
+                  padding: '8px 14px 9px',
+                  fontFamily: FONT_C,
+                  fontWeight: 700,
+                  fontSize: '0.72rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.07em',
+                  color: s === step ? INK : (s as number) < step ? MUTED : '#d1d5db',
+                  borderBottom: s === step ? `2px solid ${INK}` : '2px solid transparent',
+                  marginBottom: -1,
+                  whiteSpace: 'nowrap',
+                  cursor: (s as number) < step ? 'pointer' : 'default',
+                  transition: 'color 0.15s',
+                  userSelect: 'none',
+                }}
+              >
+                {label}
+              </div>
             ))}
           </div>
-          <p style={{ fontSize: 10, color: MUTED, fontFamily: FONT, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-            Paso {step} de 5
-          </p>
         </div>
 
         {/* ── Step 1: Sector ── */}
@@ -1378,654 +1340,545 @@ export default function OnboardingPage() {
         })()}
 
         {/* ── Step 2: Visual style ── */}
-        {step === 2 && (
-          <div>
-            <SectionTitle>¿Cómo quieres que se vea?</SectionTitle>
-            <StepSub>Elige la estética de tu feed. Podrás ajustarla más adelante.</StepSub>
+        {step === 2 && (() => {
+          const recommended: VisualStyle[] = STYLE_RECOMMENDATIONS[selectedGroup ?? ''] ?? ['fresh', 'editorial', 'dynamic'];
+          const others = VISUAL_STYLES.filter((s) => !recommended.includes(s.value));
+          const selectedStyleData = VISUAL_STYLES.find((s) => s.value === visualStyle);
+          const groupLabel = MACRO_GROUPS.find((g) => g.id === selectedGroup)?.label ?? '';
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
-              {VISUAL_STYLES.map((style) => {
-                const selected = visualStyle === style.value;
-                const imgs = getStyleCollage(style.value, sector);
-                return (
-                  <button
-                    key={style.value}
-                    type="button"
-                    onClick={() => setVisualStyle(style.value)}
-                    style={{
-                      padding: 0, overflow: 'hidden', cursor: 'pointer', outline: 'none',
-                      border: `2px solid ${selected ? INK : '#e5e7eb'}`,
-                      background: 'transparent', position: 'relative',
-                      transition: 'border-color 0.15s',
-                    }}
-                  >
-                    {/* 2×2 collage */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
-                      {imgs.map((img, i) => (
-                        <img key={i} src={img} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block', background: '#e5e7eb' }} />
-                      ))}
-                    </div>
-                    {/* Label bar */}
-                    <div style={{ padding: '9px 12px', background: selected ? INK : '#fff', borderTop: `1px solid ${selected ? INK : '#e5e7eb'}` }}>
-                      <div style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '0.85rem', color: selected ? '#fff' : INK, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                        {style.title}
-                      </div>
-                    </div>
-                    {selected && (
-                      <div style={{ position: 'absolute', top: 7, right: 7, width: 18, height: 18, border: '2px solid #fff', borderRadius: '50%', background: INK, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.55rem', color: '#fff', fontWeight: 900 }}>✓</div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div style={{ position: 'sticky', bottom: 0, paddingTop: 16, paddingBottom: 4, background: `linear-gradient(to top, ${BG_L} 70%, transparent)` }}>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <BtnBack onClick={() => setStep(1)} />
-                <BtnPrimary onClick={() => setStep(3)}>Siguiente →</BtnPrimary>
+          return (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              {/* Header */}
+              <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 14 }}>
+                <span style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '4rem', color: '#e2e2e4', letterSpacing: '-0.04em', lineHeight: 1, flexShrink: 0, marginTop: -2 }}>02</span>
+                <div>
+                  <div style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: 'clamp(1.3rem, 2.5vw, 1.75rem)', color: INK, textTransform: 'uppercase', lineHeight: 1.05 }}>
+                    ¿Cómo quieres que se vea tu feed?
+                  </div>
+                  <div style={{ fontFamily: FONT, fontSize: 13, color: MUTED, marginTop: 6, lineHeight: 1.5 }}>
+                    Elige la estética base y afina los detalles. Podrás cambiarla más adelante.
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
 
-        {/* ── Step 3: Business details ── */}
-        {step === 3 && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <SectionTitle>Cuéntanos sobre ti</SectionTitle>
-            <StepSub>Para que NeuroPost adapte el contenido a tu negocio.</StepSub>
-
-            <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4, marginBottom: 20 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-
-                {/* Personal name */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div>
-                    <Label>Tu nombre *</Label>
-                    <input
-                      style={inputStyle}
-                      type="text"
-                      placeholder="Ej: Ana"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      autoFocus
-                    />
-                  </div>
-                  <div>
-                    <Label>Apellidos</Label>
-                    <input
-                      style={inputStyle}
-                      type="text"
-                      placeholder="Ej: García López"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                    />
-                  </div>
+              {/* Recommendation tag */}
+              {groupLabel && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12, fontFamily: FONT, fontSize: '0.78rem', color: INK, fontWeight: 600 }}>
+                  <span>★</span>
+                  <span>Recomendado para <strong>{groupLabel.toLowerCase()}</strong></span>
                 </div>
+              )}
 
-                {/* Business name (free text input — required) */}
-                <div>
-                  <Label>Nombre del negocio *</Label>
-                  <input
-                    style={inputStyle}
-                    type="text"
-                    placeholder="Ej: Heladería La Nube"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
-
-                {/* Dynamic sector question — multi-select pills + free
-                    "Otro" input. The user can pick several suggestions and
-                    also add custom entries. */}
-                {dynamicQuestions.map((q) => {
-                  const options = SECTOR_SERVICE_OPTIONS[sector] ?? [];
-                  const currentList = dynamicAnswers[q.key] ?? [];
-                  // Split selected values into those matching suggestions vs.
-                  // custom entries, so we can render custom entries as
-                  // removable chips below the suggestion pills.
-                  const custom = currentList.filter((v) => !options.includes(v));
-                  const togglePill = (opt: string) =>
-                    setDynamicAnswers((prev) => {
-                      const list = prev[q.key] ?? [];
-                      return list.includes(opt)
-                        ? { ...prev, [q.key]: list.filter(x => x !== opt) }
-                        : { ...prev, [q.key]: [...list, opt] };
-                    });
-                  const addCustom = (raw: string) => {
-                    const value = raw.trim();
-                    if (!value) return;
-                    setDynamicAnswers((prev) => {
-                      const list = prev[q.key] ?? [];
-                      if (list.includes(value)) return prev;
-                      return { ...prev, [q.key]: [...list, value] };
-                    });
-                  };
-                  const removeCustom = (value: string) =>
-                    setDynamicAnswers((prev) => ({
-                      ...prev,
-                      [q.key]: (prev[q.key] ?? []).filter(x => x !== value),
-                    }));
-
+              {/* Top 3 featured style cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
+                {recommended.map((styleVal) => {
+                  const style = VISUAL_STYLES.find((s) => s.value === styleVal)!;
+                  const selected = visualStyle === styleVal;
                   return (
-                    <div key={q.key}>
-                      <Label>
-                        {q.label}{' '}
-                        <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>
-                          (elige uno o varios)
-                        </span>
-                      </Label>
-
-                      {/* Suggestion pills (only if the sector has suggestions) */}
-                      {options.length > 0 && (
-                        <PillGroup>
-                          {options.map((opt) => (
-                            <PillOption
-                              key={opt}
-                              active={currentList.includes(opt)}
-                              onClick={() => togglePill(opt)}
-                            >
-                              {opt}
-                            </PillOption>
-                          ))}
-                        </PillGroup>
-                      )}
-
-                      {/* Custom entries as removable chips */}
-                      {custom.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-                          {custom.map((value) => (
-                            <span
-                              key={value}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                padding: '6px 10px 6px 12px',
-                                background: '#0F766E',
-                                color: '#ffffff',
-                                fontFamily: FONT,
-                                fontSize: '0.82rem',
-                                fontWeight: 700,
-                              }}
-                            >
-                              {value}
-                              <button
-                                type="button"
-                                onClick={() => removeCustom(value)}
-                                style={{ background: 'transparent', border: 'none', color: '#ffffff', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}
-                                aria-label={`Quitar ${value}`}
-                              >
-                                ×
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Free-text "Otro" input — Enter adds, comma separates */}
-                      <input
-                        style={{ ...inputStyle, marginTop: 10 }}
-                        type="text"
-                        placeholder={options.length ? `Otro: ${q.placeholder} (pulsa Enter)` : `${q.placeholder} (pulsa Enter)`}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            const target = e.target as HTMLInputElement;
-                            // Support comma-separated entries
-                            target.value.split(',').map(s => s.trim()).filter(Boolean).forEach(addCustom);
-                            target.value = '';
-                          }
-                        }}
-                        onBlur={(e) => {
-                          const target = e.target as HTMLInputElement;
-                          if (target.value.trim()) {
-                            target.value.split(',').map(s => s.trim()).filter(Boolean).forEach(addCustom);
-                            target.value = '';
-                          }
-                        }}
-                      />
-                    </div>
-                  );
-                })}
-
-                {/* ── Content categories ── */}
-                <div>
-                  <Label>
-                    Categorías de contenido{' '}
-                    <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>
-                      {isRedo ? '(solo lectura — se editan desde /brand/material)' : '(activa las que quieras publicar)'}
-                    </span>
-                  </Label>
-                  <p style={{ fontFamily: FONT, fontSize: 12, color: MUTED, marginBottom: 12, lineHeight: 1.5 }}>
-                    {isRedo
-                      ? 'Vista previa de tus categorías guardadas. Para modificarlas, ve a /brand/material.'
-                      : contentCategories.length > 0
-                      ? 'Estas son las categorías recomendadas para tu sector. Desactiva las que no te interesen.'
-                      : 'Añade las categorías de contenido que quieras publicar.'}
-                  </p>
-
-                  {/* Template + custom chips */}
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-                    {contentCategories.map((cat) => (
-                      <button
-                        key={cat.category_key}
-                        type="button"
-                        onClick={() => toggleCategory(cat.category_key)}
-                        disabled={isRedo}
-                        style={{
-                          padding:     '7px 12px',
-                          background:  cat.active ? ACCENT : '#ffffff',
-                          color:       cat.active ? '#ffffff' : '#374151',
-                          border:      `1.5px solid ${cat.active ? ACCENT : BORDER}`,
-                          cursor:      isRedo ? 'not-allowed' : 'pointer',
-                          fontFamily:  FONT,
-                          fontSize:    '0.78rem',
-                          fontWeight:  700,
-                          borderRadius: 0,
-                          display:     'inline-flex',
-                          alignItems:  'center',
-                          gap:         5,
-                          opacity:     isRedo ? (cat.active ? 0.75 : 0.4) : (cat.active ? 1 : 0.55),
-                          transition:  'all 0.15s',
-                        }}
-                      >
-                        {cat.name}
-                        {cat.source === 'ai_suggested' && (
-                          <span style={{ fontSize: 9, opacity: 0.8, fontWeight: 400, color: cat.active ? 'rgba(255,255,255,0.8)' : ACCENT }}>
-                            ✦ IA
-                          </span>
-                        )}
-                        {cat.source === 'user' && (
-                          <span
-                            role="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (isRedo) return;
-                              setContentCategories((prev) => prev.filter((c) => c.category_key !== cat.category_key));
-                            }}
-                            style={{ cursor: 'pointer', fontSize: 12, lineHeight: 1, color: cat.active ? 'rgba(255,255,255,0.7)' : MUTED }}
-                            aria-label={`Eliminar ${cat.name}`}
-                          >
-                            ×
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Free-text input + AI autocomplete — hidden in redo (read-only) */}
-                  {!isRedo && <div style={{ position: 'relative' }}>
-                    <input
-                      style={inputStyle}
-                      type="text"
-                      placeholder="Añadir categoría… (ej: sorteos, behind the scenes, UGC)"
-                      value={catInput}
-                      onChange={(e) => handleCatInputChange(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && catInput.trim()) {
-                          e.preventDefault();
-                          addCustomCategory(catInput.trim(), 'user');
-                          setCatInput('');
-                          setCatSuggestions([]);
-                        }
-                        if (e.key === 'Escape') { setCatSuggestions([]); }
-                      }}
-                    />
-                    {/* AI suggestions dropdown */}
-                    {(catSuggestions.length > 0 || catSugLoading) && (
-                      <div style={{
-                        position:   'absolute', top: '100%', left: 0, right: 0,
-                        background: '#ffffff', border: `1px solid ${BORDER}`,
-                        borderTop:  'none', zIndex: 20,
-                        boxShadow:  '0 4px 12px rgba(0,0,0,0.08)',
-                      }}>
-                        {catSugLoading && (
-                          <div style={{ padding: '10px 14px', fontFamily: FONT, fontSize: 12, color: MUTED }}>
-                            Buscando sugerencias…
-                          </div>
-                        )}
-                        {catSuggestions.map((s) => (
-                          <button
-                            key={s}
-                            type="button"
-                            onClick={() => {
-                              addCustomCategory(s, 'ai_suggested');
-                              setCatInput('');
-                              setCatSuggestions([]);
-                            }}
-                            style={{
-                              display:    'flex', alignItems: 'center', justifyContent: 'space-between',
-                              width:      '100%', padding: '9px 14px',
-                              background: 'transparent', border: 'none',
-                              cursor:     'pointer', fontFamily: FONT,
-                              fontSize:   13, color: INK, textAlign: 'left',
-                              borderBottom: `1px solid #f3f4f6`,
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.background = '#f0fdfa')}
-                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                          >
-                            <span>{s}</span>
-                            <span style={{ fontSize: 10, color: ACCENT, fontWeight: 700 }}>✦ IA</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>}
-                </div>
-
-                {/* Country — native dropdown grouped by region */}
-                <div>
-                  <Label>País</Label>
-                  <select
-                    style={selectStyle}
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                  >
-                    {COUNTRY_GROUPS.map((g) => (
-                      <optgroup key={g.region} label={g.region}>
-                        {g.countries.map((c) => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </optgroup>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Region / Autonomous community — free text input */}
-                <div>
-                  <Label>
-                    {country === 'España' ? 'Comunidad autónoma' : 'Región / Estado'}{' '}
-                    <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span>
-                  </Label>
-                  <input
-                    style={inputStyle}
-                    type="text"
-                    placeholder={country === 'España' ? 'Ej: Cataluña, Madrid, Andalucía...' : 'Ej: California, Île-de-France, Buenos Aires...'}
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                  />
-                </div>
-
-                {/* City / Town */}
-                <div>
-                  <Label>
-                    {country === 'España' ? 'Municipio o ciudad' : 'Ciudad o pueblo'}{' '}
-                    <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span>
-                  </Label>
-                  <input
-                    style={inputStyle}
-                    type="text"
-                    placeholder={country === 'España' ? 'Ej: Barcelona, Gràcia, Sitges...' : 'Ej: Lyon, Osaka, Medellín...'}
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                  />
-                  <p style={{ fontFamily: FONT, fontSize: '0.72rem', color: MUTED, marginTop: 5, lineHeight: 1.4 }}>
-                    Con tu municipio el agente detecta fiestas locales y las marca en tu calendario.
-                  </p>
-                </div>
-
-                {/* Optional brand palette — shown here in step 3 so the
-                    preview card on the right reflects the chosen colors. */}
-                <div style={{ paddingTop: 6 }}>
-                  <Label>
-                    ¿Tienes una paleta propia?{' '}
-                    <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400, letterSpacing: 0 }}>
-                      (opcional)
-                    </span>
-                  </Label>
-                  <div style={{ fontFamily: FONT, fontSize: '0.78rem', color: MUTED, marginBottom: 12, lineHeight: 1.5 }}>
-                    Si tu negocio ya tiene colores de marca, elígelos aquí.
-                  </div>
-                  <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-                    {[
-                      { label: 'Principal', value: primaryColor, set: setPrimaryColor },
-                      { label: 'Secundario', value: secondaryColor, set: setSecondaryColor },
-                      { label: 'Terciario', value: tertiaryColor, set: setTertiaryColor },
-                    ].map((c) => {
-                      const colorInputId = `brand-color-${c.label.toLowerCase().replace(/\s+/g, '-')}`;
-                      return (
-                        <div key={c.label} className="brandColorPicker" style={{ opacity: hasCustomPalette ? 1 : 0.45 }}>
-                          <input
-                            id={colorInputId}
-                            type="color"
-                            value={c.value}
-                            onChange={(e) => c.set(e.target.value)}
-                            className="brandColorInput"
-                            disabled={!hasCustomPalette}
-                            title={`Seleccionar color ${c.label.toLowerCase()}`}
-                            aria-label={`Color ${c.label.toLowerCase()}`}
-                          />
-                          <label htmlFor={colorInputId} className="brandColorLabel">{c.label}</label>
-                        </div>
-                      );
-                    })}
-                    <label
+                    <button
+                      key={styleVal}
+                      type="button"
+                      onClick={() => setVisualStyle(styleVal)}
                       style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        fontFamily: FONT,
-                        fontSize: '0.78rem',
-                        color: MUTED,
-                        cursor: 'pointer',
-                        userSelect: 'none',
+                        padding: 0, cursor: 'pointer', outline: 'none', textAlign: 'left',
+                        border: `2px solid ${selected ? INK : '#e2e2e4'}`,
+                        background: '#fff', position: 'relative', overflow: 'hidden',
                       }}
                     >
-                      <input
-                        type="checkbox"
-                        checked={!hasCustomPalette}
-                        onChange={(e) => setHasCustomPalette(!e.target.checked)}
-                      />
-                      Sin paleta propia
-                    </label>
-                  </div>
-                  {!hasCustomPalette && (
-                    <div style={{ fontFamily: FONT, fontSize: '0.74rem', color: MUTED, marginTop: 10 }}>
-                      Se aplicará tu paleta inicial: {INITIAL_PRIMARY_COLOR} · {INITIAL_SECONDARY_COLOR} · {INITIAL_TERTIARY_COLOR}
-                    </div>
-                  )}
-                </div>
-
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
-              <BtnBack onClick={() => setStep(2)} />
-              <BtnPrimary onClick={() => { if (!name.trim()) { toast.error('El nombre es obligatorio'); return; } setStep(4); }}>Siguiente →</BtnPrimary>
-            </div>
-          </div>
-        )}
-
-        {/* ── Step 4: Brand voice + publish mode ── */}
-        {step === 4 && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-            <SectionTitle>Tu voz de marca</SectionTitle>
-            <StepSub>Elige cómo quieres comunicarte y cómo gestionamos las publicaciones.</StepSub>
-
-            <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4, display: 'flex', flexDirection: 'column', gap: 24, marginBottom: 20 }}>
-              <div>
-                <Label>Tono de comunicación</Label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  {TONE_OPTIONS.map((t) => (
-                    <button key={t.value} type="button" onClick={() => setTone(t.value)} style={{
-                      padding: '14px', borderRadius: 0, cursor: 'pointer', textAlign: 'left',
-                      border: `1.5px solid ${tone === t.value ? ACCENT : '#e5e7eb'}`,
-                      background: tone === t.value ? 'rgba(15,118,110,0.1)' : '#ffffff',
-                      outline: 'none', transition: 'all 0.15s',
-                      display: 'flex', flexDirection: 'column', gap: 4,
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: '0.88rem', color: tone === t.value ? INK : '#6b7280' }}>{t.label}</div>
-                        {tone === t.value && <div style={{ width: 16, height: 16, borderRadius: '50%', background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', color: 'white', fontWeight: 900, flexShrink: 0 }}>✓</div>}
+                      <div style={{ position: 'relative', height: 150, overflow: 'hidden' }}>
+                        <img
+                          src={getFeaturedPhoto(styleVal, sector)}
+                          alt=""
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', background: '#e5e7eb' }}
+                        />
+                        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.08) 55%, transparent 100%)', display: 'flex', alignItems: 'flex-end', padding: '10px 12px' }}>
+                          <span style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '1.05rem', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.02em', textShadow: '0 1px 6px rgba(0,0,0,0.6)' }}>
+                            {style.title}
+                          </span>
+                        </div>
+                        {selected && (
+                          <div style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, background: INK, border: '2px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', color: '#fff', fontWeight: 900 }}>✓</div>
+                        )}
                       </div>
-                      <div style={{ fontFamily: FONT, fontSize: '0.72rem', color: MUTED }}>{t.desc}</div>
-                      <div style={{ marginTop: 6, fontFamily: FONT, fontSize: '0.7rem', color: tone === t.value ? '#6b7280' : '#d1d5db', fontStyle: 'italic', lineHeight: 1.5, borderTop: '1px solid #f3f4f6', paddingTop: 8 }}>
-                        &ldquo;{toneExamples[t.value]}&rdquo;
+                      <div style={{ padding: '9px 12px', background: selected ? INK : '#fff' }}>
+                        <div style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '0.85rem', color: selected ? '#fff' : INK, textTransform: 'uppercase', letterSpacing: '0.02em', marginBottom: 2 }}>
+                          {style.title}
+                        </div>
+                        <div style={{ fontFamily: FONT, fontSize: '0.65rem', color: selected ? 'rgba(255,255,255,0.55)' : MUTED, lineHeight: 1.4 }}>
+                          {STYLE_DESCRIPTORS[styleVal]}
+                        </div>
                       </div>
                     </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <Label>
-                  Palabras clave{' '}
-                  <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>
-                    (elige las que encajan o escribe las tuyas)
-                  </span>
-                </Label>
-                {(() => {
-                  const suggestions = SECTOR_KEYWORD_SUGGESTIONS[sector]
-                    ?? ['artesanal', 'local', 'calidad', 'sostenible', 'profesional', 'exclusivo', 'fresco', 'auténtico'];
-                  const customKeywords = keywords.filter((kw) => !suggestions.includes(kw));
-                  return (
-                    <>
-                      {/* Suggestion pills */}
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 2 }}>
-                        {suggestions.map((kw) => {
-                          const active = keywords.includes(kw);
-                          return (
-                            <button
-                              key={kw}
-                              type="button"
-                              onClick={() => active ? removeTag(keywords, setKeywords, kw) : addTag(keywords, setKeywords, kw)}
-                              style={{
-                                padding: '7px 14px', borderRadius: 0, cursor: 'pointer',
-                                fontFamily: FONT, fontSize: '0.82rem', fontWeight: 700,
-                                border: `1.5px solid ${active ? ACCENT : '#e5e7eb'}`,
-                                background: active ? ACCENT : '#f3f4f6',
-                                color: active ? 'white' : '#6b7280',
-                                transition: 'all 0.15s', outline: 'none',
-                              }}
-                            >
-                              {kw}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Custom keywords added by the user shown as removable chips */}
-                      {customKeywords.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-                          {customKeywords.map((kw) => (
-                            <span
-                              key={kw}
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 6,
-                                padding: '6px 10px 6px 12px',
-                                background: ACCENT,
-                                color: '#ffffff',
-                                fontFamily: FONT,
-                                fontSize: '0.82rem',
-                                fontWeight: 700,
-                              }}
-                            >
-                              {kw}
-                              <button
-                                type="button"
-                                onClick={() => removeTag(keywords, setKeywords, kw)}
-                                style={{ background: 'transparent', border: 'none', color: '#ffffff', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}
-                                aria-label={`Quitar ${kw}`}
-                              >
-                                ×
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Free-text input — Enter adds, comma/space separates */}
-                      <input
-                        style={{ ...inputStyle, marginTop: 10 }}
-                        type="text"
-                        placeholder="Otra palabra clave (pulsa Enter)"
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            const target = e.target as HTMLInputElement;
-                            target.value.split(/[\s,]+/).map(s => s.trim()).filter(Boolean).forEach((kw) => {
-                              if (!keywords.includes(kw)) addTag(keywords, setKeywords, kw);
-                            });
-                            target.value = '';
-                          }
-                        }}
-                        onBlur={(e) => {
-                          const target = e.target as HTMLInputElement;
-                          if (target.value.trim()) {
-                            target.value.split(/[\s,]+/).map(s => s.trim()).filter(Boolean).forEach((kw) => {
-                              if (!keywords.includes(kw)) addTag(keywords, setKeywords, kw);
-                            });
-                            target.value = '';
-                          }
-                        }}
-                      />
-                    </>
                   );
-                })()}
+                })}
               </div>
 
-              {/* Publish mode — moved here from the old step 5. Frequency is
-                  derived from the selected plan later, so we only ask how much
-                  control the user wants over approvals. */}
-              <div>
-                <Label>Modo de publicación</Label>
-                <div style={{ fontFamily: FONT, fontSize: '0.78rem', color: MUTED, marginBottom: 10, lineHeight: 1.5 }}>
-                  ¿Cómo quieres que gestionemos tu contenido?
+              {/* "Otras estéticas" smaller row */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontFamily: FONT, fontSize: '0.7rem', fontWeight: 700, color: MUTED, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>
+                  Otras estéticas
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-                  {PUBLISH_MODE_OPTIONS.map((m) => {
-                    const active = publishMode === m.value;
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${others.length}, 1fr)`, gap: 6 }}>
+                  {others.map((style) => {
+                    const selected = visualStyle === style.value;
                     return (
                       <button
-                        key={m.value}
+                        key={style.value}
                         type="button"
-                        onClick={() => setPublishMode(m.value)}
+                        onClick={() => setVisualStyle(style.value)}
                         style={{
-                          position: 'relative',
-                          padding: '16px 14px',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          border: `1.5px solid ${active ? ACCENT : '#e5e7eb'}`,
-                          background: active ? 'rgba(15,118,110,0.08)' : '#ffffff',
-                          outline: 'none',
-                          transition: 'all 0.15s',
-                          boxShadow: active ? `0 0 0 3px rgba(15,118,110,0.1)` : 'none',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: 6,
+                          padding: 0, cursor: 'pointer', outline: 'none', textAlign: 'left',
+                          border: `2px solid ${selected ? INK : '#e2e2e4'}`,
+                          background: '#fff', position: 'relative', overflow: 'hidden',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                          <span style={{ fontFamily: FONT_C, fontWeight: 800, fontSize: 13, textTransform: 'uppercase', letterSpacing: '0.04em', color: active ? INK : '#374151' }}>
-                            {m.label}
-                          </span>
-                          {m.value === 'semi' && (
-                            <span style={{ fontFamily: FONT, fontSize: 9, fontWeight: 700, color: ACCENT, background: '#f0fdf4', padding: '2px 6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                              Recomendado
-                            </span>
-                          )}
+                        <img
+                          src={getThumbnailPhoto(style.value, sector)}
+                          alt=""
+                          style={{ width: '100%', height: 80, objectFit: 'cover', display: 'block', background: '#e5e7eb' }}
+                        />
+                        <div style={{ padding: '6px 8px', background: selected ? INK : '#fff' }}>
+                          <div style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '0.7rem', color: selected ? '#fff' : INK, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                            {style.title}
+                          </div>
                         </div>
-                        <div style={{ fontFamily: FONT, fontSize: 11, color: MUTED, lineHeight: 1.45 }}>
-                          {m.desc}
-                        </div>
-                        {active && (
-                          <span style={{ color: ACCENT, fontWeight: 900, fontSize: 14, marginTop: 2 }}>✓</span>
+                        {selected && (
+                          <div style={{ position: 'absolute', top: 5, right: 5, width: 15, height: 15, background: INK, border: '1.5px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.45rem', color: '#fff', fontWeight: 900 }}>✓</div>
                         )}
                       </button>
                     );
                   })}
                 </div>
               </div>
-            </div>
 
-            <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
-              <BtnBack onClick={() => setStep(3)} />
-              <BtnPrimary onClick={() => isRedo ? handleSubmit() : setStep(5)}>{isRedo ? (saving ? 'Guardando…' : 'Guardar cambios →') : 'Siguiente →'}</BtnPrimary>
+              {/* Refinement sliders */}
+              <div style={{ padding: '14px 16px', background: '#fff', border: `1px solid ${BORDER}`, marginBottom: 14 }}>
+                <div style={{ fontFamily: FONT_C, fontWeight: 700, fontSize: '0.78rem', color: INK, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 16 }}>
+                  Afinar {selectedStyleData?.title ?? 'estilo'}:
+                </div>
+                {([
+                  { label: 'Realismo', lo: 'Artístico', hi: 'Fotorrealista', val: realismLevel, set: setRealismLevel },
+                ] as const).map(({ label, lo, hi, val, set }) => (
+                  <div key={label} style={{ marginBottom: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <span style={{ fontFamily: FONT, fontSize: '0.75rem', color: MUTED }}>{label}</span>
+                      <span style={{ fontFamily: FONT_C, fontWeight: 700, fontSize: '0.72rem', color: INK }}>{val}%</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontFamily: FONT, fontSize: '0.68rem', color: MUTED, flexShrink: 0 }}>{lo}</span>
+                      <input
+                        type="range" min={0} max={100} value={val}
+                        onChange={(e) => set(Number(e.target.value))}
+                        style={{ flex: 1, accentColor: INK, cursor: 'pointer', height: 2 }}
+                      />
+                      <span style={{ fontFamily: FONT, fontSize: '0.68rem', color: MUTED, flexShrink: 0 }}>{hi}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bottom nav */}
+              <div style={{ position: 'sticky', bottom: 0, paddingTop: 12, paddingBottom: 4, background: `linear-gradient(to top, ${BG_L} 70%, transparent)`, marginTop: 'auto' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <BtnBack onClick={() => setStep(1)} />
+                  <BtnPrimary onClick={() => setStep(3)}>Continuar →</BtnPrimary>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
+
+        {/* ── Step 3: Business details ── */}
+        {step === 3 && (() => {
+          const groupLabel      = MACRO_GROUPS.find((g) => g.id === selectedGroup)?.label ?? '';
+          const styleTitle      = VISUAL_STYLES.find((s) => s.value === visualStyle)?.title ?? '';
+          const specialtyOpts   = SECTOR_SERVICE_OPTIONS[sector] ?? [];
+          const customSpecialties = specialties.filter((s) => !specialtyOpts.includes(s));
+          return (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 760, margin: '0 auto', width: '100%' }}>
+
+              {/* Recap bar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', background: INK, color: '#fff', fontFamily: FONT, fontSize: '0.76rem', marginBottom: 28, flexWrap: 'wrap' }}>
+                <span style={{ opacity: 0.45, fontWeight: 400 }}>Hasta ahora:</span>
+                {groupLabel && <span style={{ fontWeight: 700 }}>{groupLabel}</span>}
+                {activePillLabel && activePillLabel !== '__otro__' && <span style={{ opacity: 0.65 }}>· {activePillLabel}</span>}
+                <span style={{ opacity: 0.65 }}>· {styleTitle}</span>
+                <span style={{ opacity: 0.45 }}>· {realismLevel}% realismo</span>
+              </div>
+
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 28 }}>
+                <span style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '4rem', color: '#e2e2e4', letterSpacing: '-0.04em', lineHeight: 1, flexShrink: 0, marginTop: -2 }}>03</span>
+                <div>
+                  <div style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 1.9rem)', color: INK, textTransform: 'uppercase', lineHeight: 1.05 }}>
+                    Tu negocio en detalle
+                  </div>
+                  <div style={{ fontFamily: FONT, fontSize: 13, color: MUTED, marginTop: 6, lineHeight: 1.5 }}>
+                    Nombre, especialidades, ubicación y logo. Todo en un minuto.
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4, marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 24 }}>
+
+                {/* Personal name */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <Label>Tu nombre</Label>
+                    <input style={inputStyle} type="text" placeholder="Ej: Ana" value={firstName} onChange={(e) => setFirstName(e.target.value)} autoFocus />
+                  </div>
+                  <div>
+                    <Label>Apellidos</Label>
+                    <input style={inputStyle} type="text" placeholder="Ej: García López" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                  </div>
+                </div>
+
+                {/* Business name */}
+                <div>
+                  <Label>Nombre del negocio *</Label>
+                  <input style={inputStyle} type="text" placeholder="Ej: Heladería La Nube" value={name} onChange={(e) => setName(e.target.value)} />
+                </div>
+
+                {/* Specialty chips */}
+                <div>
+                  <Label>
+                    Especialidades{' '}
+                    <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(elige las que apliquen)</span>
+                  </Label>
+                  {specialtyOpts.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                      {specialtyOpts.map((opt) => {
+                        const active = specialties.includes(opt);
+                        return (
+                          <PillOption key={opt} active={active} onClick={() =>
+                            setSpecialties((prev) => active ? prev.filter((s) => s !== opt) : [...prev, opt])
+                          }>
+                            {opt}
+                          </PillOption>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {customSpecialties.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                      {customSpecialties.map((s) => (
+                        <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px 6px 12px', background: ACCENT, color: '#fff', fontFamily: FONT, fontSize: '0.82rem', fontWeight: 700 }}>
+                          {s}
+                          <button type="button" onClick={() => setSpecialties((prev) => prev.filter((x) => x !== s))} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <input
+                    style={inputStyle}
+                    type="text"
+                    placeholder="Añadir especialidad (pulsa Enter)"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const t = e.target as HTMLInputElement;
+                        const v = t.value.trim();
+                        if (v && !specialties.includes(v)) setSpecialties((prev) => [...prev, v]);
+                        t.value = '';
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Location — single free-text */}
+                <div>
+                  <Label>
+                    Ubicación{' '}
+                    <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional)</span>
+                  </Label>
+                  <input
+                    style={inputStyle}
+                    type="text"
+                    placeholder="Ej: Gràcia, Barcelona, España"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                  />
+                  <p style={{ fontFamily: FONT, fontSize: '0.72rem', color: MUTED, marginTop: 5, lineHeight: 1.4 }}>
+                    Con la ciudad el agente detecta fiestas locales y las marca en tu calendario.
+                  </p>
+                </div>
+
+                {/* Logo upload */}
+                <div>
+                  <Label>
+                    Logo{' '}
+                    <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>(opcional · se aplica en los posts)</span>
+                  </Label>
+                  <LogoUpload
+                    logoUrl={logoUrl}
+                    colors={extractedColors}
+                    onLogoUrl={setLogoUrl}
+                    onColors={(cols) => {
+                      setExtractedColors(cols);
+                      if (cols[0]) setPrimaryColor(cols[0]);
+                      if (cols[1]) setSecondaryColor(cols[1]);
+                      if (cols[2]) setTertiaryColor(cols[2]);
+                      setHasCustomPalette(true);
+                    }}
+                  />
+                </div>
+
+              </div>
+
+              <div style={{ position: 'sticky', bottom: 0, paddingTop: 12, paddingBottom: 4, background: `linear-gradient(to top, ${BG_L} 70%, transparent)`, marginTop: 'auto' }}>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <BtnBack onClick={() => setStep(2)} />
+                  <BtnPrimary onClick={() => { if (!name.trim()) { toast.error('El nombre es obligatorio'); return; } setStep(4); }}>Siguiente →</BtnPrimary>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Step 4: Brand voice ── */}
+        {step === 4 && (() => {
+          const groupLabel  = MACRO_GROUPS.find((g) => g.id === selectedGroup)?.label ?? '';
+          const sectorLabel = activePillLabel && activePillLabel !== '__otro__' ? activePillLabel : groupLabel;
+          const styleTitle  = VISUAL_STYLES.find((s) => s.value === visualStyle)?.title ?? '';
+          const suggestions = SECTOR_KEYWORD_SUGGESTIONS[sector]
+            ?? ['artesanal', 'local', 'calidad', 'sostenible', 'profesional', 'exclusivo', 'fresco', 'auténtico'];
+          const customKeywords = keywords.filter((kw) => !suggestions.includes(kw));
+          const PUBLISH_CARDS: { value: PublishMode; label: string; desc: string; note: string }[] = [
+            { value: 'semi',   label: 'Supervisado',    desc: 'Apruebas cada post antes de publicar.',  note: 'Todos los planes' },
+            { value: 'auto',   label: 'Automático',     desc: 'Publicamos sin que apruebes cada post.', note: 'Profesional' },
+          ];
+          return (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', maxWidth: 760, margin: '0 auto', width: '100%' }}>
+
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 20 }}>
+                <span style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '4rem', color: '#e2e2e4', letterSpacing: '-0.04em', lineHeight: 1, flexShrink: 0, marginTop: -2 }}>04</span>
+                <div>
+                  <div style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 1.9rem)', color: INK, textTransform: 'uppercase', lineHeight: 1.05 }}>
+                    Tu voz de marca
+                  </div>
+                  <div style={{ fontFamily: FONT, fontSize: 13, color: MUTED, marginTop: 6, lineHeight: 1.5 }}>
+                    Define cómo suena tu marca. Cada detalle va al prompt de los agentes.
+                  </div>
+                </div>
+              </div>
+
+              {/* Recap bar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', background: '#f0fdf4', border: `1px solid #bbf7d0`, fontFamily: FONT, fontSize: '0.78rem', color: '#166534', marginBottom: 24, flexWrap: 'wrap' }}>
+                <span style={{ color: ACCENT, fontWeight: 900, fontSize: '0.85rem' }}>✓</span>
+                {name && <strong>{name}</strong>}
+                {sectorLabel && <span style={{ opacity: 0.7 }}>· {sectorLabel.toLowerCase()}{location ? ` en ${location.split(',')[0]}` : ''}</span>}
+                <span style={{ opacity: 0.7 }}>· estética {styleTitle}</span>
+                <span style={{ opacity: 0.7 }}>· {realismLevel}% fotos reales</span>
+              </div>
+
+              <div style={{ flex: 1, overflowY: 'auto', paddingRight: 4, display: 'flex', flexDirection: 'column', gap: 24, marginBottom: 20 }}>
+
+                {/* Keywords */}
+                <div>
+                  <div style={{ fontFamily: FONT_C, fontWeight: 700, fontSize: '0.9rem', color: INK, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>
+                    Palabras clave sugeridas para tu {sectorLabel.toLowerCase() || 'negocio'}
+                  </div>
+                  <div style={{ fontFamily: FONT, fontSize: '0.78rem', color: MUTED, marginBottom: 12, lineHeight: 1.5 }}>
+                    Basadas en tu especialidad. Marca las que encajan con tu marca.
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {suggestions.map((kw) => {
+                      const active = keywords.includes(kw);
+                      return (
+                        <button key={kw} type="button"
+                          onClick={() => active ? removeTag(keywords, setKeywords, kw) : addTag(keywords, setKeywords, kw)}
+                          style={{
+                            padding: '7px 16px', cursor: 'pointer', fontFamily: FONT, fontSize: '0.83rem', fontWeight: 700,
+                            border: `1.5px solid ${active ? INK : BORDER}`,
+                            background: active ? INK : '#fff',
+                            color: active ? '#fff' : '#374151',
+                            transition: 'all 0.15s', outline: 'none',
+                          }}
+                        >{kw}</button>
+                      );
+                    })}
+                  </div>
+                  {customKeywords.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+                      {customKeywords.map((kw) => (
+                        <span key={kw} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px 6px 14px', background: INK, color: '#fff', fontFamily: FONT, fontSize: '0.82rem', fontWeight: 700 }}>
+                          {kw}
+                          <button type="button" onClick={() => removeTag(keywords, setKeywords, kw)} style={{ background: 'transparent', border: 'none', color: '#fff', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <input
+                    style={{ ...inputStyle, marginTop: 10 }}
+                    type="text"
+                    placeholder="Añade otra palabra clave (pulsa Enter)"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const t = e.target as HTMLInputElement;
+                        t.value.split(/[\s,]+/).map(s => s.trim()).filter(Boolean).forEach((kw) => {
+                          if (!keywords.includes(kw)) addTag(keywords, setKeywords, kw);
+                        });
+                        t.value = '';
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const t = e.target as HTMLInputElement;
+                      if (t.value.trim()) {
+                        t.value.split(/[\s,]+/).map(s => s.trim()).filter(Boolean).forEach((kw) => {
+                          if (!keywords.includes(kw)) addTag(keywords, setKeywords, kw);
+                        });
+                        t.value = '';
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Palabras a evitar */}
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={INK} strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+                    <div style={{ fontFamily: FONT_C, fontWeight: 700, fontSize: '0.9rem', color: INK, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      Palabras a evitar
+                    </div>
+                  </div>
+                  <div style={{ fontFamily: FONT, fontSize: '0.78rem', color: MUTED, marginBottom: 12, lineHeight: 1.5 }}>
+                    Clichés o términos que nunca quieres ver en tus publicaciones.
+                  </div>
+                  {forbidden.length > 0 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+                      {forbidden.map((w) => (
+                        <span key={w} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 10px 6px 14px', background: '#fff', border: `1.5px solid ${BORDER}`, color: INK, fontFamily: FONT, fontSize: '0.82rem', fontWeight: 600 }}>
+                          {w}
+                          <button type="button" onClick={() => removeTag(forbidden, setForbidden, w)} style={{ background: 'transparent', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }}>×</button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <input
+                    style={inputStyle}
+                    type="text"
+                    placeholder="Añade palabra o frase a evitar (pulsa Enter)"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const t = e.target as HTMLInputElement;
+                        const v = t.value.trim();
+                        if (v && !forbidden.includes(v)) addTag(forbidden, setForbidden, v);
+                        t.value = '';
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const t = e.target as HTMLInputElement;
+                      const v = t.value.trim();
+                      if (v && !forbidden.includes(v)) addTag(forbidden, setForbidden, v);
+                      t.value = '';
+                    }}
+                  />
+                </div>
+
+                {/* Idioma + Uso de emojis */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+                  <div>
+                    <div style={{ fontFamily: FONT_C, fontWeight: 700, fontSize: '0.9rem', color: INK, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 10 }}>
+                      Idioma
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {([
+                        ['castellano', 'Castellano'],
+                        ['catalan',    'Catalán'],
+                        ['bilingual',  'Bilingüe'],
+                      ] as const).map(([val, lbl]) => {
+                        const active = language === val;
+                        return (
+                          <button key={val} type="button" onClick={() => setLanguage(val)} style={{
+                            padding: '8px 14px', cursor: 'pointer', fontFamily: FONT, fontSize: '0.8rem', fontWeight: 700,
+                            border: `1.5px solid ${active ? INK : BORDER}`,
+                            background: active ? INK : '#fff',
+                            color: active ? '#fff' : '#374151',
+                            outline: 'none', transition: 'all 0.15s',
+                          }}>{lbl}</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontFamily: FONT_C, fontWeight: 700, fontSize: '0.9rem', color: INK, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 10 }}>
+                      Uso de emojis
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {([
+                        ['none',     'Ninguno'],
+                        ['moderate', 'Moderado'],
+                        ['free',     'Libre'],
+                      ] as const).map(([val, lbl]) => {
+                        const active = emojiUse === val;
+                        return (
+                          <button key={val} type="button" onClick={() => setEmojiUse(val)} style={{
+                            padding: '8px 14px', cursor: 'pointer', fontFamily: FONT, fontSize: '0.8rem', fontWeight: 700,
+                            border: `1.5px solid ${active ? ACCENT : BORDER}`,
+                            background: active ? ACCENT : '#fff',
+                            color: active ? '#fff' : '#374151',
+                            outline: 'none', transition: 'all 0.15s',
+                          }}>{lbl}</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Modo de publicación */}
+                <div>
+                  <div style={{ fontFamily: FONT_C, fontWeight: 700, fontSize: '0.9rem', color: INK, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 3 }}>
+                    Modo de publicación
+                  </div>
+                  <div style={{ fontFamily: FONT, fontSize: '0.78rem', color: MUTED, marginBottom: 12, lineHeight: 1.5 }}>
+                    Cuánto control quieres antes de que publiquemos.
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                    {PUBLISH_CARDS.map((m) => {
+                      const active = publishMode === m.value;
+                      return (
+                        <button key={m.value} type="button" onClick={() => setPublishMode(m.value)} style={{
+                          padding: '16px 14px', cursor: 'pointer', textAlign: 'left', outline: 'none',
+                          border: `1.5px solid ${active ? INK : BORDER}`,
+                          background: active ? INK : '#fff',
+                          transition: 'all 0.15s',
+                          display: 'flex', flexDirection: 'column', gap: 6, position: 'relative',
+                        }}>
+                          {active && (
+                            <div style={{ position: 'absolute', top: 10, right: 10, width: 16, height: 16, border: '1.5px solid rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.5rem', color: '#fff', fontWeight: 900 }}>✓</div>
+                          )}
+                          <div style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '0.95rem', color: active ? '#fff' : INK, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                            {m.label}
+                          </div>
+                          <div style={{ fontFamily: FONT, fontSize: '0.75rem', color: active ? 'rgba(255,255,255,0.65)' : MUTED, lineHeight: 1.5 }}>
+                            {m.desc}
+                          </div>
+                          <div style={{ fontFamily: FONT, fontSize: '0.68rem', fontWeight: 700, color: active ? 'rgba(255,255,255,0.4)' : '#d1d5db', marginTop: 2 }}>
+                            {m.note}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Nav */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 12, borderTop: `1px solid ${BORDER}`, flexShrink: 0 }}>
+                <button type="button" onClick={() => setStep(3)} style={{ background: 'none', border: 'none', fontFamily: FONT, fontSize: '0.85rem', color: MUTED, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  ← Anterior
+                </button>
+                <BtnPrimary onClick={() => isRedo ? handleSubmit() : setStep(5)}>
+                  {isRedo ? (saving ? 'Guardando…' : 'Guardar cambios →') : 'Continuar →'}
+                </BtnPrimary>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── Step 5: Subscription plan + coupon ── */}
         {step === 5 && (
@@ -2129,8 +1982,8 @@ export default function OnboardingPage() {
         )}
       </div>
 
-      {/* ── Right column (only steps 3-5) ── */}
-      {step > 2 && (
+      {/* ── Right column (only step 5) ── */}
+      {step > 4 && (
         <div style={{ flex: 1, background: BG_R, borderLeft: `1px solid ${BORDER}`, overflowY: 'auto' }}>
           {rightContent}
         </div>

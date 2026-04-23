@@ -3640,6 +3640,11 @@ h2 {
   .dash-grid-auto-lg { grid-template-columns: 1fr !important; }
   .dash-table-5 { grid-template-columns: 1fr !important; }
   .page-content, .page-content * { max-width: 100%; box-sizing: border-box; }
+  /* Full-bleed dashboard sections must escape parent max-width: 100% */
+  .dashboard-page > .dashboard-tour-section,
+  .dashboard-page > .dashboard-summary-section,
+  .dashboard-page > .dashboard-inspiration-section,
+  .dashboard-page > .dashboard-upcoming-section { max-width: none !important; }
   .posts-list .post-list-item { padding: 10px !important; }
   .post-list-caption { white-space: normal !important; max-width: 100% !important; }
   .worker-topbar-context { margin-left: 6px; gap: 8px; }
@@ -3666,10 +3671,14 @@ h2 {
     margin-bottom: 24px !important;
   }
   .dashboard-metrics-grid .dash-metric-value {
-    font-size: clamp(1.6rem, 9vw, 2.4rem) !important;
+    font-size: clamp(1.4rem, 8vw, 2.2rem) !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
   }
   .dashboard-metrics-grid > div {
     padding: 14px 12px !important;
+    min-width: 0 !important;
   }
   .dashboard-metrics-grid > div > p:last-child {
     font-size: 9px !important;
@@ -3817,6 +3826,65 @@ h2 {
 
   /* FeedbackWidget: hide on mobile — too intrusive on small screens */
   .feedback-widget { display: none !important; }
+
+  /* ── WeeklyProposals: force single column ── */
+  .dashboard-weekly-proposals-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .dashboard-weekly-proposals-grid > div {
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Proposal action buttons: touch-friendly, tighter text */
+  .dashboard-proposal-actions button {
+    font-size: 11px !important;
+    padding: 12px 6px !important;
+    gap: 4px !important;
+  }
+  .dashboard-proposal-actions button svg {
+    width: 13px !important; height: 13px !important;
+  }
+
+  /* ── Pending alert: stack vertically ── */
+  .dashboard-pending-alert {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+  .dashboard-pending-alert a {
+    align-self: stretch !important;
+    justify-content: center !important;
+  }
+
+  /* ── Recent posts: hide date, tighten row ── */
+  .dashboard-post-date { display: none !important; }
+  .dashboard-post-row {
+    padding: 12px 14px !important;
+    gap: 10px !important;
+  }
+  .dashboard-post-thumb {
+    width: 36px !important; height: 36px !important;
+  }
+  .dashboard-post-caption {
+    font-size: 12px !important;
+  }
+
+  /* ── Content hub bottom row: wrap on narrow ── */
+  .dashboard-mode-footer {
+    flex-wrap: wrap !important;
+    gap: 6px !important;
+  }
+
+  /* ── Section inner spacing ── */
+  .dashboard-section-header {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+  }
+
+  /* ── Trends banner: single line on very narrow ── */
+  .trends-banner-text p:last-child {
+    display: none !important;
+  }
 }
 
 /* Extra small (<480px) — tighten dashboard even more */

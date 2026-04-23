@@ -109,7 +109,7 @@ export function WeeklyProposals({ proposals: rawProposals }: { proposals: Propos
       </div>
 
       {/* Proposals grid */}
-      <div style={{
+      <div className="dashboard-weekly-proposals-grid" style={{
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
         gap: '1px', background: 'var(--border)', border: '1px solid var(--border)',
       }}>
@@ -176,7 +176,7 @@ export function WeeklyProposals({ proposals: rawProposals }: { proposals: Propos
 
               {/* Actions */}
               {isPending ? (
-                <div style={{
+                <div className="dashboard-proposal-actions" style={{
                   display: 'flex', gap: 0, borderTop: '1px solid var(--border)',
                 }}>
                   <button

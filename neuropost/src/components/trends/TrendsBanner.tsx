@@ -57,7 +57,7 @@ export function TrendsBanner() {
       <div style={{ background: 'rgba(255,107,53,0.15)', borderRadius: 8, padding: 8, flexShrink: 0 }}>
         <TrendingUp size={18} style={{ color: '#ff6b35' }} />
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="trends-banner-text" style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: 12, fontWeight: 700, color: '#ff6b35', margin: '0 0 2px' }}>
           🔥 Esta semana está funcionando: {trend.trends?.title ?? 'Nueva tendencia viral'}
         </p>

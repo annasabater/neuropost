@@ -225,8 +225,8 @@ export default function PlanReviewPage() {
     <div style={{ color: 'var(--text-primary)', fontFamily: f }}>
       <style>{`@keyframes plan-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
 
-      <div style={{ padding: '24px 28px' }}>
-        <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+      <div className="plan-header-inner" style={{ padding: '24px 28px' }}>
+        <div className="plan-header-row" style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <button type="button" onClick={() => router.push('/planificacion')} style={{ ...backBtn, marginBottom: 12 }}>
               <ArrowLeft size={14} /> Mis planes
@@ -239,7 +239,7 @@ export default function PlanReviewPage() {
             </p>
           </div>
           {/* Progress badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: allReviewed ? '#f0fdfa' : 'var(--bg-1)', border: `1px solid ${allReviewed ? '#0F766E' : 'var(--border)'}`, flexShrink: 0 }}>
+          <div className="plan-progress-badge" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: allReviewed ? '#f0fdfa' : 'var(--bg-1)', border: `1px solid ${allReviewed ? '#0F766E' : 'var(--border)'}`, flexShrink: 0 }}>
             <span style={{ fontFamily: fc, fontWeight: 900, fontSize: 32, lineHeight: 1, color: allReviewed ? '#0F766E' : 'var(--text-primary)' }}>
               {reviewed}<span style={{ fontSize: 18, color: 'var(--text-secondary)', fontWeight: 700 }}>/{postIdeas.length}</span>
             </span>
@@ -258,7 +258,7 @@ export default function PlanReviewPage() {
           const isDone   = idea.status !== 'pending';
 
           return (
-            <div key={idea.id} style={{
+            <div key={idea.id} className="plan-idea-card" style={{
               background: 'var(--bg)',
               border: `1px solid ${isDone ? meta.dot + '55' : 'var(--border)'}`,
               display: 'grid',
@@ -273,7 +273,7 @@ export default function PlanReviewPage() {
                 paddingTop: 20,
                 borderRight: `1px solid ${isDone ? meta.dot + '55' : 'var(--border)'}`,
               }}>
-                <span style={{
+                <span className="plan-idea-number" style={{
                   fontFamily: fc, fontWeight: 900, fontSize: 28,
                   color: isDone ? meta.dot : 'var(--text-secondary)',
                   lineHeight: 1,
@@ -286,7 +286,7 @@ export default function PlanReviewPage() {
               </div>
 
               {/* Content */}
-              <div style={{ padding: '20px 20px 16px' }}>
+              <div className="plan-idea-content" style={{ padding: '20px 20px 16px' }}>
                 {/* Top row: angle + format + status */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -306,7 +306,7 @@ export default function PlanReviewPage() {
                       </p>
                     )}
                   </div>
-                  <span style={{
+                  <span className="plan-idea-status-badge" style={{
                     display: 'inline-flex', alignItems: 'center', gap: 5,
                     fontSize: 10, fontWeight: 700,
                     padding: '3px 9px',
@@ -349,7 +349,7 @@ export default function PlanReviewPage() {
                   </div>
                 ) : (
                   <>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14 }}>
+                    <div className="plan-idea-actions" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
                       {/* Primary: Aprobar */}
                       <button
                         type="button"
@@ -371,7 +371,7 @@ export default function PlanReviewPage() {
                         ✓ Aprobar
                       </button>
                       {/* Secondary actions */}
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <div className="plan-idea-actions-secondary" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {/* Modificar */}
                         <button
                           type="button"
@@ -578,21 +578,16 @@ export default function PlanReviewPage() {
       )}
 
       {/* Sticky footer */}
-      <div style={{
-        position: 'fixed', bottom: 0, left: 272, right: 0,
-        background: 'var(--bg)', borderTop: '2px solid var(--border)',
-        padding: '14px 28px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        zIndex: 10,
-      }}>
+      <div className="plan-sticky-footer">
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <button type="button" onClick={() => setShowSkipModal(true)} style={skipLink}>
+          <button type="button" onClick={() => setShowSkipModal(true)} className="plan-skip-link" style={skipLink}>
             No quiero contenido esta semana
           </button>
           <button
             type="button"
             onClick={handleConfirm}
             disabled={!allReviewed || confirming}
+            className="plan-confirm-btn"
             style={{ ...confirmBtn, opacity: allReviewed ? 1 : 0.4, cursor: allReviewed ? 'pointer' : 'not-allowed' }}
           >
             {confirming ? 'Confirmando…' : 'Confirmar plan'}
