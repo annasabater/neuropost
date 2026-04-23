@@ -137,6 +137,9 @@ export interface BrandRules {
   noAutoReplyNegative:    boolean;
   forbiddenWords:         string[];
   forbiddenTopics:        string[];
+  /** Structured answers to sector-specific onboarding questions (e.g. cuisine,
+   *  star_product). Persisted so redo can repopulate the inputs. */
+  dynamicAnswers?:        Record<string, string[]>;
   /** Plan-aware publishing preferences. Optional for backwards-compat. */
   preferences?:           BrandPreferences;
   /** Structured voice preset, used to regenerate brand_voice_doc on save. */

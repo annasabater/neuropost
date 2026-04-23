@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import type { PromoContentV2T } from '@/types';
 import {
-  inputStyle, labelStyle,
+  inputStyle, selectStyle, labelStyle,
   Collapsible, ChipsInput, isoToLocalInput, localInputToIso,
 } from './_v2/shared';
 
@@ -91,7 +91,7 @@ export function PromoFormV2({
               if (!type) { set('discount', undefined); return; }
               set('discount', { type, value: discount?.value });
             }}
-            style={inputStyle}
+            style={selectStyle}
           >
             <option value="">— Sin descuento —</option>
             <option value="percent">Porcentaje (%)</option>
@@ -112,9 +112,12 @@ export function PromoFormV2({
         )}
       </Collapsible>
 
-      <Collapsible title="Llamada a la acción (CTA)">
+      <Collapsible title="Enlace a tu web (opcional)">
+        <p style={{ fontFamily: 'var(--font-barlow), Barlow, sans-serif', fontSize: 12, color: 'var(--text-secondary)', margin: 0, marginBottom: 4, lineHeight: 1.5 }}>
+          Si tienes página web donde los clientes pueden reservar o comprar, añádela aquí. La mencionaremos en tus publicaciones cuando tenga sentido.
+        </p>
         <div>
-          <label style={labelStyle}>Texto del botón</label>
+          <label style={labelStyle}>Texto del enlace</label>
           <input
             value={cta?.label ?? ''}
             onChange={e => {
@@ -123,12 +126,12 @@ export function PromoFormV2({
               if (!label && !url) { set('cta', undefined); return; }
               set('cta', { label, url });
             }}
-            placeholder="Ej: Reservar mesa"
+            placeholder="Reserva ahora · Ver menú · Pedir cita"
             style={inputStyle}
           />
         </div>
         <div>
-          <label style={labelStyle}>URL</label>
+          <label style={labelStyle}>URL de tu web</label>
           <input
             value={cta?.url ?? ''}
             onChange={e => {
@@ -137,7 +140,7 @@ export function PromoFormV2({
               if (!label && !url) { set('cta', undefined); return; }
               set('cta', { label, url });
             }}
-            placeholder="https://..."
+            placeholder="https://miweb.com/reservas"
             style={inputStyle}
           />
         </div>

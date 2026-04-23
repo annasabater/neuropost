@@ -11,6 +11,7 @@ import { PLAN_LIMITS, PLAN_META } from '@/types';
 import { PUBLISH_MODE_OPTIONS, SECTOR_OPTIONS } from '@/lib/brand-options';
 import { defaultPreferencesFor, normalizePreferences, minimumPlanFor, upgradeLabel } from '@/lib/plan-features';
 import { useTagInput } from '@/hooks/useTagInput';
+import { parseLocation } from '@/lib/hydrate-brand';
 
 const f = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
@@ -200,15 +201,9 @@ export default function BrandPage() {
     setSector(brand.sector ?? 'otro');
     setOtherSector((brand.rules as BrandRules | null)?.sectorOther ?? '');
     // Parse location into region + country
-    const rawLoc = brand.location ?? '';
-    const locParts = rawLoc.split(',').map((s) => s.trim());
-    if (locParts.length >= 2) {
-      setRegion(locParts[0]);
-      setCountry(locParts.slice(1).join(', '));
-    } else {
-      setRegion(rawLoc);
-      setCountry('España');
-    }
+    const { region, country } = parseLocation(brand.location);
+    setRegion(region);
+    if (country) setCountry(country);
     setVisualStyle(brand.visual_style ?? 'warm');
     setTone(brand.tone ?? 'cercano');
     setPrimaryColor(brand.colors?.primary ?? '#0F766E');

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import type { FreeContentV2T } from '@/types';
-import { inputStyle, labelStyle } from './_v2/shared';
+import { inputStyle, selectStyle, labelStyle } from './_v2/shared';
 
 const INTENT_OPTIONS: { value: FreeContentV2T['intent'] | ''; label: string }[] = [
   { value: '',           label: '— Sin intención —' },
@@ -58,7 +58,7 @@ export function FreeFormV2({
           value={data.content}
           onChange={e => set('content', e.target.value)}
           rows={6}
-          placeholder="Escribe cualquier información relevante para que los agentes la tengan en cuenta..."
+          placeholder="Escribe cualquier información relevante de tu marca que quieras que nuestro equipo tenga en cuenta..."
           style={{ ...inputStyle, resize: 'vertical' }}
         />
       </div>
@@ -70,7 +70,7 @@ export function FreeFormV2({
             const next = e.target.value as FreeContentV2T['intent'] | '';
             set('intent', next ? (next as FreeContentV2T['intent']) : undefined);
           }}
-          style={inputStyle}
+          style={selectStyle}
         >
           {INTENT_OPTIONS.map(o => (
             <option key={o.value ?? ''} value={o.value ?? ''}>{o.label}</option>

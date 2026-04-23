@@ -21,7 +21,7 @@ export function FreeForm({
         value={(value.text as string) ?? ''}
         onChange={e => onChange({ text: e.target.value })}
         rows={5}
-        placeholder="Escribe cualquier información relevante de tu marca que quieras que los agentes tengan en cuenta..."
+        placeholder="Escribe cualquier información relevante de tu marca que quieras que nuestro equipo tenga en cuenta..."
         style={{ ...inputStyle, resize: 'vertical' }}
       />
     </div>

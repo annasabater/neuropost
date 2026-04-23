@@ -21,6 +21,28 @@ export const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
 };
 
+// Select con chevron custom — quita la flecha nativa fea y mantiene coherencia
+// brutalist con el resto de inputs.
+const chevronSvg =
+  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4l4 4 4-4' stroke='%23374151' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>\")";
+
+export const selectStyle: React.CSSProperties = {
+  width: '100%',
+  padding: '8px 36px 8px 12px',
+  border: '1px solid var(--border)',
+  fontFamily: f,
+  fontSize: 13,
+  outline: 'none',
+  background: `var(--bg) ${chevronSvg} no-repeat right 12px center`,
+  color: 'var(--text-primary)',
+  boxSizing: 'border-box',
+  appearance: 'none',
+  WebkitAppearance: 'none',
+  MozAppearance: 'none',
+  cursor: 'pointer',
+  lineHeight: 1.4,
+};
+
 export const labelStyle: React.CSSProperties = {
   fontFamily: f,
   fontSize: 11,

@@ -110,41 +110,68 @@ export function ScheduleFormV2({
 
           <div>
             <div style={sectionTitleStyle}>Días</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+
+            {/* Fila compacta: 7 pastillas con la inicial del día, toggle on/off */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6, marginBottom: 10 }}>
               {DAYS_ES.map((dayLabel, i) => {
-                const dayVal = DAY_VALUES[i]!;
-                const entry  = s.days.find(d => d.day === dayVal);
+                const dayVal  = DAY_VALUES[i]!;
+                const active  = !!s.days.find(d => d.day === dayVal);
+                const initial = dayLabel === 'Miércoles' ? 'X' : dayLabel.charAt(0);
                 return (
-                  <div key={dayVal} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', minWidth: 110 }}>
-                      <input
-                        type="checkbox"
-                        checked={!!entry}
-                        onChange={e => toggleDay(idx, dayVal, e.target.checked)}
-                        style={{ accentColor: 'var(--accent)', width: 16, height: 16 }}
-                      />
-                      <span style={{ fontFamily: f, fontSize: 13, color: 'var(--text-primary)' }}>{dayLabel}</span>
-                    </label>
-                    {entry && (
-                      <>
-                        <input
-                          value={entry.hours}
-                          onChange={e => setDayHours(idx, dayVal, e.target.value)}
-                          placeholder="9:00-20:00"
-                          style={{ ...inputStyle, flex: 1 }}
-                        />
-                        <input
-                          value={entry.note ?? ''}
-                          onChange={e => setDayNote(idx, dayVal, e.target.value)}
-                          placeholder="Nota (opcional)"
-                          style={{ ...inputStyle, flex: 1 }}
-                        />
-                      </>
-                    )}
-                  </div>
+                  <button
+                    key={dayVal}
+                    type="button"
+                    onClick={() => toggleDay(idx, dayVal, !active)}
+                    aria-pressed={active}
+                    aria-label={`${active ? 'Quitar' : 'Añadir'} ${dayLabel}`}
+                    title={dayLabel}
+                    style={{
+                      padding: '10px 0',
+                      background:  active ? 'var(--accent)' : 'var(--bg)',
+                      color:       active ? '#fff' : 'var(--text-primary)',
+                      border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                      fontFamily:  f,
+                      fontSize:    13,
+                      fontWeight:  active ? 700 : 500,
+                      cursor:      'pointer',
+                      transition:  'background 0.12s, color 0.12s, border-color 0.12s',
+                    }}
+                  >
+                    {initial}
+                  </button>
                 );
               })}
             </div>
+
+            {/* Filas de horario sólo para días activos */}
+            {s.days.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {DAYS_ES.map((dayLabel, i) => {
+                  const dayVal = DAY_VALUES[i]!;
+                  const entry  = s.days.find(d => d.day === dayVal);
+                  if (!entry) return null;
+                  return (
+                    <div key={dayVal} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontFamily: f, fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', minWidth: 90 }}>
+                        {dayLabel}
+                      </span>
+                      <input
+                        value={entry.hours}
+                        onChange={e => setDayHours(idx, dayVal, e.target.value)}
+                        placeholder="9:00-20:00"
+                        style={{ ...inputStyle, flex: 1 }}
+                      />
+                      <input
+                        value={entry.note ?? ''}
+                        onChange={e => setDayNote(idx, dayVal, e.target.value)}
+                        placeholder="Nota (opcional)"
+                        style={{ ...inputStyle, flex: 1 }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           <Collapsible title="Ventana de vigencia (opcional)">

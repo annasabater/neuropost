@@ -100,14 +100,15 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Onboarding with session → skip if already has brand
+  // Onboarding with session → skip if already has brand (unless ?redo=1)
   if (user && pathname === '/onboarding') {
+    const isRedo = request.nextUrl.searchParams.get('redo') === '1';
     const { data: brand } = await supabase
       .from('brands')
       .select('id')
       .eq('user_id', user.id)
       .maybeSingle();
-    if (brand) {
+    if (brand && !isRedo) {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }
   }

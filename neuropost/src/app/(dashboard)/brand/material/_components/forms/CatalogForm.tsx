@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import type { DataContentV2T } from '@/types';
 import {
-  inputStyle, labelStyle, rowStyle, addBtnStyle, removeBtnStyle,
+  inputStyle, selectStyle, labelStyle, rowStyle, addBtnStyle, removeBtnStyle,
   Collapsible, ChipsInput, isoToLocalInput, localInputToIso,
 } from './_v2/shared';
 
@@ -62,7 +62,7 @@ export function CatalogForm({
         <select
           value={data.type}
           onChange={e => set('type', e.target.value as DataContentV2T['type'])}
-          style={inputStyle}
+          style={selectStyle}
         >
           {TYPE_OPTIONS.map(o => (
             <option key={o.value} value={o.value}>{o.label}</option>

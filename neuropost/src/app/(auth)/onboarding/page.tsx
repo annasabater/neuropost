@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@/lib/supabase';
 import toast from 'react-hot-toast';
-import type { SocialSector, BrandTone, PublishMode, PostGoal, VisualStyle } from '@/types';
+import type { SocialSector, BrandTone, PublishMode, PostGoal, VisualStyle, Brand } from '@/types';
 import { TONE_OPTIONS, PUBLISH_MODE_OPTIONS } from '@/lib/brand-options';
 import { useTagInput } from '@/hooks/useTagInput';
 import CouponInput from '@/components/billing/CouponInput';
 import { getTemplateForSector } from '@/lib/industry-templates';
+import { parseLocation } from '@/lib/hydrate-brand';
 
 interface ContentCategoryDraft {
   category_key: string;
@@ -112,33 +113,6 @@ const SECTOR_KEYWORD: Record<SocialSector, string> = {
   otro:             'business,storefront',
 };
 
-// Secondary modifier per visual style. Combined with the sector keyword to get
-// images that already "feel" like that style, so we don't rely on CSS filters.
-const STYLE_KEYWORD: Record<VisualStyle, string> = {
-  creative:  'colorful',
-  elegant:   'minimal',
-  warm:      'warm',
-  dynamic:   'modern',
-  // These variants exist in the VisualStyle type but aren't selectable in the
-  // current UI. Map them anyway so the type is exhaustive.
-  editorial: 'editorial',
-  dark:      'dark',
-  fresh:     'fresh',
-  vintage:   'vintage',
-};
-
-// Seeds per style for step 2 — distinct ranges so every card shows a
-// different set of photos and the right preview never overlaps.
-const STYLE_SEED: Record<VisualStyle, number> = {
-  creative:  100,
-  elegant:   200,
-  warm:      300,
-  dynamic:   400,
-  editorial: 500,
-  dark:      600,
-  fresh:     700,
-  vintage:   800,
-};
 
 // Three post images for the step 1 mock feed — themed to the selected sector.
 function sectorPostsFor(sector: SocialSector): string[] {
@@ -146,209 +120,166 @@ function sectorPostsFor(sector: SocialSector): string[] {
   return [IMG(kw, 1, 500), IMG(kw, 2, 500), IMG(kw, 3, 500)];
 }
 
-// ─── Sector data with images ──────────────────────────────────────────────────
+// ─── Macro groups for step 1 ─────────────────────────────────────────────────
 
-type SectorItem = { value: SocialSector; label: string; img: string };
-type SectorGroup = { group: string; items: SectorItem[] };
+type PillItem = { label: string; sector: SocialSector };
 
-// Thumbnail for each sector card in step 1 — seed 0 keeps it stable across
-// reloads while still pulling a photo that matches the sector keyword.
-const THUMB = (sector: SocialSector) => IMG(SECTOR_KEYWORD[sector], 0);
+type MacroGroup = {
+  id: string;
+  label: string;
+  sub: string;
+  defaultSector: SocialSector;
+  pills: PillItem[];
+};
 
-const SECTOR_GROUPS: SectorGroup[] = [
-  { group: 'Comida y Bebida', items: [
-    { value: 'restaurante', label: 'Restaurante',        img: THUMB('restaurante') },
-    { value: 'cafeteria',   label: 'Cafetería / Brunch', img: THUMB('cafeteria')   },
-    { value: 'heladeria',   label: 'Heladería',           img: THUMB('heladeria')   },
-    { value: 'panaderia',   label: 'Panadería',          img: THUMB('panaderia')   },
-    { value: 'cocteleria',  label: 'Bar / Cócteles',     img: THUMB('cocteleria')  },
-    { value: 'vinoteca',    label: 'Vinoteca',           img: THUMB('vinoteca')    },
-    { value: 'street_food', label: 'Street Food',        img: THUMB('street_food') },
-    { value: 'catering',    label: 'Catering',           img: THUMB('catering')    },
-  ]},
-  { group: 'Belleza y Cuidado Personal', items: [
-    { value: 'peluqueria',  label: 'Peluquería',         img: THUMB('peluqueria')  },
-    { value: 'barberia',    label: 'Barbería',           img: THUMB('barberia')    },
-    { value: 'nail_art',    label: 'Nail Art',           img: THUMB('nail_art')    },
-    { value: 'estetica',    label: 'Centro Spa / Estética', img: THUMB('estetica') },
-    { value: 'maquillaje',  label: 'Cosmética',          img: THUMB('maquillaje')  },
-    { value: 'tattoo',      label: 'Tattoo / Piercing',  img: THUMB('tattoo')      },
-    { value: 'skincare',    label: 'Skincare',           img: THUMB('skincare')    },
-    { value: 'clinica_estetica', label: 'Clínica Estética', img: THUMB('clinica_estetica') },
-  ]},
-  { group: 'Moda y Estilo', items: [
-    { value: 'boutique',    label: 'Boutique / Moda',   img: THUMB('boutique')    },
-    { value: 'moda_hombre', label: 'Moda Hombre',       img: THUMB('moda_hombre') },
-    { value: 'zapateria',   label: 'Zapatería',         img: THUMB('zapateria')   },
-    { value: 'regalos',     label: 'Regalos',           img: THUMB('regalos')     },
-    { value: 'floristeria', label: 'Floristería',       img: THUMB('floristeria') },
-  ]},
-  { group: 'Salud y Bienestar', items: [
-    { value: 'gym',         label: 'Gimnasio / Fitness', img: THUMB('gym')         },
-    { value: 'yoga',        label: 'Yoga / Pilates',     img: THUMB('yoga')        },
-    { value: 'dental',      label: 'Clínica Dental',     img: THUMB('dental')      },
-    { value: 'clinica',     label: 'Clínica / Medicina', img: THUMB('clinica')     },
-    { value: 'nutricion',   label: 'Nutrición',          img: THUMB('nutricion')   },
-    { value: 'psicologia',  label: 'Psicología',         img: THUMB('psicologia')  },
-    { value: 'fisioterapia',label: 'Fisioterapia',       img: THUMB('fisioterapia')},
-    { value: 'veterinario', label: 'Veterinaria',        img: THUMB('veterinario') },
-  ]},
-  { group: 'Turismo y Alojamiento', items: [
-    { value: 'hotel',         label: 'Hotel',           img: THUMB('hotel')         },
-    { value: 'hostal',        label: 'Hostal / Pensión',img: THUMB('hostal')        },
-    { value: 'casa_rural',    label: 'Casa Rural',      img: THUMB('casa_rural')    },
-    { value: 'camping',       label: 'Camping',         img: THUMB('camping')       },
-    { value: 'agencia_viajes',label: 'Agencia de Viajes', img: THUMB('agencia_viajes') },
-    { value: 'viajes',        label: 'Turismo / Viajes',img: THUMB('viajes')        },
-  ]},
-  { group: 'Cultura y Ocio', items: [
-    { value: 'museo',          label: 'Museo',           img: THUMB('museo')          },
-    { value: 'galeria',        label: 'Galería de Arte', img: THUMB('galeria')        },
-    { value: 'teatro',         label: 'Teatro',          img: THUMB('teatro')         },
-    { value: 'sala_conciertos',label: 'Sala de Conciertos', img: THUMB('sala_conciertos') },
-    { value: 'cine',           label: 'Cine',            img: THUMB('cine')           },
-    { value: 'libreria',       label: 'Librería',        img: THUMB('libreria')       },
-    { value: 'arte',           label: 'Arte / Artesanía',img: THUMB('arte')           },
-    { value: 'escape_room',    label: 'Escape Room',     img: THUMB('escape_room')    },
-    { value: 'gaming',         label: 'Gaming / Esports',img: THUMB('gaming')         },
-  ]},
-  { group: 'Educación y Formación', items: [
-    { value: 'escuela',          label: 'Escuela / Colegio',   img: THUMB('escuela')          },
-    { value: 'guarderia',        label: 'Guardería',           img: THUMB('guarderia')        },
-    { value: 'academia',         label: 'Academia / Clases',   img: THUMB('academia')         },
-    { value: 'academia_idiomas', label: 'Academia de Idiomas', img: THUMB('academia_idiomas') },
-    { value: 'academia_musica',  label: 'Academia de Música',  img: THUMB('academia_musica')  },
-    { value: 'academia_deporte', label: 'Escuela Deportiva',   img: THUMB('academia_deporte') },
-  ]},
-  { group: 'Deporte y Aventura', items: [
-    { value: 'centro_deportivo',label: 'Centro Deportivo',  img: THUMB('centro_deportivo') },
-    { value: 'club_deportivo',  label: 'Club Deportivo',    img: THUMB('club_deportivo')   },
-    { value: 'padel',           label: 'Pádel / Tenis',     img: THUMB('padel')            },
-    { value: 'parque_acuatico', label: 'Parque Acuático',   img: THUMB('parque_acuatico')  },
-    { value: 'aventura',        label: 'Aventura / Outdoor',img: THUMB('aventura')         },
-  ]},
-  { group: 'Ocio Familiar', items: [
-    { value: 'centro_ludico',  label: 'Centro Lúdico',    img: THUMB('centro_ludico')  },
-    { value: 'parque_infantil',label: 'Parque Infantil',  img: THUMB('parque_infantil') },
-    { value: 'zoo',            label: 'Zoo / Naturaleza', img: THUMB('zoo')             },
-    { value: 'acuario',        label: 'Acuario',          img: THUMB('acuario')         },
-  ]},
-  { group: 'Hogar y Construcción', items: [
-    { value: 'decoracion',    label: 'Decoración',     img: THUMB('decoracion')    },
-    { value: 'jardineria',    label: 'Jardinería',     img: THUMB('jardineria')    },
-    { value: 'reformas',      label: 'Reformas',       img: THUMB('reformas')      },
-    { value: 'arquitectura',  label: 'Arquitectura',   img: THUMB('arquitectura')  },
-    { value: 'fotografia',    label: 'Fotografía',     img: THUMB('fotografia')    },
-  ]},
-  { group: 'Servicios Profesionales', items: [
-    { value: 'inmobiliaria',      label: 'Inmobiliaria',     img: THUMB('inmobiliaria')      },
-    { value: 'inmobiliaria_lujo', label: 'Inmobiliaria Lujo',img: THUMB('inmobiliaria_lujo') },
-    { value: 'abogado',           label: 'Despacho Legal',   img: THUMB('abogado')           },
-    { value: 'consultoria',       label: 'Consultoría',      img: THUMB('consultoria')       },
-    { value: 'tecnologia',        label: 'Tecnología / IT',  img: THUMB('tecnologia')        },
-    { value: 'agencia_marketing', label: 'Agencia Marketing',img: THUMB('agencia_marketing') },
-    { value: 'mecanica',          label: 'Mecánica / Taller',img: THUMB('mecanica')          },
-    { value: 'ecommerce',         label: 'Tienda Online',    img: THUMB('ecommerce')         },
-    { value: 'coworking',         label: 'Coworking',        img: THUMB('coworking')         },
-  ]},
-  { group: 'Eventos y Social', items: [
-    { value: 'organizacion_eventos', label: 'Organización de Eventos', img: THUMB('organizacion_eventos') },
-    { value: 'ong',                  label: 'ONG / Fundación',         img: THUMB('ong')                  },
-  ]},
-  { group: 'Otro tipo de negocio', items: [
-    { value: 'otro', label: '¿No está tu sector? Escríbelo', img: THUMB('otro') },
-  ]},
+const MACRO_GROUPS: MacroGroup[] = [
+  {
+    id: 'hosteleria', label: 'Hostelería',
+    sub: 'Restaurantes · cafeterías · bares · panadería',
+    defaultSector: 'restaurante',
+    pills: [
+      { label: 'Restaurante',           sector: 'restaurante'   },
+      { label: 'Cafetería / Brunch',    sector: 'cafeteria'     },
+      { label: 'Bar / Coctelería',      sector: 'cocteleria'    },
+      { label: 'Panadería / Pastelería',sector: 'panaderia'     },
+      { label: 'Street food',           sector: 'street_food'   },
+      { label: 'Hotel',                 sector: 'hotel'         },
+      { label: 'Agencia de viajes',     sector: 'agencia_viajes'},
+    ],
+  },
+  {
+    id: 'deporte', label: 'Deporte y bienestar',
+    sub: 'Gimnasio · yoga · pilates · spa · estética',
+    defaultSector: 'gym',
+    pills: [
+      { label: 'Gimnasio',         sector: 'gym'      },
+      { label: 'Fitness boutique', sector: 'gym'      },
+      { label: 'CrossFit',         sector: 'gym'      },
+      { label: 'Yoga / Pilates',   sector: 'yoga'     },
+      { label: 'Spa',              sector: 'estetica' },
+      { label: 'Estética',         sector: 'estetica' },
+      { label: 'Nutrición',        sector: 'nutricion'},
+    ],
+  },
+  {
+    id: 'salud', label: 'Salud',
+    sub: 'Clínicas · dental · veterinaria · psicología',
+    defaultSector: 'clinica',
+    pills: [
+      { label: 'Clínica',       sector: 'clinica'      },
+      { label: 'Dental',        sector: 'dental'       },
+      { label: 'Veterinaria',   sector: 'veterinario'  },
+      { label: 'Psicología',    sector: 'psicologia'   },
+      { label: 'Fisioterapia',  sector: 'fisioterapia' },
+    ],
+  },
+  {
+    id: 'servicios', label: 'Servicios profesionales',
+    sub: 'Legal · inmobiliaria · talleres · asesoría',
+    defaultSector: 'consultoria',
+    pills: [
+      { label: 'Abogado / Legal',      sector: 'abogado'      },
+      { label: 'Inmobiliaria',         sector: 'inmobiliaria' },
+      { label: 'Talleres / Mecánica',  sector: 'mecanica'     },
+      { label: 'Consultoría',          sector: 'consultoria'  },
+      { label: 'Arquitectura',         sector: 'arquitectura' },
+    ],
+  },
+  {
+    id: 'comercio', label: 'Comercio local',
+    sub: 'Moda · floristería · barbería · retail',
+    defaultSector: 'boutique',
+    pills: [
+      { label: 'Moda / Boutique', sector: 'boutique'    },
+      { label: 'Peluquería',      sector: 'peluqueria'  },
+      { label: 'Barbería',        sector: 'barberia'    },
+      { label: 'Floristería',     sector: 'floristeria' },
+      { label: 'Retail / Tienda', sector: 'ecommerce'   },
+    ],
+  },
+  {
+    id: 'creativos', label: 'Creativos y educación',
+    sub: 'Fotografía · formación · cultura · eventos',
+    defaultSector: 'fotografia',
+    pills: [
+      { label: 'Fotografía',           sector: 'fotografia'          },
+      { label: 'Academia / Formación', sector: 'academia'            },
+      { label: 'Centro infantil',      sector: 'guarderia'           },
+      { label: 'Teatro / Cultura',     sector: 'teatro'              },
+      { label: 'Eventos / Bodas',      sector: 'organizacion_eventos'},
+      { label: 'Hogar / Deco',         sector: 'decoracion'          },
+    ],
+  },
 ];
+
+function GroupIcon({ id, color }: { id: string; color: string }) {
+  const p = { stroke: color, strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, fill: 'none' };
+  if (id === 'hosteleria') return (
+    <svg width="22" height="22" viewBox="0 0 24 24" {...p}>
+      <path d="M3 2v6a3 3 0 0 0 6 0V2"/><line x1="6" y1="11" x2="6" y2="22"/><line x1="18" y1="2" x2="18" y2="22"/><path d="M15 2v7h6V2"/>
+    </svg>
+  );
+  if (id === 'deporte') return (
+    <svg width="22" height="22" viewBox="0 0 24 24" {...p}>
+      <line x1="6" y1="5" x2="6" y2="19"/><line x1="18" y1="5" x2="18" y2="19"/>
+      <line x1="3" y1="7" x2="6" y2="7"/><line x1="3" y1="17" x2="6" y2="17"/>
+      <line x1="18" y1="7" x2="21" y2="7"/><line x1="18" y1="17" x2="21" y2="17"/>
+      <line x1="6" y1="12" x2="18" y2="12"/>
+    </svg>
+  );
+  if (id === 'salud') return (
+    <svg width="22" height="22" viewBox="0 0 24 24" {...p}>
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+    </svg>
+  );
+  if (id === 'servicios') return (
+    <svg width="22" height="22" viewBox="0 0 24 24" {...p}>
+      <rect x="2" y="7" width="20" height="14"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+    </svg>
+  );
+  if (id === 'comercio') return (
+    <svg width="22" height="22" viewBox="0 0 24 24" {...p}>
+      <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+    </svg>
+  );
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" {...p}>
+      <polyline points="22 10 12 2 2 10 12 18 22 10"/><path d="M6 12v5c0 2.21 2.69 4 6 4s6-1.79 6-4v-5"/>
+    </svg>
+  );
+}
 
 // ─── Visual style data ────────────────────────────────────────────────────────
 
 const VISUAL_STYLES: {
-  value: VisualStyle; title: string; tag: string; palette: string[];
+  value: VisualStyle; title: string; palette: string[];
 }[] = [
-  { value: 'creative', title: 'Creativo y Colorido', tag: 'Impactante · Editorial · Vibrante',
-    palette: ['#FF6B9D','#FF9500','#34C759','#007AFF'] },
-  { value: 'elegant', title: 'Elegante y Minimal', tag: 'Limpio · Sofisticado · Premium',
-    palette: ['#F5F5F0','#D4C5B0','#8B7355','#2C2C2C'] },
-  { value: 'warm', title: 'Cálido y Cercano', tag: 'Auténtico · Local · Próximo',
-    palette: ['#D4916A','#C17D52','#F2CDA0','#8B4513'] },
-  { value: 'dynamic', title: 'Dinámico y Moderno', tag: 'Energía · Urbano · Tendencia',
-    palette: ['#1C1C1E','#FF3B30','#636366','#AEAEB2'] },
+  { value: 'fresh',     title: 'Natural',      palette: ['#8DB88A','#C4A882','#EDE8DC','#4A6741'] },
+  { value: 'elegant',   title: 'Minimalista',  palette: ['#F7E7E1','#E8C4B8','#D4A5A5','#C47E8A'] },
+  { value: 'editorial', title: 'Editorial',    palette: ['#F8F6F2','#1A1A1A','#C0B090','#6B6B6B'] },
+  { value: 'warm',      title: 'Clásico',      palette: ['#A0522D','#D2691E','#F5DEB3','#8B4513'] },
+  { value: 'creative',  title: 'Creativo',     palette: ['#FF6B9D','#FF9500','#34C759','#007AFF'] },
+  { value: 'dynamic',   title: 'Moody',        palette: ['#0D0D0D','#FF2D55','#1C1C1E','#00E5FF'] },
+  { value: 'dark',      title: 'Luxury',       palette: ['#1A1A1A','#C9A84C','#2D2D2D','#F5F0E8'] },
+  { value: 'vintage',   title: 'Vintage',      palette: ['#C4956A','#8B5E3C','#F2E8D9','#4A3728'] },
 ];
 
-// ─── Sector-aware visual images ──────────────────────────────────────────────
-// All step 2 photos are generated deterministically from loremflickr:
-//   - 4 photos per (sector, style) for each style card on the left
-//   - 9 photos per (sector, style) for the right-column preview
-// Seeds are chosen in disjoint ranges so nothing overlaps across styles or
-// between the left cards and the right preview.
-
-function getSectorStyleImages(sector: SocialSector, style: VisualStyle): string[] {
-  const kw = `${SECTOR_KEYWORD[sector]},${STYLE_KEYWORD[style]}`;
-  const base = STYLE_SEED[style];
-  // Seeds 1..4 (relative to STYLE_SEED) for the 4 card thumbnails.
-  return [1, 2, 3, 4].map((i) => IMG(kw, base + i));
-}
+// ─── Deterministic placeholder images ────────────────────────────────────────
+// picsum.photos returns real photos keyed by a string seed — always resolves,
+// no keyword matching issues. Replace with Replicate-generated images later.
 
 function getSectorPreviewImages(sector: SocialSector, style: VisualStyle): string[] {
-  const kw = `${SECTOR_KEYWORD[sector]},${STYLE_KEYWORD[style]}`;
-  const base = STYLE_SEED[style];
-  // Seeds 10..18 — never overlap with the 1..4 used for the cards.
-  return [10, 11, 12, 13, 14, 15, 16, 17, 18].map((i) => IMG(kw, base + i, 500));
+  return [10,11,12,13,14,15,16,17,18].map((i) =>
+    `https://picsum.photos/seed/${style}-${sector}-${i}/500/500`,
+  );
 }
 
-const SECTOR_CAPTIONS: Partial<Record<SocialSector, string[]>> = {
-  restaurante:  ['El mejor risotto de la ciudad 🍝', 'Mesa lista para esta noche ✨', 'Ingredientes frescos cada mañana 🌿'],
-  heladeria:    ['Pistacho artesanal recién hecho 🍦', 'El sabor del verano ☀️', 'Hecho con amor desde 1995 💛'],
-  cafeteria:    ['Empieza el día con el mejor café ☕', 'Brunch perfecto para el domingo 🥑', 'Tu rincón favorito te espera 🌸'],
-  gym:          ['Sin excusas, solo resultados 💪', 'Tu mejor versión empieza hoy 🔥', 'Clase de las 7am. ¿Te apuntas? ⚡'],
-  barberia:     ['Corte clásico, estilo eterno ✂️', 'Cuida tu imagen, cuida tu actitud 💈', 'Reserva ya tu cita 📞'],
-  boutique:     ['Nueva colección ya en tienda 🛍️', 'Tu look para este fin de semana ✨', 'Piezas únicas que marcan diferencia 💎'],
-  inmobiliaria: ['Tu hogar soñado te espera 🏠', 'Ático con vistas espectaculares ☀️', 'Inversión segura en zona premium 📍'],
-  floristeria:  ['Ramos que enamoran 🌺', 'Frescura que se siente 🌸', 'Arte floral para cada ocasión 💐'],
-  yoga:         ['Respira, fluye, conecta 🧘', 'Tu momento de paz empieza aquí ☮️', 'Clase al amanecer mañana 🌅'],
-  cocteleria:   ['Cócteles de autor para esta noche 🍸', 'Descubre nuestro nuevo old fashioned 🥃', 'Happy hour de 18 a 20h 🎉'],
-  street_food:  ['El smash burger que vas a soñar 🍔', 'Comida callejera nivel gourmet 🔥', 'Nuevo especial del mes 🌮'],
-  vinoteca:     ['Tintos que cuentan historias 🍷', 'Cata de vinos naturales este jueves 🥂', 'Maridaje perfecto para el fin de semana 🧀'],
-  panaderia:    ['Pan de masa madre recién horneado 🍞', 'Bollería del día, irresistible ☕', 'Tradición y harina en cada bocado 🥐'],
-  nail_art:     ['Nail art de temporada 💅', 'Diseños únicos para ti ✨', 'Tu próxima manicura te espera 🎨'],
-  estetica:     ['Relájate, estás en buenas manos 🧖', 'Tratamiento facial renovador ✨', 'Tu bienestar es nuestra prioridad 💆'],
-  maquillaje:   ['Looks que transforman 💄', 'Colección primavera ya disponible 🌸', 'Maquillaje que resalta tu belleza ✨'],
-  moda_hombre:  ['Estilo sin esfuerzo 🎩', 'Nueva colección otoño-invierno 🧥', 'Cada detalle importa 👔'],
-  skincare:     ['Tu piel merece lo mejor 🧴', 'Rutina coreana paso a paso ✨', 'Ingredientes naturales, resultados reales 🌿'],
-  dental:       ['Sonríe sin complejos 😁', 'Blanqueamiento profesional ✨', 'Tu salud dental en las mejores manos 🦷'],
-  clinica:      ['Tu bienestar, nuestra prioridad 🏥', 'Equipo médico de confianza 👨‍⚕️', 'Tecnología al servicio de tu salud ⚕️'],
-  nutricion:    ['Come bien, vive mejor 🥗', 'Plan personalizado para ti 📋', 'Alimentación consciente y equilibrada 🍎'],
-  decoracion:   ['Transforma tu espacio ✨', 'Detalles que marcan diferencia 🏡', 'Diseño interior con personalidad 🎨'],
-  jardineria:   ['Tu jardín merece lo mejor 🌿', 'Primavera en cada rincón 🌻', 'Verde que inspira calma 🌳'],
-  reformas:     ['De proyecto a realidad 🔨', 'Reforma integral con estilo ✨', 'Tu espacio, reinventado 🏗️'],
-  fotografia:   ['Momentos que perduran 📸', 'Tu historia en cada imagen ✨', 'Luz natural, emociones reales 🎞️'],
-  peluqueria:   ['El corte que buscabas ✂️', 'Transforma tu look hoy 💇', 'Reserva tu cita ahora 📲'],
-  tattoo:       ['Arte en tu piel 🖤', 'Cada trazo, una historia 🎨', 'Diseños únicos que duran para siempre ✨'],
-  hotel:        ['El descanso que mereces 🛏️', 'Vistas que te dejan sin palabras 🌅', 'Bienvenido a tu hogar lejos de casa 🏨'],
-  hostal:       ['Viajeros del mundo, bienvenidos 🌍', 'El lugar donde nacen amistades 🤝', 'Alojamiento con alma 🏠'],
-  museo:        ['Historia que cobra vida 🏛️', 'Nueva exposición temporal disponible 🖼️', 'El arte espera por ti ✨'],
-  galeria:      ['Arte contemporáneo que inspira 🎨', 'Vernissage este jueves 🍷', 'La cultura más cerca de ti 🖼️'],
-  teatro:       ['El telón sube esta noche 🎭', 'Teatro que emociona, teatro que conecta ✨', 'Reserva tus entradas 🎟️'],
-  escuela:      ['El futuro empieza aquí 📚', 'Educación de calidad para cada alumno 🎓', 'Abrimos inscripciones 📝'],
-  guarderia:    ['Los más pequeños en las mejores manos 🧸', 'Aprendizaje y juego unidos 🌈', 'Un espacio lleno de cariño 💛'],
-  academia_idiomas: ['Habla el mundo 🌍', 'Inglés, francés, alemán y más 🗣️', 'Clases online y presenciales 💻'],
-  academia_musica:  ['Música para el alma 🎵', 'Aprende guitarra, piano o voz 🎹', 'El ritmo que buscabas 🎸'],
-  centro_deportivo: ['Deporte para todos 🏅', 'Instalaciones de primera nivel ⭐', 'Únete a nuestra comunidad deportiva 🤸'],
-  parque_acuatico:  ['El verano más refrescante 💦', 'Diversión sin límites bajo el sol ☀️', 'La adrenalina del agua te espera 🌊'],
-  aventura:     ['Vive la aventura al máximo 🧗', 'Naturaleza + adrenalina 🌲', 'Experiencias que no olvidarás 🏕️'],
-  club_deportivo: ['Pasión por el deporte 🏆', 'Equipo que lucha unido 💪', 'Próximo partido, ¡ven a apoyarnos! 🎉'],
-  padel:        ['El deporte del momento 🎾', 'Pistas disponibles toda la semana ✅', '¿Tienes pareja? ¡Te espera el rival! 😄'],
-  centro_ludico: ['Risas garantizadas 🎉', 'El parque de diversiones que adoran los niños 🎠', 'Cumpleaños y celebraciones especiales 🎂'],
-  zoo:          ['Animales que enamoran 🐾', 'Una aventura para toda la familia 🦁', 'Nuevos habitantes han llegado 🐘'],
-  acuario:      ['El fondo del mar te espera 🐠', 'Descubre el mundo submarino 🌊', 'Visita guiada este fin de semana 🦈'],
-  organizacion_eventos: ['Cada evento, una historia perfecta 🎊', 'Tu celebración en manos expertas ✨', 'Bodas, corporativos y más 🥂'],
-  catering:     ['Sabores que sorprenden 🍽️', 'Tu evento con el mejor menú 🥗', 'Calidad y servicio en cada bocado 👨‍🍳'],
-  escape_room:  ['¿Puedes escapar? 🔓', 'Desafía tu mente en equipo 🧩', 'Nuevas salas disponibles 🚪'],
-  coworking:    ['Tu oficina, tu comunidad 💼', 'Espacio de trabajo flexible 🖥️', 'Networking en cada café ☕'],
-  ong:          ['Juntos cambiamos el mundo 🌱', 'Tu ayuda marca la diferencia ❤️', 'Nuevos proyectos en marcha 🤝'],
-  viajes:       ['El mundo está esperándote ✈️', 'Tu próxima aventura empieza aquí 🗺️', 'Ofertas de última hora disponibles 🏖️'],
-};
-const DEFAULT_CAPTIONS = ['Contenido adaptado a tu negocio ✨', 'Tu historia, nuestra voz 🎯', 'Conectamos con tu audiencia 💬'];
+function getStyleCollage(style: VisualStyle, sector: SocialSector): string[] {
+  return [1,2,3,4].map((i) =>
+    `https://picsum.photos/seed/${style}-${sector}-${i}/400/400`,
+  );
+}
+
 
 function getDynamicQuestions(sector: SocialSector): { label: string; placeholder: string; key: string }[] {
   const map: Partial<Record<SocialSector, { label: string; placeholder: string; key: string }[]>> = {
@@ -579,32 +510,6 @@ function BtnBack({ onClick }: { onClick: () => void }) {
   );
 }
 
-function MockPost({ img, caption, index }: { img: string; caption: string; index: number }) {
-  const likes = [234, 189, 312];
-  const comms = [18, 24, 9];
-  return (
-    <div style={{
-      background: '#ffffff', overflow: 'hidden',
-      border: '1px solid #e5e7eb', width: '100%',
-      display: 'flex', flexDirection: 'column',
-    }}>
-      <div style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #f3f4f6', height: 44, boxSizing: 'border-box' }}>
-        <div style={{ width: 26, height: 26, background: ACCENT, flexShrink: 0 }} />
-        <span style={{ fontFamily: FONT, fontSize: '0.72rem', fontWeight: 700, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>@tunegocio</span>
-      </div>
-      <img src={img} alt="" style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block', background: '#f3f4f6' }} />
-      <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6, minHeight: 72, boxSizing: 'border-box' }}>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <span style={{ fontSize: '0.72rem', color: MUTED }}>♥ {likes[index]}</span>
-          <span style={{ fontSize: '0.72rem', color: MUTED }}>💬 {comms[index]}</span>
-        </div>
-        <div style={{ fontFamily: FONT, fontSize: '0.72rem', color: INK, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-          {caption}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -724,6 +629,9 @@ export default function OnboardingPage() {
   const [promoCodeId,      setPromoCodeId]      = useState<string | null>(null);
   const [discountText,     setDiscountText]     = useState('');
   const [selectedPlan,     setSelectedPlan]     = useState<PlanId>('pro');
+  const [selectedGroup,    setSelectedGroup]    = useState<string | null>(null);
+  const [searchQuery,      setSearchQuery]      = useState('');
+  const [activePillLabel,  setActivePillLabel]  = useState('');
 
   // ── Content categories ────────────────────────────────────────────────────────
   const [contentCategories, setContentCategories] = useState<ContentCategoryDraft[]>([]);
@@ -732,30 +640,77 @@ export default function OnboardingPage() {
   const [catSugLoading,      setCatSugLoading]     = useState(false);
   const catDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Snapshot of the persisted brand + auth metadata taken at redo-hydration
+  // time. Comparisons (noEmojis recompute, firstName/lastName changed) read
+  // from this ref — never from live form state, to avoid biting our tail
+  // once the user interacts with the form.
+  const redoSnapshotRef = useRef<{ brand: Brand; firstName: string; lastName: string } | null>(null);
+
   // Load template categories when sector changes
   // Prefill from existing brand when redoing onboarding
   useEffect(() => {
     if (!isRedo) return;
-    fetch('/api/brands').then(r => r.json()).then(({ brand }) => {
-      if (!brand) return;
-      if (brand.name)         setName(brand.name);
-      if (brand.sector)       setSector(brand.sector as SocialSector);
-      if (brand.visual_style) setVisualStyle(brand.visual_style as VisualStyle);
-      if (brand.tone)         setTone(brand.tone as BrandTone);
-      if (brand.hashtags?.length) setKeywords(brand.hashtags);
-      if (brand.location)     setLocation(brand.location);
-      if (brand.city)         setCity(brand.city);
-      if (brand.publish_mode) setPublishMode(brand.publish_mode as PublishMode);
-      if (brand.slogans?.[0]) setSlogan(brand.slogans[0]);
-      if (brand.colors?.primary)   setPrimaryColor(brand.colors.primary);
-      if (brand.colors?.secondary) setSecondaryColor(brand.colors.secondary);
-      if (brand.colors?.tertiary)  setTertiaryColor(brand.colors.tertiary);
-      if (brand.colors?.primary || brand.colors?.secondary) setHasCustomPalette(true);
-    }).catch(() => null);
+    void (async () => {
+      try {
+        const [brandJson, catsJson, userRes] = await Promise.all([
+          fetch('/api/brands').then(r => r.json()),
+          fetch('/api/brands/categories').then(r => r.json()),
+          createBrowserClient().auth.getUser(),
+        ]);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const brand = (brandJson?.brand ?? null) as any;
+        if (!brand) return;
+        const categories = Array.isArray(catsJson?.categories) ? catsJson.categories : [];
+        const meta = (userRes.data.user?.user_metadata ?? {}) as Record<string, unknown>;
+        const initialFirstName = typeof meta.first_name === 'string' ? meta.first_name : '';
+        const initialLastName  = typeof meta.last_name  === 'string' ? meta.last_name  : '';
+
+        if (brand.name)         setName(brand.name);
+        if (brand.sector) {
+          setSector(brand.sector as SocialSector);
+          const g = MACRO_GROUPS.find((g) => g.pills.some((p) => p.sector === brand.sector) || g.defaultSector === brand.sector);
+          if (g) { setSelectedGroup(g.id); const p = g.pills.find((p) => p.sector === brand.sector); if (p) setActivePillLabel(p.label); }
+        }
+        if (brand.secondary_sectors?.length) setSecondarySectors(brand.secondary_sectors);
+        if (brand.visual_style) setVisualStyle(brand.visual_style as VisualStyle);
+        if (brand.tone)         setTone(brand.tone as BrandTone);
+        if (brand.hashtags?.length) setKeywords(brand.hashtags);
+        if (brand.location) {
+          const { region, country } = parseLocation(brand.location);
+          setLocation(region);
+          if (country) setCountry(country);
+        }
+        if (brand.city)         setCity(brand.city);
+        if (brand.publish_mode) setPublishMode(brand.publish_mode as PublishMode);
+        if (brand.slogans?.[0]) setSlogan(brand.slogans[0]);
+        if (brand.colors?.primary)   setPrimaryColor(brand.colors.primary);
+        if (brand.colors?.secondary) setSecondaryColor(brand.colors.secondary);
+        if (brand.colors?.tertiary)  setTertiaryColor(brand.colors.tertiary);
+        if (brand.colors?.primary || brand.colors?.secondary) setHasCustomPalette(true);
+        if (brand.rules?.forbiddenWords?.length) setForbidden(brand.rules.forbiddenWords);
+        if (brand.rules?.dynamicAnswers) setDynamicAnswers(brand.rules.dynamicAnswers);
+        setFirstName(initialFirstName);
+        setLastName(initialLastName);
+        if (categories.length) {
+          setContentCategories(categories.map((c: ContentCategoryDraft) => ({
+            category_key: c.category_key,
+            name:         c.name,
+            source:       c.source,
+            active:       c.active,
+          })));
+        }
+
+        redoSnapshotRef.current = { brand: brand as Brand, firstName: initialFirstName, lastName: initialLastName };
+      } catch {
+        /* best-effort prefill — silent */
+      }
+    })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRedo]);
 
   useEffect(() => {
+    // In redo mode respect persisted categories — don't clobber with template.
+    if (isRedo) return;
     const template = getTemplateForSector(sector);
     if (template) {
       setContentCategories(
@@ -769,15 +724,17 @@ export default function OnboardingPage() {
     } else {
       setContentCategories([]);
     }
-  }, [sector]);
+  }, [sector, isRedo]);
 
   const toggleCategory = useCallback((key: string) => {
+    if (isRedo) return;
     setContentCategories((prev) =>
       prev.map((c) => c.category_key === key ? { ...c, active: !c.active } : c),
     );
-  }, []);
+  }, [isRedo]);
 
   const addCustomCategory = useCallback((label: string, source: 'user' | 'ai_suggested' = 'user') => {
+    if (isRedo) return;
     const key = label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
     setContentCategories((prev) => {
       if (prev.some((c) => c.category_key === key || c.name.toLowerCase() === label.toLowerCase())) return prev;
@@ -815,19 +772,19 @@ export default function OnboardingPage() {
 
   const dynamicQuestions = getDynamicQuestions(sector);
 
-  function toggleSecondary(s: SocialSector) {
-    if (s === sector) return;
-    setSecondarySectors((prev) =>
-      prev.includes(s) ? prev.filter((x) => x !== s) : prev.length < 2 ? [...prev, s] : prev,
-    );
-  }
-
   async function handleSubmit() {
     if (!name.trim()) { toast.error('El nombre del negocio es obligatorio'); return; }
     setSaving(true);
     try {
-      // Save user name to Supabase auth metadata
-      if (firstName.trim() || lastName.trim()) {
+      // Save user name to Supabase auth metadata.
+      // In redo we skip the round-trip unless the user actually changed the
+      // names — comparison is against the snapshot taken at hydration time,
+      // never against live form state.
+      const snap = redoSnapshotRef.current;
+      const authShouldUpdate = isRedo
+        ? (snap !== null && (firstName.trim() !== snap.firstName || lastName.trim() !== snap.lastName))
+        : (firstName.trim().length > 0 || lastName.trim().length > 0);
+      if (authShouldUpdate) {
         const supabase = createBrowserClient();
         await supabase.auth.updateUser({
           data: {
@@ -847,52 +804,90 @@ export default function OnboardingPage() {
         })
         .filter(Boolean).join('. ');
       const styleInstructions: Record<VisualStyle, string> = {
-        creative:   'Estilo creativo y colorido: usa emojis, exclamaciones y texto dinámico.',
-        elegant:    'Estilo elegante y minimal: sin emojis, frases cortas y muy sofisticadas.',
-        warm:       'Estilo cálido y cercano: tono familiar, tuteo y mucha proximidad.',
-        dynamic:    'Estilo dinámico y moderno: frases cortas, imperativas y mucha energía.',
-        editorial:  'Estilo editorial y realista: storytelling auténtico, naturalidad y contexto.',
-        dark:       'Estilo oscuro y premium: copywriting exclusivo, sin exclamaciones, muy sofisticado.',
-        fresh:      'Estilo fresco y natural: tono orgánico, referencias a naturaleza y bienestar.',
-        vintage:    'Estilo vintage y artesanal: lenguaje cálido, nostálgico, valorando el oficio.',
+        fresh:     'Estilo natural y wellness: tono orgánico, luz natural, referencias a bienestar y naturaleza.',
+        dark:      'Estilo lujo y premium: copywriting exclusivo, sin exclamaciones ni emojis, muy sofisticado.',
+        vintage:   'Estilo retro y vintage: lenguaje nostálgico y artesanal, valorando el oficio y la tradición.',
+        warm:      'Estilo rústico y artesanal: tono cercano, producto local, texturas y materiales naturales.',
+        dynamic:   'Estilo urbano y street: frases cortas, imperativas, alto impacto visual y energía urbana.',
+        elegant:   'Estilo soft y pastel: tono delicado y femenino, sensaciones suaves, estética cuidada.',
+        editorial: 'Estilo editorial y fashion: storytelling visual puro, sin emojis, composición asimétrica.',
+        creative:  'Estilo playful e ilustrativo: usa emojis, exclamaciones, colores primarios y mucha energía.',
       };
+      // Build rules: preserve subfields the onboarding doesn't expose; recompute
+      // noEmojis only if visual_style actually changed vs the snapshot.
+      const computedNoEmojis = visualStyle === 'dark' || visualStyle === 'vintage' || visualStyle === 'editorial';
+      const originalRules = snap?.brand?.rules ?? null;
+      const visualStyleChanged = isRedo && snap ? visualStyle !== snap.brand.visual_style : true;
+      // Collect dynamic answers from form state, dropping empty entries.
+      // Written explicitly in both branches so the form state is always the
+      // source of truth (hydrated from BD in redo, so a no-op if unchanged).
+      const filteredDynamicAnswers: Record<string, string[]> = {};
+      for (const [key, values] of Object.entries(dynamicAnswers)) {
+        const cleaned = values.filter(v => v && v.trim() !== '');
+        if (cleaned.length) filteredDynamicAnswers[key] = cleaned;
+      }
+      const rulesPayload = isRedo && originalRules
+        ? {
+            ...originalRules,
+            forbiddenWords: forbidden,
+            noEmojis: visualStyleChanged ? computedNoEmojis : (originalRules.noEmojis ?? computedNoEmojis),
+            dynamicAnswers: filteredDynamicAnswers,
+          }
+        : {
+            forbiddenWords:      forbidden,
+            noPublishDays:       [],
+            noEmojis:            computedNoEmojis,
+            noAutoReplyNegative: false,
+            forbiddenTopics:     [],
+            dynamicAnswers:      filteredDynamicAnswers,
+          };
+      const baseBody = {
+        name, sector, secondary_sectors: secondarySectors,
+        visual_style: visualStyle, tone, hashtags: keywords,
+        location: location ? `${location}, ${country}` : country || null,
+        city: city.trim() || null,
+        slogans: slogan ? [slogan] : [],
+        publish_mode: publishMode,
+        colors: { primary: effectivePrimaryColor, secondary: effectiveSecondaryColor, tertiary: effectiveTertiaryColor, accent: effectivePrimaryColor },
+        rules: rulesPayload,
+        brand_voice_doc: [
+          `Negocio: ${name}. Sector: ${MACRO_GROUPS.find((g) => g.id === selectedGroup)?.label ?? sector}${customSectorLabel.trim() ? ` (${customSectorLabel.trim()})` : ''}.`,
+          `Estilo visual: ${visualStyle}. ${styleInstructions[visualStyle]}`,
+          `Tono de marca: ${tone}.`,
+          extraContext,
+          keywords.length > 0 ? `Palabras clave: ${keywords.join(', ')}.` : '',
+          `Objetivo principal: ${objective}.`,
+          location ? `Ubicación: ${location}.` : '',
+        ].filter(Boolean).join(' '),
+      };
+      // PATCH body in redo: drop fields the endpoint can't update as columns
+      // (content_categories, publish_frequency, promo_code_id) and plan.
+      const body = isRedo
+        ? baseBody
+        : {
+            ...baseBody,
+            publish_frequency: FREQUENCY_BY_PLAN[selectedPlan],
+            plan: selectedPlan,
+            promo_code_id: promoCodeId ?? undefined,
+            content_categories: contentCategories.filter((c) => c.active),
+          };
       const res = await fetch('/api/brands', {
         method: isRedo ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name, sector, secondary_sectors: secondarySectors,
-          visual_style: visualStyle, tone, hashtags: keywords,
-          location: location ? `${location}, ${country}` : country || null,
-          city: city.trim() || null,
-          slogans: slogan ? [slogan] : [],
-          publish_mode: publishMode,
-          publish_frequency: FREQUENCY_BY_PLAN[selectedPlan],
-          plan: selectedPlan,
-          colors: { primary: effectivePrimaryColor, secondary: effectiveSecondaryColor, tertiary: effectiveTertiaryColor, accent: effectivePrimaryColor },
-          promo_code_id: promoCodeId ?? undefined,
-          rules: { forbiddenWords: forbidden, noPublishDays: [], noEmojis: visualStyle === 'elegant' || visualStyle === 'dark', noAutoReplyNegative: false, forbiddenTopics: [] },
-          content_categories: contentCategories.filter((c) => c.active),
-          brand_voice_doc: [
-            `Negocio: ${name}. Sector: ${sector === 'otro' && customSectorLabel.trim() ? customSectorLabel.trim() : sector}.`,
-            `Estilo visual: ${visualStyle}. ${styleInstructions[visualStyle]}`,
-            `Tono de marca: ${tone}.`,
-            extraContext,
-            keywords.length > 0 ? `Palabras clave: ${keywords.join(', ')}.` : '',
-            `Objetivo principal: ${objective}.`,
-            location ? `Ubicación: ${location}.` : '',
-          ].filter(Boolean).join(' '),
-        }),
+        body: JSON.stringify(body),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? (isRedo ? 'Error al actualizar el negocio' : 'Error al crear el negocio'));
       toast.success(isRedo ? '¡Marca actualizada correctamente!' : '¡Negocio configurado correctamente!');
+      if (isRedo) {
+        toast('Recuerda: puedes afinar productos, FAQs y competidores cuando los editores estén disponibles en tu panel.', { duration: 6000 });
+      }
       router.push(isRedo ? '/brand' : '/dashboard');
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Error inesperado');
     } finally { setSaving(false); }
   }
 
-  const previewPosts    = sectorPostsFor(sector);
-  const previewCaptions = SECTOR_CAPTIONS[sector] ?? DEFAULT_CAPTIONS;
+  const previewPosts = sectorPostsFor(sector);
   const selectedStyle   = VISUAL_STYLES.find((s) => s.value === visualStyle)!;
   const effectivePrimaryColor = hasCustomPalette ? primaryColor : INITIAL_PRIMARY_COLOR;
   const effectiveSecondaryColor = hasCustomPalette ? secondaryColor : INITIAL_SECONDARY_COLOR;
@@ -904,19 +899,47 @@ export default function OnboardingPage() {
   // ─── Right column previews ─────────────────────────────────────────────────
 
   const rightStep1 = (
-    <div style={{ padding: '48px 40px', display: 'flex', flexDirection: 'column', gap: 20, height: '100%', overflow: 'hidden' }}>
-      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT }}>
-        Ejemplos de posibles publicaciones
+    <div style={{ padding: '48px 40px', height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+      <div style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '1.1rem', color: INK, letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 4 }}>
+        Estética visual
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, alignItems: 'start' }}>
-        {previewPosts.slice(0, 3).map((img, i) => (
-          <MockPost key={i} img={img} caption={previewCaptions[i] ?? DEFAULT_CAPTIONS[i]} index={i} />
-        ))}
+      <div style={{ fontFamily: FONT, fontSize: '0.75rem', color: MUTED, marginBottom: 20, lineHeight: 1.4 }}>
+        ¿Cómo quieres que se vea tu feed?
       </div>
-      <div style={{ marginTop: 'auto', padding: '20px', background: '#f3f4f6', border: '1px solid #e5e7eb' }}>
-        <div style={{ fontFamily: FONT, fontSize: '0.8rem', color: MUTED, lineHeight: 1.7 }}>
-          NeuroPost adapta el tono, los hashtags y el tipo de contenido según tu sector. Puedes añadir un sector secundario con clic derecho.
-        </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {VISUAL_STYLES.map((style) => {
+          const selected = visualStyle === style.value;
+          return (
+            <button
+              key={style.value}
+              type="button"
+              onClick={() => setVisualStyle(style.value)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px',
+                border: `2px solid ${selected ? INK : '#e5e7eb'}`,
+                background: selected ? INK : '#fff',
+                cursor: 'pointer', outline: 'none',
+                transition: 'border-color 0.15s, background 0.15s',
+              }}
+            >
+              {/* Palette swatches */}
+              <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+                {style.palette.map((c, i) => (
+                  <div key={i} style={{ width: 18, height: 40, background: c }} />
+                ))}
+              </div>
+              {/* Text */}
+              <div style={{ flex: 1, textAlign: 'left' }}>
+                <div style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '0.95rem', color: selected ? '#fff' : INK, letterSpacing: '0.03em', textTransform: 'uppercase' }}>
+                  {style.title}
+                </div>
+              </div>
+              {selected && (
+                <div style={{ width: 18, height: 18, border: '2px solid #fff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.6rem', color: '#fff', fontWeight: 900, flexShrink: 0 }}>✓</div>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -1193,8 +1216,8 @@ export default function OnboardingPage() {
   return (
     <div className="onboarding-page" style={{ position: 'fixed', inset: 0, display: 'flex', zIndex: 50, overflow: 'hidden' }}>
 
-      {/* ── Left column ── */}
-      <div style={{ width: '58%', background: BG_L, display: 'flex', flexDirection: 'column', padding: '44px 48px', overflowY: 'auto', flexShrink: 0 }}>
+      {/* ── Left column (full-width on steps 1-2) ── */}
+      <div style={{ width: step <= 2 ? '100%' : '58%', background: BG_L, display: 'flex', flexDirection: 'column', padding: step <= 2 ? '36px 56px' : '44px 48px', overflowY: 'auto', flexShrink: 0, transition: 'width 0.2s' }}>
 
         {/* Logo */}
         <Link href="/" style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '1.2rem', color: INK, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 36, flexShrink: 0, textDecoration: 'none', cursor: 'pointer' }}>
@@ -1202,7 +1225,7 @@ export default function OnboardingPage() {
         </Link>
 
         {/* Progress */}
-        <div style={{ marginBottom: 36, flexShrink: 0 }}>
+        <div style={{ marginBottom: 28, flexShrink: 0 }}>
           <div style={{ display: 'flex', gap: 2, marginBottom: 8 }}>
             {([1,2,3,4,5] as Step[]).map((s) => (
               <div key={s} style={{ flex: 1, height: 2, background: s <= step ? INK : '#e5e7eb', transition: 'background 0.3s' }} />
@@ -1214,127 +1237,193 @@ export default function OnboardingPage() {
         </div>
 
         {/* ── Step 1: Sector ── */}
-        {step === 1 && (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <SectionTitle>¿De qué trata tu negocio?</SectionTitle>
-            <StepSub>Elige tu sector principal. Clic derecho en otro sector para añadirlo como secundario.</StepSub>
-
-            <div style={{ marginBottom: 24 }}>
-              {SECTOR_GROUPS.map((group) => (
-                <div key={group.group} style={{ marginBottom: 20 }}>
-                  <div style={{ fontSize: '0.68rem', fontWeight: 700, color: MUTED, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: FONT, marginBottom: 10 }}>
-                    {group.group}
+        {step === 1 && (() => {
+          const filteredGroups = searchQuery.trim()
+            ? MACRO_GROUPS.filter((g) =>
+                g.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                g.sub.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                g.pills.some((p) => p.label.toLowerCase().includes(searchQuery.toLowerCase()))
+              )
+            : MACRO_GROUPS;
+          const activeGroup = MACRO_GROUPS.find((g) => g.id === selectedGroup);
+          return (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 20 }}>
+                <span style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '4rem', color: '#e2e2e4', letterSpacing: '-0.04em', lineHeight: 1, flexShrink: 0, marginTop: -2 }}>01</span>
+                <div>
+                  <div style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: 'clamp(1.5rem, 3vw, 1.9rem)', color: INK, textTransform: 'uppercase', lineHeight: 1.05 }}>
+                    ¿De qué trata tu negocio?
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
-                    {group.items.map((s) => {
-                      const isPrimary   = sector === s.value;
-                      const isSecondary = secondarySectors.includes(s.value);
-                      return (
-                        <button
-                          key={s.value}
-                          type="button"
-                          onClick={() => { if (isPrimary) return; if (isSecondary) { toggleSecondary(s.value); return; } setSector(s.value as SocialSector); setSecondarySectors([]); }}
-                          onContextMenu={(e) => { e.preventDefault(); toggleSecondary(s.value as SocialSector); }}
-                          style={{
-                            position: 'relative', aspectRatio: '4 / 3',
-                            overflow: 'hidden', border: `2px solid ${isPrimary ? ACCENT : isSecondary ? ACCENT : 'transparent'}`,
-                            cursor: 'pointer', padding: 0, background: 'transparent',
-                            outline: 'none', transition: 'border-color 0.2s, transform 0.15s',
-                            transform: isPrimary ? 'scale(1.02)' : 'scale(1)',
-                            boxShadow: isPrimary ? `0 0 0 4px rgba(15,118,110,0.15)` : 'none',
-                          }}
-                        >
-                          <img src={s.img} alt={s.label} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                          <div style={{ position: 'absolute', inset: 0, background: isPrimary ? 'rgba(15,118,110,0.25)' : 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.1) 60%)' }} />
-                          <div style={{ position: 'absolute', bottom: 6, left: 7, right: 7, fontFamily: FONT, fontWeight: 700, fontSize: '0.72rem', color: 'white', textAlign: 'left', lineHeight: 1.2 }}>
-                            {s.label}
-                          </div>
-                          {isPrimary && (
-                            <div style={{ position: 'absolute', top: 6, right: 6, width: 18, height: 18, borderRadius: '50%', background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'white', fontWeight: 900 }}>✓</div>
-                          )}
-                          {isSecondary && (
-                            <div style={{ position: 'absolute', top: 6, right: 6, width: 18, height: 18, borderRadius: '50%', background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'white', fontWeight: 900 }}>+</div>
-                          )}
-                        </button>
-                      );
-                    })}
+                  <div style={{ fontFamily: FONT, fontSize: 13, color: MUTED, marginTop: 6, lineHeight: 1.5 }}>
+                    Empieza por la categoría principal. En el siguiente paso afinarás el sector específico.
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
 
-            {/* Custom sector input — only when "otro" is selected */}
-            {sector === 'otro' && (
-              <div style={{ margin: '8px 0 4px', padding: '14px 16px', background: '#f0fdf4', border: '1px solid #0F766E' }}>
-                <label style={{ fontFamily: FONT, fontSize: '0.75rem', fontWeight: 700, color: ACCENT, textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 6 }}>
-                  ¿Qué tipo de negocio tienes?
-                </label>
+              {/* Search */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#fff', border: `1px solid ${BORDER}`, marginBottom: 14 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={MUTED} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input
                   type="text"
-                  placeholder="Ej: Museo de ciencias, Escuela de surf, Tienda de comics..."
-                  value={customSectorLabel}
-                  onChange={(e) => setCustomSectorLabel(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', border: '1px solid #d4d4d8', fontFamily: FONT, fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', background: '#fff' }}
-                  autoFocus
+                  placeholder="Busca tu sector (ej. clínica dental, barbería)"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ flex: 1, border: 'none', outline: 'none', fontFamily: FONT, fontSize: '0.88rem', color: INK, background: 'transparent' }}
                 />
-                <p style={{ fontFamily: FONT, fontSize: '0.7rem', color: MUTED, marginTop: 5 }}>
-                  El agente usará esto para adaptar el contenido a tu negocio específico.
-                </p>
               </div>
-            )}
 
-            <div style={{ position: 'sticky', bottom: 0, marginTop: 8, paddingTop: 16, paddingBottom: 4, background: `linear-gradient(to top, ${BG_L} 70%, transparent)` }}>
-              <BtnPrimary onClick={() => setStep(2)}>Siguiente →</BtnPrimary>
-            </div>
-          </div>
-        )}
-
-        {/* ── Step 2: Visual style ── */}
-        {step === 2 && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <SectionTitle>¿Cómo quieres que se vea?</SectionTitle>
-            <StepSub>Elige la estética visual de tu feed. Define la edición, colores y tipo de contenido.</StepSub>
-
-            <div style={{ flex: 1, overflowY: 'auto', marginBottom: 16, paddingRight: 4 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {VISUAL_STYLES.map((style) => {
-                  const selected = visualStyle === style.value;
-                  const cardImgs = getSectorStyleImages(sector, style.value);
+              {/* 3×2 group grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 14 }}>
+                {filteredGroups.map((group) => {
+                  const isSelected = selectedGroup === group.id;
+                  const ic = isSelected ? '#fff' : INK;
                   return (
-                    <button key={style.value} type="button" onClick={() => setVisualStyle(style.value)} style={{
-                      padding: 0, overflow: 'hidden',
-                      border: `2px solid ${selected ? ACCENT : '#e5e7eb'}`,
-                      cursor: 'pointer', background: 'transparent', outline: 'none',
-                      transition: 'border-color 0.2s, box-shadow 0.2s',
-                      boxShadow: selected ? `0 0 0 4px rgba(15,118,110,0.12)` : 'none',
-                      position: 'relative',
-                    }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
-                        {cardImgs.map((img, i) => (
-                          <img key={i} src={img} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block', background: '#f3f4f6' }} />
-                        ))}
+                    <button
+                      key={group.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedGroup(group.id);
+                        setSector(group.defaultSector);
+                        setSecondarySectors([]);
+                        setCustomSectorLabel('');
+                        setActivePillLabel('');
+                      }}
+                      style={{
+                        display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+                        padding: '20px 18px', textAlign: 'left', cursor: 'pointer', outline: 'none',
+                        border: `1px solid ${isSelected ? INK : '#e2e2e4'}`,
+                        background: isSelected ? INK : '#fff',
+                        transition: 'border-color 0.15s, background 0.15s',
+                        position: 'relative',
+                      }}
+                    >
+                      <div style={{ marginBottom: 14, color: ic }}>
+                        <GroupIcon id={group.id} color={ic} />
                       </div>
-                      <div style={{ background: '#ffffff', padding: '10px 12px', borderTop: '1px solid #e5e7eb' }}>
-                        <div style={{ fontFamily: FONT, fontWeight: 800, fontSize: '0.8rem', color: INK, marginBottom: 2 }}>
-                          {style.title}
-                        </div>
-                        <div style={{ fontFamily: FONT, fontSize: '0.65rem', color: MUTED }}>
-                          {style.tag}
-                        </div>
+                      <div style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '1rem', color: isSelected ? '#fff' : INK, textTransform: 'uppercase', letterSpacing: '0.01em', marginBottom: 6, lineHeight: 1.15 }}>
+                        {group.label}
                       </div>
-                      {selected && (
-                        <div style={{ position: 'absolute', top: 7, right: 7, width: 18, height: 18, borderRadius: '50%', background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', color: 'white', fontWeight: 900 }}>✓</div>
+                      <div style={{ fontFamily: FONT, fontSize: '0.72rem', color: isSelected ? 'rgba(255,255,255,0.55)' : MUTED, lineHeight: 1.55 }}>
+                        {group.sub}
+                      </div>
+                      {isSelected && (
+                        <div style={{ position: 'absolute', top: 10, right: 10, width: 16, height: 16, border: '1.5px solid rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.5rem', color: '#fff', fontWeight: 900 }}>✓</div>
                       )}
                     </button>
                   );
                 })}
               </div>
 
+              {/* Refinement pills */}
+              {activeGroup && (
+                <div style={{ padding: '14px 16px', background: '#fff', border: `1px solid ${BORDER}`, marginBottom: 14 }}>
+                  <div style={{ fontFamily: FONT, fontSize: '0.82rem', color: INK, marginBottom: 12 }}>
+                    Has elegido <strong>{activeGroup.label}</strong>. Afina el tipo exacto:
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {activeGroup.pills.map((pill) => {
+                      const isActive = activePillLabel === pill.label;
+                      return (
+                        <button
+                          key={pill.label}
+                          type="button"
+                          onClick={() => { setSector(pill.sector); setActivePillLabel(pill.label); setCustomSectorLabel(pill.label); }}
+                          style={{
+                            padding: '7px 14px',
+                            border: `1.5px solid ${isActive ? INK : BORDER}`,
+                            background: isActive ? INK : '#fff',
+                            color: isActive ? '#fff' : INK,
+                            fontFamily: FONT, fontWeight: 600, fontSize: '0.8rem',
+                            cursor: 'pointer', outline: 'none',
+                          }}
+                        >
+                          {pill.label}
+                        </button>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => { setSector('otro'); setActivePillLabel('__otro__'); setCustomSectorLabel(''); }}
+                      style={{
+                        padding: '7px 14px',
+                        border: `1.5px dashed ${activePillLabel === '__otro__' ? INK : BORDER}`,
+                        background: '#fff', color: MUTED,
+                        fontFamily: FONT, fontWeight: 600, fontSize: '0.8rem',
+                        cursor: 'pointer', outline: 'none',
+                      }}
+                    >
+                      + otro
+                    </button>
+                  </div>
+                  {activePillLabel === '__otro__' && (
+                    <input
+                      type="text"
+                      placeholder="Describe tu tipo de negocio..."
+                      value={customSectorLabel}
+                      onChange={(e) => setCustomSectorLabel(e.target.value)}
+                      style={{ width: '100%', marginTop: 12, padding: '7px 0', border: 'none', borderBottom: `1.5px solid ${BORDER}`, fontFamily: FONT, fontSize: '0.85rem', outline: 'none', boxSizing: 'border-box', background: 'transparent', color: INK }}
+                    />
+                  )}
+                </div>
+              )}
+
+              <div style={{ position: 'sticky', bottom: 0, paddingTop: 12, paddingBottom: 4, background: `linear-gradient(to top, ${BG_L} 70%, transparent)`, marginTop: 'auto' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <BtnPrimary onClick={() => setStep(2)}>Continuar →</BtnPrimary>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Step 2: Visual style ── */}
+        {step === 2 && (
+          <div>
+            <SectionTitle>¿Cómo quieres que se vea?</SectionTitle>
+            <StepSub>Elige la estética de tu feed. Podrás ajustarla más adelante.</StepSub>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>
+              {VISUAL_STYLES.map((style) => {
+                const selected = visualStyle === style.value;
+                const imgs = getStyleCollage(style.value, sector);
+                return (
+                  <button
+                    key={style.value}
+                    type="button"
+                    onClick={() => setVisualStyle(style.value)}
+                    style={{
+                      padding: 0, overflow: 'hidden', cursor: 'pointer', outline: 'none',
+                      border: `2px solid ${selected ? INK : '#e5e7eb'}`,
+                      background: 'transparent', position: 'relative',
+                      transition: 'border-color 0.15s',
+                    }}
+                  >
+                    {/* 2×2 collage */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                      {imgs.map((img, i) => (
+                        <img key={i} src={img} alt="" style={{ width: '100%', aspectRatio: '1/1', objectFit: 'cover', display: 'block', background: '#e5e7eb' }} />
+                      ))}
+                    </div>
+                    {/* Label bar */}
+                    <div style={{ padding: '9px 12px', background: selected ? INK : '#fff', borderTop: `1px solid ${selected ? INK : '#e5e7eb'}` }}>
+                      <div style={{ fontFamily: FONT_C, fontWeight: 900, fontSize: '0.85rem', color: selected ? '#fff' : INK, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                        {style.title}
+                      </div>
+                    </div>
+                    {selected && (
+                      <div style={{ position: 'absolute', top: 7, right: 7, width: 18, height: 18, border: '2px solid #fff', borderRadius: '50%', background: INK, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.55rem', color: '#fff', fontWeight: 900 }}>✓</div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
 
-            <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
-              <BtnBack onClick={() => setStep(1)} />
-              <BtnPrimary onClick={() => setStep(3)}>Siguiente →</BtnPrimary>
+            <div style={{ position: 'sticky', bottom: 0, paddingTop: 16, paddingBottom: 4, background: `linear-gradient(to top, ${BG_L} 70%, transparent)` }}>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <BtnBack onClick={() => setStep(1)} />
+                <BtnPrimary onClick={() => setStep(3)}>Siguiente →</BtnPrimary>
+              </div>
             </div>
           </div>
         )}
@@ -1504,11 +1593,13 @@ export default function OnboardingPage() {
                   <Label>
                     Categorías de contenido{' '}
                     <span style={{ opacity: 0.5, textTransform: 'none', fontWeight: 400 }}>
-                      (activa las que quieras publicar)
+                      {isRedo ? '(solo lectura — se editan desde /brand/material)' : '(activa las que quieras publicar)'}
                     </span>
                   </Label>
                   <p style={{ fontFamily: FONT, fontSize: 12, color: MUTED, marginBottom: 12, lineHeight: 1.5 }}>
-                    {contentCategories.length > 0
+                    {isRedo
+                      ? 'Vista previa de tus categorías guardadas. Para modificarlas, ve a /brand/material.'
+                      : contentCategories.length > 0
                       ? 'Estas son las categorías recomendadas para tu sector. Desactiva las que no te interesen.'
                       : 'Añade las categorías de contenido que quieras publicar.'}
                   </p>
@@ -1520,12 +1611,13 @@ export default function OnboardingPage() {
                         key={cat.category_key}
                         type="button"
                         onClick={() => toggleCategory(cat.category_key)}
+                        disabled={isRedo}
                         style={{
                           padding:     '7px 12px',
                           background:  cat.active ? ACCENT : '#ffffff',
                           color:       cat.active ? '#ffffff' : '#374151',
                           border:      `1.5px solid ${cat.active ? ACCENT : BORDER}`,
-                          cursor:      'pointer',
+                          cursor:      isRedo ? 'not-allowed' : 'pointer',
                           fontFamily:  FONT,
                           fontSize:    '0.78rem',
                           fontWeight:  700,
@@ -1533,7 +1625,7 @@ export default function OnboardingPage() {
                           display:     'inline-flex',
                           alignItems:  'center',
                           gap:         5,
-                          opacity:     cat.active ? 1 : 0.55,
+                          opacity:     isRedo ? (cat.active ? 0.75 : 0.4) : (cat.active ? 1 : 0.55),
                           transition:  'all 0.15s',
                         }}
                       >
@@ -1546,7 +1638,11 @@ export default function OnboardingPage() {
                         {cat.source === 'user' && (
                           <span
                             role="button"
-                            onClick={(e) => { e.stopPropagation(); setContentCategories((prev) => prev.filter((c) => c.category_key !== cat.category_key)); }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isRedo) return;
+                              setContentCategories((prev) => prev.filter((c) => c.category_key !== cat.category_key));
+                            }}
                             style={{ cursor: 'pointer', fontSize: 12, lineHeight: 1, color: cat.active ? 'rgba(255,255,255,0.7)' : MUTED }}
                             aria-label={`Eliminar ${cat.name}`}
                           >
@@ -1557,8 +1653,8 @@ export default function OnboardingPage() {
                     ))}
                   </div>
 
-                  {/* Free-text input + AI autocomplete */}
-                  <div style={{ position: 'relative' }}>
+                  {/* Free-text input + AI autocomplete — hidden in redo (read-only) */}
+                  {!isRedo && <div style={{ position: 'relative' }}>
                     <input
                       style={inputStyle}
                       type="text"
@@ -1614,7 +1710,7 @@ export default function OnboardingPage() {
                         ))}
                       </div>
                     )}
-                  </div>
+                  </div>}
                 </div>
 
                 {/* Country — native dropdown grouped by region */}
@@ -2033,10 +2129,12 @@ export default function OnboardingPage() {
         )}
       </div>
 
-      {/* ── Right column ── */}
-      <div style={{ flex: 1, background: BG_R, borderLeft: `1px solid ${BORDER}`, overflowY: 'auto' }}>
-        {rightContent}
-      </div>
+      {/* ── Right column (only steps 3-5) ── */}
+      {step > 2 && (
+        <div style={{ flex: 1, background: BG_R, borderLeft: `1px solid ${BORDER}`, overflowY: 'auto' }}>
+          {rightContent}
+        </div>
+      )}
 
       <style jsx>{`
         .brandColorPicker {

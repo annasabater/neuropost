@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import type { QuoteContentV2T } from '@/types';
-import { inputStyle, labelStyle } from './_v2/shared';
+import { inputStyle, selectStyle, labelStyle } from './_v2/shared';
 
 const SOURCE_OPTIONS: { value: QuoteContentV2T['source'] | ''; label: string }[] = [
   { value: '',            label: '— Sin origen —' },
@@ -69,7 +69,7 @@ export function QuoteFormV2({
             const next = e.target.value as QuoteContentV2T['source'] | '';
             set('source', next ? (next as QuoteContentV2T['source']) : undefined);
           }}
-          style={inputStyle}
+          style={selectStyle}
         >
           {SOURCE_OPTIONS.map(o => (
             <option key={o.value ?? ''} value={o.value ?? ''}>{o.label}</option>
