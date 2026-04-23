@@ -167,7 +167,13 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
       });
       planId = weeklyPlan.id;
 
-      await transitionWeeklyPlanStatus({ plan_id: planId, to: 'ideas_ready' });
+      // Only transition if still in 'generating' — on retry the plan may already
+      // be in 'ideas_ready' (prior attempt succeeded the transition but died
+      // during story generation). Transitioning again would throw an invalid
+      // state-machine error and cancel the job instead of resuming it.
+      if (weeklyPlan.status === 'generating') {
+        await transitionWeeklyPlanStatus({ plan_id: planId, to: 'ideas_ready' });
+      }
       void logAgentAction('strategy:plan_week', 'plan_created', 'weekly_plan',
         `Plan semanal iniciado — semana ${weekStart}`, { resource_id: planId, brand_id: job.brand_id });
 
