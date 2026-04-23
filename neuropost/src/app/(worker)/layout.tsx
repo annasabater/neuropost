@@ -119,7 +119,7 @@ export default function WorkerLayout({ children }: { children: React.ReactNode }
           pathname={pathname}
           onToggleSidebar={() => setSidebarOpen((value) => !value)}
         />
-        <WorkerTopTabs />
+        <WorkerTopTabs badge={validationBadge} />
         <main className="dash-main">{children}</main>
       </div>
 

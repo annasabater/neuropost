@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState }  from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 
 const VALID_PATHS = ['/worker', '/worker/validation', '/worker/metricas'];
@@ -25,29 +24,10 @@ const C = {
   bg1:    '#f5f5f5',
 };
 
-export function WorkerTopTabs() {
+export function WorkerTopTabs({ badge = 0 }: { badge?: number }) {
   const pathname = usePathname();
   const router   = useRouter();
-  const [badge,  setBadge]  = useState(0);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const res  = await fetch('/api/worker/validation-pending-counts');
-        if (!res.ok) return;
-        const data = await res.json() as { total?: number };
-        if (!cancelled) { setBadge(data.total ?? 0); setLoaded(true); }
-      } catch {
-        if (!cancelled) setLoaded(true);
-      }
-    }
-    void load();
-    // Refresh every 60 seconds
-    const interval = setInterval(() => { void load(); }, 60_000);
-    return () => { cancelled = true; clearInterval(interval); };
-  }, []);
+  const loaded   = true;
 
   if (!isOnValidPath(pathname)) return null;
 

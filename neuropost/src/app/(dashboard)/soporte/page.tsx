@@ -180,13 +180,8 @@ export default function SoportePage() {
   // ── Ticket list ──
   return (
     <div className="page-content" style={{ maxWidth: 900 }}>
-      <div style={{ padding: '48px 0 32px', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16 }}>
-        <div>
-          <h1 style={{ fontFamily: fc, fontWeight: 900, fontSize: 'clamp(2.5rem, 5vw, 3.5rem)', textTransform: 'uppercase', letterSpacing: '0.01em', color: '#111827', lineHeight: 0.95, marginBottom: 8 }}>
-            Soporte
-          </h1>
-          <p style={{ color: '#6b7280', fontSize: 15, fontFamily: f }}>Estamos aquí para ayudarte. Respuesta en menos de 2h</p>
-        </div>
+      <div style={{ padding: '32px 0 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+        <p style={{ color: '#6b7280', fontSize: 15, fontFamily: f }}>Estamos aquí para ayudarte. Respuesta en menos de 2h</p>
         <button onClick={() => setShowDrawer(true)} style={{
           background: '#111827', color: '#ffffff', border: 'none', padding: '10px 24px',
           fontFamily: fc, fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',

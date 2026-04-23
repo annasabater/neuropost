@@ -567,7 +567,6 @@ function InboxInner() {
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
             <div>
-              <h2 style={{ fontFamily: fc, fontWeight: 800, fontSize: 18, textTransform: 'uppercase', color: '#111827', marginBottom: 2 }}>Soporte</h2>
               {selectedTicket && (
                 <button onClick={() => setSelectedTicket(null)} style={{ background: 'none', border: 'none', fontFamily: f, fontSize: 12, color: '#0F766E', cursor: 'pointer', padding: 0 }}>
                   ← Volver a tickets

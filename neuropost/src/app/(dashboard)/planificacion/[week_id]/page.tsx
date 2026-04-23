@@ -14,21 +14,21 @@ type IdeaAction = 'approve' | 'edit' | 'request_variation' | 'reject';
 
 const IDEA_STATUS_META: Record<string, { label: string; color: string; bg: string; dot: string }> = {
   pending:                    { label: 'Pendiente',        color: '#374151', bg: '#f3f4f6', dot: '#9ca3af' },
-  client_approved:            { label: 'Aprobada',         color: '#065f46', bg: '#d1fae5', dot: '#10b981' },
-  client_edited:              { label: 'Editada',          color: '#1e40af', bg: '#eff6ff', dot: '#3b82f6' },
-  client_requested_variation: { label: 'Variación pedida', color: '#92400e', bg: '#fef3c7', dot: '#f59e0b' },
-  client_rejected:            { label: 'Rechazada',        color: '#991b1b', bg: '#fee2e2', dot: '#ef4444' },
-  regenerating:               { label: 'Regenerando…',     color: '#92400e', bg: '#fef3c7', dot: '#f59e0b' },
+  client_approved:            { label: 'Aprobada',         color: '#0d5c54', bg: '#f0fdfa', dot: '#0F766E' },
+  client_edited:              { label: 'Editada',          color: '#1e293b', bg: '#f8fafc', dot: '#475569' },
+  client_requested_variation: { label: 'Variación pedida', color: '#3730a3', bg: '#eef2ff', dot: '#4338ca' },
+  client_rejected:            { label: 'Rechazada',        color: '#9f1239', bg: '#fff1f2', dot: '#be123c' },
+  regenerating:               { label: 'Regenerando…',     color: '#3730a3', bg: '#eef2ff', dot: '#4338ca' },
   replaced_by_variation:      { label: 'Reemplazada',      color: '#6b7280', bg: '#f3f4f6', dot: '#9ca3af' },
 };
 
 const STORY_TYPE_META: Record<string, { label: string; color: string; bg: string }> = {
-  quote:    { label: 'Frase',     color: '#1e40af', bg: '#eff6ff' },
-  promo:    { label: 'Promo',     color: '#92400e', bg: '#fef3c7' },
-  schedule: { label: 'Horario',   color: '#065f46', bg: '#d1fae5' },
-  data:     { label: 'Dato',      color: '#5b21b6', bg: '#ede9fe' },
+  quote:    { label: 'Frase',     color: '#1e293b', bg: '#f8fafc' },
+  promo:    { label: 'Promo',     color: '#3730a3', bg: '#eef2ff' },
+  schedule: { label: 'Horario',   color: '#0d5c54', bg: '#f0fdfa' },
+  data:     { label: 'Dato',      color: '#4c1d95', bg: '#f5f3ff' },
   photo:    { label: 'Foto',      color: '#374151', bg: '#f3f4f6' },
-  custom:   { label: 'Libre',     color: '#0f766e', bg: '#ccfbf1' },
+  custom:   { label: 'Libre',     color: '#0F766E', bg: '#f0fdfa' },
 };
 
 export default function PlanReviewPage() {
@@ -43,6 +43,8 @@ export default function PlanReviewPage() {
   const [skipReason, setSkipReason] = useState('');
   const [skipping, setSkipping] = useState(false);
   const [actingOn, setActingOn] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft]   = useState('');
 
   // Modals for request_variation and reject actions.
   const [variationModal, setVariationModal] = useState<{ ideaId: string; angle: string } | null>(null);
@@ -51,7 +53,6 @@ export default function PlanReviewPage() {
   const [confirmEmpty, setConfirmEmpty]     = useState(false);
   const commentTextareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const debounceRefs = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
 
   const closeVariationModal = useCallback(() => {
     setVariationModal(null);
@@ -133,12 +134,6 @@ export default function PlanReviewPage() {
     setIdeas((prev) => prev.map((i) => i.id === ideaId ? (data.idea ?? i) : i));
   }
 
-  function scheduleEditSave(ideaId: string, copy: string) {
-    clearTimeout(debounceRefs.current[ideaId]);
-    debounceRefs.current[ideaId] = setTimeout(() => {
-      void doIdeaAction(ideaId, 'edit', { client_edited_copy: copy });
-    }, 1200);
-  }
 
   async function handleConfirm() {
     setConfirming(true);
@@ -226,37 +221,18 @@ export default function PlanReviewPage() {
               Semana del {formatWeek(plan.week_start)}
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: 13, margin: 0 }}>
-              Revisa cada propuesta y dinos qué te cuadra. Cuando acabes, confirma el plan.
+              Aprueba, ajusta o pide cambios en cada idea. Cuando estés listo, confirma el plan.
             </p>
           </div>
           {/* Progress badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: allReviewed ? '#d1fae5' : 'var(--bg-1)', border: `1px solid ${allReviewed ? '#6ee7b7' : 'var(--border)'}`, flexShrink: 0 }}>
-            <span style={{ fontFamily: fc, fontWeight: 900, fontSize: 32, lineHeight: 1, color: allReviewed ? '#065f46' : 'var(--text-primary)' }}>
-              {reviewed}<span style={{ fontSize: 18, color: 'var(--text-secondary)', fontWeight: 700 }}>/{ideas.length}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', background: allReviewed ? '#f0fdfa' : 'var(--bg-1)', border: `1px solid ${allReviewed ? '#0F766E' : 'var(--border)'}`, flexShrink: 0 }}>
+            <span style={{ fontFamily: fc, fontWeight: 900, fontSize: 32, lineHeight: 1, color: allReviewed ? '#0F766E' : 'var(--text-primary)' }}>
+              {reviewed}<span style={{ fontSize: 18, color: 'var(--text-secondary)', fontWeight: 700 }}>/{postIdeas.length}</span>
             </span>
             <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.3, maxWidth: 80 }}>
-              {allReviewed ? '✓ Todo revisado' : 'ideas revisadas'}
+              {allReviewed ? '✓ Todo revisado' : 'posts revisados'}
             </span>
           </div>
-        </div>
-
-        {/* Big progress badge */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '10px 20px',
-          background: allReviewed ? '#d1fae5' : 'var(--bg-1)',
-          border: `1px solid ${allReviewed ? '#6ee7b7' : 'var(--border)'}`,
-          flexShrink: 0,
-        }}>
-          <span style={{
-            fontFamily: fc, fontWeight: 900, fontSize: 32, lineHeight: 1,
-            color: allReviewed ? '#065f46' : 'var(--text-primary)',
-          }}>
-            {reviewed}<span style={{ fontSize: 18, color: 'var(--text-secondary)', fontWeight: 700 }}>/{postIdeas.length}</span>
-          </span>
-          <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.3, maxWidth: 80 }}>
-            {allReviewed ? '✓ Todo revisado' : 'posts revisados'}
-          </span>
         </div>
       </div>
 
@@ -277,7 +253,7 @@ export default function PlanReviewPage() {
             }}>
               {/* Number strip */}
               <div style={{
-                background: isDone ? meta.bg : 'var(--bg-1)',
+                background: 'var(--bg-1)',
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'flex-start',
                 paddingTop: 20,
@@ -337,27 +313,15 @@ export default function PlanReviewPage() {
                   />
                 )}
 
-                {/* Copy draft */}
-                <label style={fieldLabel}>Texto propuesto</label>
-                <textarea
-                  defaultValue={idea.client_edited_copy ?? idea.copy_draft ?? ''}
-                  onChange={(e) => {
-                    setIdeas((prev) => prev.map((i) => i.id === idea.id ? { ...i, client_edited_copy: e.target.value } : i));
-                    scheduleEditSave(idea.id, e.target.value);
-                  }}
-                  rows={4}
-                  style={textareaStyle}
-                  placeholder="Sin copy aún"
-                />
 
                 {/* Action bar — or regenerating placeholder */}
                 {idea.status === 'regenerating' ? (
                   <div style={{
                     marginTop:   12,
                     padding:     '20px 16px',
-                    background:  '#fef3c7',
-                    border:      '1px dashed #f59e0b',
-                    color:       '#92400e',
+                    background:  '#eef2ff',
+                    border:      '1px dashed #818cf8',
+                    color:       '#3730a3',
                     fontSize:    13,
                     fontFamily:  f,
                     textAlign:   'center',
@@ -370,49 +334,118 @@ export default function PlanReviewPage() {
                     <span>Estamos generando una nueva versión, te avisaremos cuando esté lista.</span>
                   </div>
                 ) : (
-                  <div style={{
-                    display: 'flex', gap: 1, marginTop: 12,
-                    background: 'var(--border)',
-                    border: '1px solid var(--border)',
-                  }}>
-                    {([
-                      { act: 'approve'           as IdeaAction, label: '✓ Aprobar',           color: '#10b981', active: idea.status === 'client_approved' },
-                      { act: 'edit'              as IdeaAction, label: '✎ Guardar edición',    color: '#3b82f6', active: idea.status === 'client_edited' },
-                      { act: 'request_variation' as IdeaAction, label: '↺ Otra versión',       color: '#f59e0b', active: idea.status === 'client_requested_variation' },
-                      { act: 'reject'            as IdeaAction, label: '✕ Rechazar',           color: '#ef4444', active: idea.status === 'client_rejected' },
-                    ]).map(({ act, label, color, active }) => (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14 }}>
+                      {/* Primary: Aprobar */}
                       <button
-                        key={act}
                         type="button"
-                        onClick={() => {
-                          if (act === 'edit') {
-                            void doIdeaAction(idea.id, 'edit', { client_edited_copy: idea.client_edited_copy ?? undefined });
-                          } else if (act === 'request_variation') {
-                            setCommentDraft('');
-                            setConfirmEmpty(false);
-                            setVariationModal({ ideaId: idea.id, angle: idea.angle });
-                          } else if (act === 'reject') {
-                            setRejectModal({ ideaId: idea.id, angle: idea.angle });
-                          } else {
-                            void doIdeaAction(idea.id, act);
-                          }
-                        }}
-                        disabled={isActing || active}
+                        onClick={() => void doIdeaAction(idea.id, 'approve')}
+                        disabled={isActing || idea.status === 'client_approved'}
                         style={{
-                          flex: 1, padding: '10px 6px',
-                          background: active ? color : 'var(--bg)',
-                          color: active ? '#fff' : color,
-                          border: 'none', cursor: active ? 'default' : 'pointer',
-                          fontSize: 11, fontWeight: 700,
-                          fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.03em',
-                          opacity: isActing && !active ? 0.5 : 1,
-                          transition: 'background 0.1s',
+                          padding: '8px 18px',
+                          background: idea.status === 'client_approved' ? '#0F766E' : 'transparent',
+                          color: idea.status === 'client_approved' ? '#fff' : '#0F766E',
+                          border: '1px solid #0F766E',
+                          cursor: idea.status === 'client_approved' ? 'default' : 'pointer',
+                          fontSize: 12, fontWeight: 700,
+                          fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.04em',
+                          opacity: isActing && idea.status !== 'client_approved' ? 0.5 : 1,
+                          transition: 'background 0.1s, color 0.1s',
+                          flexShrink: 0,
                         }}
                       >
-                        {label}
+                        ✓ Aprobar
                       </button>
-                    ))}
-                  </div>
+                      {/* Secondary actions */}
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        {/* Modificar */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (editingId === idea.id) { setEditingId(null); }
+                            else { setEditDraft(idea.client_edited_copy ?? idea.copy_draft ?? ''); setEditingId(idea.id); }
+                          }}
+                          disabled={isActing}
+                          style={{
+                            padding: '6px 12px',
+                            background: editingId === idea.id ? '#1E293B' : 'transparent',
+                            color: editingId === idea.id ? '#fff' : '#1E293B',
+                            border: '1px solid #cbd5e1',
+                            cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                            fontFamily: f, opacity: isActing ? 0.5 : 1,
+                          }}
+                        >
+                          ✎ Modificar
+                        </button>
+                        {/* Otra versión */}
+                        <button
+                          type="button"
+                          onClick={() => { setCommentDraft(''); setConfirmEmpty(false); setVariationModal({ ideaId: idea.id, angle: idea.angle }); }}
+                          disabled={isActing || idea.status === 'client_requested_variation'}
+                          style={{
+                            padding: '6px 12px',
+                            background: idea.status === 'client_requested_variation' ? '#4338CA' : 'transparent',
+                            color: idea.status === 'client_requested_variation' ? '#fff' : '#4338CA',
+                            border: '1px solid #c7d2fe',
+                            cursor: idea.status === 'client_requested_variation' ? 'default' : 'pointer',
+                            fontSize: 11, fontWeight: 600,
+                            fontFamily: f, opacity: isActing && idea.status !== 'client_requested_variation' ? 0.5 : 1,
+                          }}
+                        >
+                          ↺ Otra versión
+                        </button>
+                        {/* Rechazar */}
+                        <button
+                          type="button"
+                          onClick={() => setRejectModal({ ideaId: idea.id, angle: idea.angle })}
+                          disabled={isActing || idea.status === 'client_rejected'}
+                          style={{
+                            padding: '6px 12px',
+                            background: idea.status === 'client_rejected' ? '#BE123C' : 'transparent',
+                            color: idea.status === 'client_rejected' ? '#fff' : '#BE123C',
+                            border: '1px solid #fecdd3',
+                            cursor: idea.status === 'client_rejected' ? 'default' : 'pointer',
+                            fontSize: 11, fontWeight: 600,
+                            fontFamily: f, opacity: isActing && idea.status !== 'client_rejected' ? 0.5 : 1,
+                          }}
+                        >
+                          ✕ Rechazar
+                        </button>
+                      </div>
+                    </div>
+                    {editingId === idea.id && (
+                      <div style={{ border: '1px solid var(--border)', borderTop: 'none', padding: '14px 16px', background: 'var(--bg-1)' }}>
+                        <label style={fieldLabel}>Texto propuesto</label>
+                        <textarea
+                          value={editDraft}
+                          onChange={(e) => setEditDraft(e.target.value)}
+                          rows={4}
+                          style={textareaStyle}
+                          placeholder="Sin copy aún"
+                          autoFocus
+                        />
+                        <div style={{ display: 'flex', gap: 8, marginTop: 10, justifyContent: 'flex-end' }}>
+                          <button
+                            type="button"
+                            onClick={() => setEditingId(null)}
+                            style={cancelBtn}
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isActing}
+                            onClick={() => {
+                              void doIdeaAction(idea.id, 'edit', { client_edited_copy: editDraft }).then(() => setEditingId(null));
+                            }}
+                            style={primaryBtn}
+                          >
+                            Guardar cambios
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -422,7 +455,7 @@ export default function PlanReviewPage() {
 
       {/* Stories section */}
       {storyIdeas.length > 0 && (
-        <div style={{ marginBottom: 100 }}>
+        <div style={{ marginBottom: 100, padding: '32px 28px 0' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
             <h2 style={{
               fontFamily: fc, fontWeight: 900, fontSize: 20,
@@ -476,7 +509,7 @@ export default function PlanReviewPage() {
                     ) : hasError ? (
                       <div style={{
                         padding: 8, textAlign: 'center',
-                        fontSize: 11, color: '#ef4444', fontFamily: f, lineHeight: 1.3,
+                        fontSize: 11, color: '#be123c', fontFamily: f, lineHeight: 1.3,
                       }}>
                         Error al renderizar
                       </div>
@@ -527,9 +560,6 @@ export default function PlanReviewPage() {
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         zIndex: 10,
       }}>
-        <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontFamily: f }}>
-          <strong style={{ color: 'var(--text-primary)' }}>{reviewed}</strong> de {ideas.length} revisadas
-        </span>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <button type="button" onClick={() => setShowSkipModal(true)} style={skipLink}>
             No quiero contenido esta semana
@@ -778,7 +808,7 @@ const modalBox: React.CSSProperties = {
 };
 const dangerBtn: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 6,
-  padding: '10px 18px', background: '#ef4444', color: '#fff',
+  padding: '10px 18px', background: '#be123c', color: '#fff',
   border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: f,
 };
 const cancelBtn: React.CSSProperties = {
@@ -791,7 +821,7 @@ const primaryBtn: React.CSSProperties = {
   fontFamily: fc, textTransform: 'uppercase', letterSpacing: '0.04em',
 };
 const dangerOutlineBtn: React.CSSProperties = {
-  padding: '10px 18px', background: 'transparent', color: '#ef4444',
-  border: '1px solid #ef4444', cursor: 'pointer', fontSize: 13,
+  padding: '10px 18px', background: 'transparent', color: '#be123c',
+  border: '1px solid #be123c', cursor: 'pointer', fontSize: 13,
   fontWeight: 700, fontFamily: f,
 };

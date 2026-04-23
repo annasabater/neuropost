@@ -62,7 +62,7 @@ export default function ValidationPage() {
       } catch { /* silent */ }
     }
     void loadCounts();
-    const iv = setInterval(() => { void loadCounts(); }, 30_000);
+    const iv = setInterval(() => { void loadCounts(); }, 60_000);
     return () => { cancelled = true; clearInterval(iv); };
   }, []);
 

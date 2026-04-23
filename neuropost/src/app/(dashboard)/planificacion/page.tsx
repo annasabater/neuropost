@@ -17,18 +17,18 @@ interface PlanRow {
 }
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string; dot: string }> = {
-  generating:                { label: 'Generando',        color: '#92400e', bg: '#fef3c7', dot: '#f59e0b' },
-  ideas_ready:               { label: 'Listo (worker)',   color: '#92400e', bg: '#fef3c7', dot: '#f59e0b' },
-  sent_to_client:            { label: 'Enviado',          color: '#1e40af', bg: '#eff6ff', dot: '#3b82f6' },
-  client_reviewing:          { label: 'Para revisar',     color: '#065f46', bg: '#d1fae5', dot: '#10b981' },
-  client_approved:           { label: 'Aprobado',         color: '#065f46', bg: '#d1fae5', dot: '#10b981' },
-  client_requested_variation:{ label: 'Con cambios',      color: '#92400e', bg: '#fef3c7', dot: '#f59e0b' },
-  producing:                 { label: 'En producción',    color: '#4c1d95', bg: '#ede9fe', dot: '#8b5cf6' },
-  calendar_ready:            { label: 'Calendario listo', color: '#065f46', bg: '#d1fae5', dot: '#10b981' },
+  generating:                { label: 'Generando',        color: '#3730a3', bg: '#eef2ff', dot: '#4338ca' },
+  ideas_ready:               { label: 'Listo (worker)',   color: '#3730a3', bg: '#eef2ff', dot: '#4338ca' },
+  sent_to_client:            { label: 'Enviado',          color: '#1e293b', bg: '#f8fafc', dot: '#475569' },
+  client_reviewing:          { label: 'Para revisar',     color: '#0d5c54', bg: '#f0fdfa', dot: '#0F766E' },
+  client_approved:           { label: 'Aprobado',         color: '#0d5c54', bg: '#f0fdfa', dot: '#0F766E' },
+  client_requested_variation:{ label: 'Con cambios',      color: '#3730a3', bg: '#eef2ff', dot: '#4338ca' },
+  producing:                 { label: 'En producción',    color: '#4c1d95', bg: '#f5f3ff', dot: '#7c3aed' },
+  calendar_ready:            { label: 'Calendario listo', color: '#0d5c54', bg: '#f0fdfa', dot: '#0F766E' },
   completed:                 { label: 'Completado',       color: '#374151', bg: '#f3f4f6', dot: '#9ca3af' },
   auto_approved:             { label: 'Auto-aprobado',    color: '#374151', bg: '#f3f4f6', dot: '#9ca3af' },
-  skipped_by_client:         { label: 'Saltada',          color: '#991b1b', bg: '#fee2e2', dot: '#ef4444' },
-  expired:                   { label: 'Expirado',         color: '#991b1b', bg: '#fee2e2', dot: '#ef4444' },
+  skipped_by_client:         { label: 'Saltada',          color: '#374151', bg: '#f3f4f6', dot: '#9ca3af' },
+  expired:                   { label: 'Expirado',         color: '#9f1239', bg: '#fff1f2', dot: '#be123c' },
 };
 
 type FilterTab = 'all' | 'reviewing' | 'active' | 'historic';
@@ -47,17 +47,21 @@ function getFilter(status: string): FilterTab {
 const MONTHS_SHORT = ['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'];
 
 function getWeekRange(weekStart: string) {
-  // +7: week_start is the planning week; show the content week (following week)
+  // plan* = planning week (week_start itself, when the plan is reviewed)
+  // content week = plan week + 7 days (when posts get published)
+  const plan  = new Date(weekStart + 'T00:00:00Z');
   const start = new Date(weekStart + 'T00:00:00Z');
   start.setUTCDate(start.getUTCDate() + 7);
   const end   = new Date(start);
   end.setUTCDate(end.getUTCDate() + 6);
   return {
-    day:      start.getUTCDate(),
-    month:    MONTHS_SHORT[start.getUTCMonth()],
-    endDay:   end.getUTCDate(),
-    endMonth: MONTHS_SHORT[end.getUTCMonth()],
-    year:     start.getUTCFullYear(),
+    planDay:   plan.getUTCDate(),
+    planMonth: MONTHS_SHORT[plan.getUTCMonth()],
+    year:      plan.getUTCFullYear(),
+    day:       start.getUTCDate(),
+    month:     MONTHS_SHORT[start.getUTCMonth()],
+    endDay:    end.getUTCDate(),
+    endMonth:  MONTHS_SHORT[end.getUTCMonth()],
   };
 }
 
@@ -131,9 +135,9 @@ export default function PlanificacionPage() {
             </h1>
           </div>
           {counts.reviewing > 0 && (
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 16px', background: '#d1fae5', border: '1px solid #6ee7b7', flexShrink: 0 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
-              <span style={{ fontFamily: fc, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#065f46' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 16px', background: '#f0fdfa', border: '1px solid #0F766E', flexShrink: 0 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#0F766E', flexShrink: 0 }} />
+              <span style={{ fontFamily: fc, fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#0d5c54' }}>
                 {counts.reviewing === 1 ? '1 plan pendiente de revisión' : `${counts.reviewing} planes pendientes de revisión`}
               </span>
             </div>
@@ -239,20 +243,23 @@ export default function PlanificacionPage() {
               >
                 <div style={{
                   width: 76, flexShrink: 0,
-                  background: isReviewable ? '#f0fdf9' : 'var(--bg-1)',
+                  background: isReviewable ? '#f0fdfa' : 'var(--bg-1)',
                   borderRight: '1px solid var(--border)',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                   padding: '16px 8px', gap: 1,
                 }}>
                   <span style={{ fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: isReviewable ? 'var(--accent)' : 'var(--text-tertiary)' }}>
-                    {range.month}
+                    {range.planMonth}
                   </span>
                   <span style={{ fontFamily: fc, fontWeight: 900, fontSize: 34, lineHeight: 1, color: isReviewable ? 'var(--accent)' : isHistoric ? 'var(--text-tertiary)' : 'var(--text-primary)' }}>
-                    {range.day}
+                    {range.planDay}
                   </span>
                   <span style={{ fontFamily: f, fontSize: 9, color: 'var(--text-tertiary)', lineHeight: 1 }}>{range.year}</span>
                 </div>
-                <div style={{ flex: 1, padding: '14px 20px', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 5 }}>
+                <div style={{ flex: 1, padding: '14px 20px', minWidth: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 4 }}>
+                  <div style={{ fontFamily: f, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.12em', color: 'var(--text-tertiary)', marginBottom: 1 }}>
+                    Contenido para →
+                  </div>
                   <div style={{ fontFamily: fc, fontWeight: 800, fontSize: 17, textTransform: 'uppercase', letterSpacing: '0.03em', color: isHistoric ? 'var(--text-secondary)' : 'var(--text-primary)' }}>
                     Semana del {formatWeekLabel(plan.week_start)}
                   </div>
