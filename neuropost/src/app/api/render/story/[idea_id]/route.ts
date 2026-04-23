@@ -93,9 +93,18 @@ async function generateImageSync(prompt: string): Promise<string> {
 // ─── Route handler ────────────────────────────────────────────────────────────
 
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ idea_id: string }> },
 ) {
+  // Soft auth: enforced only when INTERNAL_RENDER_TOKEN is configured
+  const renderToken = process.env.INTERNAL_RENDER_TOKEN;
+  if (renderToken) {
+    const authHeader = req.headers.get('authorization');
+    if (authHeader !== `Bearer ${renderToken}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  }
+
   const { idea_id } = await params;
   const db = createAdminClient() as DB;
 

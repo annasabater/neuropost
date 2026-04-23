@@ -42,6 +42,7 @@ import type { AgentJob, HandlerResult, HandlerSubJob }  from '../types';
 import type { ContentIdea, PostFormat }                 from './types';
 import type { PlanKey }                                 from '@/lib/plan-limits';
 import type { BrandMaterial }                           from '@/types';
+import { normalizeMaterial }                            from '@/lib/brand-material/normalize';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -171,7 +172,7 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
 
       const { data: material } = await db
         .from('brand_material')
-        .select('*')
+        .select('id, brand_id, category, content, active, valid_until, active_from, active_to, priority, platforms, tags, display_order, created_at, updated_at')
         .eq('brand_id', job.brand_id)
         .eq('active', true);
 
@@ -204,7 +205,7 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
         brand_id:                  job.brand_id,
         week_id:                   planId,
         brand,
-        brand_material:            (material ?? []) as BrandMaterial[],
+        brand_material:            (material ?? []).map((m: BrandMaterial) => normalizeMaterial(m)),
         stories_per_week:          planQuota?.stories_per_week ?? 3,
         stories_templates_enabled: templatesEnabled,
         startPosition:             parsedIdeas.length,
@@ -231,11 +232,15 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
             .in('id', (insertedStories as { id: string }[]).map(s => s.id));
 
           // Fire-and-forget — render endpoint owns the render_status lifecycle
-          const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+          const baseUrl     = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+          const renderToken = process.env.INTERNAL_RENDER_TOKEN;
           const renderFetches = (insertedStories as { id: string }[]).map(s =>
             fetch(`${baseUrl}/api/render/story/${s.id}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              method:  'POST',
+              headers: {
+                'Content-Type':  'application/json',
+                ...(renderToken ? { 'Authorization': `Bearer ${renderToken}` } : {}),
+              },
             }).catch(e => log({ level: 'warn', scope: 'plan-week', event: 'render_trigger_failed',
                                 idea_id: s.id, error: String(e) })),
           );
