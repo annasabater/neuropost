@@ -7,8 +7,9 @@
 // and emails the client.
 
 import { createAdminClient }          from '@/lib/supabase';
-import { transitionWeeklyPlanStatus } from '@/lib/planning/weekly-plan-service';
+import { transitionWeeklyPlanStatus, ConcurrentPlanModificationError } from '@/lib/planning/weekly-plan-service';
 import { enqueueCalendarReadyEmail }  from '@/lib/planning/trigger-calendar-email';
+import { log }                        from '@/lib/logger';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -77,6 +78,11 @@ export async function onProposalApproved(params: {
     await transitionWeeklyPlanStatus({ plan_id: idea.week_id as string, to: 'calendar_ready' });
     console.log('[proposal-hook] Plan transitado a calendar_ready:', idea.week_id);
   } catch (err) {
+    if (err instanceof ConcurrentPlanModificationError) {
+      log({ level: 'error', scope: 'proposal-hook', event: 'concurrent_modification',
+            plan_id: err.planId, expected: err.expected, actual: err.actual });
+      return;
+    }
     console.error('[proposal-hook] Error en transición:', err);
     return;
   }

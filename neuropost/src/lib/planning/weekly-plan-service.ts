@@ -16,6 +16,28 @@ import type { WeeklyPlan, WeeklyPlanStatus, ContentIdea } from '@/types';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
 
+// ─── Errors ───────────────────────────────────────────────────────────────────
+
+/**
+ * Thrown by transitionWeeklyPlanStatus when another concurrent process changed
+ * the plan's status between our SELECT and our UPDATE. The atomic UPDATE with
+ * `WHERE status=$expected` returns 0 rows, which we detect and surface so
+ * callers can decide whether to retry, return 409, or log-and-continue.
+ */
+export class ConcurrentPlanModificationError extends Error {
+  constructor(
+    public readonly planId:   string,
+    public readonly expected: string,
+    public readonly actual:   string,
+  ) {
+    super(
+      `Plan ${planId}: concurrent modification detected. ` +
+      `Expected status '${expected}', found '${actual}'`,
+    );
+    this.name = 'ConcurrentPlanModificationError';
+  }
+}
+
 // ─── Status machine ───────────────────────────────────────────────────────────
 
 const VALID_TRANSITIONS: Partial<Record<WeeklyPlanStatus, WeeklyPlanStatus[]>> = {
@@ -201,15 +223,35 @@ export async function transitionWeeklyPlanStatus(params: {
   if (params.to === 'client_approved')   extra.client_approved_at   = new Date().toISOString();
   if (params.to === 'auto_approved')     { extra.auto_approved = true; extra.auto_approved_at = new Date().toISOString(); }
 
+  // P20: atomic transition — WHERE status=$expected so a concurrent modification
+  // leaves 0 rows affected. .maybeSingle() returns data=null rather than throwing
+  // so we can distinguish "no row matched" from "real DB error".
   const { data: updated, error: updateErr } = await db
     .from('weekly_plans')
     .update({ status: params.to, ...extra })
     .eq('id', params.plan_id)
+    .eq('status', current.status as string)
     .select()
-    .single();
+    .maybeSingle();
 
-  if (updateErr || !updated) {
-    throw new Error(`[weekly-plan-service] Status transition failed: ${updateErr?.message}`);
+  if (updateErr) {
+    throw new Error(`[weekly-plan-service] Status transition failed: ${updateErr.message}`);
+  }
+
+  if (!updated) {
+    // 0 rows matched → status changed between our SELECT and UPDATE.
+    // Re-read the real current status to give the caller useful context.
+    const { data: latest } = await db
+      .from('weekly_plans')
+      .select('status')
+      .eq('id', params.plan_id)
+      .maybeSingle();
+    const actualStatus = (latest?.status as string | undefined) ?? 'unknown';
+    throw new ConcurrentPlanModificationError(
+      params.plan_id,
+      current.status as string,
+      actualStatus,
+    );
   }
 
   if (params.reason) {

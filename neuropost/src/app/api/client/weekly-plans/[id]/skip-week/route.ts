@@ -1,8 +1,9 @@
 import { NextResponse }              from 'next/server';
 import { requireServerUser }         from '@/lib/supabase';
 import { createAdminClient }         from '@/lib/supabase';
-import { transitionWeeklyPlanStatus } from '@/lib/planning/weekly-plan-service';
+import { transitionWeeklyPlanStatus, ConcurrentPlanModificationError } from '@/lib/planning/weekly-plan-service';
 import { apiError }                  from '@/lib/api-utils';
+import { log }                       from '@/lib/logger';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -32,6 +33,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     return NextResponse.json({ ok: true, plan: updated });
   } catch (err) {
+    if (err instanceof ConcurrentPlanModificationError) {
+      log({ level: 'warn', scope: 'client/skip-week', event: 'concurrent_modification',
+            plan_id: err.planId, expected: err.expected, actual: err.actual });
+      return NextResponse.json(
+        { error: 'Este plan ya fue modificado por otro proceso. Recarga la página e inténtalo de nuevo.' },
+        { status: 409 },
+      );
+    }
     return apiError(err, 'POST /api/client/weekly-plans/[id]/skip-week');
   }
 }

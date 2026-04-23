@@ -1,7 +1,7 @@
 import { NextResponse }                        from 'next/server';
 import { requireWorker }                       from '@/lib/worker';
 import { createAdminClient }                   from '@/lib/supabase';
-import { transitionWeeklyPlanStatus }          from '@/lib/planning/weekly-plan-service';
+import { transitionWeeklyPlanStatus, ConcurrentPlanModificationError } from '@/lib/planning/weekly-plan-service';
 import { enqueueClientPlanRejectedEmail }      from '@/lib/planning/trigger-client-email';
 import { apiError }                            from '@/lib/api-utils';
 import { log }                                 from '@/lib/logger';
@@ -42,6 +42,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
     return NextResponse.json({ ok: true, plan });
   } catch (err) {
+    if (err instanceof ConcurrentPlanModificationError) {
+      log({ level: 'warn', scope: 'worker/reject', event: 'concurrent_modification',
+            plan_id: err.planId, expected: err.expected, actual: err.actual });
+      return NextResponse.json(
+        { error: 'Este plan ya fue modificado por otro proceso. Recarga la página e inténtalo de nuevo.' },
+        { status: 409 },
+      );
+    }
     const msg = err instanceof Error ? err.message : String(err);
     if (msg === 'FORBIDDEN') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     return apiError(err, 'POST /api/worker/weekly-plans/[id]/reject');

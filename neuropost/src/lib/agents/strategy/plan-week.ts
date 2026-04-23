@@ -30,7 +30,7 @@
 import { generateIdeasForBrand }                        from './generate-ideas';
 import { loadBrand }                                    from '../helpers';
 import { parseIdeasFromStrategyPayload, extractWeekStart } from '@/lib/planning/parse-ideas';
-import { createWeeklyPlanFromOutput, transitionWeeklyPlanStatus } from '@/lib/planning/weekly-plan-service';
+import { createWeeklyPlanFromOutput, transitionWeeklyPlanStatus, ConcurrentPlanModificationError } from '@/lib/planning/weekly-plan-service';
 import { enqueueClientReviewEmail }                     from '@/lib/planning/trigger-client-email';
 import { log }                                          from '@/lib/logger';
 import { createAdminClient }                            from '@/lib/supabase';
@@ -306,6 +306,11 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
         }
       }
     } catch (err) {
+      if (err instanceof ConcurrentPlanModificationError) {
+        log({ level: 'warn', scope: 'plan-week', event: 'concurrent_modification',
+              plan_id: err.planId, expected: err.expected, actual: err.actual });
+        return { type: 'fail', error: 'concurrent_modification_during_plan_generation' };
+      }
       const msg = err instanceof Error ? err.message : String(err);
       return { type: 'fail', error: `[plan-week] weekly_plan persistence failed: ${msg}` };
     }

@@ -1,9 +1,10 @@
 import { NextResponse }              from 'next/server';
 import { requireServerUser }         from '@/lib/supabase';
 import { createAdminClient }         from '@/lib/supabase';
-import { transitionWeeklyPlanStatus } from '@/lib/planning/weekly-plan-service';
+import { transitionWeeklyPlanStatus, ConcurrentPlanModificationError } from '@/lib/planning/weekly-plan-service';
 import { queueJob }                  from '@/lib/agents/queue';
 import { apiError }                  from '@/lib/api-utils';
+import { log }                       from '@/lib/logger';
 import type { ContentIdea }          from '@/types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -90,6 +91,14 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       ideas_skipped:       allIdeas.length - producibles.length,
     });
   } catch (err) {
+    if (err instanceof ConcurrentPlanModificationError) {
+      log({ level: 'warn', scope: 'client/confirm', event: 'concurrent_modification',
+            plan_id: err.planId, expected: err.expected, actual: err.actual });
+      return NextResponse.json(
+        { error: 'Este plan ya fue modificado por otro proceso. Recarga la página e inténtalo de nuevo.' },
+        { status: 409 },
+      );
+    }
     return apiError(err, 'POST /api/client/weekly-plans/[id]/confirm');
   }
 }
