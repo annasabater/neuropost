@@ -140,6 +140,78 @@ for (const [filePath, label] of sentryTargets) {
   );
 }
 
+// ─── P12: inline story limit check in plan-week.ts ───────────────────────────
+
+const planWeekP12 = readFile('src/lib/agents/strategy/plan-week.ts');
+
+check(
+  'P12 — plan-week.ts counts existing stories before planStoriesHandler',
+  planWeekP12.includes('existingStoryCount') && planWeekP12.includes('storiesToGenerate'),
+  'Expected: P12 inline count (existingStoryCount, storiesToGenerate) before planStoriesHandler call',
+);
+
+check(
+  'P12 — plan-week.ts excludes client_rejected/replaced_by_variation',
+  planWeekP12.includes('client_rejected,replaced_by_variation') || planWeekP12.includes("'client_rejected'"),
+  'Expected: status exclusion filter for client_rejected and replaced_by_variation',
+);
+
+check(
+  'P12 — plan-week.ts passes storiesToGenerate to planStoriesHandler',
+  planWeekP12.includes('stories_per_week:          storiesToGenerate'),
+  'Expected: planStoriesHandler called with storiesToGenerate not fixed quota',
+);
+
+// ─── P13: re-render on edit for stories ──────────────────────────────────────
+
+const ideasRoute = readFile('src/app/api/client/weekly-plans/[id]/ideas/[ideaId]/route.ts');
+
+check(
+  'P13 — ideas route selects content_kind in prev snapshot',
+  ideasRoute.includes('content_kind') && ideasRoute.includes("select('status, content_kind,"),
+  'Expected: content_kind in the prev SELECT for story detection',
+);
+
+check(
+  'P13 — ideas route marks pending_render on story edit',
+  ideasRoute.includes("render_status: 'pending_render'") && ideasRoute.includes("action === 'edit'") && ideasRoute.includes("content_kind === 'story'"),
+  'Expected: render_status=pending_render when action===edit and content_kind===story',
+);
+
+check(
+  'P13 — ideas route resets render_attempts on story edit',
+  ideasRoute.includes('render_attempts: 0'),
+  'Expected: render_attempts reset to 0 on story edit (content changed, prior failures stale)',
+);
+
+// ─── P16: polling backoff + render_status ────────────────────────────────────
+
+const planPage = readFile('src/app/(dashboard)/planificacion/[week_id]/page.tsx');
+
+check(
+  'P16 — render_status added to ContentIdea type',
+  readFile('src/types/index.ts').includes("render_status?:"),
+  'Expected: render_status optional field in ContentIdea interface',
+);
+
+check(
+  'P16 — polling uses setTimeout (exponential backoff)',
+  planPage.includes('setTimeout') && planPage.includes('pollDelayRef'),
+  'Expected: setTimeout + pollDelayRef for backoff instead of fixed setInterval',
+);
+
+check(
+  'P16 — polling includes pending_render and rendering states',
+  planPage.includes("render_status === 'pending_render'") && planPage.includes("render_status === 'rendering'"),
+  'Expected: render_status conditions in needsPolling predicate',
+);
+
+check(
+  'P16 — backoff doubles up to 60s cap',
+  planPage.includes('60_000') && planPage.includes('pollDelayRef.current * 2'),
+  'Expected: backoff doubles each poll, capped at 60_000ms',
+);
+
 // ─── Results ─────────────────────────────────────────────────────────────────
 
 const passed = results.filter(r => r.passed).length;

@@ -53,7 +53,7 @@ export async function PATCH(
     // Snapshot previous state for audit
     const { data: prev } = await db
       .from('content_ideas')
-      .select('status, copy_draft, hashtags, client_edited_copy, client_edited_hashtags')
+      .select('status, content_kind, copy_draft, hashtags, client_edited_copy, client_edited_hashtags')
       .eq('id', ideaId)
       .eq('week_id', id)
       .single();
@@ -109,6 +109,15 @@ export async function PATCH(
     void logAudit({ actor_type: 'user', actor_id: user.id, action: body.action,
       resource_type: 'content_idea', resource_id: ideaId, brand_id: plan.brand_id,
       description: `Client ${body.action}d content idea` });
+
+    // P13 — Case B: client edited a story → queue re-render.
+    // Reset render_attempts to 0: the content changed, previous failures no longer apply.
+    // reconcile-renders will pick it up and dispatch the render endpoint.
+    if (body.action === 'edit' && prev.content_kind === 'story') {
+      await db.from('content_ideas')
+        .update({ render_status: 'pending_render', render_error: null, render_attempts: 0 })
+        .eq('id', ideaId);
+    }
 
     // Record first client action on this plan
     if (!plan.client_first_action_at) {

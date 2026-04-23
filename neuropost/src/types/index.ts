@@ -1102,6 +1102,7 @@ export interface ContentIdea {
   rendered_image_url:     string | null;
   // Sprint 12
   render_error?:          string | null;
+  render_status?:         'pending_render' | 'rendering' | 'rendered' | 'render_failed' | null;
   // Commit 3A — variation chain
   original_idea_id?:      string | null;
   regeneration_reason?:   string | null;

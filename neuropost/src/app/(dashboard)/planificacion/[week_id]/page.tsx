@@ -93,16 +93,30 @@ export default function PlanReviewPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Poll every 10s while at least one idea is regenerating OR awaiting
-  // worker review — both states change via server-side mutation, so the
-  // client needs to re-fetch to notice when they resolve.
+  // Exponential-backoff poll while any idea is in a transient state:
+  //   - status 'regenerating' or awaiting_worker_review (post ideas)
+  //   - render_status 'pending_render' or 'rendering' (story render pipeline)
+  // Backoff: 5 s → 10 s → 20 s → 40 s → 60 s (cap). Resets to 5 s when
+  // all transient states resolve, so the next change starts fresh.
+  const pollDelayRef = useRef(5_000);
   useEffect(() => {
     const needsPolling = ideas.some(
-      (i) => i.status === 'regenerating' || i.awaiting_worker_review === true,
+      (i) =>
+        i.status === 'regenerating'
+        || i.awaiting_worker_review === true
+        || i.render_status === 'pending_render'
+        || i.render_status === 'rendering',
     );
-    if (!needsPolling) return;
-    const interval = setInterval(() => { void load(); }, 10_000);
-    return () => clearInterval(interval);
+    if (!needsPolling) {
+      pollDelayRef.current = 5_000;
+      return;
+    }
+    const delay = pollDelayRef.current;
+    const timer = setTimeout(() => {
+      pollDelayRef.current = Math.min(pollDelayRef.current * 2, 60_000);
+      void load();
+    }, delay);
+    return () => clearTimeout(timer);
   }, [ideas, load]);
 
   // Ideas replaced by a variation are hidden from the client — the new one

@@ -226,14 +226,34 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
           .eq('type', 'image'),
       ]);
 
+      // P12: inline story limit check — count stories already in this plan.
+      // Handles retry: if the handler ran partially and was re-queued,
+      // we only generate the remaining slots instead of duplicating stories.
+      // week_id = planId is safe: UNIQUE INDEX guarantees one plan per brand+week.
+      // Statuses excluded from count: client_rejected, replaced_by_variation.
+      const { count: existingStoryCount } = await db
+        .from('content_ideas')
+        .select('id', { count: 'exact', head: true })
+        .eq('week_id', planId)
+        .eq('content_kind', 'story')
+        .not('status', 'in', '(client_rejected,replaced_by_variation)');
+      const storiesAlready    = existingStoryCount ?? 0;
+      const storiesQuota      = planQuota?.stories_per_week ?? 3;
+      const storiesToGenerate = Math.max(0, storiesQuota - storiesAlready);
+      if (storiesAlready > 0) {
+        log({ level: 'info', scope: 'plan-week', event: 'story_quota_partial_retry',
+              plan_id: planId, already: storiesAlready,
+              generating: storiesToGenerate, quota: storiesQuota });
+      }
+
       const storyRows = await planStoriesHandler({
         brand_id:                  job.brand_id,
         week_id:                   planId,
         brand,
         brand_material:            (material ?? []).map((m: BrandMaterial) => normalizeMaterial(m)),
-        stories_per_week:          planQuota?.stories_per_week ?? 3,
+        stories_per_week:          storiesToGenerate,
         stories_templates_enabled: templatesEnabled,
-        startPosition:             parsedIdeas.length,
+        startPosition:             parsedIdeas.length + storiesAlready,
         inspiration_refs:          inspirationRefs ?? [],
         media_refs:                (mediaRefs ?? []) as { url: string }[],
       });
