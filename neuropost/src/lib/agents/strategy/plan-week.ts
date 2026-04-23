@@ -283,7 +283,7 @@ export async function planWeekHandler(job: AgentJob): Promise<HandlerResult> {
             .in('id', (insertedStories as { id: string }[]).map(s => s.id));
 
           // Fire-and-forget — render endpoint owns the render_status lifecycle
-          const baseUrl     = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+          const baseUrl     = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
           const renderToken = process.env.INTERNAL_RENDER_TOKEN;
           const renderFetches = (insertedStories as { id: string }[]).map(s =>
             fetch(`${baseUrl}/api/render/story/${s.id}`, {

@@ -333,7 +333,7 @@ function tally(result: ReminderResult, sent: boolean | null) {
 }
 
 function buildReviewUrl(planId: unknown): string {
-  return `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://neuropost.app'}/planificacion/${planId as string}`;
+  return `${process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'https://neuropost.app'}/planificacion/${planId as string}`;
 }
 
 function formatWeekLabel(weekStart: string): string {

@@ -35,7 +35,7 @@ export async function enqueueCalendarReadyEmail(planId: string): Promise<void> {
   }
 
   const weekLabel   = formatWeekLabel(plan.week_start as string);
-  const calendarUrl = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://neuropost.app'}/planificacion/${plan.id as string}`;
+  const calendarUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'https://neuropost.app'}/planificacion/${plan.id as string}`;
   const subject     = `Tu calendario de publicación de la semana del ${weekLabel} está listo`;
 
   const result = await sendEmail({

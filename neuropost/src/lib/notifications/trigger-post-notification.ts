@@ -89,7 +89,7 @@ export async function triggerPostNotification(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = createAdminClient() as any;
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://neuropost.app';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'https://neuropost.app';
   // TODO: update URL pattern when /posts/[id] client page exists
   const ctaUrl  = `${baseUrl}/dashboard`;
 

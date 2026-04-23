@@ -91,7 +91,7 @@ export async function GET(request: Request) {
     }
 
     // ─── 3. Process each candidate ───────────────────────────────────────────────
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
     let retriggered      = 0;
     let permanentlyFailed = 0;
 

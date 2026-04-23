@@ -59,7 +59,7 @@ export async function enqueueClientReviewEmail(planId: string): Promise<EmailRes
     .order('position', { ascending: true });
 
   const weekLabel     = formatWeekLabel(plan.week_start);
-  const reviewUrl     = `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://neuropost.app'}/planificacion/${plan.id}`;
+  const reviewUrl     = `${process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'https://neuropost.app'}/planificacion/${plan.id}`;
   const pillarSummary = buildPillarSummary(ideas ?? []);
   const subject       = `Tu contenido de la semana del ${weekLabel} está listo para revisar`;
 
@@ -161,7 +161,7 @@ export async function enqueueClientPlanRejectedEmail(
     template: React.createElement(WeeklyPlanReadyEmail, {
       brand_name:       recipient.brand_name,
       week_start_label: weekLabel,
-      review_url:       `${process.env.NEXT_PUBLIC_SITE_URL ?? 'https://neuropost.app'}/planificacion`,
+      review_url:       `${process.env.NEXT_PUBLIC_APP_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? 'https://neuropost.app'}/planificacion`,
       pillar_summary:   `Esta semana el equipo no ha podido generar contenido. Motivo: ${skipReason}. Te avisaremos la próxima semana.`,
     }),
     metadata: {
