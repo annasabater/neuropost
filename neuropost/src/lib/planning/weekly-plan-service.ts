@@ -117,7 +117,7 @@ export async function createWeeklyPlanFromOutput(
     p_week_start:      params.week_start,
     p_parent_job_id:   params.parent_job_id ?? null,
     p_agent_output_id: params.agent_output_id ?? null,
-    p_ideas:           JSON.stringify(parsedIdeas),
+    p_ideas:           parsedIdeas,
   });
 
   if (rpcErr || !result) {
