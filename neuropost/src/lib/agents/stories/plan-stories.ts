@@ -18,7 +18,9 @@
 // Does NOT render images — that is the render/story/[idea_id] endpoint.
 
 import Anthropic                       from '@anthropic-ai/sdk';
-import type { Brand, BrandMaterial, StoryType } from '@/types';
+import type { Brand, StoryType }       from '@/types';
+import type { BrandMaterialV2 }        from '@/types/brand-material';
+import { pickActiveSchedule, isActiveNow } from '@/lib/brand-material/normalize';
 import {
   buildStoryCreativeBatchPrompt,
   FALLBACK_QUOTES,
@@ -44,21 +46,43 @@ function translateDay(day: string): string {
   return DAY_ES[day.toLowerCase()] ?? day;
 }
 
-function buildCopyFromSource(type: StoryType, source: BrandMaterial): string {
-  const c = source.content as AnyRecord;
+export function buildCopyFromSource(type: StoryType, source: BrandMaterialV2, now: Date = new Date()): string {
   switch (type) {
     case 'schedule': {
-      const days = (c.days as Array<{ day: string; hours: string }>) ?? [];
+      // VERBATIM — este output entra LITERAL al copy de la story.
+      // pickActiveSchedule preserva el comportamiento v1 cuando los materiales
+      // upgradeados mantienen `schedules[0].days` idéntico al `days` original.
+      const c = source.content as BrandMaterialV2<'schedule'>['content'];
+      const chosen = pickActiveSchedule(c.schedules, now);
+      const days = chosen?.days ?? [];
       return days.map(d => `${translateDay(d.day)}: ${d.hours}`).join('\n');
     }
-    case 'promo':
-      return [c.title, c.description].filter(Boolean).join('\n');
-    case 'data':
-      return [c.label, c.description].filter(Boolean).join('\n');
-    case 'quote':
-      return String(c.text ?? '');
-    case 'custom':
-      return String(c.text ?? '');
+    case 'promo': {
+      const c = source.content as BrandMaterialV2<'promo'>['content'];
+      const parts = [c.title, c.description].filter(Boolean) as string[];
+      if (c.cta?.label) parts.push(c.cta.label);
+      return parts.join('\n');
+    }
+    case 'data': {
+      const c = source.content as BrandMaterialV2<'data'>['content'];
+      const head = [c.name, c.description].filter(Boolean).join(': ');
+      const variants = c.variants ?? [];
+      if (variants.length >= 1 && variants.length <= 2) {
+        const labels = variants.map(v => v.label).filter(Boolean);
+        if (labels.length > 0) return `${head}\nOpciones: ${labels.join(', ')}`;
+      }
+      return head;
+    }
+    case 'quote': {
+      const c = source.content as BrandMaterialV2<'quote'>['content'];
+      const t = c.text ?? '';
+      const a = c.author ?? '';
+      return a ? `«${t}» — ${a}` : `«${t}»`;
+    }
+    case 'custom': {
+      const c = source.content as BrandMaterialV2<'free'>['content'];
+      return String(c.content ?? '');
+    }
     default:
       return '';
   }
@@ -144,7 +168,7 @@ export interface PlanStoriesParams {
   brand_id:                  string;
   week_id:                   string;
   brand:                     Brand;
-  brand_material:            BrandMaterial[];
+  brand_material:            BrandMaterialV2[];
   stories_per_week:          number;
   stories_templates_enabled: string[];
   startPosition:             number;
@@ -174,12 +198,12 @@ export interface StoryIdeaRow {
 
 // ─── Slot planning ─────────────────────────────────────────────────────────────
 
-interface StorySlot {
+export interface StorySlot {
   type:   StoryType;
-  source: BrandMaterial | null;
+  source: BrandMaterialV2 | null;
 }
 
-function buildSlots(brand_material: BrandMaterial[], stories_per_week: number): StorySlot[] {
+export function buildSlots(brand_material: BrandMaterialV2[], stories_per_week: number): StorySlot[] {
   const slots: StorySlot[] = [];
   const now = new Date();
 
@@ -189,10 +213,10 @@ function buildSlots(brand_material: BrandMaterial[], stories_per_week: number): 
     slots.push({ type: 'schedule', source: schedule });
   }
 
-  // 2. promo — active, not expired, max 3
+  // 2. promo — active, not expired, max 3 (usa isActiveNow — preserva semántica)
   const promos = brand_material
     .filter(m => m.category === 'promo' && m.active)
-    .filter(m => !m.valid_until || new Date(m.valid_until) > now)
+    .filter(m => isActiveNow(m, now))
     .slice(0, 3);
   for (const p of promos) {
     if (slots.length >= stories_per_week) break;
@@ -200,7 +224,7 @@ function buildSlots(brand_material: BrandMaterial[], stories_per_week: number): 
   }
 
   // 3. remaining slots — round-robin across data / quote / custom pools
-  type TypePool = { type: StoryType; pool: BrandMaterial[] };
+  type TypePool = { type: StoryType; pool: BrandMaterialV2[] };
   const typeQueue: TypePool[] = (
     [
       { type: 'quote'  as StoryType, pool: [...brand_material.filter(m => m.category === 'quote'  && m.active)] },

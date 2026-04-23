@@ -92,6 +92,66 @@ export async function logSystemAction(
   });
 }
 
+// ─── brand_material helpers (Sprint 12) ──────────────────────────────────────
+
+export type BrandMaterialAuditAction =
+  | 'create'
+  | 'update'
+  | 'delete'
+  | 'toggle_active'
+  | 'upgrade_to_v2'
+  | 'conflict_resolved';
+
+/**
+ * Single entry point for every brand_material audit event. Fire-and-forget:
+ * delegates to `logAudit` (which already catches internally). Never throws.
+ *
+ * diff_keys are field *names* only — no values — to avoid leaking sensitive
+ * content into the audit trail. Exceptions:
+ *   - toggle_active: metadata.new_active is safe and useful (just a boolean).
+ *   - conflict_resolved: metadata carries the two dates that collided.
+ */
+export async function logBrandMaterialAudit(input: {
+  actor_user_id:          string;
+  brand_id:               string;
+  material_id:            string;
+  category:               'schedule' | 'promo' | 'data' | 'quote' | 'free';
+  action:                 BrandMaterialAuditAction;
+  schema_version_before?: number;
+  schema_version_after?:  number;
+  diff_keys?:             string[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  metadata?:              Record<string, any>;
+}): Promise<void> {
+  const descriptionByAction: Record<BrandMaterialAuditAction, string> = {
+    create:            `Creó material de marca (${input.category})`,
+    update:            `Editó material de marca (${input.category})`,
+    delete:            `Eliminó material de marca (${input.category})`,
+    toggle_active:     `Cambió estado activo de material (${input.category})`,
+    upgrade_to_v2:     `Actualizó material al formato v2 (${input.category})`,
+    conflict_resolved: `Conflicto resuelto en material (${input.category})`,
+  };
+
+  const meta: Record<string, unknown> = { ...(input.metadata ?? {}) };
+  if (input.schema_version_before !== undefined) meta.schema_version_before = input.schema_version_before;
+  if (input.schema_version_after  !== undefined) meta.schema_version_after  = input.schema_version_after;
+  if (input.diff_keys && input.diff_keys.length > 0) meta.diff_keys = input.diff_keys;
+
+  return logAudit({
+    actor_type:    'user',
+    actor_id:      input.actor_user_id,
+    action:        `brand_material.${input.action}`,
+    resource_type: 'brand_material',
+    resource_id:   input.material_id,
+    brand_id:      input.brand_id,
+    description:   descriptionByAction[input.action],
+    metadata:      Object.keys(meta).length > 0 ? meta : null,
+    severity:      input.action === 'conflict_resolved' ? 'warning'
+                 : input.action === 'delete'            ? 'warning'
+                 : 'info',
+  });
+}
+
 /**
  * Compare two objects and return only the fields that changed.
  */
