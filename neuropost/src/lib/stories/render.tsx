@@ -13,6 +13,7 @@
 import { ImageResponse } from 'next/og';
 import type { ContentIdea, Brand } from '@/types';
 import { resolveFont, type FontDefinition } from './fonts-catalog';
+import { getLayoutById } from './layouts-catalog';
 
 // ─── Font cache ───────────────────────────────────────────────────────────────
 
@@ -60,7 +61,7 @@ function splitLines(text: string, maxLines = 10): string[] {
 
 // ─── Render context ───────────────────────────────────────────────────────────
 
-interface RenderCtx {
+export interface RenderCtx {
   copy:       string;
   brandName:  string;
   primary:    string;
@@ -72,7 +73,7 @@ interface RenderCtx {
 // ─── Layout: centered (Quote Clásica) ─────────────────────────────────────────
 // Full brand-color background, large white quote, brand name at bottom.
 
-function LayoutCentered({ copy, brandName, primary, logoUrl }: RenderCtx) {
+export function LayoutCentered({ copy, brandName, primary, logoUrl }: RenderCtx) {
   const quote = clamp(copy || 'Tu frase aquí', 180);
   return (
     <div style={{ display: 'flex', width: W, height: H, background: primary, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px', position: 'relative' }}>
@@ -109,7 +110,7 @@ function LayoutCentered({ copy, brandName, primary, logoUrl }: RenderCtx) {
 // ─── Layout: minimal (Quote Minimal) ─────────────────────────────────────────
 // White background, primary left strip, large dark condensed text.
 
-function LayoutMinimal({ copy, brandName, primary }: RenderCtx) {
+export function LayoutMinimal({ copy, brandName, primary }: RenderCtx) {
   const quote = clamp(copy || 'Tu frase aquí', 200);
   return (
     <div style={{ display: 'flex', width: W, height: H, background: '#ffffff', position: 'relative' }}>
@@ -137,7 +138,7 @@ function LayoutMinimal({ copy, brandName, primary }: RenderCtx) {
 // ─── Layout: table (Horario Semanal) ─────────────────────────────────────────
 // White bg, title "HORARIO", rows of day: hours.
 
-function LayoutTable({ copy, brandName, primary, secondary }: RenderCtx) {
+export function LayoutTable({ copy, brandName, primary, secondary }: RenderCtx) {
   const rows = splitLines(copy, 7);
   const rowH = rows.length > 0 ? Math.min(120, Math.floor(900 / rows.length)) : 120;
   return (
@@ -185,7 +186,7 @@ function LayoutTable({ copy, brandName, primary, secondary }: RenderCtx) {
 // ─── Layout: hero (Horario Destacado) ─────────────────────────────────────────
 // Brand-color bg, big "ABIERTO" label, first schedule entry prominent.
 
-function LayoutHero({ copy, brandName, primary }: RenderCtx) {
+export function LayoutHero({ copy, brandName, primary }: RenderCtx) {
   const rows  = splitLines(copy, 7);
   const first = rows[0] ?? '';
   const rest  = rows.slice(1);
@@ -244,7 +245,7 @@ function LayoutHero({ copy, brandName, primary }: RenderCtx) {
 // ─── Layout: banner (Promo Banner) ────────────────────────────────────────────
 // Top 58% white with title + desc, bottom 42% brand color with brand name.
 
-function LayoutBanner({ copy, brandName, primary, secondary }: RenderCtx) {
+export function LayoutBanner({ copy, brandName, primary, secondary }: RenderCtx) {
   const rows  = splitLines(copy, 6);
   const title = clamp(rows[0] ?? 'PROMO', 60);
   const desc  = rows.slice(1).join(' — ');
@@ -285,7 +286,7 @@ function LayoutBanner({ copy, brandName, primary, secondary }: RenderCtx) {
 // ─── Layout: urgent (Promo Urgente) ───────────────────────────────────────────
 // Dark background, brand-color top strip, big title in brand color.
 
-function LayoutUrgent({ copy, brandName, primary }: RenderCtx) {
+export function LayoutUrgent({ copy, brandName, primary }: RenderCtx) {
   const rows  = splitLines(copy, 4);
   const title = clamp(rows[0] ?? 'OFERTA LIMITADA', 80);
   const desc  = rows.slice(1).join('\n');
@@ -337,7 +338,7 @@ function LayoutUrgent({ copy, brandName, primary }: RenderCtx) {
 // ─── Layout: stat (Dato Destacado) ────────────────────────────────────────────
 // Giant stat number + context label, white background.
 
-function LayoutStat({ copy, brandName, primary, secondary }: RenderCtx) {
+export function LayoutStat({ copy, brandName, primary, secondary }: RenderCtx) {
   const rows  = splitLines(copy, 3);
   const stat  = clamp(rows[0] ?? '—', 20);
   const label = clamp(rows[1] ?? '', 80);
@@ -379,7 +380,7 @@ function LayoutStat({ copy, brandName, primary, secondary }: RenderCtx) {
 // ─── Layout: tagline (Lema de Marca) ─────────────────────────────────────────
 // Brand-color bg, big centered condensed text, horizontal divider.
 
-function LayoutTagline({ copy, brandName, primary }: RenderCtx) {
+export function LayoutTagline({ copy, brandName, primary }: RenderCtx) {
   const text = clamp(copy || 'Nuestro lema', 160);
   return (
     <div style={{ display: 'flex', width: W, height: H, background: primary, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px', position: 'relative' }}>
@@ -409,7 +410,7 @@ function LayoutTagline({ copy, brandName, primary }: RenderCtx) {
 // ─── Layout: overlay (Foto con Overlay) ───────────────────────────────────────
 // Brand-color top, dark gradient bottom, text anchored at bottom.
 
-function LayoutOverlay({ copy, brandName, primary, secondary }: RenderCtx) {
+export function LayoutOverlay({ copy, brandName, primary, secondary }: RenderCtx) {
   const text = clamp(copy || '', 200);
   return (
     <div style={{ display: 'flex', width: W, height: H, background: primary, flexDirection: 'column', position: 'relative' }}>
@@ -442,7 +443,7 @@ function LayoutOverlay({ copy, brandName, primary, secondary }: RenderCtx) {
 // ─── Layout: flexible (Contenido Libre) ───────────────────────────────────────
 // Light bg, primary left border, readable paragraph text.
 
-function LayoutFlexible({ copy, brandName, primary, secondary }: RenderCtx) {
+export function LayoutFlexible({ copy, brandName, primary, secondary }: RenderCtx) {
   const allLines = splitLines(copy, 12);
   const text     = clamp(copy || '', 400);
 
@@ -493,7 +494,7 @@ function LayoutFlexible({ copy, brandName, primary, secondary }: RenderCtx) {
 // Full-bleed background image + dark overlay + big white text.
 // Simulates a "blurred background" via heavy rgba overlay (satori has no blur).
 
-function LayoutPhotoOverlay({ copy, brandName, primary, bgImageUrl }: RenderCtx) {
+export function LayoutPhotoOverlay({ copy, brandName, primary, bgImageUrl }: RenderCtx) {
   const text = clamp(copy || '', 200);
   return (
     <div style={{ display: 'flex', width: W, height: H, position: 'relative', background: '#111111' }}>
@@ -525,7 +526,7 @@ function LayoutPhotoOverlay({ copy, brandName, primary, bgImageUrl }: RenderCtx)
 // ─── Layout: photo_schedule (schedule/horario with inspiration photo bg) ──────
 // Full-bleed background image + very dark overlay + white schedule table.
 
-function LayoutPhotoSchedule({ copy, brandName, primary, bgImageUrl }: RenderCtx) {
+export function LayoutPhotoSchedule({ copy, brandName, primary, bgImageUrl }: RenderCtx) {
   const rows = splitLines(copy, 7);
   const rowH = rows.length > 0 ? Math.min(120, Math.floor(700 / rows.length)) : 120;
   return (
@@ -583,22 +584,9 @@ function LayoutPhotoSchedule({ copy, brandName, primary, bgImageUrl }: RenderCtx
 
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
-function buildJSX(layout: string, ctx: RenderCtx): React.ReactElement {
-  switch (layout) {
-    case 'centered':       return <LayoutCentered      {...ctx} />;
-    case 'minimal':        return <LayoutMinimal        {...ctx} />;
-    case 'table':          return <LayoutTable          {...ctx} />;
-    case 'hero':           return <LayoutHero           {...ctx} />;
-    case 'banner':         return <LayoutBanner         {...ctx} />;
-    case 'urgent':         return <LayoutUrgent         {...ctx} />;
-    case 'stat':           return <LayoutStat           {...ctx} />;
-    case 'tagline':        return <LayoutTagline        {...ctx} />;
-    case 'overlay':        return <LayoutOverlay        {...ctx} />;
-    case 'flexible':       return <LayoutFlexible       {...ctx} />;
-    case 'photo_overlay':  return <LayoutPhotoOverlay   {...ctx} />;
-    case 'photo_schedule': return <LayoutPhotoSchedule  {...ctx} />;
-    default:               return <LayoutCentered       {...ctx} />;
-  }
+function buildJSX(layoutName: string, ctx: RenderCtx): React.ReactElement {
+  const layout = getLayoutById(layoutName) ?? getLayoutById('centered')!;
+  return layout.render(ctx);
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
