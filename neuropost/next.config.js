@@ -28,6 +28,7 @@ const nextConfig = {
     'ioredis',
     '@ffmpeg-installer/ffmpeg',
     'fluent-ffmpeg',
+    '@anthropic-ai/sdk',
   ],
 
   images: {
