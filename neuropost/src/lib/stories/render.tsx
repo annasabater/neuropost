@@ -12,10 +12,12 @@
 
 import { ImageResponse } from 'next/og';
 import type { ContentIdea, Brand } from '@/types';
+import { resolveFont, type FontDefinition } from './fonts-catalog';
 
 // ─── Font cache ───────────────────────────────────────────────────────────────
 
-const fontCache: { barlow?: ArrayBuffer; barlowCondensed?: ArrayBuffer } = {};
+// Keyed by FontDefinition.id so renders across brands reuse downloaded TTFs.
+const fontCache = new Map<string, ArrayBuffer>();
 
 // Old Android UA makes Google Fonts serve TTF with explicit .ttf URL — satori requires TTF.
 // IE6 gets EOT; modern browsers get WOFF2. Android 2.x is the reliable TTF trigger.
@@ -31,14 +33,16 @@ async function fetchBunnyFont(googleFamily: string, weight: number): Promise<Arr
   return fetch(match[2]).then(r => r.arrayBuffer());
 }
 
-async function loadFonts() {
-  if (!fontCache.barlow) {
-    fontCache.barlow = await fetchBunnyFont('Barlow', 700);
-  }
-  if (!fontCache.barlowCondensed) {
-    fontCache.barlowCondensed = await fetchBunnyFont('Barlow Condensed', 900);
-  }
-  return { barlow: fontCache.barlow!, barlowCondensed: fontCache.barlowCondensed! };
+async function loadFonts(displayFont: FontDefinition, bodyFont: FontDefinition) {
+  const load = async (font: FontDefinition): Promise<ArrayBuffer> => {
+    const cached = fontCache.get(font.id);
+    if (cached) return cached;
+    const buf = await fetchBunnyFont(font.google_family, font.weight);
+    fontCache.set(font.id, buf);
+    return buf;
+  };
+  const [display, body] = await Promise.all([load(displayFont), load(bodyFont)]);
+  return { display, body };
 }
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
@@ -82,17 +86,17 @@ function LayoutCentered({ copy, brandName, primary, logoUrl }: RenderCtx) {
       <div style={{ position: 'absolute', top: 100, left: 80, width: 32, height: 32, borderRadius: '50%', background: 'rgba(255,255,255,0.25)', display: 'flex' }} />
 
       {/* Quote mark */}
-      <div style={{ display: 'flex', fontSize: 200, fontFamily: 'BarlowCondensed', fontWeight: 900, color: 'rgba(255,255,255,0.12)', lineHeight: 1, position: 'absolute', top: 60, left: 60 }}>
+      <div style={{ display: 'flex', fontSize: 200, fontFamily: 'Display', fontWeight: 900, color: 'rgba(255,255,255,0.12)', lineHeight: 1, position: 'absolute', top: 60, left: 60 }}>
         "
       </div>
 
       {/* Quote text */}
-      <div style={{ display: 'flex', fontSize: 76, fontFamily: 'BarlowCondensed', fontWeight: 900, color: '#ffffff', textAlign: 'center', lineHeight: 1.05, textTransform: 'uppercase', letterSpacing: '-0.01em', maxWidth: 920, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', fontSize: 76, fontFamily: 'Display', fontWeight: 900, color: '#ffffff', textAlign: 'center', lineHeight: 1.05, textTransform: 'uppercase', letterSpacing: '-0.01em', maxWidth: 920, flexWrap: 'wrap', justifyContent: 'center' }}>
         {quote}
       </div>
 
       {/* Brand name */}
-      <div style={{ position: 'absolute', bottom: 80, display: 'flex', fontSize: 24, fontFamily: 'Barlow', fontWeight: 700, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+      <div style={{ position: 'absolute', bottom: 80, display: 'flex', fontSize: 24, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
         {brandName}
       </div>
 
@@ -114,7 +118,7 @@ function LayoutMinimal({ copy, brandName, primary }: RenderCtx) {
 
       {/* Content centered */}
       <div style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 120px' }}>
-        <div style={{ display: 'flex', fontSize: 88, fontFamily: 'BarlowCondensed', fontWeight: 900, color: '#111827', textAlign: 'center', lineHeight: 1.0, textTransform: 'uppercase', maxWidth: 860, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', fontSize: 88, fontFamily: 'Display', fontWeight: 900, color: '#111827', textAlign: 'center', lineHeight: 1.0, textTransform: 'uppercase', maxWidth: 860, flexWrap: 'wrap', justifyContent: 'center' }}>
           {quote}
         </div>
       </div>
@@ -122,7 +126,7 @@ function LayoutMinimal({ copy, brandName, primary }: RenderCtx) {
       {/* Brand name bottom-right */}
       <div style={{ position: 'absolute', bottom: 80, right: 80, display: 'flex', alignItems: 'center', gap: 12 }}>
         <div style={{ width: 40, height: 3, background: primary, display: 'flex' }} />
-        <span style={{ fontSize: 20, fontFamily: 'Barlow', fontWeight: 700, color: '#9ca3af', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+        <span style={{ fontSize: 20, fontFamily: 'Body', fontWeight: 700, color: '#9ca3af', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
           {brandName}
         </span>
       </div>
@@ -141,10 +145,10 @@ function LayoutTable({ copy, brandName, primary, secondary }: RenderCtx) {
       {/* Header */}
       <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 60 }}>
         <div style={{ display: 'flex', width: 56, height: 6, background: primary, marginBottom: 20 }} />
-        <div style={{ display: 'flex', fontSize: 80, fontFamily: 'BarlowCondensed', fontWeight: 900, color: '#111827', textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 0.9 }}>
+        <div style={{ display: 'flex', fontSize: 80, fontFamily: 'Display', fontWeight: 900, color: '#111827', textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 0.9 }}>
           NUESTRO
         </div>
-        <div style={{ display: 'flex', fontSize: 80, fontFamily: 'BarlowCondensed', fontWeight: 900, color: primary, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 0.9 }}>
+        <div style={{ display: 'flex', fontSize: 80, fontFamily: 'Display', fontWeight: 900, color: primary, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 0.9 }}>
           HORARIO
         </div>
       </div>
@@ -152,17 +156,17 @@ function LayoutTable({ copy, brandName, primary, secondary }: RenderCtx) {
       {/* Rows */}
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 2 }}>
         {rows.length === 0 ? (
-          <div style={{ display: 'flex', fontSize: 36, fontFamily: 'Barlow', color: '#9ca3af' }}>Sin horario</div>
+          <div style={{ display: 'flex', fontSize: 36, fontFamily: 'Body', color: '#9ca3af' }}>Sin horario</div>
         ) : rows.map((row, i) => {
           const parts = row.split(': ');
           const day   = parts[0] ?? row;
           const hours = parts[1] ?? '';
           return (
             <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 0', height: rowH, borderBottom: i < rows.length - 1 ? '1px solid #e5e7eb' : 'none' }}>
-              <div style={{ display: 'flex', fontSize: Math.min(40, rowH * 0.38), fontFamily: 'BarlowCondensed', fontWeight: 900, color: secondary, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+              <div style={{ display: 'flex', fontSize: Math.min(40, rowH * 0.38), fontFamily: 'Display', fontWeight: 900, color: secondary, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                 {day}
               </div>
-              <div style={{ display: 'flex', fontSize: Math.min(40, rowH * 0.38), fontFamily: 'Barlow', fontWeight: 700, color: primary }}>
+              <div style={{ display: 'flex', fontSize: Math.min(40, rowH * 0.38), fontFamily: 'Body', fontWeight: 700, color: primary }}>
                 {hours}
               </div>
             </div>
@@ -171,7 +175,7 @@ function LayoutTable({ copy, brandName, primary, secondary }: RenderCtx) {
       </div>
 
       {/* Brand name */}
-      <div style={{ display: 'flex', marginTop: 40, fontSize: 22, fontFamily: 'Barlow', fontWeight: 700, color: '#9ca3af', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+      <div style={{ display: 'flex', marginTop: 40, fontSize: 22, fontFamily: 'Body', fontWeight: 700, color: '#9ca3af', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
         {brandName}
       </div>
     </div>
@@ -194,17 +198,17 @@ function LayoutHero({ copy, brandName, primary }: RenderCtx) {
       {/* Top label */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 80 }}>
         <div style={{ display: 'flex', width: 14, height: 14, borderRadius: '50%', background: '#ffffff' }} />
-        <span style={{ fontSize: 28, fontFamily: 'Barlow', fontWeight: 700, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.16em' }}>
+        <span style={{ fontSize: 28, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.8)', textTransform: 'uppercase', letterSpacing: '0.16em' }}>
           HORARIO
         </span>
       </div>
 
       {/* Featured day */}
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center' }}>
-        <div style={{ display: 'flex', fontSize: 52, fontFamily: 'BarlowCondensed', fontWeight: 900, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
+        <div style={{ display: 'flex', fontSize: 52, fontFamily: 'Display', fontWeight: 900, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>
           {day || 'LUNES'}
         </div>
-        <div style={{ display: 'flex', fontSize: 140, fontFamily: 'BarlowCondensed', fontWeight: 900, color: '#ffffff', lineHeight: 0.9, letterSpacing: '-0.03em' }}>
+        <div style={{ display: 'flex', fontSize: 140, fontFamily: 'Display', fontWeight: 900, color: '#ffffff', lineHeight: 0.9, letterSpacing: '-0.03em' }}>
           {hours || '9-20h'}
         </div>
 
@@ -217,10 +221,10 @@ function LayoutHero({ copy, brandName, primary }: RenderCtx) {
             const p = row.split(': ');
             return (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 34, fontFamily: 'BarlowCondensed', fontWeight: 900, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase' }}>
+                <span style={{ fontSize: 34, fontFamily: 'Display', fontWeight: 900, color: 'rgba(255,255,255,0.65)', textTransform: 'uppercase' }}>
                   {p[0]}
                 </span>
-                <span style={{ fontSize: 34, fontFamily: 'Barlow', fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>
+                <span style={{ fontSize: 34, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.65)' }}>
                   {p[1]}
                 </span>
               </div>
@@ -230,7 +234,7 @@ function LayoutHero({ copy, brandName, primary }: RenderCtx) {
       </div>
 
       {/* Brand name */}
-      <div style={{ position: 'absolute', bottom: 80, display: 'flex', fontSize: 22, fontFamily: 'Barlow', fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+      <div style={{ position: 'absolute', bottom: 80, display: 'flex', fontSize: 22, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.4)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
         {brandName}
       </div>
     </div>
@@ -249,14 +253,14 @@ function LayoutBanner({ copy, brandName, primary, secondary }: RenderCtx) {
     <div style={{ display: 'flex', width: W, height: H, flexDirection: 'column' }}>
       {/* Top section */}
       <div style={{ display: 'flex', flex: '0 0 1100px', background: '#ffffff', flexDirection: 'column', justifyContent: 'flex-end', padding: '80px 80px 60px' }}>
-        <div style={{ display: 'flex', fontSize: 20, fontFamily: 'Barlow', fontWeight: 700, color: primary, textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: 24 }}>
+        <div style={{ display: 'flex', fontSize: 20, fontFamily: 'Body', fontWeight: 700, color: primary, textTransform: 'uppercase', letterSpacing: '0.16em', marginBottom: 24 }}>
           NUEVA OFERTA
         </div>
-        <div style={{ display: 'flex', fontSize: 96, fontFamily: 'BarlowCondensed', fontWeight: 900, color: '#111827', lineHeight: 0.9, textTransform: 'uppercase', maxWidth: 920, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', fontSize: 96, fontFamily: 'Display', fontWeight: 900, color: '#111827', lineHeight: 0.9, textTransform: 'uppercase', maxWidth: 920, flexWrap: 'wrap' }}>
           {title}
         </div>
         {desc && (
-          <div style={{ display: 'flex', fontSize: 36, fontFamily: 'Barlow', fontWeight: 700, color: '#6b7280', lineHeight: 1.4, marginTop: 32, maxWidth: 880, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', fontSize: 36, fontFamily: 'Body', fontWeight: 700, color: '#6b7280', lineHeight: 1.4, marginTop: 32, maxWidth: 880, flexWrap: 'wrap' }}>
             {clamp(desc, 160)}
           </div>
         )}
@@ -266,10 +270,10 @@ function LayoutBanner({ copy, brandName, primary, secondary }: RenderCtx) {
       <div style={{ display: 'flex', flex: 1, background: primary, flexDirection: 'column', justifyContent: 'space-between', padding: '60px 80px 80px' }}>
         <div style={{ display: 'flex', width: 60, height: 4, background: 'rgba(255,255,255,0.4)' }} />
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', fontSize: 20, fontFamily: 'Barlow', fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+          <div style={{ display: 'flex', fontSize: 20, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
             {brandName}
           </div>
-          <div style={{ display: 'flex', fontSize: 32, fontFamily: 'BarlowCondensed', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          <div style={{ display: 'flex', fontSize: 32, fontFamily: 'Display', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             ¡APROVÉCHALO AHORA →
           </div>
         </div>
@@ -296,13 +300,13 @@ function LayoutUrgent({ copy, brandName, primary }: RenderCtx) {
         {/* Label */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 48 }}>
           <div style={{ display: 'flex', width: 40, height: 4, background: primary }} />
-          <span style={{ fontSize: 24, fontFamily: 'Barlow', fontWeight: 700, color: primary, textTransform: 'uppercase', letterSpacing: '0.14em' }}>
+          <span style={{ fontSize: 24, fontFamily: 'Body', fontWeight: 700, color: primary, textTransform: 'uppercase', letterSpacing: '0.14em' }}>
             OFERTA ESPECIAL
           </span>
         </div>
 
         {/* Big title */}
-        <div style={{ display: 'flex', fontSize: 96, fontFamily: 'BarlowCondensed', fontWeight: 900, color: primary, lineHeight: 0.9, textTransform: 'uppercase', maxWidth: 920, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', fontSize: 96, fontFamily: 'Display', fontWeight: 900, color: primary, lineHeight: 0.9, textTransform: 'uppercase', maxWidth: 920, flexWrap: 'wrap' }}>
           {title}
         </div>
 
@@ -312,7 +316,7 @@ function LayoutUrgent({ copy, brandName, primary }: RenderCtx) {
         {/* Description lines */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {splitLines(desc, 3).map((l, i) => (
-            <div key={i} style={{ display: 'flex', fontSize: 40, fontFamily: 'Barlow', fontWeight: 700, color: 'rgba(255,255,255,0.8)', lineHeight: 1.3 }}>
+            <div key={i} style={{ display: 'flex', fontSize: 40, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.8)', lineHeight: 1.3 }}>
               {clamp(l, 80)}
             </div>
           ))}
@@ -320,7 +324,7 @@ function LayoutUrgent({ copy, brandName, primary }: RenderCtx) {
       </div>
 
       {/* Brand name */}
-      <div style={{ position: 'absolute', bottom: 80, left: 80, display: 'flex', fontSize: 22, fontFamily: 'Barlow', fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+      <div style={{ position: 'absolute', bottom: 80, left: 80, display: 'flex', fontSize: 22, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
         {brandName}
       </div>
 
@@ -343,7 +347,7 @@ function LayoutStat({ copy, brandName, primary, secondary }: RenderCtx) {
       {/* Top label */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 'auto' }}>
         <div style={{ display: 'flex', width: 6, height: 6, borderRadius: '50%', background: primary }} />
-        <span style={{ fontSize: 24, fontFamily: 'Barlow', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+        <span style={{ fontSize: 24, fontFamily: 'Body', fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
           {brandName}
         </span>
       </div>
@@ -354,13 +358,13 @@ function LayoutStat({ copy, brandName, primary, secondary }: RenderCtx) {
         <div style={{ display: 'flex', width: 80, height: 6, background: primary, marginBottom: 48 }} />
 
         {/* The number / stat */}
-        <div style={{ display: 'flex', fontSize: 200, fontFamily: 'BarlowCondensed', fontWeight: 900, color: primary, lineHeight: 0.85, letterSpacing: '-0.04em', textTransform: 'uppercase', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', fontSize: 200, fontFamily: 'Display', fontWeight: 900, color: primary, lineHeight: 0.85, letterSpacing: '-0.04em', textTransform: 'uppercase', flexWrap: 'wrap' }}>
           {stat}
         </div>
 
         {/* Context */}
         {label && (
-          <div style={{ display: 'flex', fontSize: 52, fontFamily: 'Barlow', fontWeight: 700, color: secondary, lineHeight: 1.2, marginTop: 32, maxWidth: 860, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', fontSize: 52, fontFamily: 'Body', fontWeight: 700, color: secondary, lineHeight: 1.2, marginTop: 32, maxWidth: 860, flexWrap: 'wrap' }}>
             {label}
           </div>
         )}
@@ -387,7 +391,7 @@ function LayoutTagline({ copy, brandName, primary }: RenderCtx) {
       </div>
 
       {/* Text */}
-      <div style={{ display: 'flex', fontSize: 100, fontFamily: 'BarlowCondensed', fontWeight: 900, color: '#ffffff', textAlign: 'center', lineHeight: 1.0, textTransform: 'uppercase', letterSpacing: '-0.01em', maxWidth: 920, flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{ display: 'flex', fontSize: 100, fontFamily: 'Display', fontWeight: 900, color: '#ffffff', textAlign: 'center', lineHeight: 1.0, textTransform: 'uppercase', letterSpacing: '-0.01em', maxWidth: 920, flexWrap: 'wrap', justifyContent: 'center' }}>
         {text}
       </div>
 
@@ -395,7 +399,7 @@ function LayoutTagline({ copy, brandName, primary }: RenderCtx) {
       <div style={{ display: 'flex', width: 120, height: 4, background: 'rgba(255,255,255,0.4)', marginTop: 60 }} />
 
       {/* Brand name */}
-      <div style={{ position: 'absolute', bottom: 80, display: 'flex', fontSize: 24, fontFamily: 'Barlow', fontWeight: 700, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+      <div style={{ position: 'absolute', bottom: 80, display: 'flex', fontSize: 24, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
         {brandName}
       </div>
     </div>
@@ -420,14 +424,14 @@ function LayoutOverlay({ copy, brandName, primary, secondary }: RenderCtx) {
       </div>
 
       {/* Brand name top */}
-      <div style={{ position: 'absolute', top: 80, right: 80, display: 'flex', fontSize: 24, fontFamily: 'Barlow', fontWeight: 700, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+      <div style={{ position: 'absolute', top: 80, right: 80, display: 'flex', fontSize: 24, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
         {brandName}
       </div>
 
       {/* Bottom text content */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '60px 80px 100px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ display: 'flex', width: 48, height: 4, background: primary }} />
-        <div style={{ display: 'flex', fontSize: 60, fontFamily: 'BarlowCondensed', fontWeight: 900, color: '#ffffff', lineHeight: 1.05, textTransform: 'uppercase', maxWidth: 920, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', fontSize: 60, fontFamily: 'Display', fontWeight: 900, color: '#ffffff', lineHeight: 1.05, textTransform: 'uppercase', maxWidth: 920, flexWrap: 'wrap' }}>
           {text}
         </div>
       </div>
@@ -449,7 +453,7 @@ function LayoutFlexible({ copy, brandName, primary, secondary }: RenderCtx) {
 
       {/* Header */}
       <div style={{ display: 'flex', flexDirection: 'column', padding: '80px 80px 0 100px' }}>
-        <div style={{ display: 'flex', fontSize: 26, fontFamily: 'Barlow', fontWeight: 700, color: primary, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 16 }}>
+        <div style={{ display: 'flex', fontSize: 26, fontFamily: 'Body', fontWeight: 700, color: primary, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 16 }}>
           {brandName}
         </div>
         <div style={{ display: 'flex', width: '100%', height: 1, background: '#e2e8f0' }} />
@@ -460,13 +464,13 @@ function LayoutFlexible({ copy, brandName, primary, secondary }: RenderCtx) {
         {allLines.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {allLines.slice(0, 8).map((line, i) => (
-              <div key={i} style={{ display: 'flex', fontSize: 46, fontFamily: i === 0 ? 'BarlowCondensed' : 'Barlow', fontWeight: i === 0 ? 900 : 700, color: i === 0 ? '#111827' : secondary, lineHeight: 1.3, flexWrap: 'wrap' }}>
+              <div key={i} style={{ display: 'flex', fontSize: 46, fontFamily: i === 0 ? 'Display' : 'Body', fontWeight: i === 0 ? 900 : 700, color: i === 0 ? '#111827' : secondary, lineHeight: 1.3, flexWrap: 'wrap' }}>
                 {clamp(line, 60)}
               </div>
             ))}
           </div>
         ) : (
-          <div style={{ display: 'flex', fontSize: 56, fontFamily: 'Barlow', fontWeight: 700, color: '#9ca3af' }}>
+          <div style={{ display: 'flex', fontSize: 56, fontFamily: 'Body', fontWeight: 700, color: '#9ca3af' }}>
             Sin contenido
           </div>
         )}
@@ -476,7 +480,7 @@ function LayoutFlexible({ copy, brandName, primary, secondary }: RenderCtx) {
       <div style={{ display: 'flex', padding: '0 80px 80px 100px', justifyContent: 'flex-end' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ display: 'flex', width: 6, height: 6, borderRadius: '50%', background: primary }} />
-          <span style={{ fontSize: 20, fontFamily: 'Barlow', fontWeight: 700, color: '#9ca3af', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          <span style={{ fontSize: 20, fontFamily: 'Body', fontWeight: 700, color: '#9ca3af', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
             {brandName}
           </span>
         </div>
@@ -504,12 +508,12 @@ function LayoutPhotoOverlay({ copy, brandName, primary, bgImageUrl }: RenderCtx)
       {/* Content */}
       <div style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '80px' }}>
         <div style={{ display: 'flex', width: 56, height: 6, background: primary, marginBottom: 44 }} />
-        <div style={{ display: 'flex', fontSize: 82, fontFamily: 'BarlowCondensed', fontWeight: 900, color: '#ffffff', lineHeight: 1.05, textTransform: 'uppercase', maxWidth: 920, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', fontSize: 82, fontFamily: 'Display', fontWeight: 900, color: '#ffffff', lineHeight: 1.05, textTransform: 'uppercase', maxWidth: 920, flexWrap: 'wrap' }}>
           {text}
         </div>
       </div>
       {/* Brand name bottom */}
-      <div style={{ position: 'absolute', bottom: 80, left: 80, display: 'flex', fontSize: 22, fontFamily: 'Barlow', fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+      <div style={{ position: 'absolute', bottom: 80, left: 80, display: 'flex', fontSize: 22, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.5)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
         {brandName}
       </div>
       {/* Bottom accent strip */}
@@ -539,27 +543,27 @@ function LayoutPhotoSchedule({ copy, brandName, primary, bgImageUrl }: RenderCtx
         {/* Header */}
         <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 56 }}>
           <div style={{ display: 'flex', width: 56, height: 6, background: primary, marginBottom: 20 }} />
-          <div style={{ display: 'flex', fontSize: 80, fontFamily: 'BarlowCondensed', fontWeight: 900, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 0.9 }}>
+          <div style={{ display: 'flex', fontSize: 80, fontFamily: 'Display', fontWeight: 900, color: 'rgba(255,255,255,0.9)', textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 0.9 }}>
             NUESTRO
           </div>
-          <div style={{ display: 'flex', fontSize: 80, fontFamily: 'BarlowCondensed', fontWeight: 900, color: primary, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 0.9 }}>
+          <div style={{ display: 'flex', fontSize: 80, fontFamily: 'Display', fontWeight: 900, color: primary, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 0.9 }}>
             HORARIO
           </div>
         </div>
         {/* Schedule rows */}
         <div style={{ display: 'flex', flexDirection: 'column', flex: 1, gap: 2 }}>
           {rows.length === 0 ? (
-            <div style={{ display: 'flex', fontSize: 36, fontFamily: 'Barlow', color: 'rgba(255,255,255,0.5)' }}>Sin horario</div>
+            <div style={{ display: 'flex', fontSize: 36, fontFamily: 'Body', color: 'rgba(255,255,255,0.5)' }}>Sin horario</div>
           ) : rows.map((row, i) => {
             const parts = row.split(': ');
             const day   = parts[0] ?? row;
             const hours = parts[1] ?? '';
             return (
               <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: rowH, borderBottom: i < rows.length - 1 ? '1px solid rgba(255,255,255,0.15)' : 'none' }}>
-                <div style={{ display: 'flex', fontSize: Math.min(40, rowH * 0.38), fontFamily: 'BarlowCondensed', fontWeight: 900, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                <div style={{ display: 'flex', fontSize: Math.min(40, rowH * 0.38), fontFamily: 'Display', fontWeight: 900, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
                   {day}
                 </div>
-                <div style={{ display: 'flex', fontSize: Math.min(40, rowH * 0.38), fontFamily: 'Barlow', fontWeight: 700, color: primary }}>
+                <div style={{ display: 'flex', fontSize: Math.min(40, rowH * 0.38), fontFamily: 'Body', fontWeight: 700, color: primary }}>
                   {hours}
                 </div>
               </div>
@@ -567,7 +571,7 @@ function LayoutPhotoSchedule({ copy, brandName, primary, bgImageUrl }: RenderCtx
           })}
         </div>
         {/* Brand name */}
-        <div style={{ display: 'flex', marginTop: 40, fontSize: 22, fontFamily: 'Barlow', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+        <div style={{ display: 'flex', marginTop: 40, fontSize: 22, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
           {brandName}
         </div>
       </div>
@@ -606,7 +610,13 @@ export async function renderStory(params: {
   bgImageUrl?: string | null;
 }): Promise<ArrayBuffer> {
   const { idea, brand } = params;
-  const fonts  = await loadFonts();
+
+  // Resolve fonts from brand.fonts (falls back to defaults if null or unknown ids).
+  const brandFonts = (brand as unknown as { fonts?: { heading?: string; body?: string } | null }).fonts ?? null;
+  const displayFont = resolveFont(brandFonts?.heading, 'display');
+  const bodyFont    = resolveFont(brandFonts?.body,    'body');
+  const fonts  = await loadFonts(displayFont, bodyFont);
+
   const colors = (brand.colors as Record<string, string> | null) ?? {};
 
   // Pre-fetch background image as base64 data URI (satori requires data URIs for reliable cross-origin images)
@@ -645,8 +655,8 @@ export async function renderStory(params: {
     width:  W,
     height: H,
     fonts: [
-      { name: 'Barlow',           data: fonts.barlow,           weight: 700, style: 'normal' },
-      { name: 'BarlowCondensed',  data: fonts.barlowCondensed,  weight: 900, style: 'normal' },
+      { name: 'Display', data: fonts.display, weight: displayFont.weight as 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900, style: 'normal' },
+      { name: 'Body',    data: fonts.body,    weight: bodyFont.weight    as 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900, style: 'normal' },
     ],
   });
 
