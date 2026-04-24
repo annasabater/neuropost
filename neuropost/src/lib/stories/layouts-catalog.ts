@@ -1,40 +1,16 @@
 // =============================================================================
-// Phase 2 — Story layouts catalog
+// Phase 2 — Story layouts catalog (client-safe metadata)
 // =============================================================================
-// Replaces the string-keyed switch in render.tsx with a structured registry.
-// Each layout declares its render function plus metadata that the creative
-// director (Phase 3) uses to pick a layout based on story_type,
-// aesthetic_preset, and image availability — instead of hard-coded strings.
-
-import type { ReactElement } from 'react';
-import {
-  LayoutBanner,
-  LayoutCentered,
-  LayoutCompareSplit,
-  LayoutEditorialLargeTitle,
-  LayoutFlexible,
-  LayoutHero,
-  LayoutMinimal,
-  LayoutMinimalColorBlock,
-  LayoutOverlay,
-  LayoutPhotoCornerText,
-  LayoutPhotoFullbleedClean,
-  LayoutPhotoFullbleedWithProp,
-  LayoutPhotoGridSchedule,
-  LayoutPhotoOverlay,
-  LayoutPhotoSchedule,
-  LayoutPhotoSplitBottom,
-  LayoutPhotoSplitTop,
-  LayoutProductHeroCta,
-  LayoutQuoteEditorialSerif,
-  LayoutStat,
-  LayoutStatHighlightClean,
-  LayoutStoryNumberedSeries,
-  LayoutTable,
-  LayoutTagline,
-  LayoutUrgent,
-  type RenderCtx,
-} from './render';
+// Pure metadata for the layout catalog: no imports from render.tsx, no JSX, no
+// next/og. Safe to bundle in client components (e.g. LayoutsGallery).
+//
+// The server-side render dispatch lives in ./layouts-render-registry.ts, which
+// pairs each id with its LayoutXxx component. Consumers that need to execute a
+// render (API routes, workers) import from the registry, not from here.
+//
+// The creative director (Phase 3) reads this catalog to pick layouts based on
+// story_type, aesthetic_preset, image availability and pool source — it never
+// needs the render function.
 
 export type StoryType            = 'schedule' | 'promo' | 'quote' | 'data' | 'custom';
 export type AestheticPreset      = 'moody' | 'creativo' | 'editorial' | 'natural' | 'minimalista' | 'clasico' | 'luxury' | 'vintage';
@@ -46,7 +22,6 @@ export interface LayoutDefinition {
   id:                     string;
   name:                   string;
   description:            string;
-  render:                 (ctx: RenderCtx) => ReactElement;
   supportsImage:          boolean;
   requiresImage:          boolean;
   supportsSchedule:       boolean;
@@ -67,7 +42,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'centered',
     name:                   'Quote Clásica',
     description:            'Fondo color de marca, cita grande centrada en blanco.',
-    render:                 (ctx) => LayoutCentered(ctx),
     supportsImage:          false,
     requiresImage:          false,
     supportsSchedule:       false,
@@ -81,7 +55,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'minimal',
     name:                   'Quote Minimal',
     description:            'Fondo blanco con franja lateral en color de marca y tipografía condensada.',
-    render:                 (ctx) => LayoutMinimal(ctx),
     supportsImage:          false,
     requiresImage:          false,
     supportsSchedule:       false,
@@ -95,7 +68,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'table',
     name:                   'Horario Semanal',
     description:            'Tabla limpia de días y horas sobre fondo blanco.',
-    render:                 (ctx) => LayoutTable(ctx),
     supportsImage:          false,
     requiresImage:          false,
     supportsSchedule:       true,
@@ -109,7 +81,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'hero',
     name:                   'Horario Destacado',
     description:            'Día principal en grande sobre color de marca, resto del horario compacto debajo.',
-    render:                 (ctx) => LayoutHero(ctx),
     supportsImage:          false,
     requiresImage:          false,
     supportsSchedule:       true,
@@ -123,7 +94,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'banner',
     name:                   'Promo Banner',
     description:            'Mitad superior blanca con título de promo, mitad inferior en color de marca con CTA.',
-    render:                 (ctx) => LayoutBanner(ctx),
     supportsImage:          false,
     requiresImage:          false,
     supportsSchedule:       false,
@@ -137,7 +107,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'urgent',
     name:                   'Promo Urgente',
     description:            'Fondo oscuro dramático con título en color de marca y franjas de acento.',
-    render:                 (ctx) => LayoutUrgent(ctx),
     supportsImage:          false,
     requiresImage:          false,
     supportsSchedule:       false,
@@ -151,7 +120,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'stat',
     name:                   'Dato Destacado',
     description:            'Número o estadística enorme en color de marca, contexto corto debajo.',
-    render:                 (ctx) => LayoutStat(ctx),
     supportsImage:          false,
     requiresImage:          false,
     supportsSchedule:       false,
@@ -165,7 +133,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'tagline',
     name:                   'Lema de Marca',
     description:            'Fondo color de marca con lema grande centrado y divisor horizontal.',
-    render:                 (ctx) => LayoutTagline(ctx),
     supportsImage:          false,
     requiresImage:          false,
     supportsSchedule:       false,
@@ -179,7 +146,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'overlay',
     name:                   'Foto con Overlay',
     description:            'Color de marca con gradiente oscuro inferior y texto anclado abajo.',
-    render:                 (ctx) => LayoutOverlay(ctx),
     supportsImage:          false,
     requiresImage:          false,
     supportsSchedule:       false,
@@ -193,7 +159,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'flexible',
     name:                   'Contenido Libre',
     description:            'Fondo claro con borde lateral y contenido de texto flexible.',
-    render:                 (ctx) => LayoutFlexible(ctx),
     supportsImage:          false,
     requiresImage:          false,
     supportsSchedule:       false,
@@ -207,7 +172,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'photo_overlay',
     name:                   'Foto Full-Bleed',
     description:            'Foto de fondo a sangre con overlay oscuro y texto blanco grande encima.',
-    render:                 (ctx) => LayoutPhotoOverlay(ctx),
     supportsImage:          true,
     requiresImage:          true,
     supportsSchedule:       false,
@@ -221,7 +185,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'photo_schedule',
     name:                   'Horario sobre Foto',
     description:            'Foto de fondo con overlay oscuro y tabla de horarios blanca encima.',
-    render:                 (ctx) => LayoutPhotoSchedule(ctx),
     supportsImage:          true,
     requiresImage:          true,
     supportsSchedule:       true,
@@ -236,7 +199,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'photo_fullbleed_clean',
     name:                   'Foto Limpia',
     description:            'Foto a sangre sin texto ni overlay. Logo pequeño en esquina si existe.',
-    render:                 (ctx) => LayoutPhotoFullbleedClean(ctx),
     supportsImage:          true,
     requiresImage:          true,
     supportsSchedule:       false,
@@ -250,7 +212,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'photo_fullbleed_with_prop',
     name:                   'Foto con Prop',
     description:            'Foto a sangre con espacio reservado para props visuales (Fase 3). Renderiza igual que photo_fullbleed_clean mientras ctx.prop no exista.',
-    render:                 (ctx) => LayoutPhotoFullbleedWithProp(ctx),
     supportsImage:          true,
     requiresImage:          true,
     supportsSchedule:       false,
@@ -264,7 +225,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'photo_split_top',
     name:                   'Foto Split (Top)',
     description:            'Foto 60% arriba, bloque color de marca 40% abajo con copy en Display.',
-    render:                 (ctx) => LayoutPhotoSplitTop(ctx),
     supportsImage:          true,
     requiresImage:          true,
     supportsSchedule:       false,
@@ -278,7 +238,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'photo_split_bottom',
     name:                   'Foto Split (Bottom)',
     description:            'Bloque color de marca 40% arriba, foto 60% abajo.',
-    render:                 (ctx) => LayoutPhotoSplitBottom(ctx),
     supportsImage:          true,
     requiresImage:          true,
     supportsSchedule:       false,
@@ -292,7 +251,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'photo_corner_text',
     name:                   'Foto con Texto en Esquina',
     description:            'Foto a sangre con overlay según brand, copy grande en esquina inferior izquierda.',
-    render:                 (ctx) => LayoutPhotoCornerText(ctx),
     supportsImage:          true,
     requiresImage:          true,
     supportsSchedule:       false,
@@ -306,7 +264,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'photo_grid_schedule',
     name:                   'Horario Grid sobre Foto',
     description:            'Foto con overlay fuerte y grid DL-DG con fondo blanco semitransparente encima.',
-    render:                 (ctx) => LayoutPhotoGridSchedule(ctx),
     supportsImage:          true,
     requiresImage:          true,
     supportsSchedule:       true,
@@ -320,7 +277,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'editorial_large_title',
     name:                   'Título Editorial',
     description:            'Foto con overlay sutil y título tipográfico gigante arriba, subtítulo pequeño debajo.',
-    render:                 (ctx) => LayoutEditorialLargeTitle(ctx),
     supportsImage:          true,
     requiresImage:          true,
     supportsSchedule:       false,
@@ -334,7 +290,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'minimal_color_block',
     name:                   'Bloque Color Minimal',
     description:            'Bloque liso en color de marca con tipografía condensada enorme centrada.',
-    render:                 (ctx) => LayoutMinimalColorBlock(ctx),
     supportsImage:          false,
     requiresImage:          false,
     supportsSchedule:       false,
@@ -348,7 +303,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'stat_highlight_clean',
     name:                   'Dato Limpio',
     description:            'Fondo blanco, número gigante en primary y contexto corto debajo.',
-    render:                 (ctx) => LayoutStatHighlightClean(ctx),
     supportsImage:          false,
     requiresImage:          false,
     supportsSchedule:       false,
@@ -362,7 +316,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'quote_editorial_serif',
     name:                   'Cita Editorial',
     description:            'Cita grande centrada en Display serif sobre fondo crema, mucho aire.',
-    render:                 (ctx) => LayoutQuoteEditorialSerif(ctx),
     supportsImage:          false,
     requiresImage:          false,
     supportsSchedule:       false,
@@ -376,7 +329,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'product_hero_cta',
     name:                   'Producto con CTA',
     description:            'Foto a sangre, título arriba en Display y CTA en banda inferior con color de marca.',
-    render:                 (ctx) => LayoutProductHeroCta(ctx),
     supportsImage:          true,
     requiresImage:          true,
     supportsSchedule:       false,
@@ -390,7 +342,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'story_numbered_series',
     name:                   'Serie Numerada',
     description:            'Número grande tipo FAQ 01/02/03, título en Display y body abajo. Imagen opcional.',
-    render:                 (ctx) => LayoutStoryNumberedSeries(ctx),
     supportsImage:          true,
     requiresImage:          false,
     supportsSchedule:       false,
@@ -404,7 +355,6 @@ export const LAYOUT_CATALOG: LayoutDefinition[] = [
     id:                     'compare_split',
     name:                   'Comparativa Split',
     description:            'División vertical 50/50 en primary/secondary para comparar dos opciones.',
-    render:                 (ctx) => LayoutCompareSplit(ctx),
     supportsImage:          false,
     requiresImage:          false,
     supportsSchedule:       false,

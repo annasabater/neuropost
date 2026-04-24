@@ -14,6 +14,7 @@ import { ImageResponse } from 'next/og';
 import type { ContentIdea, Brand } from '@/types';
 import { resolveFont, type FontDefinition } from './fonts-catalog';
 import { getLayoutById } from './layouts-catalog';
+import { getRendererOrDefault } from './layouts-render-registry';
 
 // ─── Font cache ───────────────────────────────────────────────────────────────
 
@@ -1041,8 +1042,9 @@ export function LayoutCompareSplit({ copy, brandName, primary, secondary }: Rend
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
 function buildJSX(layoutName: string, ctx: RenderCtx): React.ReactElement {
-  const layout = getLayoutById(layoutName) ?? getLayoutById('centered')!;
-  return layout.render(ctx);
+  const layout = getLayoutById(layoutName) ?? getLayoutById('centered');
+  const renderer = getRendererOrDefault(layoutName, layout);
+  return renderer(ctx);
 }
 
 function resolveLayoutForRender(requestedLayout: string, hasImage: boolean): string {

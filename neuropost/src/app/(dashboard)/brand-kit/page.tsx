@@ -9,11 +9,12 @@ import { calculateBrandHealth }                  from '@/lib/brand/health-score'
 import { labelPlan }                             from '@/lib/brand/labels';
 import type { Brand }                            from '@/types';
 
-import { BrandKitHeader }       from '@/components/brand-kit/BrandKitHeader';
-import { BrandHealthScore }     from '@/components/brand-kit/BrandHealthScore';
-import { MaterialDeMarcaHero }  from '@/components/brand-kit/MaterialDeMarcaHero';
-import { BrandKitSummaryGrid }  from '@/components/brand-kit/BrandKitSummaryGrid';
-import { BrandKitEditor }       from '@/components/brand-kit/BrandKitEditor';
+import { BrandKitHeader }         from '@/components/brand-kit/BrandKitHeader';
+import { BrandHealthScore }       from '@/components/brand-kit/BrandHealthScore';
+import { MaterialDeMarcaHero }    from '@/components/brand-kit/MaterialDeMarcaHero';
+import { BrandKitSummaryGrid }    from '@/components/brand-kit/BrandKitSummaryGrid';
+import { BrandKitEditor }         from '@/components/brand-kit/BrandKitEditor';
+import { LayoutsGallerySection }  from '@/components/brand-kit/LayoutsGallerySection';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type DB = any;
@@ -84,6 +85,10 @@ export default async function BrandKitPage() {
       <BrandKitSummaryGrid
         brand={typedBrand}
         contentRulesCount={contentRulesCount}
+      />
+      <LayoutsGallerySection
+        brandId={typedBrand.id}
+        hasAestheticConfigured={Boolean((typedBrand as unknown as Record<string, unknown>).aesthetic_preset)}
       />
       <Suspense fallback={null}>
         <BrandKitEditor />
