@@ -1,0 +1,33 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/20aa42ad006e.jpg",
+  "parsed": {
+    "content": "Modern fitness studio with arched mirrors and exercise balls",
+    "composition_type": "wide",
+    "quality": {
+      "lighting": 5,
+      "sharpness": 5,
+      "framing": 5
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "minimal",
+      "bright",
+      "editorial",
+      "warm"
+    ],
+    "dominant_colors": [
+      "#E8DCC8",
+      "#000000",
+      "#F5F1E8"
+    ],
+    "notes": "Sleek wellness space with sculptural lighting and geometric layout design."
+  },
+  "raw": "```json\n{\n  \"content\": \"Modern fitness studio with arched mirrors and exercise balls\",\n  \"composition_type\": \"wide\",\n  \"quality\": {\"lighting\": 5, \"sharpness\": 5, \"framing\": 5},\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\"minimal\", \"bright\", \"editorial\", \"warm\"],\n  \"dominant_colors\": [\"#E8DCC8\", \"#000000\", \"#F5F1E8\"],\n  \"notes\": \"Sleek wellness space with sculptural lighting and geometric layout design.\"\n}\n```",
+  "usage": {
+    "in": 1365,
+    "out": 150
+  },
+  "elapsed": 2.898,
+  "cost": 0.0021149999999999997
+}

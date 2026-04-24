@@ -1,0 +1,33 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/c375b5d77c12.jpg",
+  "parsed": {
+    "content": "Modern fitness studio with equipment display",
+    "composition_type": "wide",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 4,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "minimal",
+      "editorial",
+      "bright",
+      "warm"
+    ],
+    "dominant_colors": [
+      "#D4C5B9",
+      "#1A1A1A",
+      "#E8D5C4"
+    ],
+    "notes": "Curated fitness studio with organized props and warm ambient lighting creates aspirational wellness aesthetic."
+  },
+  "raw": "```json\n{\n  \"content\": \"Modern fitness studio with equipment display\",\n  \"composition_type\": \"wide\",\n  \"quality\": {\n    \"lighting\": 4,\n    \"sharpness\": 4,\n    \"framing\": 4\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\"minimal\", \"editorial\", \"bright\", \"warm\"],\n  \"dominant_colors\": [\"#D4C5B9\", \"#1A1A1A\", \"#E8D5C4\"],\n  \"notes\": \"Curated fitness studio with organized props and warm ambient lighting creates aspirational wellness aesthetic.\"\n}\n```",
+  "usage": {
+    "in": 1365,
+    "out": 164
+  },
+  "elapsed": 2.017,
+  "cost": 0.002185
+}

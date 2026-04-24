@@ -1,0 +1,76 @@
+{
+  "prompt": "Improve the lighting, increase sharpness and contrast slightly, correct white balance toward neutral. Keep the subject, objects, framing, and composition IDENTICAL to the original. No new elements, no style transfer. Professional photograph quality.",
+  "run_at": "2026-04-24T11:09:45.183Z",
+  "total_cost_usd_est": 0.12,
+  "results": [
+    {
+      "sample": "01-piscina-good",
+      "model": "flux-kontext-pro",
+      "elapsed_sec": 10.838,
+      "cost_usd_est": 0.04,
+      "output_url": "https://replicate.delivery/xezq/Ifea5Pq497uauEWzuu6RrQ8oNfxO3f4oBtLS8uf7sfNyWBknF/tmpldxwwflt.jpg",
+      "output_local": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/camino2/01-piscina-good/flux-kontext-pro.jpg",
+      "bytes": 524971
+    },
+    {
+      "sample": "01-piscina-good",
+      "model": "clarity-upscaler",
+      "elapsed_sec": 0,
+      "cost_usd_est": 0.05,
+      "error": "fal.ai fal-ai/clarity-upscaler submit failed: 403 {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}"
+    },
+    {
+      "sample": "01-piscina-good",
+      "model": "aura-sr",
+      "elapsed_sec": 0,
+      "cost_usd_est": 0.02,
+      "error": "fal.ai fal-ai/aura-sr submit failed: 403 {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}"
+    },
+    {
+      "sample": "02-gym-medium",
+      "model": "flux-kontext-pro",
+      "elapsed_sec": 12.875,
+      "cost_usd_est": 0.04,
+      "output_url": "https://replicate.delivery/xezq/823jaqHgDUb5NFthhcxdkG5gG3qaCyNpJepjP2KMQnd0CIPLA/tmp7826bn3u.jpg",
+      "output_local": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/camino2/02-gym-medium/flux-kontext-pro.jpg",
+      "bytes": 400906
+    },
+    {
+      "sample": "02-gym-medium",
+      "model": "clarity-upscaler",
+      "elapsed_sec": 0,
+      "cost_usd_est": 0.05,
+      "error": "fal.ai fal-ai/clarity-upscaler submit failed: 403 {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}"
+    },
+    {
+      "sample": "02-gym-medium",
+      "model": "aura-sr",
+      "elapsed_sec": 0,
+      "cost_usd_est": 0.02,
+      "error": "fal.ai fal-ai/aura-sr submit failed: 403 {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}"
+    },
+    {
+      "sample": "03-funcional-low",
+      "model": "flux-kontext-pro",
+      "elapsed_sec": 12.91,
+      "cost_usd_est": 0.04,
+      "output_url": "https://replicate.delivery/xezq/N02FthMTvtZeGqeJ3LFau9UECDDo7pEeQN2ZdUnhN7ntLg8sA/tmplrkiqnur.jpg",
+      "output_local": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/camino2/03-funcional-low/flux-kontext-pro.jpg",
+      "bytes": 400146
+    },
+    {
+      "sample": "03-funcional-low",
+      "model": "clarity-upscaler",
+      "elapsed_sec": 0,
+      "cost_usd_est": 0.05,
+      "error": "fal.ai fal-ai/clarity-upscaler submit failed: 403 {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}"
+    },
+    {
+      "sample": "03-funcional-low",
+      "model": "aura-sr",
+      "elapsed_sec": 0,
+      "cost_usd_est": 0.02,
+      "error": "fal.ai fal-ai/aura-sr submit failed: 403 {\"detail\":\"User is locked. Reason: Exhausted balance. Top up your balance at fal.ai/dashboard/billing.\"}"
+    }
+  ]
+}

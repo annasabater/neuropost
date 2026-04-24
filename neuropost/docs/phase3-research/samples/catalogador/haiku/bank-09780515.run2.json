@@ -1,0 +1,32 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/002675cd5b54.jpg",
+  "parsed": {
+    "content": "Vertical wine bottle collection arrangement display",
+    "composition_type": "cenital",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 4,
+      "framing": 5
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "editorial",
+      "minimal",
+      "bright"
+    ],
+    "dominant_colors": [
+      "#2D1B15",
+      "#8B7355",
+      "#E8DCC4"
+    ],
+    "notes": "Curated wine collection neatly stacked in linear formation against neutral background."
+  },
+  "raw": "```json\n{\n  \"content\": \"Vertical wine bottle collection arrangement display\",\n  \"composition_type\": \"cenital\",\n  \"quality\": {\n    \"lighting\": 4,\n    \"sharpness\": 4,\n    \"framing\": 5\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\n    \"editorial\",\n    \"minimal\",\n    \"bright\"\n  ],\n  \"dominant_colors\": [\n    \"#2D1B15\",\n    \"#8B7355\",\n    \"#E8DCC4\"\n  ],\n  \"notes\": \"Curated wine collection neatly stacked in linear formation against neutral background.\"\n}\n```",
+  "usage": {
+    "in": 1284,
+    "out": 177
+  },
+  "elapsed": 1.903,
+  "cost": 0.002169
+}

@@ -1,0 +1,32 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/posts/phase3-research/originals/02-gym-medium.jpg",
+  "parsed": {
+    "content": "Modern gym with dumbbells and fitness equipment",
+    "composition_type": "close_up",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 3,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "bright",
+      "editorial",
+      "busy"
+    ],
+    "dominant_colors": [
+      "#1a1a1a",
+      "#7d7d7d",
+      "#f5f5f5"
+    ],
+    "notes": "Professional gym interior with sharp focus on dumbbell rack in foreground."
+  },
+  "raw": "```json\n{\n  \"content\": \"Modern gym with dumbbells and fitness equipment\",\n  \"composition_type\": \"close_up\",\n  \"quality\": {\n    \"lighting\": 4,\n    \"sharpness\": 3,\n    \"framing\": 4\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\"bright\", \"editorial\", \"busy\"],\n  \"dominant_colors\": [\"#1a1a1a\", \"#7d7d7d\", \"#f5f5f5\"],\n  \"notes\": \"Professional gym interior with sharp focus on dumbbell rack in foreground.\"\n}\n```",
+  "usage": {
+    "in": 1929,
+    "out": 163
+  },
+  "elapsed": 1.841,
+  "cost": 0.002744
+}

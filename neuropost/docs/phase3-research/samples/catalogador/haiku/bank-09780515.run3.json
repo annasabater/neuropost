@@ -1,0 +1,32 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/002675cd5b54.jpg",
+  "parsed": {
+    "content": "Collection of wine bottles arranged vertically",
+    "composition_type": "cenital",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 4,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "editorial",
+      "minimal",
+      "warm"
+    ],
+    "dominant_colors": [
+      "#1a1a1a",
+      "#2d5016",
+      "#8b4513"
+    ],
+    "notes": "Neat vertical wine bottle lineup on neutral background, professionally curated."
+  },
+  "raw": "```json\n{\n  \"content\": \"Collection of wine bottles arranged vertically\",\n  \"composition_type\": \"cenital\",\n  \"quality\": {\"lighting\": 4, \"sharpness\": 4, \"framing\": 4},\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\"editorial\", \"minimal\", \"warm\"],\n  \"dominant_colors\": [\"#1a1a1a\", \"#2d5016\", \"#8b4513\"],\n  \"notes\": \"Neat vertical wine bottle lineup on neutral background, professionally curated.\"\n}\n```",
+  "usage": {
+    "in": 1284,
+    "out": 146
+  },
+  "elapsed": 1.919,
+  "cost": 0.002014
+}

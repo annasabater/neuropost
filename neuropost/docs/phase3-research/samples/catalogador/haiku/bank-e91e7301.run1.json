@@ -1,0 +1,33 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/20aa42ad006e.jpg",
+  "parsed": {
+    "content": "Modern fitness studio with arched mirrors and exercise balls",
+    "composition_type": "wide",
+    "quality": {
+      "lighting": 5,
+      "sharpness": 5,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "minimal",
+      "bright",
+      "editorial",
+      "cold"
+    ],
+    "dominant_colors": [
+      "#E8E4D9",
+      "#1A1A1A",
+      "#D4AF37"
+    ],
+    "notes": "Contemporary wellness space with sculptural mirrors and intentional exercise setup design."
+  },
+  "raw": "```json\n{\n  \"content\": \"Modern fitness studio with arched mirrors and exercise balls\",\n  \"composition_type\": \"wide\",\n  \"quality\": {\n    \"lighting\": 5,\n    \"sharpness\": 5,\n    \"framing\": 4\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\n    \"minimal\",\n    \"bright\",\n    \"editorial\",\n    \"cold\"\n  ],\n  \"dominant_colors\": [\n    \"#E8E4D9\",\n    \"#1A1A1A\",\n    \"#D4AF37\"\n  ],\n  \"notes\": \"Contemporary wellness space with sculptural mirrors and intentional exercise setup design.\"\n}\n```",
+  "usage": {
+    "in": 1365,
+    "out": 183
+  },
+  "elapsed": 3.231,
+  "cost": 0.00228
+}

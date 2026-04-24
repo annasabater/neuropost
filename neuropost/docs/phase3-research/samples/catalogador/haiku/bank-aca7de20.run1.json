@@ -1,0 +1,32 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/7633541d8706.jpg",
+  "parsed": {
+    "content": "Stanley tumbler and sneakers in wooden cabinet",
+    "composition_type": "frontal",
+    "quality": {
+      "lighting": 3,
+      "sharpness": 4,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "minimal",
+      "editorial",
+      "warm"
+    ],
+    "dominant_colors": [
+      "#F5F1E8",
+      "#1A1A1A",
+      "#8B6F47"
+    ],
+    "notes": "Lifestyle flat lay with branded drinkware and athletic shoes in organized shelving."
+  },
+  "raw": "```json\n{\n  \"content\": \"Stanley tumbler and sneakers in wooden cabinet\",\n  \"composition_type\": \"frontal\",\n  \"quality\": {\n    \"lighting\": 3,\n    \"sharpness\": 4,\n    \"framing\": 4\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\n    \"minimal\",\n    \"editorial\",\n    \"warm\"\n  ],\n  \"dominant_colors\": [\n    \"#F5F1E8\",\n    \"#1A1A1A\",\n    \"#8B6F47\"\n  ],\n  \"notes\": \"Lifestyle flat lay with branded drinkware and athletic shoes in organized shelving.\"\n}\n```",
+  "usage": {
+    "in": 1468,
+    "out": 182
+  },
+  "elapsed": 3.739,
+  "cost": 0.002378
+}

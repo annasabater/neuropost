@@ -1,0 +1,42 @@
+[
+  {
+    "key": "01-piscina-good",
+    "description": "Indoor swimming pool, wide shot, professional architectural lighting. Clear subject, clean composition. Represents a \"pool photo in good condition\".",
+    "quality": "good",
+    "sourceUrl": "https://images.unsplash.com/photo-1530549387789-4c1017266635?w=1600&q=80&auto=format&fit=crop",
+    "credit": "Photo by Val Tievsky on Unsplash",
+    "localPath": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/originals/01-piscina-good.jpg",
+    "publicUrl": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/posts/phase3-research/originals/01-piscina-good.jpg",
+    "bytes": 354035
+  },
+  {
+    "key": "02-gym-medium",
+    "description": "Gym interior with weight machines, mixed natural+artificial light. Medium quality: subject readable but lighting uneven.",
+    "quality": "medium",
+    "sourceUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=1600&q=80&auto=format&fit=crop",
+    "credit": "Photo by Danielle Cerullo on Unsplash",
+    "localPath": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/originals/02-gym-medium.jpg",
+    "publicUrl": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/posts/phase3-research/originals/02-gym-medium.jpg",
+    "bytes": 266846
+  },
+  {
+    "key": "03-funcional-low",
+    "description": "Crossfit / functional training zone, shot from floor level, slightly motion-blurred, phone-style framing. Low quality baseline for Camino 2 stress test.",
+    "quality": "low",
+    "sourceUrl": "https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=1600&q=80&auto=format&fit=crop",
+    "credit": "Photo by John Arano on Unsplash",
+    "localPath": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/originals/03-funcional-low.jpg",
+    "publicUrl": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/posts/phase3-research/originals/03-funcional-low.jpg",
+    "bytes": 301816
+  },
+  {
+    "key": "04-burger-low",
+    "description": "Cheeseburger close-up, casual restaurant lighting, phone-style shot. Represents the \"client sends burger photo via WhatsApp\" scenario for Camino 3.",
+    "quality": "low",
+    "sourceUrl": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1600&q=80&auto=format&fit=crop",
+    "credit": "Photo by Mae Mu on Unsplash",
+    "localPath": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/originals/04-burger-low.jpg",
+    "publicUrl": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/posts/phase3-research/originals/04-burger-low.jpg",
+    "bytes": 240826
+  }
+]

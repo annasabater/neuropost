@@ -1,0 +1,32 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/6f4caa01bc46.jpg",
+  "parsed": {
+    "content": "Vibrant breakfast plate with avocado toast and eggs",
+    "composition_type": "cenital",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 5,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "bright",
+      "playful",
+      "editorial"
+    ],
+    "dominant_colors": [
+      "#FFD700",
+      "#2ECC71",
+      "#FFFFFF"
+    ],
+    "notes": "Overhead shot of a colorful, well-composed breakfast with fresh fruits and eggs."
+  },
+  "raw": "```json\n{\n  \"content\": \"Vibrant breakfast plate with avocado toast and eggs\",\n  \"composition_type\": \"cenital\",\n  \"quality\": {\n    \"lighting\": 4,\n    \"sharpness\": 5,\n    \"framing\": 4\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\"bright\", \"playful\", \"editorial\"],\n  \"dominant_colors\": [\"#FFD700\", \"#2ECC71\", \"#FFFFFF\"],\n  \"notes\": \"Overhead shot of a colorful, well-composed breakfast with fresh fruits and eggs.\"\n}\n```",
+  "usage": {
+    "in": 1365,
+    "out": 160
+  },
+  "elapsed": 3.565,
+  "cost": 0.002165
+}

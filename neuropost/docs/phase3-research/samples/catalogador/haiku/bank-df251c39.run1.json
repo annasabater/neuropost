@@ -1,0 +1,32 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/c4dc42d26441.jpg",
+  "parsed": {
+    "content": "Runner's legs in motion on dark asphalt",
+    "composition_type": "close_up",
+    "quality": {
+      "lighting": 2,
+      "sharpness": 2,
+      "framing": 3
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "documentary",
+      "moody",
+      "editorial"
+    ],
+    "dominant_colors": [
+      "#2a2a2a",
+      "#8b8b8b",
+      "#ffffff"
+    ],
+    "notes": "Dynamic motion blur captures athletic movement with energetic intensity."
+  },
+  "raw": "```json\n{\n  \"content\": \"Runner's legs in motion on dark asphalt\",\n  \"composition_type\": \"close_up\",\n  \"quality\": {\n    \"lighting\": 2,\n    \"sharpness\": 2,\n    \"framing\": 3\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\n    \"documentary\",\n    \"moody\",\n    \"editorial\"\n  ],\n  \"dominant_colors\": [\n    \"#2a2a2a\",\n    \"#8b8b8b\",\n    \"#ffffff\"\n  ],\n  \"notes\": \"Dynamic motion blur captures athletic movement with energetic intensity.\"\n}\n```",
+  "usage": {
+    "in": 1468,
+    "out": 175
+  },
+  "elapsed": 3.277,
+  "cost": 0.002343
+}

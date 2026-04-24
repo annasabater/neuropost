@@ -1,0 +1,32 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/c4dc42d26441.jpg",
+  "parsed": {
+    "content": "Runner's legs in motion on asphalt",
+    "composition_type": "close_up",
+    "quality": {
+      "lighting": 3,
+      "sharpness": 2,
+      "framing": 3
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "documentary",
+      "editorial",
+      "moody"
+    ],
+    "dominant_colors": [
+      "#2a2a2a",
+      "#808080",
+      "#ffffff"
+    ],
+    "notes": "Motion blur captures dynamic running energy in monochromatic aesthetic."
+  },
+  "raw": "```json\n{\n  \"content\": \"Runner's legs in motion on asphalt\",\n  \"composition_type\": \"close_up\",\n  \"quality\": {\n    \"lighting\": 3,\n    \"sharpness\": 2,\n    \"framing\": 3\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\"documentary\", \"editorial\", \"moody\"],\n  \"dominant_colors\": [\"#2a2a2a\", \"#808080\", \"#ffffff\"],\n  \"notes\": \"Motion blur captures dynamic running energy in monochromatic aesthetic.\"\n}\n```",
+  "usage": {
+    "in": 1468,
+    "out": 153
+  },
+  "elapsed": 2.457,
+  "cost": 0.0022329999999999997
+}

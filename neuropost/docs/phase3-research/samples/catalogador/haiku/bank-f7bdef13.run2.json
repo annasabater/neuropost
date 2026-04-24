@@ -1,0 +1,33 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/c375b5d77c12.jpg",
+  "parsed": {
+    "content": "Modern fitness studio with equipment display",
+    "composition_type": "wide",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 4,
+      "framing": 4
+    },
+    "recontextualizable": false,
+    "stands_alone": true,
+    "style_tags": [
+      "minimal",
+      "editorial",
+      "bright",
+      "warm"
+    ],
+    "dominant_colors": [
+      "#D4C5B9",
+      "#1A1A1A",
+      "#E8D7C3"
+    ],
+    "notes": "Curated wellness space with organized fitness equipment and warm ambient lighting."
+  },
+  "raw": "```json\n{\n  \"content\": \"Modern fitness studio with equipment display\",\n  \"composition_type\": \"wide\",\n  \"quality\": {\n    \"lighting\": 4,\n    \"sharpness\": 4,\n    \"framing\": 4\n  },\n  \"recontextualizable\": false,\n  \"stands_alone\": true,\n  \"style_tags\": [\"minimal\", \"editorial\", \"bright\", \"warm\"],\n  \"dominant_colors\": [\"#D4C5B9\", \"#1A1A1A\", \"#E8D7C3\"],\n  \"notes\": \"Curated wellness space with organized fitness equipment and warm ambient lighting.\"\n}\n```",
+  "usage": {
+    "in": 1365,
+    "out": 160
+  },
+  "elapsed": 3.382,
+  "cost": 0.002165
+}

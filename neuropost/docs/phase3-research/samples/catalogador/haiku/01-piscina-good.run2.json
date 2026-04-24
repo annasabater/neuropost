@@ -1,0 +1,33 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/posts/phase3-research/originals/01-piscina-good.jpg",
+  "parsed": {
+    "content": "Competitive swimmer performing butterfly stroke",
+    "composition_type": "frontal",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 4,
+      "framing": 5
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "cold",
+      "bright",
+      "editorial",
+      "documentary"
+    ],
+    "dominant_colors": [
+      "#0066CC",
+      "#00BFFF",
+      "#1A1A1A"
+    ],
+    "notes": "Dynamic action shot of athlete mid-stroke with dramatic water spray and lane dividers."
+  },
+  "raw": "```json\n{\n  \"content\": \"Competitive swimmer performing butterfly stroke\",\n  \"composition_type\": \"frontal\",\n  \"quality\": {\n    \"lighting\": 4,\n    \"sharpness\": 4,\n    \"framing\": 5\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\n    \"cold\",\n    \"bright\",\n    \"editorial\",\n    \"documentary\"\n  ],\n  \"dominant_colors\": [\n    \"#0066CC\",\n    \"#00BFFF\",\n    \"#1A1A1A\"\n  ],\n  \"notes\": \"Dynamic action shot of athlete mid-stroke with dramatic water spray and lane dividers.\"\n}\n```",
+  "usage": {
+    "in": 1929,
+    "out": 181
+  },
+  "elapsed": 2.169,
+  "cost": 0.002834
+}

@@ -1,0 +1,33 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/6f4caa01bc46.jpg",
+  "parsed": {
+    "content": "Healthy breakfast plate with avocado toast and eggs",
+    "composition_type": "cenital",
+    "quality": {
+      "lighting": 5,
+      "sharpness": 5,
+      "framing": 5
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "bright",
+      "editorial",
+      "playful",
+      "warm"
+    ],
+    "dominant_colors": [
+      "#FFFFFF",
+      "#FFD700",
+      "#90EE90"
+    ],
+    "notes": "Vibrant, flat-lay breakfast bowl with eggs, avocado toast, and colorful fresh fruits arranged artfully."
+  },
+  "raw": "```json\n{\n  \"content\": \"Healthy breakfast plate with avocado toast and eggs\",\n  \"composition_type\": \"cenital\",\n  \"quality\": {\n    \"lighting\": 5,\n    \"sharpness\": 5,\n    \"framing\": 5\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\n    \"bright\",\n    \"editorial\",\n    \"playful\",\n    \"warm\"\n  ],\n  \"dominant_colors\": [\n    \"#FFFFFF\",\n    \"#FFD700\",\n    \"#90EE90\"\n  ],\n  \"notes\": \"Vibrant, flat-lay breakfast bowl with eggs, avocado toast, and colorful fresh fruits arranged artfully.\"\n}\n```",
+  "usage": {
+    "in": 1365,
+    "out": 191
+  },
+  "elapsed": 2.557,
+  "cost": 0.00232
+}

@@ -1,0 +1,32 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/c375b5d77c12.jpg",
+  "parsed": {
+    "content": "Modern fitness studio with equipment storage",
+    "composition_type": "three_quarters",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 4,
+      "framing": 4
+    },
+    "recontextualizable": false,
+    "stands_alone": true,
+    "style_tags": [
+      "warm",
+      "minimal",
+      "editorial"
+    ],
+    "dominant_colors": [
+      "#D4C4A8",
+      "#2C2C2C",
+      "#F5F1E8"
+    ],
+    "notes": "Clean architectural fitness space with organized equipment display and warm ambient lighting."
+  },
+  "raw": "{\n  \"content\": \"Modern fitness studio with equipment storage\",\n  \"composition_type\": \"three_quarters\",\n  \"quality\": { \"lighting\": 4, \"sharpness\": 4, \"framing\": 4 },\n  \"recontextualizable\": false,\n  \"stands_alone\": true,\n  \"style_tags\": [\"warm\", \"minimal\", \"editorial\"],\n  \"dominant_colors\": [\"#D4C4A8\", \"#2C2C2C\", \"#F5F1E8\"],\n  \"notes\": \"Clean architectural fitness space with organized equipment display and warm ambient lighting.\"\n}",
+  "usage": {
+    "in": 1365,
+    "out": 146
+  },
+  "elapsed": 3.638,
+  "cost": 0.006285
+}

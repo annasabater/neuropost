@@ -1,0 +1,127 @@
+{
+  "run_at": "2026-04-24T11:14:32.103Z",
+  "total_cost_usd_est": 0.4099999999999999,
+  "results": [
+    {
+      "sample": "pool",
+      "treatment": "t1-editorial",
+      "model": "flux-kontext-pro",
+      "elapsed_sec": 11.095,
+      "cost_usd_est": 0.04,
+      "output_url": "https://replicate.delivery/xezq/qQOlxTkK12YGO5zamsHwnJbNkSzZQBzari4QYcNkTCgCCknF/tmpun62th3y.jpg",
+      "output_local": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/camino3/pool-t1-editorial/flux-kontext-pro.jpg",
+      "bytes": 391487,
+      "prompt": "Same indoor swimming pool, same swimmer, same lane ropes, same tiles. Change lighting to warm natural daylight from a side window, shallow depth of field, editorial magazine style, clean and cinematic. Keep the subject identity and framing."
+    },
+    {
+      "sample": "pool",
+      "treatment": "t2-moody",
+      "model": "flux-kontext-pro",
+      "elapsed_sec": 10.72,
+      "cost_usd_est": 0.04,
+      "output_url": "https://replicate.delivery/xezq/HC48q1y9xzK3Kppg0MJP6P8Q0oeuIkyW3yJnvZfD6xWUIQesA/tmp76lvz4ve.jpg",
+      "output_local": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/camino3/pool-t2-moody/flux-kontext-pro.jpg",
+      "bytes": 337254,
+      "prompt": "Same indoor swimming pool and same swimmer, same lane ropes and pool tiles. Moody dramatic lighting, dark blue tones, high contrast shadows, cinematic colour grading, misty atmosphere. Same composition and subject identity."
+    },
+    {
+      "sample": "pool",
+      "treatment": "t3-studio-pop",
+      "model": "flux-kontext-pro",
+      "elapsed_sec": 10.946,
+      "cost_usd_est": 0.04,
+      "output_url": "https://replicate.delivery/xezq/VEWwwJWjqeyZRKzSAusGghpGVefoUPqctuuHEZAwfSHCiA5ZB/tmpj6nqg8wg.jpg",
+      "output_local": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/camino3/pool-t3-studio-pop/flux-kontext-pro.jpg",
+      "bytes": 202639,
+      "prompt": "Same pool subject and swimmer, same lane ropes colours. Replace the surrounding environment with a clean studio setting, bright white/vibrant cyan background, pop editorial aesthetic, crisp details. Same subject identity."
+    },
+    {
+      "sample": "pool",
+      "treatment": "t1-editorial",
+      "model": "flux-redux-dev",
+      "elapsed_sec": 17.942,
+      "cost_usd_est": 0.03,
+      "output_url": "https://replicate.delivery/yhqm/rghWGk6GYG5kBxVuWTGYxcXXisryBf1iHnOB9rYlocgZEIPLA/out-0.jpg",
+      "output_local": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/camino3/pool-t1-editorial/flux-redux-dev.jpg",
+      "bytes": 136853,
+      "prompt": "Same indoor swimming pool, same swimmer, same lane ropes, same tiles. Change lighting to warm natural daylight from a side window, shallow depth of field, editorial magazine style, clean and cinematic. Keep the subject identity and framing."
+    },
+    {
+      "sample": "pool",
+      "treatment": "t2-moody",
+      "model": "flux-redux-dev",
+      "elapsed_sec": 17.557,
+      "cost_usd_est": 0.03,
+      "output_url": "https://replicate.delivery/yhqm/3RaTThICqIKeSyZjzeME1XgQlzH80HgpSWyFmwMNvMKEJQesA/out-0.jpg",
+      "output_local": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/camino3/pool-t2-moody/flux-redux-dev.jpg",
+      "bytes": 141094,
+      "prompt": "Same indoor swimming pool and same swimmer, same lane ropes and pool tiles. Moody dramatic lighting, dark blue tones, high contrast shadows, cinematic colour grading, misty atmosphere. Same composition and subject identity."
+    },
+    {
+      "sample": "pool",
+      "treatment": "t3-studio-pop",
+      "model": "flux-redux-dev",
+      "elapsed_sec": 17.716,
+      "cost_usd_est": 0.03,
+      "output_url": "https://replicate.delivery/yhqm/cA4tUQB3m2JeZaKfBnQI9rl36SnPfKFonbsXCQKUednVlA5ZB/out-0.jpg",
+      "output_local": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/camino3/pool-t3-studio-pop/flux-redux-dev.jpg",
+      "bytes": 148215,
+      "prompt": "Same pool subject and swimmer, same lane ropes colours. Replace the surrounding environment with a clean studio setting, bright white/vibrant cyan background, pop editorial aesthetic, crisp details. Same subject identity."
+    },
+    {
+      "sample": "burger",
+      "treatment": "t1-pink-flat",
+      "model": "flux-kontext-pro",
+      "elapsed_sec": 12.904,
+      "cost_usd_est": 0.04,
+      "output_url": "https://replicate.delivery/xezq/XRythHha0o7dJhkteCfCrkPAp4dnaNBRQfK4ifD5fUykMByzC/tmppc4ewee4.jpg",
+      "output_local": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/camino3/burger-t1-pink-flat/flux-kontext-pro.jpg",
+      "bytes": 313824,
+      "prompt": "The same cheeseburger with the identical bun, patty, cheese and lettuce arrangement. Photograph it on a flat solid hot-pink background, top-down, studio lighting, bold pop-art minimalism. Product identity unchanged."
+    },
+    {
+      "sample": "burger",
+      "treatment": "t2-ingredients-floating",
+      "model": "flux-kontext-pro",
+      "elapsed_sec": 12.888,
+      "cost_usd_est": 0.04,
+      "output_url": "https://replicate.delivery/xezq/tGPP1Dye1OwpIadodkcMWxwzT4ZlPhgA5diiXzI2vYewJQesA/tmp37r548ky.jpg",
+      "output_local": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/camino3/burger-t2-ingredients-floating/flux-kontext-pro.jpg",
+      "bytes": 252091,
+      "prompt": "The same cheeseburger with identical bun, patty, cheese, lettuce. Compose it in mid-air with its raw ingredients floating around it (tomato slice, onion ring, sesame seeds, cheddar slice). Clean white studio backdrop, hard studio light, sharp focus. Product identity unchanged."
+    },
+    {
+      "sample": "burger",
+      "treatment": "t3-macro",
+      "model": "flux-kontext-pro",
+      "elapsed_sec": 10.72,
+      "cost_usd_est": 0.04,
+      "output_url": "https://replicate.delivery/xezq/6ilDVD0eypWsDartT3eLZb1yqu1ubvhD7PxxVdtFy3Y9JQesA/tmp4gabdiqi.jpg",
+      "output_local": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/camino3/burger-t3-macro/flux-kontext-pro.jpg",
+      "bytes": 424855,
+      "prompt": "Extreme macro close-up of the same cheeseburger. Focus on the juicy patty texture, melted cheddar drip, sesame seeds on bun. Warm diffused light, shallow depth of field, commercial food photography style. Product identity unchanged."
+    },
+    {
+      "sample": "burger",
+      "treatment": "t4-editorial-moody",
+      "model": "flux-kontext-pro",
+      "elapsed_sec": 12.961,
+      "cost_usd_est": 0.04,
+      "output_url": "https://replicate.delivery/xezq/R1hSFqs6JjIQFdfnOL5sBPUfrJmoWzGl2gsxYc3omNRKKQesA/tmpdxsp_xvo.jpg",
+      "output_local": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/camino3/burger-t4-editorial-moody/flux-kontext-pro.jpg",
+      "bytes": 249013,
+      "prompt": "The same cheeseburger on a dark wooden board with rustic props (knife, linen napkin, small bowl of sauce). Moody chiaroscuro lighting, single window light, editorial food magazine. Product identity unchanged."
+    },
+    {
+      "sample": "burger",
+      "treatment": "t5-fresh-natural",
+      "model": "flux-kontext-pro",
+      "elapsed_sec": 11.048,
+      "cost_usd_est": 0.04,
+      "output_url": "https://replicate.delivery/xezq/sclB3QkicSJmIhmfWlUfx5UZLjIhUzjXf3jXWNfOdhQUpA5ZB/tmpvycxpa2e.jpg",
+      "output_local": "/Users/annasabater/Desktop/Proyecto_1/neuropost/docs/phase3-research/samples/camino3/burger-t5-fresh-natural/flux-kontext-pro.jpg",
+      "bytes": 400149,
+      "prompt": "The same cheeseburger on a wooden tray outdoors, sunny daylight, fresh greenery in the background, picnic context. Authentic documentary food photography, warm colours. Product identity unchanged."
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/telegram/2026-04-18/3686a033ebad.jpg",
+  "parsed": {
+    "content": "CRUMIO cafe branding logo design showcase",
+    "composition_type": "frontal",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 5,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "warm",
+      "playful",
+      "editorial",
+      "minimal"
+    ],
+    "dominant_colors": [
+      "#8B4513",
+      "#F5E6D3",
+      "#FFFFFF"
+    ],
+    "notes": "Clean brand logo with mascot cookies and welcoming design aesthetic."
+  },
+  "raw": "```json\n{\n  \"content\": \"CRUMIO cafe branding logo design showcase\",\n  \"composition_type\": \"frontal\",\n  \"quality\": {\n    \"lighting\": 4,\n    \"sharpness\": 5,\n    \"framing\": 4\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\n    \"warm\",\n    \"playful\",\n    \"editorial\",\n    \"minimal\"\n  ],\n  \"dominant_colors\": [\n    \"#8B4513\",\n    \"#F5E6D3\",\n    \"#FFFFFF\"\n  ],\n  \"notes\": \"Clean brand logo with mascot cookies and welcoming design aesthetic.\"\n}\n```",
+  "usage": {
+    "in": 1933,
+    "out": 180
+  },
+  "elapsed": 1.676,
+  "cost": 0.002833
+}

@@ -1,0 +1,32 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/002675cd5b54.jpg",
+  "parsed": {
+    "content": "Wine bottles displayed on wall rack",
+    "composition_type": "frontal",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 4,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "minimal",
+      "editorial",
+      "documentary"
+    ],
+    "dominant_colors": [
+      "#F5F5F0",
+      "#2C3E50",
+      "#8B4513"
+    ],
+    "notes": "Clean wall-mounted wine display with various bottle styles and labels visible."
+  },
+  "raw": "{\n  \"content\": \"Wine bottles displayed on wall rack\",\n  \"composition_type\": \"frontal\",\n  \"quality\": { \"lighting\": 4, \"sharpness\": 4, \"framing\": 4 },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\"minimal\", \"editorial\", \"documentary\"],\n  \"dominant_colors\": [\"#F5F5F0\", \"#2C3E50\", \"#8B4513\"],\n  \"notes\": \"Clean wall-mounted wine display with various bottle styles and labels visible.\"\n}",
+  "usage": {
+    "in": 1284,
+    "out": 143
+  },
+  "elapsed": 3.646,
+  "cost": 0.005997000000000001
+}

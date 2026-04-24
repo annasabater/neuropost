@@ -1,0 +1,33 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/8cbee37fed7d.jpg",
+  "parsed": {
+    "content": "Modern pilates studio with illuminated arched mirrors",
+    "composition_type": "wide",
+    "quality": {
+      "lighting": 5,
+      "sharpness": 4,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "bright",
+      "minimal",
+      "editorial",
+      "warm"
+    ],
+    "dominant_colors": [
+      "#E8E8E8",
+      "#1A1A1A",
+      "#FDD835"
+    ],
+    "notes": "Sleek fitness studio with backlit mirrors and contemporary design aesthetic."
+  },
+  "raw": "```json\n{\n  \"content\": \"Modern pilates studio with illuminated arched mirrors\",\n  \"composition_type\": \"wide\",\n  \"quality\": {\n    \"lighting\": 5,\n    \"sharpness\": 4,\n    \"framing\": 4\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\n    \"bright\",\n    \"minimal\",\n    \"editorial\",\n    \"warm\"\n  ],\n  \"dominant_colors\": [\n    \"#E8E8E8\",\n    \"#1A1A1A\",\n    \"#FDD835\"\n  ],\n  \"notes\": \"Sleek fitness studio with backlit mirrors and contemporary design aesthetic.\"\n}\n```",
+  "usage": {
+    "in": 1662,
+    "out": 182
+  },
+  "elapsed": 1.728,
+  "cost": 0.002572
+}

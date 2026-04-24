@@ -1,0 +1,16 @@
+{
+  "total_images": 14,
+  "total_cost_usd": 0.20488500000000007,
+  "haiku": {
+    "runs": 42,
+    "parseOk": 42,
+    "avgElapsed": 2.7928333333333324,
+    "totalCost": 0.10539000000000001
+  },
+  "sonnet": {
+    "runs": 14,
+    "parseOk": 14,
+    "avgElapsed": 4.197785714285715,
+    "totalCost": 0.099495
+  }
+}

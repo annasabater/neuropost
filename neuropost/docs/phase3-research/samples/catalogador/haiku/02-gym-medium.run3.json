@@ -1,0 +1,32 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/posts/phase3-research/originals/02-gym-medium.jpg",
+  "parsed": {
+    "content": "Row of dumbbells in modern gym facility",
+    "composition_type": "close_up",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 3,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "bright",
+      "editorial",
+      "minimal"
+    ],
+    "dominant_colors": [
+      "#1a1a1a",
+      "#888888",
+      "#f5f5f5"
+    ],
+    "notes": "Sharp foreground dumbbells with blurred gym activity, emphasizing equipment and fitness environment."
+  },
+  "raw": "```json\n{\n  \"content\": \"Row of dumbbells in modern gym facility\",\n  \"composition_type\": \"close_up\",\n  \"quality\": {\n    \"lighting\": 4,\n    \"sharpness\": 3,\n    \"framing\": 4\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\n    \"bright\",\n    \"editorial\",\n    \"minimal\"\n  ],\n  \"dominant_colors\": [\n    \"#1a1a1a\",\n    \"#888888\",\n    \"#f5f5f5\"\n  ],\n  \"notes\": \"Sharp foreground dumbbells with blurred gym activity, emphasizing equipment and fitness environment.\"\n}\n```",
+  "usage": {
+    "in": 1929,
+    "out": 182
+  },
+  "elapsed": 1.719,
+  "cost": 0.002839
+}

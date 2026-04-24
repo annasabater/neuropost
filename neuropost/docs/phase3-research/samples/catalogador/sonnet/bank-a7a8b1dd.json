@@ -1,0 +1,32 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/e1b4a565fe27.jpg",
+  "parsed": {
+    "content": "Professional gym equipment weight bench barbell setup",
+    "composition_type": "three_quarters",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 4,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "minimal",
+      "editorial",
+      "cold"
+    ],
+    "dominant_colors": [
+      "#2a2a2a",
+      "#4a4a4a",
+      "#1a1a1a"
+    ],
+    "notes": "Clean gym setup with professional equipment on dark rubber flooring."
+  },
+  "raw": "{\n  \"content\": \"Professional gym equipment weight bench barbell setup\",\n  \"composition_type\": \"three_quarters\",\n  \"quality\": { \"lighting\": 4, \"sharpness\": 4, \"framing\": 4 },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\"minimal\", \"editorial\", \"cold\"],\n  \"dominant_colors\": [\"#2a2a2a\", \"#4a4a4a\", \"#1a1a1a\"],\n  \"notes\": \"Clean gym setup with professional equipment on dark rubber flooring.\"\n}",
+  "usage": {
+    "in": 1365,
+    "out": 147
+  },
+  "elapsed": 4.135,
+  "cost": 0.0063
+}

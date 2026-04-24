@@ -1,0 +1,33 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/telegram/2026-04-18/5d6a84362860.jpg",
+  "parsed": {
+    "content": "CRUMIO cafe branding with pastry and packaging",
+    "composition_type": "three_quarters",
+    "quality": {
+      "lighting": 5,
+      "sharpness": 5,
+      "framing": 5
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "warm",
+      "editorial",
+      "minimal",
+      "playful"
+    ],
+    "dominant_colors": [
+      "#A64D3D",
+      "#F5E6D3",
+      "#E8DCC8"
+    ],
+    "notes": "Stylized flat-lay showcasing cohesive brand identity with box, cup, receipt, and croissant."
+  },
+  "raw": "```json\n{\n  \"content\": \"CRUMIO cafe branding with pastry and packaging\",\n  \"composition_type\": \"three_quarters\",\n  \"quality\": {\n    \"lighting\": 5,\n    \"sharpness\": 5,\n    \"framing\": 5\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\n    \"warm\",\n    \"editorial\",\n    \"minimal\",\n    \"playful\"\n  ],\n  \"dominant_colors\": [\n    \"#A64D3D\",\n    \"#F5E6D3\",\n    \"#E8DCC8\"\n  ],\n  \"notes\": \"Stylized flat-lay showcasing cohesive brand identity with box, cup, receipt, and croissant.\"\n}\n```",
+  "usage": {
+    "in": 1947,
+    "out": 199
+  },
+  "elapsed": 10.022,
+  "cost": 0.002942
+}

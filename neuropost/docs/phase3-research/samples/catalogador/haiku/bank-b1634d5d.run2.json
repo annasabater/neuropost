@@ -1,0 +1,33 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/telegram/2026-04-18/3686a033ebad.jpg",
+  "parsed": {
+    "content": "CRUMIO cafe branding identity and logo",
+    "composition_type": "wide",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 4,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "warm",
+      "editorial",
+      "playful",
+      "minimal"
+    ],
+    "dominant_colors": [
+      "#8B4513",
+      "#F5F5DC",
+      "#FFFFFF"
+    ],
+    "notes": "Cohesive brand kit showcasing CRUMIO logo, packaging, and cafe branding elements."
+  },
+  "raw": "```json\n{\"content\": \"CRUMIO cafe branding identity and logo\", \"composition_type\": \"wide\", \"quality\": {\"lighting\": 4, \"sharpness\": 4, \"framing\": 4}, \"recontextualizable\": true, \"stands_alone\": true, \"style_tags\": [\"warm\", \"editorial\", \"playful\", \"minimal\"], \"dominant_colors\": [\"#8B4513\", \"#F5F5DC\", \"#FFFFFF\"], \"notes\": \"Cohesive brand kit showcasing CRUMIO logo, packaging, and cafe branding elements.\"}\n```",
+  "usage": {
+    "in": 1933,
+    "out": 139
+  },
+  "elapsed": 1.983,
+  "cost": 0.002628
+}

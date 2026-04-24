@@ -1,0 +1,33 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/6f4caa01bc46.jpg",
+  "parsed": {
+    "content": "Healthy breakfast plate with avocado toast and eggs",
+    "composition_type": "cenital",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 4,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "bright",
+      "editorial",
+      "playful",
+      "warm"
+    ],
+    "dominant_colors": [
+      "#F5F5F5",
+      "#6BA547",
+      "#FF6B35"
+    ],
+    "notes": "Vibrant, Instagram-ready breakfast bowl with fresh fruits and protein."
+  },
+  "raw": "```json\n{\n  \"content\": \"Healthy breakfast plate with avocado toast and eggs\",\n  \"composition_type\": \"cenital\",\n  \"quality\": {\n    \"lighting\": 4,\n    \"sharpness\": 4,\n    \"framing\": 4\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\"bright\", \"editorial\", \"playful\", \"warm\"],\n  \"dominant_colors\": [\"#F5F5F5\", \"#6BA547\", \"#FF6B35\"],\n  \"notes\": \"Vibrant, Instagram-ready breakfast bowl with fresh fruits and protein.\"\n}\n```",
+  "usage": {
+    "in": 1365,
+    "out": 163
+  },
+  "elapsed": 1.972,
+  "cost": 0.00218
+}

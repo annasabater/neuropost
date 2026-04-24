@@ -1,0 +1,33 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/c375b5d77c12.jpg",
+  "parsed": {
+    "content": "Modern fitness studio with yoga props display",
+    "composition_type": "wide",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 4,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "minimal",
+      "editorial",
+      "warm",
+      "bright"
+    ],
+    "dominant_colors": [
+      "#E8DCC8",
+      "#1A1A1A",
+      "#D4AF9E"
+    ],
+    "notes": "Minimalist wellness space with curated yoga equipment and warm accent lighting."
+  },
+  "raw": "```json\n{\n  \"content\": \"Modern fitness studio with yoga props display\",\n  \"composition_type\": \"wide\",\n  \"quality\": {\n    \"lighting\": 4,\n    \"sharpness\": 4,\n    \"framing\": 4\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\n    \"minimal\",\n    \"editorial\",\n    \"warm\",\n    \"bright\"\n  ],\n  \"dominant_colors\": [\n    \"#E8DCC8\",\n    \"#1A1A1A\",\n    \"#D4AF9E\"\n  ],\n  \"notes\": \"Minimalist wellness space with curated yoga equipment and warm accent lighting.\"\n}\n```",
+  "usage": {
+    "in": 1365,
+    "out": 181
+  },
+  "elapsed": 2.725,
+  "cost": 0.00227
+}

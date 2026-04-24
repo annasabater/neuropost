@@ -1,0 +1,32 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/telegram/2026-04-18/5d6a84362860.jpg",
+  "parsed": {
+    "content": "CRUMIO cafe branded packaging with croissant",
+    "composition_type": "three_quarters",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 4,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "warm",
+      "editorial",
+      "minimal"
+    ],
+    "dominant_colors": [
+      "#A84536",
+      "#D4A574",
+      "#F5E6D3"
+    ],
+    "notes": "Styled brand mockup with cohesive packaging, receipt, cup and pastry product display."
+  },
+  "raw": "```json\n{\n  \"content\": \"CRUMIO cafe branded packaging with croissant\",\n  \"composition_type\": \"three_quarters\",\n  \"quality\": {\"lighting\": 4, \"sharpness\": 4, \"framing\": 4},\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\"warm\", \"editorial\", \"minimal\"],\n  \"dominant_colors\": [\"#A84536\", \"#D4A574\", \"#F5E6D3\"],\n  \"notes\": \"Styled brand mockup with cohesive packaging, receipt, cup and pastry product display.\"\n}\n```",
+  "usage": {
+    "in": 1947,
+    "out": 156
+  },
+  "elapsed": 3.848,
+  "cost": 0.0027270000000000003
+}

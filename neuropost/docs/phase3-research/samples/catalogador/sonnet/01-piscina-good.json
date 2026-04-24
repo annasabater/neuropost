@@ -1,0 +1,32 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/posts/phase3-research/originals/01-piscina-good.jpg",
+  "parsed": {
+    "content": "swimmer performing butterfly stroke in pool",
+    "composition_type": "cenital",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 5,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "bright",
+      "documentary",
+      "cold"
+    ],
+    "dominant_colors": [
+      "#1E5F8B",
+      "#FFFFFF",
+      "#D32F2F"
+    ],
+    "notes": "Dynamic overhead shot captures perfect form and water splash during competitive swimming."
+  },
+  "raw": "{\n  \"content\": \"swimmer performing butterfly stroke in pool\",\n  \"composition_type\": \"cenital\",\n  \"quality\": { \"lighting\": 4, \"sharpness\": 5, \"framing\": 4 },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\"bright\", \"documentary\", \"cold\"],\n  \"dominant_colors\": [\"#1E5F8B\", \"#FFFFFF\", \"#D32F2F\"],\n  \"notes\": \"Dynamic overhead shot captures perfect form and water splash during competitive swimming.\"\n}",
+  "usage": {
+    "in": 1929,
+    "out": 140
+  },
+  "elapsed": 3.995,
+  "cost": 0.007887
+}

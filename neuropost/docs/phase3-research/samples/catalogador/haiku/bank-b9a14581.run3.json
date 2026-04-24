@@ -1,0 +1,33 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/telegram/2026-04-18/5d6a84362860.jpg",
+  "parsed": {
+    "content": "Crumio café branded packaging with croissant display",
+    "composition_type": "three_quarters",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 4,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "warm",
+      "editorial",
+      "playful",
+      "minimal"
+    ],
+    "dominant_colors": [
+      "#A64535",
+      "#F5E6D3",
+      "#D4A574"
+    ],
+    "notes": "Cohesive branded flatlay showcasing Crumio's café identity with pastry product."
+  },
+  "raw": "```json\n{\n  \"content\": \"Crumio café branded packaging with croissant display\",\n  \"composition_type\": \"three_quarters\",\n  \"quality\": {\n    \"lighting\": 4,\n    \"sharpness\": 4,\n    \"framing\": 4\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\n    \"warm\",\n    \"editorial\",\n    \"playful\",\n    \"minimal\"\n  ],\n  \"dominant_colors\": [\n    \"#A64535\",\n    \"#F5E6D3\",\n    \"#D4A574\"\n  ],\n  \"notes\": \"Cohesive branded flatlay showcasing Crumio's café identity with pastry product.\"\n}\n```",
+  "usage": {
+    "in": 1947,
+    "out": 192
+  },
+  "elapsed": 2.251,
+  "cost": 0.002907
+}

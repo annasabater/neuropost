@@ -1,0 +1,33 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/20aa42ad006e.jpg",
+  "parsed": {
+    "content": "Modern fitness studio with mirrored walls and exercise balls",
+    "composition_type": "wide",
+    "quality": {
+      "lighting": 5,
+      "sharpness": 5,
+      "framing": 5
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "minimal",
+      "bright",
+      "editorial",
+      "cold"
+    ],
+    "dominant_colors": [
+      "#E8E8E8",
+      "#1A1A1A",
+      "#D4AF9E"
+    ],
+    "notes": "Sleek wellness space with ambient backlit mirrors and balanced equipment layout."
+  },
+  "raw": "```json\n{\n  \"content\": \"Modern fitness studio with mirrored walls and exercise balls\",\n  \"composition_type\": \"wide\",\n  \"quality\": {\n    \"lighting\": 5,\n    \"sharpness\": 5,\n    \"framing\": 5\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\n    \"minimal\",\n    \"bright\",\n    \"editorial\",\n    \"cold\"\n  ],\n  \"dominant_colors\": [\n    \"#E8E8E8\",\n    \"#1A1A1A\",\n    \"#D4AF9E\"\n  ],\n  \"notes\": \"Sleek wellness space with ambient backlit mirrors and balanced equipment layout.\"\n}\n```",
+  "usage": {
+    "in": 1365,
+    "out": 186
+  },
+  "elapsed": 1.715,
+  "cost": 0.002295
+}

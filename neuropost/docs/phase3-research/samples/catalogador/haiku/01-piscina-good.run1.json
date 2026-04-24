@@ -1,0 +1,32 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/posts/phase3-research/originals/01-piscina-good.jpg",
+  "parsed": {
+    "content": "Competitive swimmer performing butterfly stroke in pool",
+    "composition_type": "frontal",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 4,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "editorial",
+      "bright",
+      "cold"
+    ],
+    "dominant_colors": [
+      "#0066CC",
+      "#1E90FF",
+      "#FFFFFF"
+    ],
+    "notes": "Dynamic athletic action shot with excellent water clarity and lane divider framing."
+  },
+  "raw": "```json\n{\n  \"content\": \"Competitive swimmer performing butterfly stroke in pool\",\n  \"composition_type\": \"frontal\",\n  \"quality\": {\n    \"lighting\": 4,\n    \"sharpness\": 4,\n    \"framing\": 4\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\"editorial\", \"bright\", \"cold\"],\n  \"dominant_colors\": [\"#0066CC\", \"#1E90FF\", \"#FFFFFF\"],\n  \"notes\": \"Dynamic athletic action shot with excellent water clarity and lane divider framing.\"\n}\n```",
+  "usage": {
+    "in": 1929,
+    "out": 152
+  },
+  "elapsed": 2.863,
+  "cost": 0.002689
+}

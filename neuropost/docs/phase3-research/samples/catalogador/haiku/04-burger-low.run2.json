@@ -1,0 +1,32 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/posts/phase3-research/originals/04-burger-low.jpg",
+  "parsed": {
+    "content": "Double patty cheeseburger with sesame seed bun",
+    "composition_type": "frontal",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 5,
+      "framing": 5
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "warm",
+      "editorial",
+      "bright"
+    ],
+    "dominant_colors": [
+      "#C07A3D",
+      "#8B6F47",
+      "#E8D4B8"
+    ],
+    "notes": "Professionally styled burger photography with excellent detail and appetizing presentation."
+  },
+  "raw": "```json\n{\n  \"content\": \"Double patty cheeseburger with sesame seed bun\",\n  \"composition_type\": \"frontal\",\n  \"quality\": {\n    \"lighting\": 4,\n    \"sharpness\": 5,\n    \"framing\": 5\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\n    \"warm\",\n    \"editorial\",\n    \"bright\"\n  ],\n  \"dominant_colors\": [\n    \"#C07A3D\",\n    \"#8B6F47\",\n    \"#E8D4B8\"\n  ],\n  \"notes\": \"Professionally styled burger photography with excellent detail and appetizing presentation.\"\n}\n```",
+  "usage": {
+    "in": 1941,
+    "out": 182
+  },
+  "elapsed": 1.88,
+  "cost": 0.0028510000000000002
+}

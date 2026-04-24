@@ -1,0 +1,32 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/inspiration/pinterest/2026-04-18/e1b4a565fe27.jpg",
+  "parsed": {
+    "content": "Gym equipment and weights on black floor",
+    "composition_type": "cenital",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 4,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "minimal",
+      "editorial",
+      "bright"
+    ],
+    "dominant_colors": [
+      "#1a1a1a",
+      "#c0c0c0",
+      "#4a4a4a"
+    ],
+    "notes": "Professional overhead gym setup showcasing quality equipment in minimalist style."
+  },
+  "raw": "```json\n{\n  \"content\": \"Gym equipment and weights on black floor\",\n  \"composition_type\": \"cenital\",\n  \"quality\": {\n    \"lighting\": 4,\n    \"sharpness\": 4,\n    \"framing\": 4\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\n    \"minimal\",\n    \"editorial\",\n    \"bright\"\n  ],\n  \"dominant_colors\": [\n    \"#1a1a1a\",\n    \"#c0c0c0\",\n    \"#4a4a4a\"\n  ],\n  \"notes\": \"Professional overhead gym setup showcasing quality equipment in minimalist style.\"\n}\n```",
+  "usage": {
+    "in": 1365,
+    "out": 178
+  },
+  "elapsed": 2.431,
+  "cost": 0.002255
+}

@@ -1,0 +1,33 @@
+{
+  "url": "https://kavvrbiwonggptnbtrjq.supabase.co/storage/v1/object/public/posts/phase3-research/originals/03-funcional-low.jpg",
+  "parsed": {
+    "content": "Athlete using battle ropes under bridge",
+    "composition_type": "three_quarters",
+    "quality": {
+      "lighting": 4,
+      "sharpness": 4,
+      "framing": 4
+    },
+    "recontextualizable": true,
+    "stands_alone": true,
+    "style_tags": [
+      "editorial",
+      "documentary",
+      "bright",
+      "dynamic"
+    ],
+    "dominant_colors": [
+      "#4a4a4a",
+      "#8b7355",
+      "#e8e8e8"
+    ],
+    "notes": "High-energy fitness moment with strong urban architecture backdrop and dramatic natural lighting."
+  },
+  "raw": "```json\n{\n  \"content\": \"Athlete using battle ropes under bridge\",\n  \"composition_type\": \"three_quarters\",\n  \"quality\": {\n    \"lighting\": 4,\n    \"sharpness\": 4,\n    \"framing\": 4\n  },\n  \"recontextualizable\": true,\n  \"stands_alone\": true,\n  \"style_tags\": [\n    \"editorial\",\n    \"documentary\",\n    \"bright\",\n    \"dynamic\"\n  ],\n  \"dominant_colors\": [\n    \"#4a4a4a\",\n    \"#8b7355\",\n    \"#e8e8e8\"\n  ],\n  \"notes\": \"High-energy fitness moment with strong urban architecture backdrop and dramatic natural lighting.\"\n}\n```",
+  "usage": {
+    "in": 1929,
+    "out": 184
+  },
+  "elapsed": 2.351,
+  "cost": 0.002849
+}
