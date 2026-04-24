@@ -206,6 +206,13 @@ export interface Brand {
   compliance_flags:           Record<string, unknown>;
   /** Weekly content format mix preferences. Applied to the next generated plan. */
   content_mix_preferences?:   { posts?: { carousel?: number; reel?: number }; stories_templates_enabled?: string[] } | null;
+  // ── Phase 1 — creative direction fields (see supabase/migrations/20260424_brand_kit_creative_direction.sql) ──
+  aesthetic_preset?:          'moody' | 'creativo' | 'editorial' | 'natural' | 'minimalista' | 'clasico' | 'luxury' | 'vintage' | null;
+  realism_level?:             number | null;
+  typography_display?:        string | null;
+  typography_body?:           string | null;
+  allow_graphic_elements?:    boolean;
+  overlay_intensity?:         'none' | 'subtle' | 'medium' | 'strong' | null;
 }
 
 // ─── Database: Profile ────────────────────────────────────────────────────────

@@ -78,8 +78,19 @@ function check(name: string, passed: boolean, detail?: string) {
 async function main() {
   // ── Load artifacts ─────────────────────────────────────────────────────────
   const schemaSql = readFileSync(resolve(ROOT, 'supabase/schema.sql'), 'utf-8');
-  const migrationPath = resolve(ROOT, 'supabase/migrations/20260424_brands_schema_consolidation.sql');
-  const migrationSql = readFileSync(migrationPath, 'utf-8');
+  // Migrations that contribute brands columns post-initial-schema.
+  // Add new files here as schema evolves (Fase 0.A consolidated 47 columns;
+  // Fase 1 added 6 creative-direction columns).
+  const migrationPaths = [
+    resolve(ROOT, 'supabase/migrations/20260424_brands_schema_consolidation.sql'),
+    resolve(ROOT, 'supabase/migrations/20260424_brand_kit_creative_direction.sql'),
+  ];
+  const migrationSql = migrationPaths
+    .filter(p => {
+      try { readFileSync(p, 'utf-8'); return true; } catch { return false; }
+    })
+    .map(p => readFileSync(p, 'utf-8'))
+    .join('\n');
 
   const schemaCols = parseSchemaBrands(schemaSql);
   const migrationCols = parseMigrationAddColumns(migrationSql);
@@ -120,7 +131,7 @@ async function main() {
   const missingFromMigration = postInitial.filter(c => !migSet.has(c));
   const extraInMigration = migrationCols.filter(c => !postInitial.includes(c));
   check(
-    `migration 20260424 lists every post-initial column from schema.sql (${postInitial.length} expected, ${migrationCols.length} in migration)`,
+    `migrations list every post-initial column from schema.sql (${postInitial.length} expected, ${migrationCols.length} across migrations)`,
     missingFromMigration.length === 0 && extraInMigration.length === 0,
     [
       missingFromMigration.length ? `missing from migration: ${missingFromMigration.join(', ')}` : '',

@@ -81,7 +81,15 @@ create table if not exists public.brands (
   plan_cancels_at                timestamptz,
   trial_ends_at                  timestamptz,
   week_reset_at                  timestamptz default now(),
-  calendar_events_generated_at   timestamptz
+  calendar_events_generated_at   timestamptz,
+  -- ── Phase 1 creative direction fields (2026-04-24) ────────────────────────
+  -- See supabase/migrations/20260424_brand_kit_creative_direction.sql
+  aesthetic_preset               text      default 'editorial',
+  realism_level                  integer   default 70,
+  typography_display             text      default 'barlow_condensed',
+  typography_body                text      default 'barlow',
+  allow_graphic_elements         boolean   not null default true,
+  overlay_intensity              text      default 'medium'
 );
 
 alter table public.brands enable row level security;

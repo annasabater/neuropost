@@ -13,17 +13,40 @@ import { PLAN_LIMITS, PLAN_META } from '@/types';
 import { PUBLISH_MODE_OPTIONS, SECTOR_OPTIONS } from '@/lib/brand-options';
 import { defaultPreferencesFor, normalizePreferences, minimumPlanFor, upgradeLabel } from '@/lib/plan-features';
 import { useTagInput } from '@/hooks/useTagInput';
+import { AESTHETIC_PRESETS, type AestheticPreset } from '@/lib/brand/aesthetic-presets';
+import { FONT_CATALOG } from '@/lib/stories/fonts-catalog';
+
+type AestheticPresetId = AestheticPreset['id'];
+type OverlayIntensity  = 'none' | 'subtle' | 'medium' | 'strong';
+
+const OVERLAY_OPTIONS: { value: OverlayIntensity; label: string; opacity: number }[] = [
+  { value: 'none',   label: 'Sin overlay', opacity: 0    },
+  { value: 'subtle', label: 'Sutil',       opacity: 0.30 },
+  { value: 'medium', label: 'Medio',       opacity: 0.55 },
+  { value: 'strong', label: 'Fuerte',      opacity: 0.75 },
+];
+
+function ensureGoogleFont(family: string, weight: number) {
+  if (typeof document === 'undefined') return;
+  const id = `gfont-${family.replace(/\s+/g, '-')}-${weight}`;
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id   = id;
+  link.rel  = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${family.replace(/ /g, '+')}:wght@${weight}&display=swap`;
+  document.head.appendChild(link);
+}
 
 const f  = "var(--font-barlow), 'Barlow', sans-serif";
 const fc = "var(--font-barlow-condensed), 'Barlow Condensed', sans-serif";
 
 type EditSection =
-  | 'basics' | 'visual' | 'tone' | 'colors'
+  | 'basics' | 'visual' | 'estetica' | 'tone' | 'colors'
   | 'hashtags' | 'voice' | 'publish' | 'rules' | 'preferences'
   | null;
 
 const VALID_SECTIONS: EditSection[] = [
-  'basics', 'visual', 'tone', 'colors', 'hashtags',
+  'basics', 'visual', 'estetica', 'tone', 'colors', 'hashtags',
   'voice', 'publish', 'rules', 'preferences',
 ];
 
@@ -145,6 +168,15 @@ export function BrandKitEditor() {
   const [preferences,          setPreferences]          = useState<BrandPreferences>(() => defaultPreferencesFor(currentPlan));
   const [voicePreset,          setVoicePreset]          = useState<BrandVoicePreset>(DEFAULT_VOICE_PRESET);
 
+  // Phase 1 — creative direction
+  const [aestheticPreset,      setAestheticPreset]      = useState<AestheticPresetId>((brand?.aesthetic_preset as AestheticPresetId | null | undefined) ?? 'editorial');
+  const [realismLevel,         setRealismLevel]         = useState<number>(brand?.realism_level ?? 70);
+  const [typographyDisplay,    setTypographyDisplay]    = useState<string>(brand?.typography_display ?? 'barlow_condensed');
+  const [typographyBody,       setTypographyBody]       = useState<string>(brand?.typography_body ?? 'barlow');
+  const [overlayIntensity,     setOverlayIntensity]     = useState<OverlayIntensity>((brand?.overlay_intensity as OverlayIntensity | null | undefined) ?? 'medium');
+  const [allowGraphicElements, setAllowGraphicElements] = useState<boolean>(brand?.allow_graphic_elements ?? true);
+  const [aestheticSavedAt,     setAestheticSavedAt]     = useState<number | null>(null);
+
   const { addTag, removeTag, handleTagKeyDown } = useTagInput();
 
   useEffect(() => {
@@ -171,7 +203,47 @@ export function BrandKitEditor() {
     setForbiddenTopics(rules?.forbiddenTopics ?? []);
     setPreferences(normalizePreferences(brand.plan ?? 'starter', rules?.preferences));
     setVoicePreset(rules?.voicePreset ?? DEFAULT_VOICE_PRESET);
+    setAestheticPreset((brand.aesthetic_preset as AestheticPresetId | null | undefined) ?? 'editorial');
+    setRealismLevel(brand.realism_level ?? 70);
+    setTypographyDisplay(brand.typography_display ?? 'barlow_condensed');
+    setTypographyBody(brand.typography_body ?? 'barlow');
+    setOverlayIntensity((brand.overlay_intensity as OverlayIntensity | null | undefined) ?? 'medium');
+    setAllowGraphicElements(brand.allow_graphic_elements ?? true);
   }, [brand]);
+
+  // Inject Google Fonts for the live previews in the typography selectors
+  useEffect(() => {
+    const display = FONT_CATALOG.find(f => f.id === typographyDisplay);
+    const body    = FONT_CATALOG.find(f => f.id === typographyBody);
+    if (display) ensureGoogleFont(display.google_family, display.weight);
+    if (body)    ensureGoogleFont(body.google_family,    body.weight);
+  }, [typographyDisplay, typographyBody]);
+
+  async function patchAesthetic(patch: Record<string, unknown>) {
+    try {
+      const res  = await fetch('/api/brand/aesthetic', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(patch),
+      });
+      const json = await res.json();
+      if (res.ok && json.brand) {
+        updateBrand(json.brand);
+        setAestheticSavedAt(Date.now());
+      } else {
+        toast.error(json.error ?? 'Error al guardar');
+      }
+    } catch {
+      toast.error('Error de conexión');
+    }
+  }
+
+  // Auto-clear "Guardado ✓" after 2s
+  useEffect(() => {
+    if (aestheticSavedAt === null) return;
+    const t = setTimeout(() => setAestheticSavedAt(null), 2000);
+    return () => clearTimeout(t);
+  }, [aestheticSavedAt]);
 
   function toggleDay(d: number) {
     setNoPublishDays(prev => prev.includes(d) ? prev.filter(x => x !== d) : [...prev, d]);
@@ -239,6 +311,7 @@ export function BrandKitEditor() {
   const sectionTitle: Record<NonNullable<EditSection>, string> = {
     basics:      'Datos del negocio',
     visual:      'Estilo visual',
+    estetica:    'Estética',
     tone:        'Tono',
     colors:      'Colores',
     hashtags:    'Hashtags y slogans',
@@ -328,6 +401,207 @@ export function BrandKitEditor() {
               ))}
             </div>
           )}
+
+          {/* ── Estética ── */}
+          {editing === 'estetica' && (() => {
+            const currentPreset = AESTHETIC_PRESETS.find(p => p.id === aestheticPreset) ?? AESTHETIC_PRESETS[2]!;
+            const displayFont = FONT_CATALOG.find(f => f.id === typographyDisplay);
+            const bodyFont    = FONT_CATALOG.find(f => f.id === typographyBody);
+            const overlayOpt  = OVERLAY_OPTIONS.find(o => o.value === overlayIntensity) ?? OVERLAY_OPTIONS[2]!;
+            return (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 32, position: 'relative' }}>
+                {aestheticSavedAt !== null && (
+                  <span style={{ position: 'absolute', top: -8, right: 0, fontFamily: f, fontSize: 11, fontWeight: 600, color: '#0F766E' }}>
+                    Guardado ✓
+                  </span>
+                )}
+
+                {/* Bloque 1 — Preset */}
+                <div>
+                  <label style={labelStyle}>Elige el look de tu marca</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10, marginTop: 8 }}>
+                    {AESTHETIC_PRESETS.map(preset => {
+                      const active = preset.id === aestheticPreset;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => {
+                            setAestheticPreset(preset.id);
+                            void patchAesthetic({ aesthetic_preset: preset.id });
+                          }}
+                          style={{
+                            position: 'relative',
+                            padding: 0,
+                            border: `2px solid ${active ? '#0F766E' : '#e5e7eb'}`,
+                            background: '#ffffff',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            overflow: 'hidden',
+                            display: 'flex',
+                            flexDirection: 'column',
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: '100%',
+                              height: 90,
+                              backgroundImage: `url(${preset.cover_image})`,
+                              backgroundSize: 'cover',
+                              backgroundPosition: 'center',
+                            }}
+                          />
+                          {active && (
+                            <span style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, background: '#0F766E', color: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
+                              ✓
+                            </span>
+                          )}
+                          <div style={{ padding: '10px 12px' }}>
+                            <p style={{ fontFamily: fc, fontSize: 13, fontWeight: 800, textTransform: 'uppercase', color: '#111827', margin: 0 }}>
+                              {preset.name}
+                            </p>
+                            <p style={{ fontFamily: f, fontSize: 10, color: '#6b7280', marginTop: 4 }}>
+                              {preset.tagline}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Bloque 2 — Realismo */}
+                <div>
+                  <label style={labelStyle}>
+                    Afinar {currentPreset.name} · <strong style={{ color: '#111827', fontSize: 12 }}>{realismLevel}%</strong>
+                  </label>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={realismLevel}
+                    onChange={e => setRealismLevel(Number(e.target.value))}
+                    onMouseUp={() => void patchAesthetic({ realism_level: realismLevel })}
+                    onTouchEnd={() => void patchAesthetic({ realism_level: realismLevel })}
+                    onKeyUp={() => void patchAesthetic({ realism_level: realismLevel })}
+                    style={{ width: '100%', accentColor: '#0F766E', marginTop: 6 }}
+                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: f, fontSize: 11, color: '#9ca3af', marginTop: 4 }}>
+                    <span>Artístico</span><span>Fotorrealista</span>
+                  </div>
+                </div>
+
+                {/* Bloque 3 — Tipografías */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+                  <div>
+                    <label style={labelStyle}>Tipografía de titulares</label>
+                    <select
+                      value={typographyDisplay}
+                      onChange={e => {
+                        setTypographyDisplay(e.target.value);
+                        void patchAesthetic({ typography_display: e.target.value });
+                      }}
+                      style={{ ...niceInputStyle, padding: '12px 16px', cursor: 'pointer', appearance: 'none' as React.CSSProperties['appearance'] }}
+                    >
+                      {FONT_CATALOG.filter(font => font.role === 'display').map(font => (
+                        <option key={font.id} value={font.id}>{font.google_family} — {font.description}</option>
+                      ))}
+                    </select>
+                    {displayFont && (
+                      <div style={{ marginTop: 10, padding: '14px 18px', background: '#ffffff', border: '1px solid #e5e7eb' }}>
+                        <div style={{ fontFamily: `'${displayFont.google_family}', sans-serif`, fontWeight: displayFont.weight, fontSize: 70, color: '#111827', lineHeight: 1 }}>Aa</div>
+                        <div style={{ fontFamily: `'${displayFont.google_family}', sans-serif`, fontWeight: displayFont.weight, fontSize: 18, color: '#374151', marginTop: 6 }}>Tu marca, tu voz.</div>
+                      </div>
+                    )}
+                    {typographyDisplay === 'archivo_black' && (
+                      <p style={{ fontFamily: f, fontSize: 11, color: '#6b7280', marginTop: 6, fontStyle: 'italic' }}>
+                        Archivo Black es una fuente con un único peso (siempre gruesa).
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Tipografía de cuerpo</label>
+                    <select
+                      value={typographyBody}
+                      onChange={e => {
+                        setTypographyBody(e.target.value);
+                        void patchAesthetic({ typography_body: e.target.value });
+                      }}
+                      style={{ ...niceInputStyle, padding: '12px 16px', cursor: 'pointer', appearance: 'none' as React.CSSProperties['appearance'] }}
+                    >
+                      {FONT_CATALOG.filter(font => font.role === 'body').map(font => (
+                        <option key={font.id} value={font.id}>{font.google_family} — {font.description}</option>
+                      ))}
+                    </select>
+                    {bodyFont && (
+                      <div style={{ marginTop: 10, padding: '14px 18px', background: '#ffffff', border: '1px solid #e5e7eb' }}>
+                        <div style={{ fontFamily: `'${bodyFont.google_family}', sans-serif`, fontWeight: bodyFont.weight, fontSize: 70, color: '#111827', lineHeight: 1 }}>Aa</div>
+                        <div style={{ fontFamily: `'${bodyFont.google_family}', sans-serif`, fontWeight: bodyFont.weight, fontSize: 18, color: '#374151', marginTop: 6 }}>Tu marca, tu voz.</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bloque 4 — Intensidad de overlay */}
+                <div>
+                  <label style={labelStyle}>Intensidad de overlays en fotos</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6, marginTop: 6 }}>
+                    {OVERLAY_OPTIONS.map(opt => {
+                      const active = opt.value === overlayIntensity;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            setOverlayIntensity(opt.value);
+                            void patchAesthetic({ overlay_intensity: opt.value });
+                          }}
+                          style={{ padding: '10px 8px', border: `1.5px solid ${active ? '#0F766E' : '#e5e7eb'}`, background: active ? '#f0fdf4' : '#ffffff', color: active ? '#0F766E' : '#374151', fontFamily: f, fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div style={{ marginTop: 12, position: 'relative', width: '100%', height: 140, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+                    <div
+                      style={{
+                        position: 'absolute', inset: 0,
+                        backgroundImage: 'url(https://picsum.photos/seed/overlay-preview/400/300)',
+                        backgroundSize: 'cover', backgroundPosition: 'center',
+                      }}
+                    />
+                    <div style={{ position: 'absolute', inset: 0, background: `rgba(0,0,0,${overlayOpt.opacity})` }} />
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: fc, fontSize: 18, fontWeight: 800, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                      Vista previa
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bloque 5 — Permisividad de grafismos */}
+                <div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={allowGraphicElements}
+                      onChange={e => {
+                        setAllowGraphicElements(e.target.checked);
+                        void patchAesthetic({ allow_graphic_elements: e.target.checked });
+                      }}
+                      style={{ width: 18, height: 18, accentColor: '#0F766E' }}
+                    />
+                    <span style={{ fontFamily: f, fontWeight: 600, fontSize: 13, color: '#111827' }}>
+                      Permitir grafismos decorativos en fechas especiales
+                    </span>
+                  </label>
+                  <p style={{ fontFamily: f, fontSize: 12, color: '#6b7280', marginTop: 6, lineHeight: 1.5 }}>
+                    Cuando esté activo, el agente puede añadir elementos gráficos (rosas en Sant Jordi, corazones en San Valentín, confeti en Black Friday) en los colores de tu marca.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* ── Tone ── */}
           {editing === 'tone' && (
