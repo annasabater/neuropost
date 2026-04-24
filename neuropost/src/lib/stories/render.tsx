@@ -61,14 +61,33 @@ function splitLines(text: string, maxLines = 10): string[] {
 
 // ─── Render context ───────────────────────────────────────────────────────────
 
-export interface RenderCtx {
-  copy:       string;
-  brandName:  string;
-  primary:    string;
-  secondary:  string;
-  logoUrl:    string | null;
-  bgImageUrl: string | null;
+export type OverlayIntensity = 'none' | 'subtle' | 'medium' | 'strong';
+
+export interface RenderCtxProp {
+  type:    'chat' | 'arrow' | 'tag';
+  content: unknown;
 }
+
+export interface RenderCtx {
+  copy:             string;
+  brandName:        string;
+  primary:          string;
+  secondary:        string;
+  logoUrl:          string | null;
+  bgImageUrl:       string | null;
+  overlayIntensity: OverlayIntensity;
+  /** Reserved for Phase 3 (creative director). Not consumed in Phase 2.B. */
+  prop?:            RenderCtxProp;
+  /** Reserved for Phase 3. Not consumed in Phase 2.B. */
+  badge?:           string;
+}
+
+const OVERLAY_ALPHA: Record<OverlayIntensity, number> = {
+  none:   0,
+  subtle: 0.3,
+  medium: 0.55,
+  strong: 0.75,
+};
 
 // ─── Layout: centered (Quote Clásica) ─────────────────────────────────────────
 // Full brand-color background, large white quote, brand name at bottom.
@@ -582,11 +601,461 @@ export function LayoutPhotoSchedule({ copy, brandName, primary, bgImageUrl }: Re
   );
 }
 
+// ─── Layout: photo_fullbleed_clean (Phase 2.B) ────────────────────────────────
+// Foto a sangre sin texto ni overlay. Logo opcional en esquina inferior derecha.
+
+export function LayoutPhotoFullbleedClean({ bgImageUrl, logoUrl }: RenderCtx) {
+  return (
+    <div style={{ display: 'flex', width: W, height: H, position: 'relative', background: '#111111' }}>
+      {bgImageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={bgImageUrl} style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, objectFit: 'cover' }} alt="" />
+      )}
+      {logoUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={logoUrl} width={72} height={72} style={{ position: 'absolute', bottom: 60, right: 60, objectFit: 'contain', opacity: 0.85 }} alt="" />
+      )}
+    </div>
+  );
+}
+
+// ─── Layout: photo_fullbleed_with_prop (Phase 2.B) ────────────────────────────
+// Esqueleto. Sin ctx.prop, renderiza igual que photo_fullbleed_clean.
+// Phase 3 pintará props (chat simulado, flechas manuscritas, tags).
+
+export function LayoutPhotoFullbleedWithProp(ctx: RenderCtx) {
+  // Phase 2.B: prop rendering not implemented — falls through to clean variant.
+  return LayoutPhotoFullbleedClean(ctx);
+}
+
+// ─── Layout: photo_split_top (Phase 2.B) ──────────────────────────────────────
+// Foto 60% arriba, bloque primary 40% abajo con copy en Display.
+
+export function LayoutPhotoSplitTop({ copy, brandName, primary, bgImageUrl }: RenderCtx) {
+  const text     = clamp(copy || '', 180);
+  const photoH   = Math.floor(H * 0.6);
+  const blockH   = H - photoH;
+  return (
+    <div style={{ display: 'flex', width: W, height: H, flexDirection: 'column', background: '#111111' }}>
+      {/* Photo top */}
+      <div style={{ display: 'flex', width: W, height: photoH, position: 'relative', overflow: 'hidden' }}>
+        {bgImageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={bgImageUrl} style={{ position: 'absolute', top: 0, left: 0, width: W, height: photoH, objectFit: 'cover' }} alt="" />
+        )}
+      </div>
+      {/* Brand block bottom */}
+      <div style={{ display: 'flex', width: W, height: blockH, background: primary, flexDirection: 'column', justifyContent: 'center', padding: '60px 80px', position: 'relative' }}>
+        <div style={{ display: 'flex', width: 56, height: 6, background: 'rgba(255,255,255,0.55)', marginBottom: 28 }} />
+        <div style={{ display: 'flex', fontSize: 72, fontFamily: 'Display', fontWeight: 900, color: '#ffffff', lineHeight: 1.05, textTransform: 'uppercase', maxWidth: 920, flexWrap: 'wrap' }}>
+          {text}
+        </div>
+        <div style={{ position: 'absolute', bottom: 48, left: 80, display: 'flex', fontSize: 22, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+          {brandName}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Layout: photo_split_bottom (Phase 2.B) ───────────────────────────────────
+// Bloque primary 40% arriba + foto 60% abajo.
+
+export function LayoutPhotoSplitBottom({ copy, brandName, primary, bgImageUrl }: RenderCtx) {
+  const text   = clamp(copy || '', 180);
+  const blockH = Math.floor(H * 0.4);
+  const photoH = H - blockH;
+  return (
+    <div style={{ display: 'flex', width: W, height: H, flexDirection: 'column', background: '#111111' }}>
+      {/* Brand block top */}
+      <div style={{ display: 'flex', width: W, height: blockH, background: primary, flexDirection: 'column', justifyContent: 'center', padding: '60px 80px', position: 'relative' }}>
+        <div style={{ position: 'absolute', top: 48, left: 80, display: 'flex', fontSize: 22, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+          {brandName}
+        </div>
+        <div style={{ display: 'flex', fontSize: 72, fontFamily: 'Display', fontWeight: 900, color: '#ffffff', lineHeight: 1.05, textTransform: 'uppercase', maxWidth: 920, flexWrap: 'wrap' }}>
+          {text}
+        </div>
+      </div>
+      {/* Photo bottom */}
+      <div style={{ display: 'flex', width: W, height: photoH, position: 'relative', overflow: 'hidden' }}>
+        {bgImageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={bgImageUrl} style={{ position: 'absolute', top: 0, left: 0, width: W, height: photoH, objectFit: 'cover' }} alt="" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Layout: photo_corner_text (Phase 2.B) ────────────────────────────────────
+// Foto a sangre con overlay según brand, copy en Display en esquina inferior izq.
+
+export function LayoutPhotoCornerText({ copy, brandName, primary, bgImageUrl, overlayIntensity, badge }: RenderCtx) {
+  const text  = clamp(copy || '', 120);
+  const alpha = OVERLAY_ALPHA[overlayIntensity];
+  return (
+    <div style={{ display: 'flex', width: W, height: H, position: 'relative', background: '#111111' }}>
+      {bgImageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={bgImageUrl} style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, objectFit: 'cover' }} alt="" />
+      )}
+      {alpha > 0 && (
+        <div style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, background: `rgba(0,0,0,${alpha})`, display: 'flex' }} />
+      )}
+      {/* Badge top-right */}
+      {badge && (
+        <div style={{ position: 'absolute', top: 60, right: 60, display: 'flex', padding: '12px 24px', background: primary, fontSize: 22, fontFamily: 'Body', fontWeight: 700, color: '#ffffff', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+          {clamp(badge, 24)}
+        </div>
+      )}
+      {/* Corner text bottom-left */}
+      {text && (
+        <div style={{ position: 'absolute', bottom: 60, left: 60, display: 'flex', flexDirection: 'column', maxWidth: 820 }}>
+          <div style={{ display: 'flex', width: 48, height: 4, background: primary, marginBottom: 28 }} />
+          <div style={{ display: 'flex', fontSize: 72, fontFamily: 'Display', fontWeight: 900, color: '#ffffff', lineHeight: 1.05, textTransform: 'uppercase', flexWrap: 'wrap' }}>
+            {text}
+          </div>
+        </div>
+      )}
+      {/* Brand name bottom-right */}
+      <div style={{ position: 'absolute', bottom: 60, right: 60, display: 'flex', fontSize: 20, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+        {brandName}
+      </div>
+    </div>
+  );
+}
+
+// ─── Layout: photo_grid_schedule (Phase 2.B) ──────────────────────────────────
+// Foto + overlay fuerte (ignora brand setting) + grid DL-DG blanco semitransparente.
+// Los 7 días siempre se pintan; valores vienen de copy "DL: 9-21" líneas, si falta → "—".
+
+export function LayoutPhotoGridSchedule({ copy, brandName, primary, bgImageUrl }: RenderCtx) {
+  const DAYS = ['DL', 'DT', 'DC', 'DJ', 'DV', 'DS', 'DG'];
+  const rows = splitLines(copy, 14);
+  const map  = new Map<string, string>();
+  for (const row of rows) {
+    const parts = row.split(':');
+    if (parts.length >= 2) {
+      const key = (parts[0] ?? '').trim().slice(0, 2).toUpperCase();
+      const val = parts.slice(1).join(':').trim();
+      if (key && val) map.set(key, val);
+    }
+  }
+  return (
+    <div style={{ display: 'flex', width: W, height: H, position: 'relative', background: '#111111' }}>
+      {bgImageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={bgImageUrl} style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, objectFit: 'cover' }} alt="" />
+      )}
+      {/* Forced strong overlay — legibility */}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, background: 'rgba(0,0,0,0.75)', display: 'flex' }} />
+      {/* Brand accent top */}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: W, height: 10, background: primary, display: 'flex' }} />
+      {/* Content */}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, display: 'flex', flexDirection: 'column', padding: '100px 80px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', marginBottom: 56 }}>
+          <div style={{ display: 'flex', width: 56, height: 6, background: primary, marginBottom: 20 }} />
+          <div style={{ display: 'flex', fontSize: 72, fontFamily: 'Display', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 0.9 }}>
+            HORARI
+          </div>
+        </div>
+        {/* Grid card */}
+        <div style={{ display: 'flex', flexDirection: 'column', background: 'rgba(255,255,255,0.92)', padding: '36px 44px', borderRadius: 4 }}>
+          {DAYS.map((d, i) => (
+            <div key={d} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 0', borderBottom: i < DAYS.length - 1 ? '1px solid rgba(0,0,0,0.08)' : 'none' }}>
+              <div style={{ display: 'flex', fontSize: 34, fontFamily: 'Display', fontWeight: 900, color: '#111827', letterSpacing: '0.04em' }}>
+                {d}
+              </div>
+              <div style={{ display: 'flex', fontSize: 30, fontFamily: 'Body', fontWeight: 700, color: map.has(d) ? primary : '#9ca3af' }}>
+                {map.get(d) ?? '—'}
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Brand name */}
+        <div style={{ display: 'flex', marginTop: 'auto', paddingTop: 40, fontSize: 22, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+          {brandName}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Layout: editorial_large_title (Phase 2.B) ────────────────────────────────
+// Foto con overlay sutil/medio, título editorial gigante arriba, subtítulo debajo.
+
+export function LayoutEditorialLargeTitle({ copy, brandName, primary, bgImageUrl, overlayIntensity }: RenderCtx) {
+  const rows     = splitLines(copy, 4);
+  const title    = clamp(rows[0] ?? '', 80);
+  const subtitle = clamp(rows.slice(1).join(' — '), 140);
+  const alpha    = OVERLAY_ALPHA[overlayIntensity];
+  return (
+    <div style={{ display: 'flex', width: W, height: H, position: 'relative', background: '#111111' }}>
+      {bgImageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={bgImageUrl} style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, objectFit: 'cover' }} alt="" />
+      )}
+      {alpha > 0 && (
+        <div style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, background: `rgba(0,0,0,${alpha})`, display: 'flex' }} />
+      )}
+      <div style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, display: 'flex', flexDirection: 'column', padding: '120px 80px 100px' }}>
+        {title && (
+          <div style={{ display: 'flex', fontSize: 128, fontFamily: 'Display', fontWeight: 900, color: '#ffffff', lineHeight: 0.92, letterSpacing: '-0.03em', textTransform: 'uppercase', maxWidth: 920, flexWrap: 'wrap' }}>
+            {title}
+          </div>
+        )}
+        {subtitle && (
+          <div style={{ display: 'flex', fontSize: 32, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.85)', lineHeight: 1.35, marginTop: 48, maxWidth: 820, flexWrap: 'wrap' }}>
+            {subtitle}
+          </div>
+        )}
+      </div>
+      <div style={{ position: 'absolute', bottom: 60, left: 80, display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', width: 40, height: 3, background: primary }} />
+        <span style={{ fontSize: 20, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+          {brandName}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Layout: minimal_color_block (Phase 2.B) ──────────────────────────────────
+// Bloque plano en primary con tipografía condensada enorme centrada.
+
+export function LayoutMinimalColorBlock({ copy, brandName, primary }: RenderCtx) {
+  const text = clamp(copy || '', 140);
+  return (
+    <div style={{ display: 'flex', width: W, height: H, background: primary, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px', position: 'relative' }}>
+      <div style={{ display: 'flex', fontSize: 120, fontFamily: 'Display', fontWeight: 900, color: '#ffffff', textAlign: 'center', lineHeight: 0.95, textTransform: 'uppercase', letterSpacing: '-0.03em', maxWidth: 920, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {text}
+      </div>
+      <div style={{ position: 'absolute', bottom: 80, display: 'flex', fontSize: 22, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+        {brandName}
+      </div>
+    </div>
+  );
+}
+
+// ─── Layout: stat_highlight_clean (Phase 2.B) ─────────────────────────────────
+// Fondo blanco, número gigante en primary, contexto debajo, accent line.
+
+export function LayoutStatHighlightClean({ copy, brandName, primary, secondary }: RenderCtx) {
+  const rows  = splitLines(copy, 3);
+  const stat  = clamp(rows[0] ?? '—', 20);
+  const label = clamp(rows.slice(1).join(' '), 140);
+  return (
+    <div style={{ display: 'flex', width: W, height: H, background: '#fafafa', flexDirection: 'column', padding: '100px 80px', position: 'relative' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 'auto' }}>
+        <div style={{ display: 'flex', width: 6, height: 6, borderRadius: '50%', background: primary }} />
+        <span style={{ fontSize: 22, fontFamily: 'Body', fontWeight: 700, color: '#6b7280', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+          {brandName}
+        </span>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', fontSize: 240, fontFamily: 'Display', fontWeight: 900, color: primary, lineHeight: 0.82, letterSpacing: '-0.05em', flexWrap: 'wrap' }}>
+          {stat}
+        </div>
+        <div style={{ display: 'flex', width: 120, height: 2, background: primary, margin: '40px 0' }} />
+        {label && (
+          <div style={{ display: 'flex', fontSize: 44, fontFamily: 'Body', fontWeight: 700, color: secondary, lineHeight: 1.3, maxWidth: 820, flexWrap: 'wrap' }}>
+            {label}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Layout: quote_editorial_serif (Phase 2.B) ────────────────────────────────
+// Cita grande centrada en Display serif sobre fondo crema.
+
+export function LayoutQuoteEditorialSerif({ copy, brandName, primary }: RenderCtx) {
+  const quote = clamp(copy || '', 220);
+  return (
+    <div style={{ display: 'flex', width: W, height: H, background: '#faf7f2', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '140px 100px', position: 'relative' }}>
+      <div style={{ display: 'flex', fontSize: 180, fontFamily: 'Display', fontWeight: 900, color: 'rgba(17,24,39,0.1)', lineHeight: 1, position: 'absolute', top: 100, left: 100 }}>
+        "
+      </div>
+      <div style={{ display: 'flex', fontSize: 64, fontFamily: 'Display', fontWeight: 900, color: '#1f2937', textAlign: 'center', lineHeight: 1.18, letterSpacing: '-0.01em', maxWidth: 860, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {quote}
+      </div>
+      <div style={{ display: 'flex', width: 60, height: 2, background: primary, marginTop: 72 }} />
+      <div style={{ position: 'absolute', bottom: 100, display: 'flex', fontSize: 22, fontFamily: 'Body', fontWeight: 700, color: '#6b7280', letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+        {brandName}
+      </div>
+    </div>
+  );
+}
+
+// ─── Layout: product_hero_cta (Phase 2.B) ─────────────────────────────────────
+// Foto full-bleed sutil, título arriba, CTA en banda inferior con primary.
+
+export function LayoutProductHeroCta({ copy, brandName, primary, bgImageUrl, overlayIntensity }: RenderCtx) {
+  const rows = splitLines(copy, 4);
+  const title    = clamp(rows[0] ?? '', 60);
+  const subtitle = clamp(rows[1] ?? '', 100);
+  const cta      = clamp(rows[2] ?? 'Descobreix-ho', 40);
+  const alpha    = overlayIntensity === 'none' ? 0 : Math.min(OVERLAY_ALPHA[overlayIntensity], 0.3);
+  return (
+    <div style={{ display: 'flex', width: W, height: H, position: 'relative', background: '#111111' }}>
+      {bgImageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={bgImageUrl} style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, objectFit: 'cover' }} alt="" />
+      )}
+      {alpha > 0 && (
+        <div style={{ position: 'absolute', top: 0, left: 0, width: W, height: H, background: `rgba(0,0,0,${alpha})`, display: 'flex' }} />
+      )}
+      {title && (
+        <div style={{ position: 'absolute', top: 120, left: 80, right: 80, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', fontSize: 96, fontFamily: 'Display', fontWeight: 900, color: '#ffffff', lineHeight: 0.95, textTransform: 'uppercase', letterSpacing: '-0.02em', maxWidth: 920, flexWrap: 'wrap' }}>
+            {title}
+          </div>
+          {subtitle && (
+            <div style={{ display: 'flex', fontSize: 30, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.9)', lineHeight: 1.3, marginTop: 28, maxWidth: 820, flexWrap: 'wrap' }}>
+              {subtitle}
+            </div>
+          )}
+        </div>
+      )}
+      {/* CTA band */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, width: W, display: 'flex', flexDirection: 'column', background: primary, padding: '40px 80px 48px' }}>
+        <div style={{ display: 'flex', fontSize: 20, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+          {brandName}
+        </div>
+        <div style={{ display: 'flex', fontSize: 48, fontFamily: 'Display', fontWeight: 900, color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+          {cta} →
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Layout: story_numbered_series (Phase 2.B) ────────────────────────────────
+// FAQ-style: número grande, título en Display, body en Body. Imagen opcional arriba.
+
+export function LayoutStoryNumberedSeries({ copy, brandName, primary, secondary, bgImageUrl }: RenderCtx) {
+  const rows   = splitLines(copy, 10);
+  // rows[0]: "01" or similar. rows[1]: title. rows[2+]: body lines.
+  const number = clamp(rows[0] ?? '01', 4);
+  const title  = clamp(rows[1] ?? '', 80);
+  const body   = rows.slice(2).join('\n');
+  const illoH  = bgImageUrl ? Math.floor(H / 3) : 0;
+
+  return (
+    <div style={{ display: 'flex', width: W, height: H, background: '#ffffff', flexDirection: 'column', position: 'relative' }}>
+      {bgImageUrl && (
+        <div style={{ display: 'flex', width: W, height: illoH, position: 'relative', overflow: 'hidden' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={bgImageUrl} style={{ position: 'absolute', top: 0, left: 0, width: W, height: illoH, objectFit: 'cover' }} alt="" />
+        </div>
+      )}
+      <div style={{ display: 'flex', flex: 1, flexDirection: 'column', padding: '80px' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 24, marginBottom: 32 }}>
+          <span style={{ fontSize: 140, fontFamily: 'Display', fontWeight: 900, color: primary, lineHeight: 0.85, letterSpacing: '-0.04em' }}>
+            {number}
+          </span>
+          <div style={{ display: 'flex', width: 40, height: 4, background: primary }} />
+        </div>
+        {title && (
+          <div style={{ display: 'flex', fontSize: 64, fontFamily: 'Display', fontWeight: 900, color: '#111827', lineHeight: 1.05, textTransform: 'uppercase', letterSpacing: '-0.01em', marginBottom: 32, maxWidth: 900, flexWrap: 'wrap' }}>
+            {title}
+          </div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          {splitLines(body, 5).map((line, i) => (
+            <div key={i} style={{ display: 'flex', fontSize: 36, fontFamily: 'Body', fontWeight: 700, color: secondary, lineHeight: 1.35, flexWrap: 'wrap' }}>
+              {clamp(line, 110)}
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', marginTop: 'auto', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', width: 6, height: 6, borderRadius: '50%', background: primary }} />
+          <span style={{ fontSize: 20, fontFamily: 'Body', fontWeight: 700, color: '#9ca3af', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+            {brandName}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Layout: compare_split (Phase 2.B) ────────────────────────────────────────
+// División vertical 50/50 en primary/secondary.
+// Formato copy esperado: "Título A | Título B" / "Detalle A | Detalle B".
+
+export function LayoutCompareSplit({ copy, brandName, primary, secondary }: RenderCtx) {
+  const rows   = splitLines(copy, 4);
+  const titles = (rows[0] ?? '').split('|').map(s => s.trim());
+  const detail = (rows[1] ?? '').split('|').map(s => s.trim());
+  const titleA = clamp(titles[0] ?? 'Opció A', 40);
+  const titleB = clamp(titles[1] ?? 'Opció B', 40);
+  const descA  = clamp(detail[0] ?? '', 90);
+  const descB  = clamp(detail[1] ?? '', 90);
+  const halfW  = W / 2;
+
+  return (
+    <div style={{ display: 'flex', width: W, height: H, position: 'relative' }}>
+      {/* Left column */}
+      <div style={{ display: 'flex', width: halfW, height: H, background: primary, flexDirection: 'column', justifyContent: 'center', padding: '80px 60px' }}>
+        <div style={{ display: 'flex', fontSize: 22, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 24 }}>
+          A
+        </div>
+        <div style={{ display: 'flex', fontSize: 72, fontFamily: 'Display', fontWeight: 900, color: '#ffffff', lineHeight: 0.95, textTransform: 'uppercase', letterSpacing: '-0.02em', flexWrap: 'wrap' }}>
+          {titleA}
+        </div>
+        {descA && (
+          <div style={{ display: 'flex', fontSize: 30, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.85)', lineHeight: 1.35, marginTop: 32, flexWrap: 'wrap' }}>
+            {descA}
+          </div>
+        )}
+      </div>
+      {/* Right column */}
+      <div style={{ display: 'flex', width: halfW, height: H, background: secondary, flexDirection: 'column', justifyContent: 'center', padding: '80px 60px' }}>
+        <div style={{ display: 'flex', fontSize: 22, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 24 }}>
+          B
+        </div>
+        <div style={{ display: 'flex', fontSize: 72, fontFamily: 'Display', fontWeight: 900, color: '#ffffff', lineHeight: 0.95, textTransform: 'uppercase', letterSpacing: '-0.02em', flexWrap: 'wrap' }}>
+          {titleB}
+        </div>
+        {descB && (
+          <div style={{ display: 'flex', fontSize: 30, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.85)', lineHeight: 1.35, marginTop: 32, flexWrap: 'wrap' }}>
+            {descB}
+          </div>
+        )}
+      </div>
+      {/* Center VS */}
+      <div style={{ position: 'absolute', top: H / 2 - 40, left: W / 2 - 40, width: 80, height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ffffff', borderRadius: '50%' }}>
+        <span style={{ fontSize: 28, fontFamily: 'Display', fontWeight: 900, color: '#111827', letterSpacing: '-0.02em' }}>
+          VS
+        </span>
+      </div>
+      {/* Brand name bottom */}
+      <div style={{ position: 'absolute', bottom: 48, left: 0, width: W, display: 'flex', justifyContent: 'center', fontSize: 20, fontFamily: 'Body', fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+        {brandName}
+      </div>
+    </div>
+  );
+}
+
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
 function buildJSX(layoutName: string, ctx: RenderCtx): React.ReactElement {
   const layout = getLayoutById(layoutName) ?? getLayoutById('centered')!;
   return layout.render(ctx);
+}
+
+function resolveLayoutForRender(requestedLayout: string, hasImage: boolean): string {
+  const layout = getLayoutById(requestedLayout);
+  if (!layout) return 'flexible';
+
+  if (hasImage) {
+    if (layout.supportsImage) return requestedLayout;
+    if (layout.supportsSchedule) return 'photo_schedule';
+    return 'photo_overlay';
+  }
+  if (layout.requiresImage) return 'flexible';
+  return requestedLayout;
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
@@ -620,21 +1089,24 @@ export async function renderStory(params: {
     }
   }
 
-  // Choose photo layout when a background image is available
-  let effectiveLayout = params.layoutName;
-  if (bgImageUrl) {
-    effectiveLayout = (params.layoutName === 'table' || params.layoutName === 'hero')
-      ? 'photo_schedule'
-      : 'photo_overlay';
-  }
+  // Choose effective layout based on catalog metadata + image availability.
+  const effectiveLayout = resolveLayoutForRender(params.layoutName, Boolean(bgImageUrl));
+
+  const brandOverlayRaw = (brand as unknown as Record<string, unknown>).overlay_intensity;
+  const overlayIntensity: OverlayIntensity =
+    brandOverlayRaw === 'none' || brandOverlayRaw === 'subtle' ||
+    brandOverlayRaw === 'medium' || brandOverlayRaw === 'strong'
+      ? brandOverlayRaw
+      : 'medium';
 
   const ctx: RenderCtx = {
-    copy:       clamp(idea.copy_draft ?? '', 300),
-    brandName:  brand.name,
-    primary:    colors['primary']  ?? '#0F766E',
-    secondary:  colors['secondary'] ?? '#374151',
-    logoUrl:    (brand as unknown as Record<string, unknown>).logo_url as string | null ?? null,
+    copy:             clamp(idea.copy_draft ?? '', 300),
+    brandName:        brand.name,
+    primary:          colors['primary']  ?? '#0F766E',
+    secondary:        colors['secondary'] ?? '#374151',
+    logoUrl:          (brand as unknown as Record<string, unknown>).logo_url as string | null ?? null,
     bgImageUrl,
+    overlayIntensity,
   };
 
   const jsx = buildJSX(effectiveLayout, ctx);
